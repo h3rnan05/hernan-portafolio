@@ -14,7 +14,14 @@ from app.schemas.model import (
     RefitRequest,
 )
 from app.schemas.observation import ObservationOut
-from app.schemas.portfolio import PortfolioOut, PositionOut, PositionsSyncOut
+from app.schemas.portfolio import (
+    HoldingProjection,
+    HoldingsProjectionOut,
+    PortfolioOut,
+    PortfolioSnapshotOut,
+    PositionOut,
+    PositionsSyncOut,
+)
 from app.schemas.prediction import (
     PortfolioPredictionPoint,
     PortfolioPredictions,
@@ -29,7 +36,9 @@ from app.schemas.variable import VariableOut
 __all__ = [
     "HoldingIn",
     "HoldingOut",
+    "HoldingProjection",
     "HoldingUpdate",
+    "HoldingsProjectionOut",
     "HoldingsResponse",
     "HoldingsSummary",
     "ModelDetail",
@@ -38,6 +47,7 @@ __all__ = [
     "PortfolioOut",
     "PortfolioPredictionPoint",
     "PortfolioPredictions",
+    "PortfolioSnapshotOut",
     "PositionOut",
     "PositionsSyncOut",
     "PredictionPoint",

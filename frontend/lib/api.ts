@@ -170,6 +170,34 @@ export type HoldingInput = {
   notes?: string | null;
 };
 
+export type PortfolioSnapshot = {
+  portfolio_id: string;
+  weights: Record<string, number>;
+  mape_30d: number | null;
+  snapshotted_at: string;
+};
+
+export type HoldingProjection = {
+  ticker: string;
+  quantity: number;
+  avg_price: number;
+  last_price: number;
+  market_value: number;
+  open_pnl: number;
+  open_pnl_pct: number;
+  predicted_price: number | null;
+  predicted_market_value: number | null;
+  predicted_pnl_delta: number | null;
+};
+
+export type HoldingsProjection = {
+  rows: HoldingProjection[];
+  current_market_value: number;
+  projected_market_value: number;
+  projected_delta: number;
+  projected_delta_pct: number | null;
+};
+
 // ─── Fetch wrapper ───────────────────────────────────────────────────────────
 
 class ApiError extends Error {
@@ -273,6 +301,14 @@ export const api = {
 
   getPortfolio: (id: string) =>
     request<Portfolio>(`/portfolios/${encodeURIComponent(id)}`),
+
+  getPortfolioHistory: (id: string, days = 90) =>
+    request<PortfolioSnapshot[]>(
+      `/portfolios/${encodeURIComponent(id)}/history?days=${days}`,
+    ),
+
+  getHoldingsProjection: () =>
+    request<HoldingsProjection>("/holdings/projection"),
 
   listPositions: () => request<Position[]>("/positions/live"),
 

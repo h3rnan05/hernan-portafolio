@@ -9,8 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db import get_session
-from app.models import Portfolio, Prediction
-from app.schemas import PortfolioOut
+from app.models import Portfolio, PortfolioSnapshot, Prediction
+from app.schemas import PortfolioOut, PortfolioSnapshotOut
 
 router = APIRouter(prefix="/portfolios", tags=["portfolios"])
 
@@ -106,3 +106,40 @@ async def get_portfolio(
         generated_at=p.generated_at,
         mape_30d=mape,
     )
+
+
+@router.get(
+    "/{portfolio_id}/history",
+    response_model=list[PortfolioSnapshotOut],
+)
+async def get_portfolio_history(
+    portfolio_id: str,
+    days: int = 90,
+    session: AsyncSession = Depends(get_session),
+) -> list[PortfolioSnapshotOut]:
+    """Append-only snapshots of weight evolution for one risk profile."""
+    p = await session.get(Portfolio, portfolio_id)
+    if p is None:
+        raise HTTPException(404, f"Portfolio {portfolio_id} not found")
+
+    cutoff = date.today() - timedelta(days=days)
+    rows = (
+        await session.execute(
+            select(PortfolioSnapshot)
+            .where(
+                PortfolioSnapshot.portfolio_id == portfolio_id,
+                PortfolioSnapshot.snapshotted_at >= cutoff,
+            )
+            .order_by(PortfolioSnapshot.snapshotted_at.asc())
+        )
+    ).scalars().all()
+
+    return [
+        PortfolioSnapshotOut(
+            portfolio_id=s.portfolio_id,
+            weights={k: float(v) for k, v in (s.weights or {}).items()},
+            mape_30d=float(s.mape_30d) if s.mape_30d is not None else None,
+            snapshotted_at=s.snapshotted_at,
+        )
+        for s in rows
+    ]

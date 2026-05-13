@@ -19,7 +19,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modeling.data import latest_price, load_returns_frame
 from app.modeling.prediction import prediction_record
-from app.models import ModelFit, Observation, Portfolio, Prediction
+from app.models import (
+    ModelFit,
+    Observation,
+    Portfolio,
+    PortfolioSnapshot,
+    Prediction,
+)
 from app.portfolio.optimizer import PROFILE_DESCRIPTIONS, build_portfolios
 
 log = structlog.get_logger(__name__)
@@ -294,6 +300,18 @@ async def rebuild_portfolios(
         },
     )
     await session.execute(stmt)
+
+    # Also append a snapshot per profile so we can chart weight evolution.
+    # Portfolio table is UPSERT-overwritten on every rebuild; this table is
+    # append-only.
+    for pid, weights in profiles.items():
+        session.add(
+            PortfolioSnapshot(
+                portfolio_id=pid,
+                weights=weights,
+            )
+        )
+
     await session.commit()
     log.info("portfolios_rebuilt", n_profiles=len(profiles))
     return profiles
