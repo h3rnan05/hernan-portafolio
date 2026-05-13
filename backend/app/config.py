@@ -28,9 +28,10 @@ class Settings(BaseSettings):
 
     # Data providers
     fred_api_key: str = Field(..., description="FRED API key (mandatory)")
+    eodhd_api_key: str = ""  # primary for global EOD prices ($19.99/mo)
     polygon_api_key: str = ""
     alpha_vantage_api_key: str = ""
-    twelve_data_api_key: str = ""  # primary for international markets
+    twelve_data_api_key: str = ""  # fallback for international markets
     stooq_api_key: str = ""  # legacy — Stooq paywalled CSV downloads in 2026
     http_user_agent: str = "Mozilla/5.0"
 

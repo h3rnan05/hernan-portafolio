@@ -19,6 +19,7 @@ import typer
 from app.db import AsyncSessionLocal
 from app.ingestion import (
     BalticDryIndexProvider,
+    EODHDProvider,
     FREDProvider,
     IngestionRunner,
     ISMManufacturingPMIProvider,
@@ -37,6 +38,7 @@ app = typer.Typer(pretty_exceptions_enable=False)
 
 _PROVIDER_FACTORIES = {
     "fred": FREDProvider,
+    "eodhd": EODHDProvider,
     "twelve_data": TwelveDataProvider,
     "polygon": PolygonProvider,
     "yfinance": YFinanceProvider,
@@ -74,11 +76,12 @@ def build_runner(enabled: list[str]) -> IngestionRunner:
 @app.command()
 def run(
     providers: str = typer.Option(
-        "fred,twelve_data,polygon,yfinance,scrape_baltic,scrape_ism",
+        "fred,eodhd,polygon,twelve_data,yfinance,scrape_baltic,scrape_ism",
         "--providers",
         help=(
             "Comma-separated provider names. Known: "
-            "fred, twelve_data, polygon, yfinance, stooq, scrape_baltic, scrape_ism"
+            "fred, eodhd, polygon, twelve_data, yfinance, stooq, "
+            "scrape_baltic, scrape_ism"
         ),
     ),
     days: int = typer.Option(90, help="How many days back to fetch"),
