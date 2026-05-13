@@ -233,19 +233,29 @@ export function fmtPct(
   return formatted;
 }
 
-export function fmtDate(d: string | null | undefined): string {
-  if (!d) return "—";
+export function fmtDate(d: string | number | null | undefined): string {
+  if (d === null || d === undefined || d === "") return "—";
+  // Recharts tick formatters sometimes pass raw timestamps (ms) instead of
+  // the original string from the data; accept both.
+  let date: Date;
+  if (typeof d === "number") {
+    date = new Date(d);
+  } else {
+    date = new Date(d + (d.length === 10 ? "T00:00:00Z" : ""));
+  }
+  if (Number.isNaN(date.getTime())) return "—";
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "short",
     day: "2-digit",
-  }).format(new Date(d + (d.length === 10 ? "T00:00:00Z" : "")));
+  }).format(date);
 }
 
-export function fmtRelative(d: string | null | undefined): string {
-  if (!d) return "—";
+export function fmtRelative(d: string | number | null | undefined): string {
+  if (d === null || d === undefined || d === "") return "—";
+  const then = typeof d === "number" ? d : new Date(d).getTime();
+  if (Number.isNaN(then)) return "—";
   const now = Date.now();
-  const then = new Date(d).getTime();
   const diffMs = then - now;
   const diffDays = Math.round(diffMs / 86400_000);
   const rtf = new Intl.RelativeTimeFormat("en-US", { numeric: "auto" });
