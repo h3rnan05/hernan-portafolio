@@ -1,26 +1,52 @@
 @import "tailwindcss";
 
-/* Design tokens from the existing HTML mockup. */
+/* Design tokens — extracted from a typical quant-terminal palette. Dark by
+   default; the algorithm is the hero so chrome stays out of its way. */
 @theme {
   --color-bg: #08090d;
   --color-bg2: #0d0f17;
   --color-bg3: #131520;
   --color-bg4: #181b26;
+
   --color-border: #1c1f2e;
   --color-border2: #242838;
+  --color-border3: #2e334a;
 
   --color-green: #00e676;
+  --color-green-dim: #00b85e;
   --color-red: #ff3d5a;
+  --color-red-dim: #cc2f48;
   --color-amber: #ffb300;
+  --color-amber-dim: #cc8f00;
   --color-blue: #448aff;
   --color-cyan: #00e5ff;
+  --color-violet: #a78bfa;
 
   --color-text: #e8eaf6;
   --color-text2: #9fa8c7;
   --color-text3: #4a5068;
+  --color-text4: #2d3142;
 
   --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* Concentric border-radius scale (per UI-polish memo) */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+
+  /* Layered shadows replace borders on elevated surfaces */
+  --shadow-1: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-2: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 2px 6px rgba(0, 0, 0, 0.35),
+    0 8px 16px -8px rgba(0, 0, 0, 0.5);
+}
+
+html {
+  /* Antialiased + text-balance default per polish memo */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 html,
@@ -29,9 +55,71 @@ body {
   color: var(--color-text);
   font-family: var(--font-sans);
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* Body text gets text-pretty by default; headings get text-balance via util */
+p {
+  text-wrap: pretty;
+}
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+/* Numbers should never jitter as they update */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Code/symbol pills */
+code,
+kbd {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  font-feature-settings: "tnum" 1, "zero" 1;
+}
+
+/* Scrollbars — dark theme native look */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border2);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border3);
+}
+
+/* Recharts dark-theme overrides */
+.recharts-cartesian-axis-tick text {
+  fill: var(--color-text3) !important;
+  font-size: 11px;
+}
+.recharts-cartesian-grid line {
+  stroke: var(--color-border) !important;
+}
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+/* Hide focus ring on mouse, keep it on keyboard (a11y) */
+:focus {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid var(--color-cyan);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
