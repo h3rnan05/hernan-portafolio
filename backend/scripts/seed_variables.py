@@ -41,12 +41,15 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
     ),
     (
         "Citi_Econ_Surprise_US",
-        "ADS Business Conditions Index (proxy for Citi Surprise)",
+        "Chicago Fed National Activity Index (CFNAI)",
         "predictor",
         "Published Index",
         "Index",
-        # ADS Index — Aruoba-Diebold-Scotti, free FRED substitute (brief §2.2 Bucket C)
-        [{"name": "fred", "symbol": "ADSBCISMV"}],
+        # The brief specified ADSBCISMV (ADS Business Conditions Index) as a free
+        # substitute for Citi Economic Surprise. Both the original Citi index
+        # and ADSBCISMV are now unavailable on FRED. CFNAI is a similar
+        # composite (85 monthly indicators rolled into one z-scored value).
+        [{"name": "fred", "symbol": "CFNAI"}],
     ),
     (
         "ISM_Manufacturing_PMI",
@@ -107,11 +110,15 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
     ),
     (
         "Conference_Board_LEI",
-        "Conference Board LEI proxy",
+        "10Y-2Y Treasury spread (LEI substitute)",
         "predictor",
         "Published Index",
-        "Index",
-        [{"name": "fred", "symbol": "USSLIND"}],
+        "Percent",
+        # Original USSLIND (Atlanta Fed Leading Index) was discontinued in 2020.
+        # T10Y2Y — the 10Y vs 2Y Treasury yield curve — is the NY Fed's canonical
+        # recession leading indicator and is structurally similar in role: it
+        # turns negative ahead of every US recession since 1980.
+        [{"name": "fred", "symbol": "T10Y2Y"}],
     ),
     # ─── Bucket B: International indices (8) — EODHD primary (.INDX) ────────
     # EODHD symbol convention: {TICKER}.{EXCHANGE}, indices live on .INDX
@@ -264,12 +271,13 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
     # ─── Commodities (4) ────────────────────────────────────────────────────
     (
         "Gold_Spot",
-        "Gold (London PM Fix)",
+        "Gold (front-month futures, EODHD)",
         "predictor",
         "Commodity",
         "USD/oz",
+        # FRED's London PM Fix series (GOLDAMGBD228NLBM) was discontinued.
+        # EODHD's GC.COMM (front-month CME futures) tracks spot within ~0.5%.
         [
-            {"name": "fred", "symbol": "GOLDAMGBD228NLBM"},
             {"name": "eodhd", "symbol": "GC.COMM"},
             {"name": "twelve_data", "symbol": "XAU/USD"},
         ],
