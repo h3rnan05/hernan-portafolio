@@ -138,12 +138,15 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
     # EODHD symbol convention: {TICKER}.{EXCHANGE}, indices live on .INDX
     (
         "FTSE_100",
-        "FTSE 100",
+        "FTSE 100 (iShares Core ETF, ISF.LSE)",
         "predictor",
         "UK Index",
-        "Points",
+        "GBX",
+        # EODHD All-World plan does not include the spot FTSE.INDX feed
+        # (FTSE Russell licenses the index commercially). iShares Core
+        # FTSE 100 ETF tracks the index within 0.1% — drop-in proxy.
         [
-            {"name": "eodhd", "symbol": "FTSE.INDX"},
+            {"name": "eodhd", "symbol": "ISF.LSE"},
             {"name": "twelve_data", "symbol": "UKX"},
             {"name": "yfinance", "symbol": "^FTSE"},
         ],
@@ -285,14 +288,16 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
     # ─── Commodities (4) ────────────────────────────────────────────────────
     (
         "Gold_Spot",
-        "Gold (front-month futures, EODHD)",
+        "Gold (SPDR GLD ETF, GLD.US)",
         "predictor",
         "Commodity",
-        "USD/oz",
-        # FRED's London PM Fix series (GOLDAMGBD228NLBM) was discontinued.
-        # EODHD's GC.COMM (front-month CME futures) tracks spot within ~0.5%.
+        "USD",
+        # FRED's London PM Fix series (GOLDAMGBD228NLBM) was discontinued and
+        # EODHD All-World does not include the .COMM exchange. SPDR Gold Trust
+        # (GLD) tracks the spot gold price almost perfectly via physical gold
+        # holdings — best free proxy available.
         [
-            {"name": "eodhd", "symbol": "GC.COMM"},
+            {"name": "eodhd", "symbol": "GLD.US"},
             {"name": "twelve_data", "symbol": "XAU/USD"},
         ],
     ),
@@ -302,32 +307,36 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "predictor",
         "Commodity",
         "USD/bbl",
+        # FRED's DCOILBRENTEU is the canonical spot Brent series, daily, free.
+        # Kept as primary. EODHD's .COMM is not on our plan; we drop it.
         [
             {"name": "fred", "symbol": "DCOILBRENTEU"},
-            {"name": "eodhd", "symbol": "BRENT.COMM"},
             {"name": "twelve_data", "symbol": "BRENT"},
         ],
     ),
     (
         "Wheat_Futures",
-        "Wheat Futures",
+        "Wheat (Teucrium WEAT ETF)",
         "predictor",
         "Commodity",
-        "USD/bu",
+        "USD",
+        # EODHD .COMM not in plan. Teucrium Wheat Fund (WEAT) is a 1x ETF that
+        # holds rolling CBOT wheat futures — direct exposure proxy.
         [
-            {"name": "eodhd", "symbol": "WHEAT.COMM"},
+            {"name": "eodhd", "symbol": "WEAT.US"},
             {"name": "twelve_data", "symbol": "WHEAT"},
             {"name": "yfinance", "symbol": "ZW=F"},
         ],
     ),
     (
         "Copper_Futures",
-        "Copper Futures",
+        "Copper (CPER ETF)",
         "predictor",
         "Commodity",
-        "USD/lb",
+        "USD",
+        # US Copper Index Fund (CPER) holds rolling COMEX copper futures.
         [
-            {"name": "eodhd", "symbol": "COPPER.COMM"},
+            {"name": "eodhd", "symbol": "CPER.US"},
             {"name": "twelve_data", "symbol": "COPPER"},
             {"name": "yfinance", "symbol": "HG=F"},
         ],
@@ -371,12 +380,15 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
     ),
     (
         "Reliance_NSE",
-        "Reliance Industries (NSE)",
+        "Reliance Industries (GDR on LSE)",
         "predictor",
         "India Stock",
-        "INR",
+        "USD",
+        # EODHD All-World does not include NSE India. Reliance is dual-listed
+        # as a USD-denominated GDR on the London Stock Exchange (RIGD.LSE),
+        # which is the standard international proxy for the NSE shares.
         [
-            {"name": "eodhd", "symbol": "RELIANCE.NSE"},
+            {"name": "eodhd", "symbol": "RIGD.LSE"},
             {"name": "twelve_data", "symbol": "RELIANCE:NSE"},
             {"name": "yfinance", "symbol": "RELIANCE.NS"},
         ],

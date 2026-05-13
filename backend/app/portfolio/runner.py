@@ -57,10 +57,14 @@ async def run_daily_predictions(
         log.warning("predictions_no_active_models")
         return out
 
-    # Load enough history to grab lag_days+1 days of returns for all predictors
+    # Load enough history to grab lag_days+1 days of returns for all predictors.
+    # Monthly macro series (CPI, PPI, CFNAI, etc.) only publish once per month,
+    # so a 30-day window can miss the last release entirely if we're late in
+    # the month. 90 days guarantees at least 2 prior releases for any monthly
+    # series, so the ffill + diff in load_returns_frame yields a real value.
     all_predictors = sorted({p for m in active_models for p in m.predictor_ids})
     end = target_date
-    start = end - timedelta(days=30)  # generous buffer for weekend/holiday
+    start = end - timedelta(days=90)
     returns = await load_returns_frame(
         session,
         variable_ids=all_predictors,
