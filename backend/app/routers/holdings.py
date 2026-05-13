@@ -91,6 +91,85 @@ async def list_holdings(
     )
 
 
+@router.get("/projection", response_model=HoldingsProjectionOut)
+async def holdings_projection(
+    session: AsyncSession = Depends(get_session),
+) -> HoldingsProjectionOut:
+    """Compare each holding's current market value against the latest model
+    prediction for that ticker. Roll up into a portfolio-level delta so the
+    user sees: "if today's predictions play out, where am I tomorrow?"
+    """
+    holdings = (
+        await session.execute(select(Holding).order_by(Holding.ticker.asc()))
+    ).scalars().all()
+
+    # Latest prediction per ticker (active model only)
+    active_models = (
+        await session.execute(select(ModelFit).where(ModelFit.is_active.is_(True)))
+    ).scalars().all()
+    active_tickers = {m.ticker: m.id for m in active_models}
+
+    pred_by_ticker: dict[str, float] = {}
+    for ticker, model_id in active_tickers.items():
+        row = (
+            await session.execute(
+                select(Prediction.predicted_price)
+                .where(
+                    Prediction.ticker == ticker,
+                    Prediction.model_id == model_id,
+                )
+                .order_by(desc(Prediction.predicted_for))
+                .limit(1)
+            )
+        ).first()
+        if row is not None:
+            pred_by_ticker[ticker] = float(row[0])
+
+    rows: list[HoldingProjection] = []
+    current_mv = 0.0
+    projected_mv = 0.0
+    for h in holdings:
+        last = await latest_price(session, h.ticker)
+        last_price_value = last[1] if last else 0.0
+        qty = float(h.quantity)
+        avg = float(h.avg_price)
+        mv = qty * last_price_value
+        open_pnl = mv - qty * avg
+        open_pnl_pct = (open_pnl / (qty * avg)) if (qty * avg) > 0 else 0.0
+
+        pred_price = pred_by_ticker.get(h.ticker)
+        pred_mv = qty * pred_price if pred_price is not None else None
+        pred_pnl_delta = (pred_mv - mv) if pred_mv is not None else None
+
+        rows.append(
+            HoldingProjection(
+                ticker=h.ticker,
+                quantity=qty,
+                avg_price=avg,
+                last_price=last_price_value,
+                market_value=mv,
+                open_pnl=open_pnl,
+                open_pnl_pct=open_pnl_pct,
+                predicted_price=pred_price,
+                predicted_market_value=pred_mv,
+                predicted_pnl_delta=pred_pnl_delta,
+            )
+        )
+        current_mv += mv
+        projected_mv += pred_mv if pred_mv is not None else mv
+
+    delta = projected_mv - current_mv
+    delta_pct = (delta / current_mv) if current_mv > 0 else None
+
+    return HoldingsProjectionOut(
+        rows=rows,
+        current_market_value=current_mv,
+        projected_market_value=projected_mv,
+        projected_delta=delta,
+        projected_delta_pct=delta_pct,
+    )
+
+
 @router.post(
     "",
     response_model=HoldingOut,
@@ -209,82 +288,3 @@ async def bulk_upsert_holdings(
             existing.updated_at = datetime.now(UTC)
     await session.commit()
     return await list_holdings(session=session)
-
-
-@router.get("/projection", response_model=HoldingsProjectionOut)
-async def holdings_projection(
-    session: AsyncSession = Depends(get_session),
-) -> HoldingsProjectionOut:
-    """Compare each holding's current market value against the latest model
-    prediction for that ticker. Roll up into a portfolio-level delta so the
-    user sees: "if today's predictions play out, where am I tomorrow?"
-    """
-    holdings = (
-        await session.execute(select(Holding).order_by(Holding.ticker.asc()))
-    ).scalars().all()
-
-    # Latest prediction per ticker (active model only)
-    active_models = (
-        await session.execute(select(ModelFit).where(ModelFit.is_active.is_(True)))
-    ).scalars().all()
-    active_tickers = {m.ticker: m.id for m in active_models}
-
-    pred_by_ticker: dict[str, float] = {}
-    for ticker, model_id in active_tickers.items():
-        row = (
-            await session.execute(
-                select(Prediction.predicted_price)
-                .where(
-                    Prediction.ticker == ticker,
-                    Prediction.model_id == model_id,
-                )
-                .order_by(desc(Prediction.predicted_for))
-                .limit(1)
-            )
-        ).first()
-        if row is not None:
-            pred_by_ticker[ticker] = float(row[0])
-
-    rows: list[HoldingProjection] = []
-    current_mv = 0.0
-    projected_mv = 0.0
-    for h in holdings:
-        last = await latest_price(session, h.ticker)
-        last_price_value = last[1] if last else 0.0
-        qty = float(h.quantity)
-        avg = float(h.avg_price)
-        mv = qty * last_price_value
-        open_pnl = mv - qty * avg
-        open_pnl_pct = (open_pnl / (qty * avg)) if (qty * avg) > 0 else 0.0
-
-        pred_price = pred_by_ticker.get(h.ticker)
-        pred_mv = qty * pred_price if pred_price is not None else None
-        pred_pnl_delta = (pred_mv - mv) if pred_mv is not None else None
-
-        rows.append(
-            HoldingProjection(
-                ticker=h.ticker,
-                quantity=qty,
-                avg_price=avg,
-                last_price=last_price_value,
-                market_value=mv,
-                open_pnl=open_pnl,
-                open_pnl_pct=open_pnl_pct,
-                predicted_price=pred_price,
-                predicted_market_value=pred_mv,
-                predicted_pnl_delta=pred_pnl_delta,
-            )
-        )
-        current_mv += mv
-        projected_mv += pred_mv if pred_mv is not None else mv
-
-    delta = projected_mv - current_mv
-    delta_pct = (delta / current_mv) if current_mv > 0 else None
-
-    return HoldingsProjectionOut(
-        rows=rows,
-        current_market_value=current_mv,
-        projected_market_value=projected_mv,
-        projected_delta=delta,
-        projected_delta_pct=delta_pct,
-    )
