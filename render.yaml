@@ -1,0 +1,62 @@
+# Render Blueprint — one-click deploy of the backend.
+#
+# Usage:
+#   1. Sign in at https://render.com with GitHub
+#   2. Render → "+ New" → "Blueprint"
+#   3. Select `guth888/hernan-portafolio`
+#   4. Render reads this file, prompts for the env vars marked `sync: false`
+#   5. Paste each one (DATABASE_URL, FRED_API_KEY, etc.) → Deploy
+#
+# Free plan caveats:
+#   - Service sleeps after 15 minutes of inactivity (cold start ~30s)
+#   - 750 hours/month included
+#   - Auto-deploys on every push to main
+services:
+  - type: web
+    name: hernan-backend
+    runtime: docker
+    region: ohio
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      # ─── Database (paste at deploy time) ───────────────────────────────────
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_SYNC
+        sync: false
+
+      # ─── API keys (paste at deploy time) ───────────────────────────────────
+      - key: FRED_API_KEY
+        sync: false
+      - key: EODHD_API_KEY
+        sync: false
+      - key: POLYGON_API_KEY
+        sync: false
+      - key: TWELVE_DATA_API_KEY
+        sync: false
+      - key: ADMIN_BEARER_TOKEN
+        sync: false
+
+      # ─── Capital.com (optional; leave blank if not using) ──────────────────
+      - key: CAPITAL_API_KEY
+        sync: false
+      - key: CAPITAL_IDENTIFIER
+        sync: false
+      - key: CAPITAL_API_PASSWORD
+        sync: false
+
+      # ─── Hardcoded non-sensitive defaults ──────────────────────────────────
+      - key: CAPITAL_BASE_URL
+        value: https://demo-api-capital.backend-capital.com
+      - key: LOG_LEVEL
+        value: INFO
+      - key: HTTP_USER_AGENT
+        value: "Mozilla/5.0 (compatible; hernan-portafolio/0.1; +render)"
+
+      # ─── CORS — update with Vercel URL after frontend deploy ───────────────
+      - key: ALLOWED_ORIGINS
+        sync: false
