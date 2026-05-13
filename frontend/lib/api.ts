@@ -1,8 +1,8 @@
 /**
  * Typed API client for the portfolio-engine backend.
  *
- * Reads the base URL from NEXT_PUBLIC_API_URL. All endpoints return
- * already-decoded JSON, throwing on non-2xx.
+ * Mirrors the FastAPI schemas one-for-one. Never reads from cache so SSR
+ * + 60s client polling both see fresh data.
  */
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -28,14 +28,111 @@ export type Variable = {
   unit: string | null;
   providers: ProviderConfig[];
   active: boolean;
-  last_observed_on: string | null; // ISO date
+  last_observed_on: string | null;
   last_value: number | null;
 };
 
 export type Observation = {
-  observed_on: string; // ISO date
+  observed_on: string;
   value: number;
   served_by_provider: string | null;
+};
+
+export type ModelSummary = {
+  ticker: string;
+  fitted_at: string;
+  training_start: string;
+  training_end: string;
+  n_obs: number;
+  predictor_ids: string[];
+  r2: number;
+  r2_adj: number;
+  durbin_watson: number;
+  breusch_pagan_p: number;
+  max_vif: number;
+  status: "PASS" | "REVIEW" | "FAIL";
+  is_active: boolean;
+};
+
+export type ModelDetail = ModelSummary & {
+  intercept: number;
+  coefficients: Record<string, number>;
+  equation: string;
+};
+
+export type PredictionPoint = {
+  predicted_for: string;
+  predicted_at: string;
+  predicted_return: number | null;
+  predicted_price: number;
+  actual_price: number | null;
+  abs_error_pct: number | null;
+};
+
+export type TickerPredictions = {
+  ticker: string;
+  points: PredictionPoint[];
+  mape: number | null;
+};
+
+export type PortfolioPredictionPoint = {
+  predicted_for: string;
+  predicted_value: number;
+  actual_value: number | null;
+  error_pct: number | null;
+};
+
+export type PortfolioPredictions = {
+  portfolio_id: string;
+  points: PortfolioPredictionPoint[];
+  mape: number | null;
+};
+
+export type Portfolio = {
+  id: string;
+  name: string;
+  description: string | null;
+  weights: Record<string, number>;
+  generated_at: string;
+  mape_30d: number | null;
+};
+
+export type Position = {
+  snapshot_at: string;
+  account_id: string;
+  ticker: string;
+  quantity: number;
+  avg_price: number;
+  last_price: number;
+  market_value: number;
+  open_pnl: number;
+  open_pnl_pct: number;
+};
+
+export type SimulatedTicker = {
+  ticker: string;
+  predicted_return: number;
+  predicted_price: number;
+  last_price: number;
+  contributions: Record<string, number>;
+};
+
+export type SimulateResponse = {
+  inputs: Record<string, number>;
+  horizon_days: number;
+  per_ticker: SimulatedTicker[];
+  portfolio_value: number;
+  portfolio_value_baseline: number;
+  delta: number;
+};
+
+export type RefitOutcome = {
+  ticker: string;
+  status: "PASS" | "REVIEW" | "SKIPPED";
+  r2: number | null;
+  n_obs: number | null;
+  predictor_ids: string[];
+  error: string | null;
 };
 
 // ─── Fetch wrapper ───────────────────────────────────────────────────────────
@@ -51,17 +148,19 @@ class ApiError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const url = `${API_URL}${path}`;
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    cache: "no-store", // server-rendered Next.js — don't cache
-  });
+type RequestOpts = RequestInit & { adminToken?: string };
 
+async function request<T>(path: string, init?: RequestOpts): Promise<T> {
+  const url = `${API_URL}${path}`;
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+  if (init?.adminToken) {
+    headers["Authorization"] = `Bearer ${init.adminToken}`;
+  }
+
+  const res = await fetch(url, { ...init, headers, cache: "no-store" });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new ApiError(
@@ -81,7 +180,8 @@ export const api = {
   listVariables: (kind?: Variable["kind"]) =>
     request<Variable[]>(`/variables${kind ? `?kind=${kind}` : ""}`),
 
-  getVariable: (id: string) => request<Variable>(`/variables/${encodeURIComponent(id)}`),
+  getVariable: (id: string) =>
+    request<Variable>(`/variables/${encodeURIComponent(id)}`),
 
   getObservations: (
     id: string,
@@ -92,8 +192,58 @@ export const api = {
     if (opts?.to) qs.set("to", opts.to);
     if (opts?.limit) qs.set("limit", String(opts.limit));
     const suffix = qs.toString() ? `?${qs}` : "";
-    return request<Observation[]>(`/observations/${encodeURIComponent(id)}${suffix}`);
+    return request<Observation[]>(
+      `/observations/${encodeURIComponent(id)}${suffix}`,
+    );
   },
+
+  listModels: (onlyActive = true) =>
+    request<ModelSummary[]>(`/models?only_active=${onlyActive}`),
+
+  getModel: (ticker: string) =>
+    request<ModelDetail>(`/models/${encodeURIComponent(ticker)}`),
+
+  refitAll: (adminToken: string, body?: { lookback_days?: number; k_per_stock?: number; lag_days?: number }) =>
+    request<RefitOutcome[]>("/models/refit_all", {
+      method: "POST",
+      adminToken,
+      body: JSON.stringify(body ?? {}),
+    }),
+
+  refitTicker: (ticker: string, adminToken: string) =>
+    request<RefitOutcome>(`/models/${encodeURIComponent(ticker)}/refit`, {
+      method: "POST",
+      adminToken,
+    }),
+
+  getPredictions: (ticker: string, days = 30) =>
+    request<TickerPredictions>(
+      `/predictions/${encodeURIComponent(ticker)}?days=${days}`,
+    ),
+
+  getPortfolioPredictions: (portfolioId: string, days = 30) =>
+    request<PortfolioPredictions>(
+      `/predictions/portfolio/${encodeURIComponent(portfolioId)}?days=${days}`,
+    ),
+
+  simulate: (inputs: Record<string, number>, horizonDays = 7) =>
+    request<SimulateResponse>("/predictions/simulate", {
+      method: "POST",
+      body: JSON.stringify({ inputs, horizon_days: horizonDays }),
+    }),
+
+  listPortfolios: () => request<Portfolio[]>("/portfolios"),
+
+  getPortfolio: (id: string) =>
+    request<Portfolio>(`/portfolios/${encodeURIComponent(id)}`),
+
+  listPositions: () => request<Position[]>("/positions/live"),
+
+  syncPositions: (adminToken: string) =>
+    request<{ snapshot_count: number; snapshot_at: string }>(
+      "/positions/sync",
+      { method: "POST", adminToken },
+    ),
 };
 
 export { ApiError };
