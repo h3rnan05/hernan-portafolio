@@ -54,8 +54,12 @@ def select_features_greedy(
     if missing:
         raise ValueError(f"returns_df missing columns: {missing}")
 
+    # Lag the predictors and keep stocks contemporaneous. Do NOT whole-row
+    # dropna here: with mixed-frequency data (daily stocks + monthly macro)
+    # most rows have at least one NaN, which would empty the frame. pandas
+    # `corrwith` handles NaN pairwise — which is the right primitive.
     lagged = returns_df[predictors].shift(lag_days)
-    aligned = pd.concat([returns_df[tickers], lagged], axis=1).dropna()
+    aligned = pd.concat([returns_df[tickers], lagged], axis=1)
 
     used: set[str] = set()
     chosen: dict[str, list[str]] = {}

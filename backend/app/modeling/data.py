@@ -26,9 +26,14 @@ async def load_returns_frame(
 ) -> pd.DataFrame:
     """Build a wide DataFrame of **log returns** for the requested variables.
 
-    Each column is one variable; rows are dates where every variable has data
-    (we forward-fill within ±1 trading day before computing returns to absorb
-    holiday calendar mismatches across regions).
+    Mixed-frequency-safe: each series is forward-filled to the daily
+    business-day calendar so monthly macro releases (CPI, unemployment, …)
+    carry forward until the next release. Log returns are then computed per
+    column, leaving zeros between releases — that is correct: the predictor
+    "did not change" on those days, and OLS handles it natively.
+
+    The per-stock fit later (refit.py) does a `dropna` against just the
+    chosen predictors + the ticker, which is robust to NaN at row 0 etc.
     """
     stmt = select(Observation.variable_id, Observation.observed_on, Observation.value).where(
         Observation.variable_id.in_(variable_ids)
@@ -48,18 +53,26 @@ async def load_returns_frame(
     wide = df.pivot(index="observed_on", columns="variable_id", values="value")
     wide.index = pd.to_datetime(wide.index)
 
-    # Reindex to a daily business-day calendar covering the union of dates,
-    # forward-fill 1 day to absorb single-day holiday gaps in any one series.
+    # Reindex to a daily business-day calendar covering the union of dates
+    # and forward-fill without a limit so monthly series carry through the
+    # month at their last-released value. Strictly missing leading values
+    # (before first observation) remain NaN and get dropped in the per-stock
+    # alignment downstream.
     full_idx = pd.bdate_range(wide.index.min(), wide.index.max())
-    wide = wide.reindex(full_idx).ffill(limit=1)
+    wide = wide.reindex(full_idx).ffill()
 
-    # Compute log returns column-by-column (skips columns with too few points)
+    # Log returns column-by-column. Series with non-positive values (e.g.
+    # the 10Y-2Y spread can go negative) get a level diff instead so we
+    # don't take log of negatives.
     returns = pd.DataFrame(index=wide.index)
     for col in wide.columns:
-        s = wide[col]
+        s = wide[col].astype(float)
         if s.dropna().shape[0] < 2:
             continue
-        returns[col] = np.log(s).diff()
+        if (s.dropna() <= 0).any():
+            returns[col] = s.diff()
+        else:
+            returns[col] = np.log(s).diff()
     return returns.dropna(how="all")
 
 
