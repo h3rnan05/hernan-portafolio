@@ -5,6 +5,8 @@
  * and a sparkline of recent predicted portfolio value.
  */
 
+import Link from "next/link";
+
 import {
   Badge,
   Card,
@@ -80,7 +82,12 @@ function PortfolioRow({ portfolio }: { portfolio: Portfolio }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-[15px] font-semibold">{portfolio.name}</h3>
+            <Link
+              href={`/portfolios/${portfolio.id}`}
+              className="text-[15px] font-semibold hover:text-[var(--color-cyan)]"
+            >
+              {portfolio.name}
+            </Link>
             <Badge tone={tone}>{portfolio.id.split("_")[0]}</Badge>
           </div>
           {portfolio.description && (
@@ -89,15 +96,23 @@ function PortfolioRow({ portfolio }: { portfolio: Portfolio }) {
             </p>
           )}
         </div>
-        <div className="text-right">
-          <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
-            MAPE 30d
+        <div className="flex items-center gap-4">
+          <div className="text-right">
+            <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
+              MAPE 30d
+            </div>
+            <div className="mt-0.5 font-mono tabular text-base font-semibold">
+              {portfolio.mape_30d !== null
+                ? fmtPct(portfolio.mape_30d)
+                : "—"}
+            </div>
           </div>
-          <div className="mt-0.5 font-mono tabular text-base font-semibold">
-            {portfolio.mape_30d !== null
-              ? fmtPct(portfolio.mape_30d)
-              : "—"}
-          </div>
+          <Link
+            href={`/portfolios/${portfolio.id}`}
+            className="rounded-[6px] bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
+          >
+            History →
+          </Link>
         </div>
       </div>
 

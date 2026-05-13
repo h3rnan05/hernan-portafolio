@@ -45,11 +45,12 @@ async function safe<T>(fn: () => Promise<T>): Promise<Safe<T>> {
 }
 
 export default async function Overview() {
-  const [healthR, varsR, modelsR, portfoliosR] = await Promise.all([
+  const [healthR, varsR, modelsR, portfoliosR, projectionR] = await Promise.all([
     safe(() => api.health()),
     safe(() => api.listVariables()),
     safe(() => api.listModels(true)),
     safe(() => api.listPortfolios()),
+    safe(() => api.getHoldingsProjection()),
   ]);
 
   // ─── Backend unreachable → block render with a clear message ──────────────
@@ -218,6 +219,26 @@ export default async function Overview() {
         )}
       </section>
 
+      {/* Your portfolio vs predictions */}
+      {projectionR.ok && projectionR.data.rows.length > 0 && (
+        <section className="mb-10">
+          <SectionHeader
+            eyebrow="Your portfolio"
+            title="Today's position vs tomorrow's prediction"
+            description="Your real holdings priced today, vs. what the active models predict for each ticker. Delta is what you'd see if the predictions play out."
+            right={
+              <Link
+                href="/holdings"
+                className="rounded-[6px] bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
+              >
+                Edit holdings →
+              </Link>
+            }
+          />
+          <YourPortfolioCard projection={projectionR.data} />
+        </section>
+      )}
+
       {/* Stocks grid — 9 cards, current close + sparkline */}
       <section className="mb-10">
         <SectionHeader
@@ -313,6 +334,125 @@ function StockCard({
         <Sparkline values={values} width={96} height={32} />
       </div>
     </Link>
+  );
+}
+
+function YourPortfolioCard({
+  projection,
+}: {
+  projection: {
+    rows: Array<{
+      ticker: string;
+      quantity: number;
+      last_price: number;
+      market_value: number;
+      open_pnl_pct: number;
+      predicted_price: number | null;
+      predicted_pnl_delta: number | null;
+    }>;
+    current_market_value: number;
+    projected_market_value: number;
+    projected_delta: number;
+    projected_delta_pct: number | null;
+  };
+}) {
+  const totalPredCovered = projection.rows.filter(
+    (r) => r.predicted_price !== null,
+  ).length;
+  return (
+    <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_2fr]">
+      <Card>
+        <SectionHeader
+          eyebrow="Rollup"
+          title="Where you stand"
+          description={
+            totalPredCovered === projection.rows.length
+              ? "All holdings have a live prediction."
+              : `${totalPredCovered} of ${projection.rows.length} holdings have a live prediction; others use current price.`
+          }
+        />
+        <div className="space-y-3">
+          <StatTile
+            label="Current market value"
+            value={`$${fmtNumber(projection.current_market_value, { decimals: 2 })}`}
+            hint={`${projection.rows.length} positions`}
+          />
+          <StatTile
+            label="Projected (next trading day)"
+            value={`$${fmtNumber(projection.projected_market_value, { decimals: 2 })}`}
+            delta={
+              projection.projected_delta_pct !== null
+                ? {
+                    value: fmtPct(projection.projected_delta_pct, {
+                      signed: true,
+                      decimals: 3,
+                    }),
+                    tone: projection.projected_delta >= 0 ? "green" : "red",
+                  }
+                : undefined
+            }
+            hint={
+              projection.projected_delta >= 0
+                ? `+$${fmtNumber(projection.projected_delta, { decimals: 2 })} if predictions play out`
+                : `-$${fmtNumber(Math.abs(projection.projected_delta), { decimals: 2 })} if predictions play out`
+            }
+          />
+        </div>
+      </Card>
+      <Card>
+        <SectionHeader
+          eyebrow="Per-ticker"
+          title="Holding vs prediction"
+          description="Each row: today's market price vs. the model's next-day prediction for that ticker."
+        />
+        <div className="overflow-x-auto">
+          <table className="w-full text-[12px]">
+            <thead>
+              <tr className="border-b border-[var(--color-border)] text-left text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
+                <th className="py-2 pr-3 font-medium">Ticker</th>
+                <th className="py-2 pr-3 text-right font-medium">Qty</th>
+                <th className="py-2 pr-3 text-right font-medium">Last</th>
+                <th className="py-2 pr-3 text-right font-medium">Predicted</th>
+                <th className="py-2 pr-3 text-right font-medium">Δ MV</th>
+              </tr>
+            </thead>
+            <tbody>
+              {projection.rows.map((r) => (
+                <tr
+                  key={r.ticker}
+                  className="border-b border-[var(--color-border)] last:border-0"
+                >
+                  <td className="py-2 pr-3 font-mono font-medium">{r.ticker}</td>
+                  <td className="py-2 pr-3 text-right font-mono tabular text-[var(--color-text2)]">
+                    {fmtNumber(r.quantity, { decimals: 0 })}
+                  </td>
+                  <td className="py-2 pr-3 text-right font-mono tabular">
+                    ${fmtNumber(r.last_price, { decimals: 2 })}
+                  </td>
+                  <td className="py-2 pr-3 text-right font-mono tabular">
+                    {r.predicted_price !== null
+                      ? `$${fmtNumber(r.predicted_price, { decimals: 2 })}`
+                      : <span className="text-[var(--color-text3)]">—</span>}
+                  </td>
+                  <td className="py-2 pr-3 text-right">
+                    {r.predicted_pnl_delta !== null ? (
+                      <Badge tone={r.predicted_pnl_delta >= 0 ? "green" : "red"}>
+                        {r.predicted_pnl_delta >= 0 ? "+" : "-"}$
+                        {fmtNumber(Math.abs(r.predicted_pnl_delta), {
+                          decimals: 2,
+                        })}
+                      </Badge>
+                    ) : (
+                      <span className="text-[var(--color-text3)]">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
   );
 }
 

@@ -9,6 +9,7 @@ from app.models.ingestion_run import IngestionRun
 from app.models.model_fit import ModelFit
 from app.models.observation import Observation
 from app.models.portfolio import Portfolio
+from app.models.portfolio_snapshot import PortfolioSnapshot
 from app.models.position import PositionSnapshot
 from app.models.prediction import Prediction
 from app.models.variable import Variable
@@ -19,6 +20,7 @@ __all__ = [
     "ModelFit",
     "Observation",
     "Portfolio",
+    "PortfolioSnapshot",
     "PositionSnapshot",
     "Prediction",
     "Variable",

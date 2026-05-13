@@ -1,6 +1,12 @@
 /**
- * Positions — live Capital.com snapshot reconciled against predictions.
+ * Positions — broker mirror page.
+ *
+ * Webull doesn't expose a public API for personal accounts, so this view
+ * stays empty unless the user enables a different broker integration.
+ * The canonical "your portfolio" data flows through /holdings instead.
  */
+
+import Link from "next/link";
 
 import {
   Badge,
@@ -32,7 +38,7 @@ export default async function PositionsPage() {
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-            Positions · Capital.com demo
+            Positions · Webull
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">
             Live positions
@@ -55,8 +61,16 @@ export default async function PositionsPage() {
         </Card>
       ) : positions.length === 0 ? (
         <EmptyState
-          title="No positions snapshot yet"
-          description="Once Capital.com demo creds are in env + `scripts/snapshot_positions.py` runs (cron or manual), open positions show here."
+          title="Webull doesn't expose a public API for personal accounts"
+          description="There's no automated broker mirror available. The canonical view of your portfolio lives on the Holdings page — that's where P&L is computed."
+          action={
+            <Link
+              href="/holdings"
+              className="rounded-[8px] bg-[var(--color-cyan)] px-4 py-2 text-[12px] font-semibold text-[var(--color-bg)] active:scale-[0.97]"
+            >
+              Go to Holdings →
+            </Link>
+          }
         />
       ) : (
         <>
