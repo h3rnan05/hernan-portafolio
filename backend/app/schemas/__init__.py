@@ -1,5 +1,12 @@
 """Pydantic schemas for API responses."""
 
+from app.schemas.holding import (
+    HoldingIn,
+    HoldingOut,
+    HoldingsResponse,
+    HoldingsSummary,
+    HoldingUpdate,
+)
 from app.schemas.model import (
     ModelDetail,
     ModelSummary,
@@ -20,6 +27,11 @@ from app.schemas.prediction import (
 from app.schemas.variable import VariableOut
 
 __all__ = [
+    "HoldingIn",
+    "HoldingOut",
+    "HoldingUpdate",
+    "HoldingsResponse",
+    "HoldingsSummary",
     "ModelDetail",
     "ModelSummary",
     "ObservationOut",

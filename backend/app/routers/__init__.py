@@ -2,6 +2,7 @@
 
 from app.routers import (
     health,
+    holdings,
     models,
     observations,
     portfolios,
@@ -12,6 +13,7 @@ from app.routers import (
 
 __all__ = [
     "health",
+    "holdings",
     "models",
     "observations",
     "portfolios",

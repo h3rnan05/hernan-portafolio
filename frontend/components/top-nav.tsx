@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const ROUTES: { href: string; label: string }[] = [
   { href: "/", label: "Overview" },
+  { href: "/holdings", label: "Holdings" },
   { href: "/models", label: "Models" },
   { href: "/portfolios", label: "Portfolios" },
   { href: "/simulator", label: "Simulator" },
