@@ -16,6 +16,7 @@ import {
   fmtRelative,
   SectionHeader,
 } from "@/components/primitives";
+import { RefitButton } from "@/components/refit-button";
 import { api, ApiError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
@@ -25,38 +26,67 @@ export default async function ModelsPage() {
   let models: Awaited<ReturnType<typeof api.listModels>> = [];
   let error: string | null = null;
   try {
-    models = await api.listModels(true);
+    // Show ALL fits (active + REVIEW + FAIL) so the user can see what's gated
+    models = await api.listModels(false);
   } catch (e) {
     error = e instanceof ApiError ? e.message : String(e);
   }
 
+  // Deduplicate per ticker: prefer is_active=True, else most recent fitted_at
+  const byTicker = new Map<string, (typeof models)[number]>();
+  for (const m of models) {
+    const cur = byTicker.get(m.ticker);
+    if (!cur) {
+      byTicker.set(m.ticker, m);
+    } else if (m.is_active && !cur.is_active) {
+      byTicker.set(m.ticker, m);
+    } else if (
+      !cur.is_active && !m.is_active && m.fitted_at > cur.fitted_at
+    ) {
+      byTicker.set(m.ticker, m);
+    }
+  }
+  const display = Array.from(byTicker.values()).sort((a, b) =>
+    a.ticker.localeCompare(b.ticker),
+  );
+  const counts = {
+    pass: display.filter((m) => m.status === "PASS").length,
+    review: display.filter((m) => m.status === "REVIEW").length,
+    fail: display.filter((m) => m.status === "FAIL").length,
+  };
+
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <div className="mb-8">
-        <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-          Models
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
+            Models · {counts.pass} pass / {counts.review} review
+            {counts.fail > 0 && ` / ${counts.fail} fail`}
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Fitted regressions
+          </h1>
+          <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
+            One OLS model per stock with non-overlapping predictors. Only PASS
+            models generate live predictions. REVIEW means the fit landed but
+            failed at least one of the four diagnostic gates.
+          </p>
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Fitted regressions
-        </h1>
-        <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
-          One OLS model per stock, with non-overlapping predictors. Models only
-          go live after passing all four diagnostic thresholds.
-        </p>
+        <RefitButton />
       </div>
 
       {error ? (
         <Card>
           <div className="text-[13px] text-[var(--color-red)]">{error}</div>
         </Card>
-      ) : models.length === 0 ? (
+      ) : display.length === 0 ? (
         <EmptyState
           title="No models fit yet"
-          description="Run `uv run python scripts/refit_all.py` once enough predictor + stock observations have landed in Supabase."
+          description="Click 'Refit all models' once enough observations have landed."
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {models.map((m) => {
+          {display.map((m) => {
             const flags = passes(
               m.r2,
               m.durbin_watson,

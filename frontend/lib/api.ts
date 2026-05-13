@@ -135,6 +135,41 @@ export type RefitOutcome = {
   error: string | null;
 };
 
+export type Holding = {
+  id: string;
+  ticker: string;
+  quantity: number;
+  avg_price: number;
+  notes: string | null;
+  added_at: string;
+  updated_at: string;
+  last_price: number | null;
+  market_value: number | null;
+  cost_basis: number | null;
+  open_pnl: number | null;
+  open_pnl_pct: number | null;
+};
+
+export type HoldingsSummary = {
+  n: number;
+  cost_basis: number;
+  market_value: number;
+  open_pnl: number;
+  open_pnl_pct: number | null;
+};
+
+export type HoldingsResponse = {
+  holdings: Holding[];
+  summary: HoldingsSummary;
+};
+
+export type HoldingInput = {
+  ticker: string;
+  quantity: number;
+  avg_price: number;
+  notes?: string | null;
+};
+
 // ─── Fetch wrapper ───────────────────────────────────────────────────────────
 
 class ApiError extends Error {
@@ -169,6 +204,8 @@ async function request<T>(path: string, init?: RequestOpts): Promise<T> {
       `${res.status} ${res.statusText}: ${body.slice(0, 200)}`,
     );
   }
+  // 204 / empty body — return null typed as T (callers know when this applies)
+  if (res.status === 204) return null as unknown as T;
   return res.json() as Promise<T>;
 }
 
@@ -244,6 +281,39 @@ export const api = {
       "/positions/sync",
       { method: "POST", adminToken },
     ),
+
+  listHoldings: () => request<HoldingsResponse>("/holdings"),
+
+  createHolding: (h: HoldingInput, adminToken: string) =>
+    request<Holding>("/holdings", {
+      method: "POST",
+      adminToken,
+      body: JSON.stringify(h),
+    }),
+
+  updateHolding: (ticker: string, patch: Partial<HoldingInput>, adminToken: string) =>
+    request<Holding>(`/holdings/${encodeURIComponent(ticker)}`, {
+      method: "PATCH",
+      adminToken,
+      body: JSON.stringify(patch),
+    }),
+
+  deleteHolding: (ticker: string, adminToken: string) =>
+    request<null>(`/holdings/${encodeURIComponent(ticker)}`, {
+      method: "DELETE",
+      adminToken,
+    }).catch((e: unknown) => {
+      // DELETE returns 204 No Content — fetch tries to parse empty body as JSON
+      if (e instanceof ApiError) throw e;
+      return null;
+    }),
+
+  bulkUpsertHoldings: (rows: HoldingInput[], adminToken: string) =>
+    request<HoldingsResponse>("/holdings/bulk", {
+      method: "POST",
+      adminToken,
+      body: JSON.stringify(rows),
+    }),
 };
 
 export { ApiError };

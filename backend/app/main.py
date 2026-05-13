@@ -14,6 +14,7 @@ from app.config import get_settings
 from app.logging import get_logger, setup_logging
 from app.routers import (
     health,
+    holdings,
     models,
     observations,
     portfolios,
@@ -59,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(predictions.router)
     app.include_router(portfolios.router)
     app.include_router(positions.router)
+    app.include_router(holdings.router)
 
     return app
 
