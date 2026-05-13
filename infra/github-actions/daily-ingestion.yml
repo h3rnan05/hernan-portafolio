@@ -1,0 +1,86 @@
+name: Daily Ingestion
+
+# Runs the ingestion pipeline at 22:00 UTC on weekdays (after US market close).
+# Disabled by default — enable by uncommenting `schedule:` once secrets are set.
+
+on:
+  workflow_dispatch:        # manual trigger always available
+  # schedule:
+  #   - cron: "0 22 * * 1-5"
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL_SYNC: ${{ secrets.DATABASE_URL_SYNC }}
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+      CAPITAL_API_KEY: ${{ secrets.CAPITAL_API_KEY }}
+      CAPITAL_IDENTIFIER: ${{ secrets.CAPITAL_IDENTIFIER }}
+      CAPITAL_API_PASSWORD: ${{ secrets.CAPITAL_API_PASSWORD }}
+      CAPITAL_BASE_URL: ${{ secrets.CAPITAL_BASE_URL }}
+      ADMIN_BEARER_TOKEN: ${{ secrets.ADMIN_BEARER_TOKEN }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      HTTP_USER_AGENT: "Mozilla/5.0 (compatible; portfolio-engine/0.1; +github-actions)"
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run migrations (idempotent)
+        run: uv run alembic upgrade head
+
+      - name: Seed variables (idempotent upsert)
+        run: uv run python scripts/seed_variables.py
+
+      - name: Ingest from FRED
+        run: uv run python scripts/run_ingestion.py --providers fred --days 30
+
+      - name: Ingest from Stooq
+        run: uv run python scripts/run_ingestion.py --providers stooq --days 30
+        # Stooq is best-effort — don't fail the whole job if it has a bad day
+        continue-on-error: true
+
+      # ─── Phase 1+ — uncomment as the agent implements each provider ─────────
+      # - name: Ingest from yfinance
+      #   run: uv run python scripts/run_ingestion.py --providers yfinance --days 30
+      #   continue-on-error: true
+      #
+      # - name: Ingest from Polygon
+      #   run: uv run python scripts/run_ingestion.py --providers polygon --days 30
+      #   continue-on-error: true
+      #
+      # - name: Snapshot Capital.com positions
+      #   run: uv run python scripts/snapshot_positions.py
+      #
+      # - name: Run predictions
+      #   run: uv run python scripts/run_predictions.py
+      #
+      # - name: Refit models (Sundays only)
+      #   if: github.event.schedule == '0 22 * * 0'
+      #   run: uv run python scripts/refit_all.py
+
+      - name: Notify on failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "{\"text\":\"❌ Daily ingestion failed for ${{ github.repository }} — see ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"

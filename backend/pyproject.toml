@@ -1,0 +1,79 @@
+[project]
+name = "portfolio-engine-backend"
+version = "0.1.0"
+description = "Portfolio prediction engine backend — data ingestion, regression models, prediction API"
+requires-python = ">=3.11"
+dependencies = [
+    # Web framework
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    # Validation & settings
+    "pydantic>=2.9.0",
+    "pydantic-settings>=2.6.0",
+    # Database
+    "sqlalchemy[asyncio]>=2.0.36",
+    "asyncpg>=0.30.0",
+    "alembic>=1.14.0",
+    "greenlet>=3.1.0",                    # required by SQLAlchemy async on some platforms
+    # HTTP client (async)
+    "httpx>=0.28.0",
+    # Data + math (used in Phase 2+)
+    "pandas>=2.2.0",
+    "numpy>=2.1.0",
+    "statsmodels>=0.14.4",
+    "scipy>=1.14.0",
+    # CLI
+    "typer>=0.15.0",
+    # Optional but useful
+    "structlog>=24.4.0",                  # structured logging
+    "tenacity>=9.0.0",                    # retry decorator
+    "psycopg2-binary>=2.9.12",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-asyncio>=0.24.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.8.0",
+    "respx>=0.21.0",                      # httpx mocking
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "RUF"]
+ignore = [
+    "E501",    # line too long (formatter handles it)
+    "B008",    # function-call-in-default-arg — FastAPI Depends() pattern
+    "N806",    # non-lowercase variable — y/X is regression convention
+    "N803",    # non-lowercase argument — same regression convention
+    "N812",    # lowercase imported as non-lowercase (e.g. statsmodels.api as sm)
+    "N818",    # exception names without "Error" suffix — project uses ProviderError style
+    "RUF001",  # ambiguous unicode in strings (we use · ≥ in docstrings deliberately)
+    "RUF002",  # ditto in docstrings
+    "RUF003",  # ditto in comments
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[dependency-groups]
+dev = [
+    "aiosqlite>=0.22.1",
+    "httpx>=0.28.1",
+]
