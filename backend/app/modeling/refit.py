@@ -82,9 +82,29 @@ async def refit_all(
             for t in tickers
         ]
 
-    # Restrict to columns we actually have data for
+    # Restrict to columns that actually have a usable amount of data.
+    # Predictors with <30 non-NaN return rows can't meaningfully participate.
+    MIN_NON_NAN_FOR_PREDICTOR = 30
     available_tickers = [t for t in tickers if t in returns.columns]
-    available_predictors = [p for p in predictors if p in returns.columns]
+    available_predictors = [
+        p
+        for p in predictors
+        if p in returns.columns
+        and returns[p].notna().sum() >= MIN_NON_NAN_FOR_PREDICTOR
+    ]
+
+    log.info(
+        "refit_predictor_filter",
+        eligible=len(available_predictors),
+        total=len(predictors),
+        dropped=[
+            p
+            for p in predictors
+            if p in returns.columns
+            and returns[p].notna().sum() < MIN_NON_NAN_FOR_PREDICTOR
+        ]
+        + [p for p in predictors if p not in returns.columns],
+    )
 
     chosen = select_features_greedy(
         returns,

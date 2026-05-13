@@ -90,9 +90,11 @@ def fit_and_diagnose(y: pd.Series, X: pd.DataFrame) -> DiagnosticResult:
                 for i in range(1, X_const.shape[1])
             )
         )
-        # NaN VIF means perfect collinearity; treat as fail-fast big number
+        # Inf/NaN VIF means perfect (or near-perfect) collinearity. Clamp to a
+        # large finite sentinel so the value fits Numeric(10, 6) on the way to
+        # Postgres while still failing the < 10 threshold loudly.
         if not np.isfinite(max_vif):
-            max_vif = float("inf")
+            max_vif = 9999.999999
 
     coefficients = {col: float(res.params[col]) for col in X.columns}
     intercept = float(res.params["const"])
