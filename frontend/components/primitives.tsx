@@ -234,37 +234,48 @@ export function fmtPct(
 }
 
 export function fmtDate(d: string | number | null | undefined): string {
-  if (d === null || d === undefined || d === "") return "—";
-  // Recharts tick formatters sometimes pass raw timestamps (ms) instead of
-  // the original string from the data; accept both.
-  let date: Date;
-  if (typeof d === "number") {
-    date = new Date(d);
-  } else {
-    date = new Date(d + (d.length === 10 ? "T00:00:00Z" : ""));
+  // Triple-belt-and-suspenders: explicit nullish check, NaN check on the Date,
+  // then try/catch around Intl.DateTimeFormat.format() which throws RangeError
+  // on invalid Date. Even if Recharts passes a weird tick value we never throw.
+  try {
+    if (d === null || d === undefined || d === "") return "—";
+    let date: Date;
+    if (typeof d === "number") {
+      date = new Date(d);
+    } else if (typeof d === "string") {
+      date = new Date(d + (d.length === 10 ? "T00:00:00Z" : ""));
+    } else {
+      return "—";
+    }
+    if (!date || Number.isNaN(date.getTime())) return "—";
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+    }).format(date);
+  } catch {
+    return "—";
   }
-  if (Number.isNaN(date.getTime())) return "—";
-  return new Intl.DateTimeFormat("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "2-digit",
-  }).format(date);
 }
 
 export function fmtRelative(d: string | number | null | undefined): string {
-  if (d === null || d === undefined || d === "") return "—";
-  const then = typeof d === "number" ? d : new Date(d).getTime();
-  if (Number.isNaN(then)) return "—";
-  const now = Date.now();
-  const diffMs = then - now;
-  const diffDays = Math.round(diffMs / 86400_000);
-  const rtf = new Intl.RelativeTimeFormat("en-US", { numeric: "auto" });
-  if (Math.abs(diffDays) < 1) {
-    const diffHours = Math.round(diffMs / 3600_000);
-    if (Math.abs(diffHours) < 1) {
-      return rtf.format(Math.round(diffMs / 60_000), "minute");
+  try {
+    if (d === null || d === undefined || d === "") return "—";
+    const then = typeof d === "number" ? d : new Date(d).getTime();
+    if (Number.isNaN(then)) return "—";
+    const now = Date.now();
+    const diffMs = then - now;
+    const diffDays = Math.round(diffMs / 86400_000);
+    const rtf = new Intl.RelativeTimeFormat("en-US", { numeric: "auto" });
+    if (Math.abs(diffDays) < 1) {
+      const diffHours = Math.round(diffMs / 3600_000);
+      if (Math.abs(diffHours) < 1) {
+        return rtf.format(Math.round(diffMs / 60_000), "minute");
+      }
+      return rtf.format(diffHours, "hour");
     }
-    return rtf.format(diffHours, "hour");
+    return rtf.format(diffDays, "day");
+  } catch {
+    return "—";
   }
-  return rtf.format(diffDays, "day");
 }
