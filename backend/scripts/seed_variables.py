@@ -32,12 +32,21 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
     # ─── Bucket A: FRED — published US macro indicators (10) ────────────────
     (
         "Baltic_Dry_Index",
-        "Baltic Dry Index",
+        "BDRY ETF (Baltic Dry Index proxy)",
         "predictor",
-        "Published Index",
-        "Index",
-        # No FRED series — agent implements scraper in Phase 1
-        [{"name": "scrape_baltic", "symbol": "BDIY"}],
+        "Shipping",
+        "USD",
+        # The real Baltic Dry Index has no free API in 2026 — Baltic Exchange
+        # licenses it commercially (Trading Economics $50/mo, etc.). The BDRY
+        # ETF (Breakwave Dry Bulk Shipping) holds rolling Capesize/Panamax/
+        # Supramax futures and is directionally correlated with the BDI.
+        # EODHD All-World covers BDRY.US under our existing subscription.
+        # NOTE: BDRY tracks ~3-month avg of futures, so it lags spot moves —
+        # treat as a smoothed proxy rather than a tick-by-tick BDI feed.
+        [
+            {"name": "eodhd", "symbol": "BDRY.US"},
+            {"name": "polygon", "symbol": "BDRY"},
+        ],
     ),
     (
         "Citi_Econ_Surprise_US",
@@ -53,12 +62,17 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
     ),
     (
         "ISM_Manufacturing_PMI",
-        "ISM Manufacturing PMI",
+        "Empire State Manufacturing (ISM PMI proxy)",
         "predictor",
         "Published Index",
         "Index",
-        # No FRED series — agent implements scraper for ismworld.org
-        [{"name": "scrape_ism", "symbol": "PMI"}],
+        # ISM revoked FRED redistribution rights in ~2016; the actual ISM PMI
+        # series is no longer free via any reliable API. The NY Fed Empire
+        # State Manufacturing General Business Conditions Diffusion Index is
+        # built on the same diffusion methodology, released ~2 weeks earlier
+        # each month, and correlates with the ISM PMI at ~0.7-0.8 over multi-
+        # year windows. Free on FRED, kept current.
+        [{"name": "fred", "symbol": "GACDISA066MSFRBNY"}],
     ),
     (
         "Consumer_Confidence",
