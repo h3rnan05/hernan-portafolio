@@ -40,7 +40,7 @@ async def refit_all(
     *,
     end: date | None = None,
     lookback_days: int = 540,
-    k_per_stock: int = 4,
+    k_per_stock: int = 3,
     lag_days: int = 1,
     min_obs: int = 60,
 ) -> list[RefitOutcome]:

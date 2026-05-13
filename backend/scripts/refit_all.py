@@ -26,7 +26,7 @@ app = typer.Typer(pretty_exceptions_enable=False)
 @app.command()
 def main(
     lookback: int = typer.Option(540, help="Days of training data to use"),
-    k: int = typer.Option(4, "--k", help="Predictors per stock"),
+    k: int = typer.Option(3, "--k", help="Predictors per stock"),
     lag: int = typer.Option(0, help="Override LAG_DAYS (0 = use config)"),
     min_obs: int = typer.Option(60, help="Minimum aligned rows before fitting"),
 ) -> None:

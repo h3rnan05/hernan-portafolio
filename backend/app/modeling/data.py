@@ -53,13 +53,15 @@ async def load_returns_frame(
     wide = df.pivot(index="observed_on", columns="variable_id", values="value")
     wide.index = pd.to_datetime(wide.index)
 
-    # Reindex to a daily business-day calendar covering the union of dates
-    # and forward-fill without a limit so monthly series carry through the
-    # month at their last-released value. Strictly missing leading values
-    # (before first observation) remain NaN and get dropped in the per-stock
-    # alignment downstream.
-    full_idx = pd.bdate_range(wide.index.min(), wide.index.max())
-    wide = wide.reindex(full_idx).ffill()
+    # Reindex onto a calendar that includes both business days *and* the
+    # original observation dates, ffill, then drop back to business days.
+    # This handles monthly series whose release date lands on a weekend
+    # (e.g. CFNAI's nominal 1st-of-month timestamp can be a Sunday — bday-
+    # only reindex would discard that observation entirely).
+    bdays = pd.bdate_range(wide.index.min(), wide.index.max())
+    combined = wide.index.union(bdays).sort_values()
+    wide = wide.reindex(combined).ffill()
+    wide = wide.loc[wide.index.isin(bdays)]
 
     # Log returns column-by-column. Series with non-positive values (e.g.
     # the 10Y-2Y spread can go negative) get a level diff instead so we
