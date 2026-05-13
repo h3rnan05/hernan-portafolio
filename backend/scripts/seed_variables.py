@@ -113,10 +113,8 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Index",
         [{"name": "fred", "symbol": "USSLIND"}],
     ),
-    # ─── Bucket B: International indices (8) — Twelve Data primary ──────────
-    # NOTE on TD symbols: "SYM:EXCHANGE" disambiguates when needed — the
-    # TwelveDataProvider parses the suffix into a separate ?exchange= param.
-    # Bare symbols (no colon) pass through unchanged.
+    # ─── Bucket B: International indices (8) — EODHD primary (.INDX) ────────
+    # EODHD symbol convention: {TICKER}.{EXCHANGE}, indices live on .INDX
     (
         "FTSE_100",
         "FTSE 100",
@@ -124,6 +122,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "UK Index",
         "Points",
         [
+            {"name": "eodhd", "symbol": "FTSE.INDX"},
             {"name": "twelve_data", "symbol": "UKX"},
             {"name": "yfinance", "symbol": "^FTSE"},
         ],
@@ -135,6 +134,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Germany Index",
         "Points",
         [
+            {"name": "eodhd", "symbol": "GDAXI.INDX"},
             {"name": "twelve_data", "symbol": "DAX"},
             {"name": "yfinance", "symbol": "^GDAXI"},
         ],
@@ -146,6 +146,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "France Index",
         "Points",
         [
+            {"name": "eodhd", "symbol": "FCHI.INDX"},
             {"name": "twelve_data", "symbol": "CAC"},
             {"name": "yfinance", "symbol": "^FCHI"},
         ],
@@ -157,6 +158,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Japan Index",
         "Points",
         [
+            {"name": "eodhd", "symbol": "N225.INDX"},
             {"name": "twelve_data", "symbol": "N225"},
             {"name": "yfinance", "symbol": "^N225"},
         ],
@@ -168,6 +170,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "HK Index",
         "Points",
         [
+            {"name": "eodhd", "symbol": "HSI.INDX"},
             {"name": "twelve_data", "symbol": "HSI"},
             {"name": "yfinance", "symbol": "^HSI"},
         ],
@@ -179,6 +182,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Brazil Index",
         "Points",
         [
+            {"name": "eodhd", "symbol": "BVSP.INDX"},
             {"name": "twelve_data", "symbol": "BVSP"},
             {"name": "yfinance", "symbol": "^BVSP"},
         ],
@@ -190,6 +194,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Korea Index",
         "Points",
         [
+            {"name": "eodhd", "symbol": "KS11.INDX"},
             {"name": "twelve_data", "symbol": "KS11"},
             {"name": "yfinance", "symbol": "^KS11"},
         ],
@@ -201,11 +206,12 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "India Index",
         "Points",
         [
+            {"name": "eodhd", "symbol": "BSESN.INDX"},
             {"name": "twelve_data", "symbol": "SENSEX"},
             {"name": "yfinance", "symbol": "^BSESN"},
         ],
     ),
-    # ─── FX rates (4) — FRED primary ────────────────────────────────────────
+    # ─── FX rates (4) — FRED primary, EODHD fallback (.FOREX) ───────────────
     (
         "EUR_USD",
         "EUR/USD",
@@ -214,6 +220,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Rate",
         [
             {"name": "fred", "symbol": "DEXUSEU"},
+            {"name": "eodhd", "symbol": "EURUSD.FOREX"},
             {"name": "twelve_data", "symbol": "EUR/USD"},
         ],
     ),
@@ -223,8 +230,9 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "predictor",
         "FX Rate",
         "Rate",
-        # FRED has no direct EUR/JPY series — TD primary
+        # FRED has no direct EUR/JPY series — EODHD primary
         [
+            {"name": "eodhd", "symbol": "EURJPY.FOREX"},
             {"name": "twelve_data", "symbol": "EUR/JPY"},
             {"name": "yfinance", "symbol": "EURJPY=X"},
         ],
@@ -237,6 +245,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Rate",
         [
             {"name": "fred", "symbol": "DEXMXUS"},
+            {"name": "eodhd", "symbol": "USDMXN.FOREX"},
             {"name": "twelve_data", "symbol": "USD/MXN"},
         ],
     ),
@@ -248,6 +257,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Rate",
         [
             {"name": "fred", "symbol": "DEXCHUS"},
+            {"name": "eodhd", "symbol": "USDCNY.FOREX"},
             {"name": "twelve_data", "symbol": "USD/CNY"},
         ],
     ),
@@ -260,6 +270,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "USD/oz",
         [
             {"name": "fred", "symbol": "GOLDAMGBD228NLBM"},
+            {"name": "eodhd", "symbol": "GC.COMM"},
             {"name": "twelve_data", "symbol": "XAU/USD"},
         ],
     ),
@@ -271,6 +282,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "USD/bbl",
         [
             {"name": "fred", "symbol": "DCOILBRENTEU"},
+            {"name": "eodhd", "symbol": "BRENT.COMM"},
             {"name": "twelve_data", "symbol": "BRENT"},
         ],
     ),
@@ -281,6 +293,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Commodity",
         "USD/bu",
         [
+            {"name": "eodhd", "symbol": "WHEAT.COMM"},
             {"name": "twelve_data", "symbol": "WHEAT"},
             {"name": "yfinance", "symbol": "ZW=F"},
         ],
@@ -292,11 +305,12 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Commodity",
         "USD/lb",
         [
+            {"name": "eodhd", "symbol": "COPPER.COMM"},
             {"name": "twelve_data", "symbol": "COPPER"},
             {"name": "yfinance", "symbol": "HG=F"},
         ],
     ),
-    # ─── International stocks (4) ───────────────────────────────────────────
+    # ─── International stocks (4) — EODHD primary ───────────────────────────
     (
         "Banco_Santander_MAD",
         "Banco Santander (Madrid)",
@@ -304,6 +318,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Madrid Stock",
         "EUR",
         [
+            {"name": "eodhd", "symbol": "SAN.MC"},
             {"name": "twelve_data", "symbol": "SAN:BME"},
             {"name": "yfinance", "symbol": "SAN.MC"},
         ],
@@ -315,6 +330,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Paris Stock",
         "EUR",
         [
+            {"name": "eodhd", "symbol": "MC.PA"},
             {"name": "twelve_data", "symbol": "MC:Euronext"},
             {"name": "yfinance", "symbol": "MC.PA"},
         ],
@@ -326,6 +342,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "Swiss Stock",
         "CHF",
         [
+            {"name": "eodhd", "symbol": "NESN.SW"},
             {"name": "twelve_data", "symbol": "NESN:SIX"},
             {"name": "yfinance", "symbol": "NESN.SW"},
         ],
@@ -337,11 +354,12 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "India Stock",
         "INR",
         [
+            {"name": "eodhd", "symbol": "RELIANCE.NSE"},
             {"name": "twelve_data", "symbol": "RELIANCE:NSE"},
             {"name": "yfinance", "symbol": "RELIANCE.NS"},
         ],
     ),
-    # ─── Portfolio stocks (9) — Polygon primary, Twelve Data + yfinance fallbacks
+    # ─── Portfolio stocks (9) — EODHD primary, Polygon + TD + yfinance fallbacks
     (
         "NVDA",
         "NVIDIA",
@@ -349,6 +367,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "US Equity",
         "USD",
         [
+            {"name": "eodhd", "symbol": "NVDA.US"},
             {"name": "polygon", "symbol": "NVDA"},
             {"name": "twelve_data", "symbol": "NVDA"},
             {"name": "yfinance", "symbol": "NVDA"},
@@ -361,6 +380,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "US Equity",
         "USD",
         [
+            {"name": "eodhd", "symbol": "XOM.US"},
             {"name": "polygon", "symbol": "XOM"},
             {"name": "twelve_data", "symbol": "XOM"},
             {"name": "yfinance", "symbol": "XOM"},
@@ -373,6 +393,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "US Equity",
         "USD",
         [
+            {"name": "eodhd", "symbol": "CAT.US"},
             {"name": "polygon", "symbol": "CAT"},
             {"name": "twelve_data", "symbol": "CAT"},
             {"name": "yfinance", "symbol": "CAT"},
@@ -385,6 +406,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "US Equity",
         "USD",
         [
+            {"name": "eodhd", "symbol": "AMZN.US"},
             {"name": "polygon", "symbol": "AMZN"},
             {"name": "twelve_data", "symbol": "AMZN"},
             {"name": "yfinance", "symbol": "AMZN"},
@@ -397,6 +419,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "US Equity",
         "USD",
         [
+            {"name": "eodhd", "symbol": "CRM.US"},
             {"name": "polygon", "symbol": "CRM"},
             {"name": "twelve_data", "symbol": "CRM"},
             {"name": "yfinance", "symbol": "CRM"},
@@ -409,6 +432,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "US Equity",
         "USD",
         [
+            {"name": "eodhd", "symbol": "QCOM.US"},
             {"name": "polygon", "symbol": "QCOM"},
             {"name": "twelve_data", "symbol": "QCOM"},
             {"name": "yfinance", "symbol": "QCOM"},
@@ -421,6 +445,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "US Equity",
         "USD",
         [
+            {"name": "eodhd", "symbol": "BA.US"},
             {"name": "polygon", "symbol": "BA"},
             {"name": "twelve_data", "symbol": "BA"},
             {"name": "yfinance", "symbol": "BA"},
@@ -433,6 +458,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "US Equity",
         "USD",
         [
+            {"name": "eodhd", "symbol": "V.US"},
             {"name": "polygon", "symbol": "V"},
             {"name": "twelve_data", "symbol": "V"},
             {"name": "yfinance", "symbol": "V"},
@@ -445,6 +471,7 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         "US Equity",
         "USD",
         [
+            {"name": "eodhd", "symbol": "GOOGL.US"},
             {"name": "polygon", "symbol": "GOOGL"},
             {"name": "twelve_data", "symbol": "GOOGL"},
             {"name": "yfinance", "symbol": "GOOGL"},

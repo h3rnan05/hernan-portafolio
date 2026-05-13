@@ -9,6 +9,7 @@ from app.ingestion.base import (
     ProviderRateLimited,
     ProviderTimeout,
 )
+from app.ingestion.eodhd import EODHDProvider
 from app.ingestion.fred import FREDProvider
 from app.ingestion.ism_pmi import ISMManufacturingPMIProvider
 from app.ingestion.polygon import PolygonProvider
@@ -20,6 +21,7 @@ from app.ingestion.yfinance import YFinanceProvider
 __all__ = [
     "BalticDryIndexProvider",
     "DataPoint",
+    "EODHDProvider",
     "FREDProvider",
     "ISMManufacturingPMIProvider",
     "IngestionRunner",
