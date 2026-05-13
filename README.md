@@ -1,105 +1,127 @@
-# Portfolio Prediction Engine
+# Hernán — Portfolio Prediction Engine
 
-A backend service that ingests ~30 macro/market predictors plus 9 portfolio stocks, fits lagged multivariable OLS regression models with econometric diagnostics, generates predictions, and reconciles them against a Capital.com brokerage account.
+> Daily lagged-OLS regression on 9 stocks against ~30 macro & market predictors.
+> FastAPI backend, Next.js dashboard, Supabase Postgres, GitHub Actions cron.
+> ~$20/mo to run 24/7. Real numbers, no mock data.
 
-This repo is the implementation of `BACKEND_BRIEF.md` (the design doc). Read the brief first.
+## Architecture
+
+```
+GitHub Actions (22:00 UTC weekdays)
+   ↓
+1. Ingestion fan-out — FRED, EODHD, Polygon, Twelve Data, yfinance, scrapers
+2. Capital.com positions snapshot (broker)
+3. Backfill yesterday's actuals
+4. Run today's predictions (per-stock + portfolio rollup)
+5. Rebuild the 5 risk profiles
+   ↓ (Sundays only)
+6. Refit all 9 models, swap is_active if diagnostics pass
+
+Supabase Postgres ←──── 19 REST endpoints (FastAPI) ──── Next.js dashboard (Vercel)
+```
+
+## The algorithm
+
+Per-stock OLS regression with 1-day lagged log-return predictors:
+
+```
+ret(stock, t) = α + Σ βᵢ · ret(predictor_i, t−1) + ε
+```
+
+Models only go live after passing **four** diagnostic thresholds (brief §4.2):
+
+| Test | Threshold | Why |
+|---|---|---|
+| R² | ≥ 0.90 | Fit quality |
+| Durbin–Watson | ∈ [1.5, 2.5] | No residual autocorrelation |
+| Breusch–Pagan p | > 0.05 | Homoscedastic residuals |
+| Max VIF | < 10 | No multicollinearity among predictors |
+
+Feature selection is **no-overlap greedy**: each predictor appears in at most
+one of the 9 models. ILP upgrade noted in `BACKEND_BRIEF.md` §4.3 for v2.
 
 ## Repository layout
 
 ```
-portfolio-engine/
-├── BACKEND_BRIEF.md          # full design doc — read first
-├── backend/                  # Python FastAPI service (data layer + model layer)
-├── frontend/                 # Next.js dashboard (port of the HTML mockup)
-├── infra/                    # GitHub Actions cron workflows
-└── README.md                 # this file
+hernan-portafolio/
+├── backend/                Python 3.12 + FastAPI + SQLAlchemy async + statsmodels
+│   ├── app/
+│   │   ├── ingestion/      7 providers (fred, eodhd, polygon, twelve_data,
+│   │   │                   yfinance, baltic scraper, ism_pmi scraper,
+│   │   │                   capital_com broker)
+│   │   ├── modeling/       regression, feature_select, prediction, refit driver
+│   │   ├── portfolio/      5 risk-profile optimizer, backtest, daily runner
+│   │   ├── routers/        19 REST endpoints, admin bearer auth on writes
+│   │   ├── auth.py / config.py / db.py / main.py / logging.py
+│   │   └── models/ schemas/
+│   ├── migrations/         Alembic — 7 tables
+│   ├── scripts/            CLI entry points (cron + manual)
+│   ├── tests/              97 unit tests (respx mocks; no live network)
+│   └── Dockerfile          multi-stage; Railway / Fly.io ready
+├── frontend/               Next.js 15 + Tailwind v4 + recharts
+│   ├── app/                7 routes: overview, models, model detail,
+│   │                       portfolios, simulator, positions, variables (+ detail)
+│   ├── components/         primitives, charts, diagnostics, top-nav
+│   ├── hooks/use-poll.ts   60s SWR polling helper
+│   └── lib/api.ts          typed client over all 19 endpoints
+├── infra/
+│   └── README.md           full deploy guide (Railway / Vercel / secrets)
+├── .github/workflows/
+│   ├── daily.yml           cron pipeline
+│   └── test.yml            CI on every push + PR
+└── BACKEND_BRIEF.md        full design doc
 ```
 
-## Phase 0 — what's in this scaffold
+## Get it running
 
-The scaffold ships **Phase 0 + a working slice of Phase 1** from the brief:
-
-- ✅ Monorepo structure
-- ✅ Supabase/Postgres migrations for the full schema (§3 of the brief)
-- ✅ Variables registry seed script (all 30 predictors + 9 stocks)
-- ✅ Working FRED ingestion provider (13 macro variables)
-- ✅ Provider base class + `fetch_with_fallback()` orchestrator
-- ✅ Read-only API endpoints: `/health`, `/variables`, `/observations/{id}`
-- ✅ Minimal Next.js frontend that consumes the API
-- ✅ GitHub Actions cron workflow (commented, ready to enable)
-- ⏳ Stooq, yfinance, Polygon, Capital.com — provider stubs only, agent fills these in (Phase 1 finish)
-- ⏳ Model layer, predictions, portfolio optimizer — Phases 2–4 not started
-
-## Phase 0 acceptance criteria
-
-You should be able to run the following commands and see the listed outcomes. If any step fails, fix it before moving on.
+See **[infra/README.md](infra/README.md)** for the full deploy guide. TL;DR:
 
 ```bash
-# 1. Install deps and run migrations
-cd backend
-cp .env.example .env                    # then edit .env with your FRED_API_KEY
-uv sync                                 # or: pip install -e .
-uv run alembic upgrade head             # creates all tables in Supabase
-
-# 2. Seed the variables registry
-uv run python scripts/seed_variables.py
-# ✅ Expected: "Seeded 39 variables"
-
-# 3. Run a manual ingestion (FRED only for now)
-uv run python scripts/run_ingestion.py --providers fred
-# ✅ Expected: "Ingested 13 variables, ~30 days each"
-
-# 4. Start the API
+# 1. Local dev
+cd backend && cp .env.example .env
+# fill in DATABASE_URL, FRED_API_KEY, EODHD_API_KEY
+uv sync && uv run alembic upgrade head && uv run python scripts/seed_variables.py
 uv run uvicorn app.main:app --reload
-# ✅ Expected: server on http://localhost:8000
 
-# 5. Verify endpoints
-curl http://localhost:8000/health
-# ✅ {"ok": true, "version": "0.1.0"}
+# 2. Pull data
+uv run python scripts/run_ingestion.py --days 540
 
-curl http://localhost:8000/variables | jq '. | length'
-# ✅ 39
+# 3. Fit models
+uv run python scripts/refit_all.py
 
-curl 'http://localhost:8000/observations/CPI_YoY_US?from=2026-01-01' | jq '. | length'
-# ✅ ≥ 3   (3+ months of CPI data)
+# 4. Run predictions
+uv run python scripts/run_predictions.py
 
-# 6. Run tests
-uv run pytest
-# ✅ All green
-
-# 7. Frontend
-cd ../frontend
-cp .env.example .env.local
-pnpm install
-pnpm dev
-# Open http://localhost:3000 — should show variable count from the API
+# 5. Start the dashboard
+cd ../frontend && cp .env.example .env.local
+pnpm install && pnpm dev
 ```
 
-## What the coding agent does next
+## API keys needed
 
-After Phase 0 is green, work through the brief's phases in order:
+| Key | Cost | Used for |
+|---|---|---|
+| `FRED_API_KEY` | free | 13 US macro + FX + Gold + Brent |
+| `EODHD_API_KEY` | $19.99/mo | 22 market-data vars (US + intl + commodities) |
+| `POLYGON_API_KEY` | free tier ok | US-stock fallback |
+| `TWELVE_DATA_API_KEY` | free tier ok | intl fallback |
+| `CAPITAL_*` | free (demo) | Live position reconciliation |
 
-1. **Finish Phase 1** — implement `stooq.py`, `yfinance_provider.py`, `polygon.py`, `baltic.py`, `ism_pmi.py`. Verify each provider produces real data into `observations`. Manual symbol verification on Stooq is required (see brief §2.2).
-2. **Phase 2** — model layer in `app/modeling/`. The functions are sketched in brief §4.
-3. **Phase 3** — predictions and backtest.
-4. **Phase 4** — portfolio optimizer.
-5. **Phase 5** — Capital.com integration.
-6. **Phase 6** — port the HTML mockup to Next.js.
+Sign-up links in [`infra/README.md`](infra/README.md).
 
-Each phase ends with something demoable. Don't skip phases.
+## Workflow
 
-## Get API keys before you start
+Every code change goes on a branch and through a PR:
 
-- **FRED** (mandatory, free) → https://fred.stlouisfed.org/docs/api/api_key.html
-- **Polygon** (optional, free tier) → https://polygon.io/dashboard/signup
-- **Capital.com demo** (Phase 5) → https://capital.com → enable 2FA → Settings → API integrations
-- **Supabase** (mandatory, free) → https://supabase.com → create project → get connection string from Project Settings → Database
+```bash
+git checkout -b feat/<thing>
+# … edit, test, lint …
+git push -u origin feat/<thing>
+gh pr create
+```
 
-Stooq and yfinance need no keys.
-
-## A note on Supabase RLS
-
-Supabase has Row-Level Security on by default. This backend uses the **service role connection string** (not the anon key), which bypasses RLS. That's the correct setup for a server-side data API. **Never expose the service role key to the frontend.** The frontend talks to FastAPI; only FastAPI talks to the DB.
+CI runs `ruff` + `pytest` (97 tests) on the backend and `tsc --noEmit` +
+`next build` on the frontend before merge.
 
 ## License
 

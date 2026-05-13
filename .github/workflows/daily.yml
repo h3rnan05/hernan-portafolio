@@ -1,0 +1,103 @@
+name: Daily ingestion + predictions
+
+# Runs the full pipeline at 22:00 UTC weekdays (after US close), and the
+# weekly refit at 02:00 UTC Sundays.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 22 * * 1-5"  # daily ingest + predict
+    - cron: "0 2 * * 0"      # Sunday weekly refit
+
+concurrency:
+  group: daily-pipeline
+  cancel-in-progress: false
+
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL_SYNC: ${{ secrets.DATABASE_URL_SYNC }}
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+      EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+      POLYGON_API_KEY: ${{ secrets.POLYGON_API_KEY }}
+      TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
+      ALPHA_VANTAGE_API_KEY: ${{ secrets.ALPHA_VANTAGE_API_KEY }}
+      STOOQ_API_KEY: ${{ secrets.STOOQ_API_KEY }}
+      CAPITAL_API_KEY: ${{ secrets.CAPITAL_API_KEY }}
+      CAPITAL_IDENTIFIER: ${{ secrets.CAPITAL_IDENTIFIER }}
+      CAPITAL_API_PASSWORD: ${{ secrets.CAPITAL_API_PASSWORD }}
+      CAPITAL_BASE_URL: ${{ secrets.CAPITAL_BASE_URL }}
+      ADMIN_BEARER_TOKEN: ${{ secrets.ADMIN_BEARER_TOKEN }}
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+      HTTP_USER_AGENT: "Mozilla/5.0 (compatible; hernan-portafolio/0.1; +github-actions)"
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen --no-dev || uv sync --no-dev
+
+      - name: Run migrations (idempotent)
+        run: uv run alembic upgrade head
+
+      - name: Seed variables (idempotent upsert)
+        run: uv run python scripts/seed_variables.py
+
+      # ─── Step 1: pull macro from FRED (cheap, fast, reliable) ──────────────
+      - name: Ingest FRED
+        run: uv run python scripts/run_ingestion.py --providers fred --days 30
+
+      # ─── Step 2: pull global EOD via EODHD (primary) ───────────────────────
+      - name: Ingest EODHD
+        run: uv run python scripts/run_ingestion.py --providers eodhd --days 30
+
+      # ─── Step 3: cascade through cheap fallbacks for anything missed ──────
+      - name: Ingest fallbacks
+        run: uv run python scripts/run_ingestion.py --providers polygon,twelve_data,yfinance --days 30
+        continue-on-error: true
+
+      # ─── Step 4: scrape BDI + ISM (best-effort, never block pipeline) ────
+      - name: Scrape Baltic Dry + ISM PMI
+        run: uv run python scripts/run_ingestion.py --providers scrape_baltic,scrape_ism --days 5
+        continue-on-error: true
+
+      # ─── Step 5: Capital.com positions snapshot ────────────────────────────
+      - name: Snapshot Capital.com positions
+        if: env.CAPITAL_API_KEY != ''
+        run: uv run python scripts/snapshot_positions.py
+        continue-on-error: true
+
+      # ─── Step 6: backfill yesterday's actuals + run today's predictions ──
+      - name: Daily predictions + portfolio rebuild
+        run: uv run python scripts/run_predictions.py
+
+      # ─── Step 7: weekly refit (Sundays only) ──────────────────────────────
+      - name: Weekly refit all models
+        if: github.event.schedule == '0 2 * * 0'
+        run: uv run python scripts/refit_all.py
+
+      # ─── Step 8: notify on failure ────────────────────────────────────────
+      - name: Notify on failure
+        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        run: |
+          curl -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-Type: application/json' \
+            -d "$(cat <<EOF
+          {"text":"❌ Daily pipeline failed for ${{ github.repository }} — run ${{ github.run_id }}. See ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"}
+          EOF
+          )"
