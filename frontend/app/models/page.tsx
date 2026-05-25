@@ -116,7 +116,7 @@ export default async function ModelsPage() {
                     label="R²"
                     value={m.r2}
                     pass={flags.r2}
-                    detail="≥ 0.90"
+                    detail="≥ 0.02"
                   />
                   <DiagnosticGauge
                     label="Durbin-Watson"

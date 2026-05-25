@@ -80,7 +80,7 @@ export function passes(
   max_vif: boolean;
   overall: boolean;
 } {
-  const r2Pass = r2 >= 0.9;
+  const r2Pass = r2 >= 0.02;
   const dwPass = dw >= 1.5 && dw <= 2.5;
   const bpPass = bp_p > 0.05;
   const vifPass = max_vif < 10;

@@ -39,7 +39,7 @@ class RefitRequest(BaseModel):
     """Optional knobs for an admin-triggered refit."""
 
     lookback_days: int = 540
-    k_per_stock: int = 4
+    k_per_stock: int = 3
     lag_days: int = 1
 
 

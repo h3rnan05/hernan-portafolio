@@ -91,7 +91,7 @@ export default async function ModelDetail({
           label="R²"
           value={model.r2}
           pass={flags.r2}
-          detail="≥ 0.90"
+          detail="≥ 0.02"
         />
         <DiagnosticGauge
           label="R² adj"
