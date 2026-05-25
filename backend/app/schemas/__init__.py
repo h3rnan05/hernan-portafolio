@@ -1,5 +1,13 @@
 """Pydantic schemas for API responses."""
 
+from app.schemas.account import (
+    AccountHoldingIn,
+    AccountHoldingOut,
+    ProfileMatch,
+    UserAccountCreate,
+    UserAccountOut,
+    UserAccountPatch,
+)
 from app.schemas.holding import (
     HoldingIn,
     HoldingOut,
@@ -33,9 +41,11 @@ from app.schemas.prediction import (
     SimulateResponse,
     TickerPredictions,
 )
-from app.schemas.variable import VariableOut
+from app.schemas.variable import VariableCreate, VariableOut, VariablePatch
 
 __all__ = [
+    "AccountHoldingIn",
+    "AccountHoldingOut",
     "HoldingIn",
     "HoldingOut",
     "HoldingProjection",
@@ -61,5 +71,11 @@ __all__ = [
     "SimulateResponse",
     "SimulatedTicker",
     "TickerPredictions",
+    "ProfileMatch",
+    "UserAccountCreate",
+    "UserAccountOut",
+    "UserAccountPatch",
+    "VariableCreate",
     "VariableOut",
+    "VariablePatch",
 ]

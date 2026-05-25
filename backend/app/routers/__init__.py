@@ -1,6 +1,7 @@
 """FastAPI routers."""
 
 from app.routers import (
+    accounts,
     health,
     holdings,
     models,
@@ -12,6 +13,7 @@ from app.routers import (
 )
 
 __all__ = [
+    "accounts",
     "health",
     "holdings",
     "models",

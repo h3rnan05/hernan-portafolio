@@ -93,7 +93,7 @@ async def load_active_model(session: AsyncSession, ticker: str) -> ModelFit | No
 async def list_tickers(session: AsyncSession) -> list[str]:
     stmt = (
         select(Variable.id)
-        .where(Variable.kind == "stock", Variable.active.is_(True))
+        .where(Variable.is_target.is_(True), Variable.active.is_(True))
         .order_by(Variable.id)
     )
     return [row[0] for row in (await session.execute(stmt)).all()]

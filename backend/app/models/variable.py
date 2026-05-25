@@ -28,7 +28,7 @@ class Variable(Base):
     __tablename__ = "variables"
     __table_args__ = (
         CheckConstraint(
-            "kind IN ('predictor', 'stock', 'portfolio')",
+            "kind IN ('predictor', 'stock', 'etf', 'index', 'portfolio')",
             name="variables_kind_check",
         ),
     )
@@ -40,6 +40,7 @@ class Variable(Base):
     unit: Mapped[str | None] = mapped_column(String(32))
     providers: Mapped[list[dict]] = mapped_column(JSON, nullable=False, default=list)
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    is_target: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

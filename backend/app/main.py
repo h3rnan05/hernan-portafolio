@@ -13,6 +13,7 @@ from app import __version__
 from app.config import get_settings
 from app.logging import get_logger, setup_logging
 from app.routers import (
+    accounts,
     health,
     holdings,
     models,
@@ -54,6 +55,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health.router)
+    app.include_router(accounts.router)
     app.include_router(variables.router)
     app.include_router(observations.router)
     app.include_router(models.router)

@@ -20,16 +20,38 @@ export type ProviderConfig = {
   symbol: string;
 };
 
+export type VariableKind = "predictor" | "stock" | "etf" | "index" | "portfolio";
+
 export type Variable = {
   id: string;
   display_name: string;
-  kind: "predictor" | "stock" | "portfolio";
+  kind: VariableKind;
   category: string | null;
   unit: string | null;
   providers: ProviderConfig[];
   active: boolean;
+  is_target: boolean;
   last_observed_on: string | null;
   last_value: number | null;
+};
+
+export type VariableCreate = {
+  id: string;
+  display_name: string;
+  kind: VariableKind;
+  category?: string | null;
+  unit?: string | null;
+  providers?: ProviderConfig[];
+  is_target?: boolean;
+};
+
+export type VariablePatch = {
+  display_name?: string;
+  category?: string | null;
+  unit?: string | null;
+  providers?: ProviderConfig[];
+  active?: boolean;
+  is_target?: boolean;
 };
 
 export type Observation = {
@@ -226,6 +248,55 @@ export type HoldingsProjection = {
   projected_delta_pct: number | null;
 };
 
+export type AccountHoldingIn = {
+  ticker: string;
+  quantity: number;
+  avg_price: number;
+  notes?: string | null;
+};
+
+export type AccountHoldingOut = {
+  id: string;
+  ticker: string;
+  quantity: number;
+  avg_price: number;
+  notes: string | null;
+  added_at: string;
+  last_price: number | null;
+  market_value: number | null;
+  open_pnl: number | null;
+  open_pnl_pct: number | null;
+};
+
+export type ProfileMatch = {
+  profile_id: string;
+  profile_name: string;
+  distance: number;
+};
+
+export type UserAccount = {
+  id: string;
+  name: string;
+  description: string | null;
+  assigned_profile_id: string | null;
+  profile_assigned_at: string | null;
+  created_at: string;
+  holdings: AccountHoldingOut[];
+  profile_match: ProfileMatch | null;
+  total_market_value: number | null;
+};
+
+export type UserAccountCreate = {
+  name: string;
+  description?: string | null;
+  holdings?: AccountHoldingIn[];
+};
+
+export type UserAccountPatch = {
+  name?: string;
+  description?: string | null;
+};
+
 // ─── Fetch wrapper ───────────────────────────────────────────────────────────
 
 class ApiError extends Error {
@@ -275,6 +346,29 @@ export const api = {
 
   getVariable: (id: string) =>
     request<Variable>(`/variables/${encodeURIComponent(id)}`),
+
+  createVariable: (body: VariableCreate, adminToken: string) =>
+    request<Variable>("/variables", {
+      method: "POST",
+      adminToken,
+      body: JSON.stringify(body),
+    }),
+
+  patchVariable: (id: string, patch: VariablePatch, adminToken: string) =>
+    request<Variable>(`/variables/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      adminToken,
+      body: JSON.stringify(patch),
+    }),
+
+  deleteVariable: (id: string, adminToken: string) =>
+    request<null>(`/variables/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      adminToken,
+    }).catch((e: unknown) => {
+      if (e instanceof ApiError) throw e;
+      return null;
+    }),
 
   getObservations: (
     id: string,
@@ -383,6 +477,37 @@ export const api = {
       method: "POST",
       adminToken,
       body: JSON.stringify(rows),
+    }),
+
+  listAccounts: () => request<UserAccount[]>("/accounts"),
+
+  getAccount: (id: string) =>
+    request<UserAccount>(`/accounts/${encodeURIComponent(id)}`),
+
+  createAccount: (body: UserAccountCreate) =>
+    request<UserAccount>("/accounts", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  patchAccount: (id: string, patch: UserAccountPatch) =>
+    request<UserAccount>(`/accounts/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+
+  deleteAccount: (id: string) =>
+    request<null>(`/accounts/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    }).catch((e: unknown) => {
+      if (e instanceof ApiError) throw e;
+      return null;
+    }),
+
+  replaceAccountHoldings: (id: string, holdings: AccountHoldingIn[]) =>
+    request<UserAccount>(`/accounts/${encodeURIComponent(id)}/holdings`, {
+      method: "PUT",
+      body: JSON.stringify(holdings),
     }),
 };
 
