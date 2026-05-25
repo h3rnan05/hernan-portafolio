@@ -9,8 +9,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import require_admin
 from app.db import AsyncSessionLocal, get_session
 from app.modeling.refit import refit_all
-from app.models import ModelFit
-from app.schemas import ModelDetail, ModelSummary, RefitOutcomeOut, RefitRequest
+from app.models import ModelFit, Observation
+from app.schemas import (
+    ModelAudit,
+    ModelDetail,
+    ModelSummary,
+    ObservationAudit,
+    RefitOutcomeOut,
+    RefitRequest,
+)
 
 router = APIRouter(prefix="/models", tags=["models"])
 
@@ -89,6 +96,78 @@ async def get_model(
     )
 
 
+@router.get("/{ticker}/audit", response_model=ModelAudit)
+async def audit_model(
+    ticker: str,
+    session: AsyncSession = Depends(get_session),
+) -> ModelAudit:
+    """Full-precision audit dump for the active model.
+
+    Returns the model row with unrounded coefficients/intercept plus every
+    raw observation (ticker + each predictor) inside the training window.
+    Intended for human review — the auditor can re-run the OLS independently
+    from this payload.
+    """
+    m = (
+        await session.execute(
+            select(ModelFit)
+            .where(ModelFit.ticker == ticker, ModelFit.is_active.is_(True))
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    if m is None:
+        raise HTTPException(404, f"No active model for ticker {ticker}")
+
+    variable_ids = [ticker, *list(m.predictor_ids or [])]
+    rows = (
+        await session.execute(
+            select(
+                Observation.variable_id,
+                Observation.observed_on,
+                Observation.value,
+                Observation.served_by_provider,
+            )
+            .where(
+                Observation.variable_id.in_(variable_ids),
+                Observation.observed_on >= m.training_start,
+                Observation.observed_on <= m.training_end,
+            )
+            .order_by(Observation.variable_id.asc(), Observation.observed_on.asc())
+        )
+    ).all()
+
+    observations = [
+        ObservationAudit(
+            variable_id=r[0],
+            observed_on=r[1],
+            value=float(r[2]),
+            served_by_provider=r[3],
+        )
+        for r in rows
+    ]
+
+    return ModelAudit(
+        model_id=str(m.id),
+        ticker=m.ticker,
+        fitted_at=m.fitted_at,
+        training_start=m.training_start,
+        training_end=m.training_end,
+        n_obs=m.n_obs,
+        predictor_ids=list(m.predictor_ids or []),
+        intercept=float(m.intercept),
+        coefficients={k: float(v) for k, v in (m.coefficients or {}).items()},
+        r2=float(m.r2),
+        r2_adj=float(m.r2_adj),
+        durbin_watson=float(m.durbin_watson),
+        breusch_pagan_p=float(m.breusch_pagan_p),
+        max_vif=float(m.max_vif),
+        status=m.status,
+        is_active=m.is_active,
+        observations=observations,
+        observation_count=len(observations),
+    )
+
+
 @router.post(
     "/refit_all",
     response_model=list[RefitOutcomeOut],
@@ -123,13 +202,16 @@ async def refit_all_models(req: RefitRequest | None = None) -> list[RefitOutcome
     dependencies=[Depends(require_admin)],
 )
 async def refit_one_model(ticker: str) -> RefitOutcomeOut:
-    """Re-fit a single ticker. Returns its outcome record."""
+    """Re-fit a single ticker. Returns its outcome record.
+
+    Only the specified ticker is processed; other tickers' active models are
+    left untouched.
+    """
     async with AsyncSessionLocal() as session:
-        outcomes = await refit_all(session)
-    matching = [o for o in outcomes if o.ticker == ticker]
-    if not matching:
+        outcomes = await refit_all(session, only_ticker=ticker)
+    if not outcomes:
         raise HTTPException(404, f"Ticker {ticker} not in active stock set")
-    o = matching[0]
+    o = outcomes[0]
     return RefitOutcomeOut(
         ticker=o.ticker,
         status=o.status,

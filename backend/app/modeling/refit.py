@@ -12,6 +12,7 @@ from datetime import date
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import K_PER_STOCK
 from app.modeling.data import (
     list_predictor_ids,
     list_tickers,
@@ -40,11 +41,16 @@ async def refit_all(
     *,
     end: date | None = None,
     lookback_days: int = 540,
-    k_per_stock: int = 3,
+    k_per_stock: int = K_PER_STOCK,
     lag_days: int = 1,
     min_obs: int = 60,
+    only_ticker: str | None = None,
 ) -> list[RefitOutcome]:
     """Refit every active stock against every active predictor.
+
+    If ``only_ticker`` is set, only that ticker is refit (returns [] if the
+    ticker is not in the active stock set). Other tickers' active models are
+    left untouched.
 
     The function is idempotent — re-running with the same window simply
     inserts another ModelFit row and swaps ``is_active``.
@@ -54,6 +60,12 @@ async def refit_all(
 
     tickers = await list_tickers(session)
     predictors = await list_predictor_ids(session)
+
+    if only_ticker is not None:
+        if only_ticker not in tickers:
+            log.warning("refit_ticker_unknown", ticker=only_ticker)
+            return []
+        tickers = [only_ticker]
 
     if not tickers or not predictors:
         log.warning("refit_no_variables", n_tickers=len(tickers), n_predictors=len(predictors))

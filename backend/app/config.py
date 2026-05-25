@@ -5,6 +5,11 @@ from functools import lru_cache
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# ─── Modeling constants ─────────────────────────────────────────────────────
+# Shared defaults used by the refit pipeline (CLI, API, feature selection).
+# Keep them here so a single edit propagates to every caller.
+K_PER_STOCK = 3
+
 
 class Settings(BaseSettings):
     """Pydantic settings — loaded from .env or process env."""

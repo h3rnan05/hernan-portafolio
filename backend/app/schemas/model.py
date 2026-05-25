@@ -6,6 +6,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
+from app.config import K_PER_STOCK
+
 
 class ModelSummary(BaseModel):
     """Compact view: list page."""
@@ -50,3 +52,41 @@ class RefitOutcomeOut(BaseModel):
     n_obs: int | None = None
     predictor_ids: list[str] = []
     error: str | None = None
+
+
+class ObservationAudit(BaseModel):
+    """One row of the raw training input, as stored in the observations table."""
+
+    variable_id: str
+    observed_on: date
+    value: float
+    served_by_provider: str | None = None
+
+
+class ModelAudit(BaseModel):
+    """Unrounded model row + every observation that fed the fit.
+
+    Built for human review: coefficients and intercept are emitted as full
+    double-precision floats (no formatting) so the auditor can reconstruct
+    the regression independently. Diagnostic stats are returned as stored
+    (Numeric(10,6) on the way in, lossless on the way out).
+    """
+
+    model_id: str
+    ticker: str
+    fitted_at: datetime
+    training_start: date
+    training_end: date
+    n_obs: int
+    predictor_ids: list[str]
+    intercept: float
+    coefficients: dict[str, float]
+    r2: float
+    r2_adj: float
+    durbin_watson: float
+    breusch_pagan_p: float
+    max_vif: float
+    status: str
+    is_active: bool
+    observations: list[ObservationAudit]
+    observation_count: int

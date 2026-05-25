@@ -16,8 +16,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-# Brief default — 4 predictors per stock keeps DOF ample at ~120-day windows
-DEFAULT_K_PER_STOCK = 4
+from app.config import K_PER_STOCK
+
+# Re-export so existing callers that imported DEFAULT_K_PER_STOCK from here
+# keep working, but the source of truth lives in app.config.
+DEFAULT_K_PER_STOCK = K_PER_STOCK
 DEFAULT_K_MIN = 3
 DEFAULT_K_MAX = 5
 

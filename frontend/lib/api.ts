@@ -60,6 +60,34 @@ export type ModelDetail = ModelSummary & {
   equation: string;
 };
 
+export type ObservationAudit = {
+  variable_id: string;
+  observed_on: string;
+  value: number;
+  served_by_provider: string | null;
+};
+
+export type ModelAudit = {
+  model_id: string;
+  ticker: string;
+  fitted_at: string;
+  training_start: string;
+  training_end: string;
+  n_obs: number;
+  predictor_ids: string[];
+  intercept: number;
+  coefficients: Record<string, number>;
+  r2: number;
+  r2_adj: number;
+  durbin_watson: number;
+  breusch_pagan_p: number;
+  max_vif: number;
+  status: "PASS" | "REVIEW" | "FAIL";
+  is_active: boolean;
+  observations: ObservationAudit[];
+  observation_count: number;
+};
+
 export type PredictionPoint = {
   predicted_for: string;
   predicted_at: string;
@@ -267,6 +295,12 @@ export const api = {
 
   getModel: (ticker: string) =>
     request<ModelDetail>(`/models/${encodeURIComponent(ticker)}`),
+
+  getModelAudit: (ticker: string) =>
+    request<ModelAudit>(`/models/${encodeURIComponent(ticker)}/audit`),
+
+  modelAuditUrl: (ticker: string) =>
+    `${API_URL}/models/${encodeURIComponent(ticker)}/audit`,
 
   refitAll: (adminToken: string, body?: { lookback_days?: number; k_per_stock?: number; lag_days?: number }) =>
     request<RefitOutcome[]>("/models/refit_all", {

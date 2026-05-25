@@ -179,6 +179,51 @@ export default async function ModelDetail({
         />
         <HorizontalBarChart data={coefData} decimals={5} height={Math.max(220, coefData.length * 38)} />
       </Card>
+
+      {/* Raw coefficients + audit data */}
+      <Card className="mb-8">
+        <SectionHeader
+          eyebrow="Audit"
+          title="Raw coefficients (full precision)"
+          description="Unrounded double-precision values as stored in the database. Use the audit JSON link below to download every training observation that fed this fit."
+          right={
+            <a
+              href={api.modelAuditUrl(model.ticker)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-[8px] bg-[var(--color-bg4)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-text)] hover:bg-[var(--color-bg3)]"
+            >
+              Open audit JSON ↗
+            </a>
+          }
+        />
+        <div className="overflow-x-auto">
+          <table className="w-full font-mono text-[12px]">
+            <thead>
+              <tr className="border-b border-[var(--color-bg4)] text-left text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
+                <th className="py-2 pr-4">Term</th>
+                <th className="py-2">Coefficient (raw float)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-[var(--color-bg4)]/40">
+                <td className="py-2 pr-4 text-[var(--color-text2)]">intercept</td>
+                <td className="py-2 tabular text-[var(--color-text)]">
+                  {model.intercept.toString()}
+                </td>
+              </tr>
+              {Object.entries(model.coefficients).map(([name, beta]) => (
+                <tr key={name} className="border-b border-[var(--color-bg4)]/40">
+                  <td className="py-2 pr-4 text-[var(--color-text2)]">{name}_t-1</td>
+                  <td className="py-2 tabular text-[var(--color-text)]">
+                    {beta.toString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 }

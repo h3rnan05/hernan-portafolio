@@ -8,8 +8,10 @@ from app.schemas.holding import (
     HoldingUpdate,
 )
 from app.schemas.model import (
+    ModelAudit,
     ModelDetail,
     ModelSummary,
+    ObservationAudit,
     RefitOutcomeOut,
     RefitRequest,
 )
@@ -41,8 +43,10 @@ __all__ = [
     "HoldingsProjectionOut",
     "HoldingsResponse",
     "HoldingsSummary",
+    "ModelAudit",
     "ModelDetail",
     "ModelSummary",
+    "ObservationAudit",
     "ObservationOut",
     "PortfolioOut",
     "PortfolioPredictionPoint",

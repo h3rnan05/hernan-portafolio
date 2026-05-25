@@ -435,13 +435,23 @@ function YourPortfolioCard({
                       : <span className="text-[var(--color-text3)]">—</span>}
                   </td>
                   <td className="py-2 pr-3 text-right">
-                    {r.predicted_pnl_delta !== null ? (
-                      <Badge tone={r.predicted_pnl_delta >= 0 ? "green" : "red"}>
-                        {r.predicted_pnl_delta >= 0 ? "+" : "-"}$
-                        {fmtNumber(Math.abs(r.predicted_pnl_delta), {
-                          decimals: 2,
-                        })}
-                      </Badge>
+                    {r.predicted_pnl_delta !== null && r.predicted_price !== null ? (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <Badge tone={r.predicted_pnl_delta >= 0 ? "green" : "red"}>
+                          {r.predicted_pnl_delta >= 0 ? "+" : "-"}$
+                          {fmtNumber(Math.abs(r.predicted_pnl_delta), {
+                            decimals: 2,
+                          })}
+                        </Badge>
+                        {r.last_price > 0 && (
+                          <span className="text-[10px] text-[var(--color-text3)]">
+                            {fmtPct(
+                              (r.predicted_price - r.last_price) / r.last_price,
+                              { signed: true, decimals: 2 },
+                            )}
+                          </span>
+                        )}
+                      </div>
                     ) : (
                       <span className="text-[var(--color-text3)]">—</span>
                     )}

@@ -12,7 +12,7 @@ import asyncio
 import structlog
 import typer
 
-from app.config import get_settings
+from app.config import K_PER_STOCK, get_settings
 from app.db import AsyncSessionLocal
 from app.logging import setup_logging
 from app.modeling.refit import refit_all
@@ -26,7 +26,7 @@ app = typer.Typer(pretty_exceptions_enable=False)
 @app.command()
 def main(
     lookback: int = typer.Option(540, help="Days of training data to use"),
-    k: int = typer.Option(3, "--k", help="Predictors per stock"),
+    k: int = typer.Option(K_PER_STOCK, "--k", help="Predictors per stock"),
     lag: int = typer.Option(0, help="Override LAG_DAYS (0 = use config)"),
     min_obs: int = typer.Option(60, help="Minimum aligned rows before fitting"),
 ) -> None:

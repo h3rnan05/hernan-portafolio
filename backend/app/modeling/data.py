@@ -11,10 +11,13 @@ from datetime import date, timedelta
 
 import numpy as np
 import pandas as pd
+import structlog
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import ModelFit, Observation, Variable
+
+log = structlog.get_logger(__name__)
 
 
 async def load_returns_frame(
@@ -128,16 +131,32 @@ async def save_active_model(
     diag: dict,
     predictor_ids: list[str],
 ) -> ModelFit:
-    """Insert a new ModelFit row and atomically swap ``is_active`` over to it.
+    """Insert a new ModelFit row and swap ``is_active`` only if the fit is PASS.
+
+    If the new fit is REVIEW/FAIL, keep the previous PASS model active (if
+    any). Otherwise a regressed refit would silently stop predictions for the
+    ticker. We only deactivate the old row when we have a PASS replacement
+    to install in its place.
 
     The unique partial index ``uniq_active_model`` enforces "≤1 active per
-    ticker" — we deactivate first to avoid a unique-violation race.
+    ticker" — so when activating a replacement we deactivate the previous one
+    first to avoid a unique-violation race.
     """
-    await session.execute(
-        update(ModelFit)
-        .where(ModelFit.ticker == ticker, ModelFit.is_active.is_(True))
-        .values(is_active=False)
-    )
+    new_is_active = diag["status"] == "PASS"
+
+    if new_is_active:
+        await session.execute(
+            update(ModelFit)
+            .where(ModelFit.ticker == ticker, ModelFit.is_active.is_(True))
+            .values(is_active=False)
+        )
+    else:
+        log.info(
+            "refit_keep_previous_active",
+            ticker=ticker,
+            new_status=diag["status"],
+            message=f"Ticker {ticker}: nuevo modelo es {diag['status']} — manteniendo modelo anterior PASS activo.",
+        )
 
     fit = ModelFit(
         id=uuid.uuid4(),
@@ -154,7 +173,7 @@ async def save_active_model(
         breusch_pagan_p=float(diag["breusch_pagan_p"]),
         max_vif=float(diag["max_vif"]),
         status=diag["status"],
-        is_active=(diag["status"] == "PASS"),
+        is_active=new_is_active,
     )
     session.add(fit)
     await session.flush()
