@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { AiAssistant } from "@/components/ai-assistant";
+
 const ROUTES: { href: string; label: string }[] = [
   { href: "/", label: "Overview" },
   { href: "/accounts", label: "Accounts" },
@@ -65,6 +67,10 @@ export function TopNav() {
             );
           })}
         </nav>
+
+        <div className="ml-3 shrink-0 border-l border-[var(--color-border)] pl-3">
+          <AiAssistant />
+        </div>
       </div>
     </header>
   );
