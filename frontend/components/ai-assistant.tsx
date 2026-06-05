@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * AI assistant — a slide-over chat drawer that talks to the backend /chat
- * endpoint. Streams Claude's response token-by-token, shows live tool-call
- * activity, and renders lightweight markdown. Opened from the top bar.
+ * AI assistant — a full-screen immersive chat experience that talks to the
+ * backend /chat endpoint. Streams Claude's answer token-by-token, shows live
+ * tool-call activity, and renders lightweight markdown. Opened from the top bar.
  */
 
 import { AnimatePresence, motion } from "motion/react";
@@ -12,20 +12,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { chatStream, type ChatMessage } from "@/lib/api";
 
 const TOOL_LABELS: Record<string, string> = {
-  list_stocks: "Listando acciones…",
-  get_model: "Leyendo el modelo…",
-  get_forecast: "Calculando pronóstico…",
-  get_validation: "Validando fuera de muestra…",
-  get_recent_predictions: "Revisando predicciones recientes…",
-  list_variables: "Listando variables…",
-  get_portfolios: "Leyendo portafolios…",
+  list_stocks: "Listando acciones",
+  get_model: "Leyendo el modelo",
+  get_forecast: "Calculando el pronóstico",
+  get_validation: "Validando fuera de muestra",
+  get_recent_predictions: "Revisando predicciones recientes",
+  list_variables: "Listando variables",
+  get_portfolios: "Leyendo portafolios",
 };
 
-const SUGGESTIONS = [
-  "¿Qué acciones cubre el motor?",
-  "¿De verdad funciona? Sé honesto.",
-  "Explícame cómo funciona el algoritmo, en simple.",
-  "¿A dónde va el precio de NVDA esta semana?",
+const SUGGESTIONS: { q: string; hint: string; icon: React.ReactNode }[] = [
+  { q: "¿Qué acciones cubre el motor?", hint: "Las acciones y sus modelos", icon: <IconGrid /> },
+  { q: "¿De verdad funciona? Sé honesto.", hint: "El rendimiento fuera de muestra", icon: <IconTarget /> },
+  { q: "Explícame el algoritmo en simple.", hint: "Cómo predice el motor", icon: <IconBook /> },
+  { q: "¿A dónde va NVDA esta semana?", hint: "Pronóstico con banda de confianza", icon: <IconTrend /> },
 ];
 
 export function AiAssistant() {
@@ -40,29 +40,39 @@ export function AiAssistant() {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Focus the input on open; restore focus to the trigger on close.
+  // Focus input on open; lock body scroll; restore focus on close.
   useEffect(() => {
     if (open) {
-      const t = setTimeout(() => inputRef.current?.focus(), 120);
-      return () => clearTimeout(t);
+      document.body.style.overflow = "hidden";
+      const t = setTimeout(() => inputRef.current?.focus(), 160);
+      return () => {
+        clearTimeout(t);
+        document.body.style.overflow = "";
+      };
     }
     triggerRef.current?.focus();
   }, [open]);
 
-  // ESC closes the drawer.
+  // ESC closes.
   useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  // Auto-scroll to the newest content.
+  // Auto-scroll to newest content.
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, activeTool]);
+
+  // Auto-grow the textarea.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }, [input]);
 
   const send = useCallback(
     async (text: string) => {
@@ -101,7 +111,7 @@ export function AiAssistant() {
           }
         }
       } catch {
-        // aborted or network error — leave whatever streamed so far
+        // aborted or network error — keep whatever streamed
       } finally {
         if (!assistant) {
           assistant = "⚠️ No se pudo obtener respuesta. Intenta de nuevo.";
@@ -115,7 +125,7 @@ export function AiAssistant() {
     [messages, streaming],
   );
 
-  const stop = () => abortRef.current?.abort();
+  const hasConversation = messages.length > 0;
 
   return (
     <>
@@ -134,103 +144,99 @@ export function AiAssistant() {
         }}
       >
         <Sparkle />
-        AI
+        Asistente AI
       </button>
 
       <AnimatePresence>
         {open && (
           <motion.div
-            className="fixed inset-0 z-50 flex justify-end"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Asistente AI"
+            className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[var(--color-bg)]"
+            initial={{ opacity: 0, scale: 0.985, filter: "blur(6px)" }}
+            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, scale: 0.99, filter: "blur(6px)" }}
+            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
           >
-            <button
-              type="button"
-              aria-label="Cerrar asistente"
-              onClick={() => setOpen(false)}
-              className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
-            />
-            <motion.div
-              role="dialog"
-              aria-modal="true"
-              aria-label="Asistente AI"
-              className="relative flex h-full w-full max-w-[460px] flex-col border-l border-[var(--color-border)] bg-[var(--color-bg)] shadow-[0_0_60px_-12px_rgba(0,0,0,0.6)]"
-              initial={{ x: 40, opacity: 0, filter: "blur(4px)" }}
-              animate={{ x: 0, opacity: 1, filter: "blur(0px)" }}
-              exit={{ x: 40, opacity: 0, filter: "blur(4px)" }}
-              transition={{ type: "spring", stiffness: 320, damping: 32 }}
-            >
-              {/* Header */}
-              <header className="flex items-center justify-between border-b border-[var(--color-border)] px-5 py-3.5">
-                <div className="flex items-center gap-2">
-                  <span className="grid size-7 place-items-center rounded-full bg-[color-mix(in_oklab,var(--color-green)_18%,transparent)]">
-                    <Sparkle />
-                  </span>
-                  <div className="leading-tight">
-                    <div className="text-[13px] font-semibold text-[var(--color-text)]">
-                      Asistente del motor
-                    </div>
-                    <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
-                      Datos en vivo · Claude
-                    </div>
+            {/* Ambient glow */}
+            <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+              <div
+                className="absolute -top-40 left-1/2 size-[640px] -translate-x-1/2 rounded-full"
+                style={{ background: "radial-gradient(closest-side, color-mix(in oklab, var(--color-green) 14%, transparent), transparent)" }}
+              />
+              <div
+                className="absolute -bottom-48 right-[-10%] size-[560px] rounded-full"
+                style={{ background: "radial-gradient(closest-side, color-mix(in oklab, var(--color-cyan) 10%, transparent), transparent)" }}
+              />
+            </div>
+
+            {/* Top bar */}
+            <header className="relative z-10 flex h-14 shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4 sm:px-6">
+              <div className="flex items-center gap-2.5">
+                <span className="grid size-8 place-items-center rounded-full bg-[color-mix(in_oklab,var(--color-green)_16%,transparent)] ring-1 ring-[color-mix(in_oklab,var(--color-green)_30%,transparent)]">
+                  <Sparkle />
+                </span>
+                <div className="leading-tight">
+                  <div className="text-[13.5px] font-semibold tracking-tight text-[var(--color-text)]">
+                    Asistente del motor
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-[var(--color-text3)]">
+                    <span className="inline-block size-1.5 animate-pulse rounded-full bg-[var(--color-green)]" />
+                    Datos en vivo · Claude
                   </div>
                 </div>
-                <div className="flex items-center gap-1">
-                  {messages.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setMessages([])}
-                      className="rounded-md px-2 py-1 text-[11px] text-[var(--color-text3)] transition hover:bg-[var(--color-bg3)] hover:text-[var(--color-text2)]"
-                    >
-                      Limpiar
-                    </button>
-                  )}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {hasConversation && (
                   <button
                     type="button"
-                    onClick={() => setOpen(false)}
-                    aria-label="Cerrar"
-                    className="grid size-8 place-items-center rounded-md text-[var(--color-text3)] transition hover:bg-[var(--color-bg3)] hover:text-[var(--color-text)]"
+                    onClick={() => setMessages([])}
+                    className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] text-[var(--color-text3)] transition hover:bg-[var(--color-bg3)] hover:text-[var(--color-text2)] active:scale-[0.97]"
                   >
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                      <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
+                    <IconPlus />
+                    Nueva
                   </button>
-                </div>
-              </header>
-
-              {/* Messages */}
-              <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4">
-                {messages.length === 0 ? (
-                  <Welcome onPick={send} />
-                ) : (
-                  <div className="flex flex-col gap-4">
-                    {messages.map((m, i) => (
-                      <Bubble
-                        key={i}
-                        role={m.role}
-                        content={m.content}
-                        streaming={
-                          streaming && i === messages.length - 1 && m.role === "assistant"
-                        }
-                        activeTool={
-                          i === messages.length - 1 && m.role === "assistant" ? activeTool : null
-                        }
-                      />
-                    ))}
-                  </div>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Cerrar asistente"
+                  className="grid size-8 place-items-center rounded-lg text-[var(--color-text3)] transition hover:bg-[var(--color-bg3)] hover:text-[var(--color-text)] active:scale-[0.95]"
+                >
+                  <IconClose />
+                </button>
               </div>
+            </header>
 
-              {/* Composer */}
-              <div className="border-t border-[var(--color-border)] px-4 pb-4 pt-3">
+            {/* Conversation */}
+            <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto">
+              {!hasConversation ? (
+                <Welcome onPick={send} />
+              ) : (
+                <div className="mx-auto flex max-w-3xl flex-col gap-7 px-4 py-8 sm:px-6">
+                  {messages.map((m, i) => (
+                    <Message
+                      key={i}
+                      role={m.role}
+                      content={m.content}
+                      streaming={streaming && i === messages.length - 1 && m.role === "assistant"}
+                      activeTool={i === messages.length - 1 && m.role === "assistant" ? activeTool : null}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Composer */}
+            <div className="relative z-10 shrink-0 px-4 pb-5 pt-2 sm:px-6">
+              <div className="mx-auto max-w-3xl">
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     send(input);
                   }}
-                  className="flex items-end gap-2 rounded-2xl border border-[var(--color-border2)] bg-[var(--color-bg2)] p-2 focus-within:border-[var(--color-green)]/60"
+                  className="group flex items-end gap-2 rounded-[18px] border border-[var(--color-border2)] bg-[var(--color-bg2)] p-2 shadow-[var(--shadow-2)] transition focus-within:border-[color-mix(in_oklab,var(--color-green)_55%,transparent)] focus-within:shadow-[0_0_0_4px_color-mix(in_oklab,var(--color-green)_12%,transparent)]"
                 >
                   <textarea
                     ref={inputRef}
@@ -244,14 +250,14 @@ export function AiAssistant() {
                     }}
                     rows={1}
                     placeholder="Pregunta sobre el motor, las acciones, los pronósticos…"
-                    className="max-h-32 flex-1 resize-none bg-transparent px-2 py-1.5 text-[13.5px] text-[var(--color-text)] outline-none placeholder:text-[var(--color-text3)]"
+                    className="max-h-[200px] flex-1 resize-none self-center bg-transparent px-2.5 py-2 text-[14px] leading-relaxed text-[var(--color-text)] outline-none placeholder:text-[var(--color-text3)]"
                   />
                   {streaming ? (
                     <button
                       type="button"
-                      onClick={stop}
+                      onClick={() => abortRef.current?.abort()}
                       aria-label="Detener"
-                      className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--color-bg4)] text-[var(--color-text2)] transition hover:text-[var(--color-text)] active:scale-[0.94]"
+                      className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-[var(--color-bg4)] text-[var(--color-text2)] transition hover:text-[var(--color-text)] active:scale-[0.93]"
                     >
                       <span className="size-3 rounded-[3px] bg-current" />
                     </button>
@@ -260,20 +266,24 @@ export function AiAssistant() {
                       type="submit"
                       disabled={!input.trim()}
                       aria-label="Enviar"
-                      className="grid size-9 shrink-0 place-items-center rounded-xl bg-[var(--color-green)] text-black transition active:scale-[0.94] disabled:opacity-40"
+                      className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-[var(--color-green)] text-black shadow-[0_2px_10px_-2px_color-mix(in_oklab,var(--color-green)_60%,transparent)] transition active:scale-[0.93] disabled:opacity-30 disabled:shadow-none"
                     >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-                        <path d="M8 13V3M4 7l4-4 4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                      <IconSend />
                     </button>
                   )}
                 </form>
-                <p className="mt-2 px-1 text-[10.5px] text-[var(--color-text3)] text-pretty">
-                  Puede equivocarse. Las cifras vienen de la base en vivo. No es asesoría
-                  financiera.
-                </p>
+                <div className="mt-2 flex items-center justify-between gap-3 px-1.5">
+                  <p className="text-[10.5px] text-[var(--color-text3)] text-pretty">
+                    Las cifras vienen de la base en vivo. Puede equivocarse — no es asesoría financiera.
+                  </p>
+                  <p className="hidden shrink-0 text-[10.5px] text-[var(--color-text3)] sm:block">
+                    <kbd className="rounded bg-[var(--color-bg3)] px-1 py-0.5 font-mono text-[10px]">⏎</kbd> enviar
+                    <span className="mx-1">·</span>
+                    <kbd className="rounded bg-[var(--color-bg3)] px-1 py-0.5 font-mono text-[10px]">⇧⏎</kbd> nueva línea
+                  </p>
+                </div>
               </div>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -283,31 +293,57 @@ export function AiAssistant() {
 
 function Welcome({ onPick }: { onPick: (q: string) => void }) {
   return (
-    <div className="flex h-full flex-col justify-center">
-      <h2 className="text-balance text-[18px] font-semibold tracking-tight text-[var(--color-text)]">
-        Pregúntame lo que sea sobre el motor.
-      </h2>
-      <p className="mt-1.5 text-[13px] text-[var(--color-text2)] text-pretty">
-        Tengo acceso a los modelos, pronósticos, validaciones y datos en vivo. Puedo
-        explicarte conceptos y darte las cifras reales.
-      </p>
-      <div className="mt-5 flex flex-col gap-2">
-        {SUGGESTIONS.map((s) => (
-          <button
-            key={s}
+    <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-center px-5 py-10">
+      <motion.div
+        initial={{ opacity: 0, y: 14, filter: "blur(6px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      >
+        <span className="grid size-12 place-items-center rounded-2xl bg-[color-mix(in_oklab,var(--color-green)_14%,transparent)] ring-1 ring-[color-mix(in_oklab,var(--color-green)_28%,transparent)]">
+          <span className="scale-[1.4]">
+            <Sparkle />
+          </span>
+        </span>
+        <h1 className="mt-5 text-balance text-[28px] font-semibold leading-tight tracking-tight text-[var(--color-text)] sm:text-[32px]">
+          Pregúntame lo que sea
+          <br />
+          sobre el motor.
+        </h1>
+        <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--color-text2)] text-pretty">
+          Tengo acceso en vivo a los modelos, pronósticos, validaciones fuera de muestra y
+          datos del mercado. Te explico los conceptos en simple y te doy las cifras reales —
+          sin inventar nada.
+        </p>
+      </motion.div>
+
+      <div className="mt-8 grid gap-3 sm:grid-cols-2">
+        {SUGGESTIONS.map((s, i) => (
+          <motion.button
+            key={s.q}
             type="button"
-            onClick={() => onPick(s)}
-            className="rounded-xl border border-[var(--color-border)] bg-[var(--color-bg2)] px-3.5 py-2.5 text-left text-[13px] text-[var(--color-text2)] transition hover:border-[var(--color-green)]/50 hover:text-[var(--color-text)] active:scale-[0.99]"
+            onClick={() => onPick(s.q)}
+            initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            transition={{ duration: 0.35, delay: 0.08 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+            className="group flex items-start gap-3 rounded-[16px] border border-[var(--color-border)] bg-[var(--color-bg2)] p-4 text-left shadow-[var(--shadow-1)] transition hover:-translate-y-0.5 hover:border-[color-mix(in_oklab,var(--color-green)_45%,transparent)] hover:shadow-[var(--shadow-2)] active:scale-[0.99]"
           >
-            {s}
-          </button>
+            <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--color-bg4)] text-[var(--color-text2)] transition group-hover:bg-[color-mix(in_oklab,var(--color-green)_16%,transparent)] group-hover:text-[var(--color-green)]">
+              {s.icon}
+            </span>
+            <span className="min-w-0">
+              <span className="block text-[13.5px] font-medium text-[var(--color-text)] text-pretty">
+                {s.q}
+              </span>
+              <span className="mt-0.5 block text-[11.5px] text-[var(--color-text3)]">{s.hint}</span>
+            </span>
+          </motion.button>
         ))}
       </div>
     </div>
   );
 }
 
-function Bubble({
+function Message({
   role,
   content,
   streaming,
@@ -320,40 +356,57 @@ function Bubble({
 }) {
   if (role === "user") {
     return (
-      <div className="flex justify-end">
-        <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-[var(--color-green)] px-3.5 py-2 text-[13.5px] text-black">
+      <motion.div
+        initial={{ opacity: 0, y: 10, filter: "blur(3px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        className="flex justify-end"
+      >
+        <div className="max-w-[85%] whitespace-pre-wrap rounded-[18px] rounded-br-md bg-[color-mix(in_oklab,var(--color-green)_16%,var(--color-bg3))] px-4 py-2.5 text-[14px] leading-relaxed text-[var(--color-text)] ring-1 ring-[color-mix(in_oklab,var(--color-green)_20%,transparent)]">
           {content}
         </div>
-      </div>
+      </motion.div>
     );
   }
   return (
-    <div className="flex flex-col gap-2">
-      {activeTool && (
-        <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-bg2)] px-3 py-1 text-[11.5px] text-[var(--color-text2)]">
-          <span className="size-1.5 animate-pulse rounded-full bg-[var(--color-cyan)]" />
-          {TOOL_LABELS[activeTool] ?? "Consultando…"}
-        </div>
-      )}
-      {content ? (
-        <div className="max-w-[92%] text-[13.5px] leading-relaxed text-[var(--color-text)]">
-          <Markdown text={content} />
-          {streaming && <span className="ml-0.5 inline-block h-3.5 w-[2px] animate-pulse bg-[var(--color-green)] align-middle" />}
-        </div>
-      ) : (
-        !activeTool && <Thinking />
-      )}
-    </div>
+    <motion.div
+      initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className="flex gap-3"
+    >
+      <span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-[color-mix(in_oklab,var(--color-green)_14%,transparent)] ring-1 ring-[color-mix(in_oklab,var(--color-green)_24%,transparent)]">
+        <Sparkle small />
+      </span>
+      <div className="min-w-0 flex-1 pt-0.5">
+        {activeTool && (
+          <div className="mb-2 inline-flex items-center gap-2 overflow-hidden rounded-full border border-[var(--color-border2)] bg-[var(--color-bg2)] px-3 py-1 text-[12px] text-[var(--color-text2)]">
+            <span className="size-1.5 animate-pulse rounded-full bg-[var(--color-cyan)]" />
+            <span className="shimmer">{TOOL_LABELS[activeTool] ?? "Consultando"}…</span>
+          </div>
+        )}
+        {content ? (
+          <div className="text-[14px] leading-[1.7] text-[var(--color-text)]">
+            <Markdown text={content} />
+            {streaming && (
+              <span className="ml-0.5 inline-block h-4 w-[2px] animate-pulse bg-[var(--color-green)] align-text-bottom" />
+            )}
+          </div>
+        ) : (
+          !activeTool && <Thinking />
+        )}
+      </div>
+    </motion.div>
   );
 }
 
 function Thinking() {
   return (
-    <div className="flex items-center gap-1.5 text-[var(--color-text3)]">
+    <div className="flex items-center gap-1.5 pt-1 text-[var(--color-text3)]">
       {[0, 1, 2].map((i) => (
         <span
           key={i}
-          className="size-1.5 animate-bounce rounded-full bg-current"
+          className="size-2 animate-bounce rounded-full bg-current"
           style={{ animationDelay: `${i * 0.15}s` }}
         />
       ))}
@@ -361,7 +414,7 @@ function Thinking() {
   );
 }
 
-// ─── Minimal markdown renderer (bold, inline code, bullet/numbered lists) ─────
+// ─── Minimal markdown (bold, inline code, bullet/numbered lists, headings) ────
 
 function Markdown({ text }: { text: string }) {
   const blocks: React.ReactNode[] = [];
@@ -370,17 +423,16 @@ function Markdown({ text }: { text: string }) {
 
   const flush = (key: string) => {
     if (!list) return;
-    const Tag = list.ordered ? "ol" : "ul";
+    const cur = list;
+    const Tag = cur.ordered ? "ol" : "ul";
     blocks.push(
-      <Tag
-        key={key}
-        className={`my-1.5 flex flex-col gap-1 pl-1 ${list.ordered ? "[counter-reset:i]" : ""}`}
-      >
-        {list.items.map((it, i) => (
-          <li key={i} className="flex gap-2">
-            <span className="mt-[7px] shrink-0 text-[var(--color-text3)]">
-              {list!.ordered ? `${i + 1}.` : "•"}
-            </span>
+      <Tag key={key} className="my-2 flex flex-col gap-1.5">
+        {cur.items.map((it, i) => (
+          <li key={i} className="flex gap-2.5">
+            <span className="mt-[9px] size-1.5 shrink-0 rounded-full bg-[var(--color-green)]/70" hidden={cur.ordered} />
+            {cur.ordered && (
+              <span className="shrink-0 tabular-nums text-[var(--color-text3)]">{i + 1}.</span>
+            )}
             <span>{inline(it)}</span>
           </li>
         ))}
@@ -407,15 +459,15 @@ function Markdown({ text }: { text: string }) {
       flush(`l${idx}`);
       if (heading) {
         blocks.push(
-          <p key={idx} className="mt-2 font-semibold text-[var(--color-text)]">
+          <p key={idx} className="mb-1 mt-3 text-[15px] font-semibold text-[var(--color-text)]">
             {inline(heading[1])}
           </p>,
         );
       } else if (line.trim() === "") {
-        blocks.push(<div key={idx} className="h-1.5" />);
+        blocks.push(<div key={idx} className="h-2" />);
       } else {
         blocks.push(
-          <p key={idx} className="my-0.5">
+          <p key={idx} className="my-1">
             {inline(line)}
           </p>,
         );
@@ -427,7 +479,6 @@ function Markdown({ text }: { text: string }) {
   return <div>{blocks}</div>;
 }
 
-// Inline: **bold** and `code`.
 function inline(text: string): React.ReactNode[] {
   const out: React.ReactNode[] = [];
   const re = /(\*\*([^*]+)\*\*|`([^`]+)`)/g;
@@ -446,7 +497,7 @@ function inline(text: string): React.ReactNode[] {
       out.push(
         <code
           key={k++}
-          className="rounded bg-[var(--color-bg3)] px-1 py-0.5 font-mono text-[12px] text-[var(--color-text)]"
+          className="rounded bg-[var(--color-bg3)] px-1.5 py-0.5 font-mono text-[12.5px] text-[var(--color-cyan)]"
         >
           {m[3]}
         </code>,
@@ -458,14 +509,70 @@ function inline(text: string): React.ReactNode[] {
   return out;
 }
 
-function Sparkle() {
+// ─── Icons ────────────────────────────────────────────────────────────────────
+
+function Sparkle({ small }: { small?: boolean }) {
+  const s = small ? 12 : 14;
   return (
-    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path
-        d="M8 1.5l1.4 3.6L13 6.5 9.4 7.9 8 11.5 6.6 7.9 3 6.5l3.6-1.4L8 1.5z"
-        fill="var(--color-green)"
-      />
-      <path d="M13 10.5l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7.7-1.8z" fill="var(--color-cyan)" />
+    <svg width={s} height={s} viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M8 1.5l1.4 3.6L13 6.5 9.4 7.9 8 11.5 6.6 7.9 3 6.5l3.6-1.4L8 1.5z" fill="var(--color-green)" />
+      <path d="M13 10.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6.6-1.6z" fill="var(--color-cyan)" />
+    </svg>
+  );
+}
+function IconClose() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+function IconSend() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M8 13V3M4 7l4-4 4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+function IconPlus() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+function IconGrid() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden>
+      <rect x="2.5" y="2.5" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.4" />
+      <rect x="10.5" y="2.5" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.4" />
+      <rect x="2.5" y="10.5" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.4" />
+      <rect x="10.5" y="10.5" width="5" height="5" rx="1.2" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+function IconTarget() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden>
+      <circle cx="9" cy="9" r="6.5" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="9" cy="9" r="3" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="9" cy="9" r="0.6" fill="currentColor" />
+    </svg>
+  );
+}
+function IconBook() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden>
+      <path d="M9 4.2c-1.4-1-3.4-1.2-5-0.8v9c1.6-0.4 3.6-0.2 5 0.8 1.4-1 3.4-1.2 5-0.8v-9c-1.6-0.4-3.6-0.2-5 0.8z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+      <path d="M9 4.2v9.8" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  );
+}
+function IconTrend() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 18 18" fill="none" aria-hidden>
+      <path d="M2.5 12.5l4-4 3 3 5.5-6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M11.5 5.5H15V9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
