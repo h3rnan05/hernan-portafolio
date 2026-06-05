@@ -123,3 +123,26 @@ kbd {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/* AI assistant — shimmering tool-activity label */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--color-text3),
+    var(--color-text),
+    var(--color-text3)
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 1.6s linear infinite;
+}
