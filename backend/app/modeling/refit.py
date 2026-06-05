@@ -46,6 +46,8 @@ async def refit_all(
     min_obs: int = 60,
     only_ticker: str | None = None,
     allow_reuse: bool = True,
+    estimator: str = "ols",
+    alpha: float | None = None,
 ) -> list[RefitOutcome]:
     """Refit every active stock against every active predictor.
 
@@ -150,7 +152,7 @@ async def refit_all(
         X = aligned[picks]
 
         try:
-            diag = fit_and_diagnose(y, X)
+            diag = fit_and_diagnose(y, X, estimator=estimator, alpha=alpha)
         except Exception as e:
             log.error("refit_fit_failed", ticker=tkr, err=str(e))
             outcomes.append(RefitOutcome(tkr, "SKIPPED", None, aligned.shape[0], picks, str(e)))

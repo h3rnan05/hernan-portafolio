@@ -64,5 +64,11 @@ class ModelFit(Base):
     durbin_watson: Mapped[float] = mapped_column(Numeric(10, 6), nullable=False)
     breusch_pagan_p: Mapped[float] = mapped_column(Numeric(10, 6), nullable=False)
     max_vif: Mapped[float] = mapped_column(Numeric(10, 6), nullable=False)
+    # Residual standard error of the fit — the 1-day return sigma used to build
+    # the HER-17 forecast confidence band. Nullable for models fit before HER-16.
+    resid_std: Mapped[float | None] = mapped_column(Numeric(20, 8))
+    # Estimator + regularization strength (HER-16). Legacy rows are 'ols'.
+    estimator: Mapped[str] = mapped_column(String(8), nullable=False, server_default="ols")
+    alpha: Mapped[float | None] = mapped_column(Numeric(20, 8))
     status: Mapped[str] = mapped_column(String(8), nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)

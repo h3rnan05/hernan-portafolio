@@ -6,8 +6,6 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.config import K_PER_STOCK
-
 
 class ModelSummary(BaseModel):
     """Compact view: list page."""
@@ -25,6 +23,9 @@ class ModelSummary(BaseModel):
     durbin_watson: float
     breusch_pagan_p: float
     max_vif: float
+    resid_std: float | None = None
+    estimator: str = "ols"
+    alpha: float | None = None
     status: str
     is_active: bool
 
@@ -43,6 +44,9 @@ class RefitRequest(BaseModel):
     lookback_days: int = 540
     k_per_stock: int = 3
     lag_days: int = 1
+    estimator: str = "ols"  # 'ols' | 'ridge' | 'lasso' (HER-16)
+    alpha: float | None = None  # fixed regularization; None → CV
+    allow_reuse: bool = True  # HER-14
 
 
 class RefitOutcomeOut(BaseModel):

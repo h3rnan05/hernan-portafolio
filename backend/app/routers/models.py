@@ -53,6 +53,9 @@ async def list_models(
             durbin_watson=float(m.durbin_watson),
             breusch_pagan_p=float(m.breusch_pagan_p),
             max_vif=float(m.max_vif),
+            resid_std=float(m.resid_std) if m.resid_std is not None else None,
+            estimator=m.estimator,
+            alpha=float(m.alpha) if m.alpha is not None else None,
             status=m.status,
             is_active=m.is_active,
         )
@@ -88,6 +91,9 @@ async def get_model(
         durbin_watson=float(m.durbin_watson),
         breusch_pagan_p=float(m.breusch_pagan_p),
         max_vif=float(m.max_vif),
+        resid_std=float(m.resid_std) if m.resid_std is not None else None,
+        estimator=m.estimator,
+        alpha=float(m.alpha) if m.alpha is not None else None,
         status=m.status,
         is_active=m.is_active,
         intercept=float(m.intercept),
@@ -182,6 +188,9 @@ async def refit_all_models(req: RefitRequest | None = None) -> list[RefitOutcome
             lookback_days=req.lookback_days,
             k_per_stock=req.k_per_stock,
             lag_days=req.lag_days,
+            estimator=req.estimator,
+            alpha=req.alpha,
+            allow_reuse=req.allow_reuse,
         )
     return [
         RefitOutcomeOut(

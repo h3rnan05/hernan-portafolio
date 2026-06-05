@@ -172,6 +172,9 @@ async def save_active_model(
         durbin_watson=float(diag["durbin_watson"]),
         breusch_pagan_p=float(diag["breusch_pagan_p"]),
         max_vif=float(diag["max_vif"]),
+        resid_std=float(diag["resid_std"]) if diag.get("resid_std") is not None else None,
+        estimator=diag.get("estimator", "ols"),
+        alpha=float(diag["alpha"]) if diag.get("alpha") is not None else None,
         status=diag["status"],
         is_active=new_is_active,
     )
