@@ -91,6 +91,35 @@ class ValidationResult(BaseModel):
     note: str | None = None
 
 
+class ForecastPoint(BaseModel):
+    """One day of the price projection with its confidence band."""
+
+    on: date
+    day: int
+    central: float
+    lower: float
+    upper: float
+
+
+class ForecastResult(BaseModel):
+    """Price forecast for one ticker with a widening band (HER-17)."""
+
+    ticker: str
+    as_of: date
+    last_price: float
+    horizon: int
+    confidence: float  # e.g. 0.90
+    direction: str  # 'up' | 'down'
+    direction_symbol: str  # '▲' | '▼'
+    expected_return_1d: float
+    sigma_daily: float
+    status: str  # active model status: PASS | REVIEW
+    estimator: str
+    sigma_source: str  # 'model_resid' | 'realized_vol'
+    points: list[ForecastPoint] = []
+    note: str | None = None
+
+
 class ObservationAudit(BaseModel):
     """One row of the raw training input, as stored in the observations table."""
 

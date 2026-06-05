@@ -16,6 +16,8 @@ from app.schemas.holding import (
     HoldingUpdate,
 )
 from app.schemas.model import (
+    ForecastPoint,
+    ForecastResult,
     ModelAudit,
     ModelDetail,
     ModelSummary,
@@ -48,6 +50,8 @@ from app.schemas.variable import VariableCreate, VariableOut, VariablePatch
 __all__ = [
     "AccountHoldingIn",
     "AccountHoldingOut",
+    "ForecastPoint",
+    "ForecastResult",
     "HoldingIn",
     "HoldingOut",
     "HoldingProjection",

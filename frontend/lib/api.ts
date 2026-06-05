@@ -72,6 +72,9 @@ export type ModelSummary = {
   durbin_watson: number;
   breusch_pagan_p: number;
   max_vif: number;
+  resid_std?: number | null;
+  estimator?: string;
+  alpha?: number | null;
   status: "PASS" | "REVIEW" | "FAIL";
   is_active: boolean;
 };
@@ -80,6 +83,64 @@ export type ModelDetail = ModelSummary & {
   intercept: number;
   coefficients: Record<string, number>;
   equation: string;
+};
+
+// ─── Walk-forward validation (HER-13) ────────────────────────────────────────
+
+export type ValidationCurvePoint = {
+  on: string;
+  strategy: number;
+  buy_hold: number;
+};
+
+export type ValidationResult = {
+  ticker: string;
+  estimator: string;
+  train_window: number;
+  step: number;
+  n_windows: number;
+  n_predictions: number;
+  hit_rate: number | null;
+  up_day_base_rate: number | null;
+  edge_vs_base: number | null;
+  hit_rate_pvalue: number | null;
+  significant: boolean;
+  rmse: number | null;
+  mae: number | null;
+  sharpe_strategy: number | null;
+  sharpe_buy_hold: number | null;
+  total_return_strategy: number | null;
+  total_return_buy_hold: number | null;
+  cost_bps: number;
+  curve: ValidationCurvePoint[];
+  note: string | null;
+};
+
+// ─── Forecast (HER-17) ───────────────────────────────────────────────────────
+
+export type ForecastPoint = {
+  on: string;
+  day: number;
+  central: number;
+  lower: number;
+  upper: number;
+};
+
+export type ForecastResult = {
+  ticker: string;
+  as_of: string;
+  last_price: number;
+  horizon: number;
+  confidence: number;
+  direction: "up" | "down";
+  direction_symbol: string;
+  expected_return_1d: number;
+  sigma_daily: number;
+  status: "PASS" | "REVIEW" | "FAIL";
+  estimator: string;
+  sigma_source: "model_resid" | "realized_vol";
+  points: ForecastPoint[];
+  note: string | null;
 };
 
 export type ObservationAudit = {
@@ -392,6 +453,25 @@ export const api = {
 
   getModelAudit: (ticker: string) =>
     request<ModelAudit>(`/models/${encodeURIComponent(ticker)}/audit`),
+
+  getValidation: (
+    ticker: string,
+    opts?: { train_window?: number; step?: number; estimator?: string },
+  ) => {
+    const qs = new URLSearchParams();
+    if (opts?.train_window) qs.set("train_window", String(opts.train_window));
+    if (opts?.step) qs.set("step", String(opts.step));
+    if (opts?.estimator) qs.set("estimator", opts.estimator);
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<ValidationResult>(
+      `/models/${encodeURIComponent(ticker)}/validation${suffix}`,
+    );
+  },
+
+  getForecast: (ticker: string, horizon = 5) =>
+    request<ForecastResult>(
+      `/models/${encodeURIComponent(ticker)}/forecast?horizon=${horizon}`,
+    ),
 
   modelAuditUrl: (ticker: string) =>
     `${API_URL}/models/${encodeURIComponent(ticker)}/audit`,

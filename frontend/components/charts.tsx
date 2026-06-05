@@ -285,6 +285,143 @@ export function HorizontalBarChart({
   );
 }
 
+// ─── Forecast band chart (HER-17) ────────────────────────────────────────────
+
+type ForecastRow = {
+  date: string;
+  hist: number | null;
+  central: number | null;
+  // Band drawn as two stacked areas: an invisible base (= lower) and a filled
+  // span (= upper − lower), so the shaded region sits between lower and upper.
+  bandBase: number | null;
+  bandSpan: number | null;
+  lower: number | null;
+  upper: number | null;
+};
+
+function ForecastTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: ForecastRow }>;
+  label?: string | number;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  const row = payload[0]?.payload;
+  if (!row) return null;
+  const fmt = (v: number | null | undefined) =>
+    v == null ? "—" : fmtNumber(v, { decimals: 2 });
+  return (
+    <div className="rounded-[10px] border border-[var(--color-border2)] bg-[var(--color-bg)] p-3 text-[12px] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+      <div className="mb-1.5 font-medium text-[var(--color-text2)]">
+        {fmtDate(String(label))}
+      </div>
+      {row.hist != null && (
+        <Row swatch={COLORS.green} name="Histórico" value={fmt(row.hist)} />
+      )}
+      {row.central != null && (
+        <>
+          <Row swatch={COLORS.cyan} name="Central" value={fmt(row.central)} />
+          <Row swatch="transparent" name="Rango 90%" value={`${fmt(row.lower)} – ${fmt(row.upper)}`} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function Row({ swatch, name, value }: { swatch: string; name: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-0.5">
+      <span className="flex items-center gap-1.5 text-[var(--color-text3)]">
+        <span className="inline-block h-2 w-2 rounded-full" style={{ background: swatch }} />
+        {name}
+      </span>
+      <span className="tabular text-[var(--color-text)]">{value}</span>
+    </div>
+  );
+}
+
+export function ForecastBandChart({
+  data,
+  height = 320,
+}: {
+  data: ForecastRow[];
+  height?: number;
+}) {
+  return (
+    <div className="w-full" style={{ height }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data} margin={{ top: 8, right: 12, left: -10, bottom: 0 }}>
+          <defs>
+            <linearGradient id="forecast-band" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={COLORS.cyan} stopOpacity={0.22} />
+              <stop offset="100%" stopColor={COLORS.cyan} stopOpacity={0.06} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} />
+          <XAxis
+            dataKey="date"
+            tickFormatter={(v) => fmtDate(String(v)).slice(0, 6)}
+            tickLine={false}
+            axisLine={false}
+            minTickGap={28}
+          />
+          <YAxis
+            tickFormatter={(v) => fmtNumber(v, { decimals: 0, compact: true })}
+            tickLine={false}
+            axisLine={false}
+            width={56}
+            domain={["auto", "auto"]}
+          />
+          <Tooltip content={<ForecastTooltip />} cursor={{ stroke: COLORS.border }} />
+          {/* Invisible base lifts the band up to `lower`. */}
+          <Area
+            dataKey="bandBase"
+            stackId="band"
+            stroke="none"
+            fill="transparent"
+            isAnimationActive={false}
+            connectNulls
+          />
+          {/* Filled span from `lower` to `upper`. */}
+          <Area
+            dataKey="bandSpan"
+            stackId="band"
+            name="Rango 90%"
+            stroke="none"
+            fill="url(#forecast-band)"
+            isAnimationActive={false}
+            connectNulls
+          />
+          <Line
+            type="monotone"
+            dataKey="hist"
+            name="Histórico"
+            stroke={COLORS.green}
+            strokeWidth={1.75}
+            dot={false}
+            isAnimationActive={false}
+            connectNulls
+          />
+          <Line
+            type="monotone"
+            dataKey="central"
+            name="Central"
+            stroke={COLORS.cyan}
+            strokeWidth={1.75}
+            strokeDasharray="5 3"
+            dot={false}
+            isAnimationActive={false}
+            connectNulls
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
 // ─── Sparkline (inline mini chart) ───────────────────────────────────────────
 
 export function Sparkline({
