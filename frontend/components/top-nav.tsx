@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import { AiAssistant } from "@/components/ai-assistant";
-
 const ROUTES: { href: string; label: string }[] = [
   { href: "/", label: "Overview" },
   { href: "/accounts", label: "Accounts" },
@@ -69,7 +67,24 @@ export function TopNav() {
         </nav>
 
         <div className="ml-3 shrink-0 border-l border-[var(--color-border)] pl-3">
-          <AiAssistant />
+          <Link
+            href="/assistant"
+            aria-current={pathname.startsWith("/assistant") ? "page" : undefined}
+            className="group inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold text-[var(--color-text)] transition active:scale-[0.96]"
+            style={{
+              background:
+                "linear-gradient(135deg, color-mix(in oklab, var(--color-green) 22%, transparent), color-mix(in oklab, var(--color-cyan) 18%, transparent))",
+              boxShadow: pathname.startsWith("/assistant")
+                ? "0 0 0 1px color-mix(in oklab, var(--color-green) 60%, transparent), 0 1px 10px -2px color-mix(in oklab, var(--color-green) 55%, transparent)"
+                : "0 1px 0 0 color-mix(in oklab, var(--color-green) 35%, transparent) inset, 0 1px 8px -2px color-mix(in oklab, var(--color-green) 40%, transparent)",
+            }}
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path d="M8 1.5l1.4 3.6L13 6.5 9.4 7.9 8 11.5 6.6 7.9 3 6.5l3.6-1.4L8 1.5z" fill="var(--color-green)" />
+              <path d="M13 10.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6.6-1.6z" fill="var(--color-cyan)" />
+            </svg>
+            Asistente AI
+          </Link>
         </div>
       </div>
     </header>

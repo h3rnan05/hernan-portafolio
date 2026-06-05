@@ -1,12 +1,13 @@
 "use client";
 
 /**
- * AI assistant — a full-screen immersive chat experience that talks to the
- * backend /chat endpoint. Streams Claude's answer token-by-token, shows live
- * tool-call activity, and renders lightweight markdown. Opened from the top bar.
+ * /assistant — a full page (real route, like /models) hosting the AI chat.
+ * Streams Claude's answer token-by-token, shows live tool-call activity, and
+ * renders lightweight markdown. Lives inside the normal app shell (the top nav
+ * stays); the page fills the viewport below it with a pinned composer.
  */
 
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { chatStream, type ChatMessage } from "@/lib/api";
@@ -28,8 +29,7 @@ const SUGGESTIONS: { q: string; hint: string; icon: React.ReactNode }[] = [
   { q: "¿A dónde va NVDA esta semana?", hint: "Pronóstico con banda de confianza", icon: <IconTrend /> },
 ];
 
-export function AiAssistant() {
-  const [open, setOpen] = useState(false);
+export default function AssistantPage() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -37,29 +37,11 @@ export function AiAssistant() {
 
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Focus input on open; lock body scroll; restore focus on close.
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-      const t = setTimeout(() => inputRef.current?.focus(), 160);
-      return () => {
-        clearTimeout(t);
-        document.body.style.overflow = "";
-      };
-    }
-    triggerRef.current?.focus();
-  }, [open]);
-
-  // ESC closes.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [open]);
+    inputRef.current?.focus();
+  }, []);
 
   // Auto-scroll to newest content.
   useEffect(() => {
@@ -128,166 +110,95 @@ export function AiAssistant() {
   const hasConversation = messages.length > 0;
 
   return (
-    <>
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        className="group relative inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold text-[var(--color-text)] transition active:scale-[0.96]"
-        style={{
-          background:
-            "linear-gradient(135deg, color-mix(in oklab, var(--color-green) 22%, transparent), color-mix(in oklab, var(--color-cyan) 18%, transparent))",
-          boxShadow:
-            "0 1px 0 0 color-mix(in oklab, var(--color-green) 35%, transparent) inset, 0 1px 8px -2px color-mix(in oklab, var(--color-green) 40%, transparent)",
-        }}
-      >
-        <Sparkle />
-        Asistente AI
-      </button>
+    <div className="relative flex h-[calc(100dvh-3.5rem)] flex-col overflow-hidden">
+      {/* Ambient glow */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div
+          className="absolute -top-48 left-1/2 size-[680px] -translate-x-1/2 rounded-full"
+          style={{ background: "radial-gradient(closest-side, color-mix(in oklab, var(--color-green) 11%, transparent), transparent)" }}
+        />
+        <div
+          className="absolute -bottom-52 right-[-12%] size-[560px] rounded-full"
+          style={{ background: "radial-gradient(closest-side, color-mix(in oklab, var(--color-cyan) 8%, transparent), transparent)" }}
+        />
+      </div>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Asistente AI"
-            className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-[var(--color-bg)]"
-            initial={{ opacity: 0, scale: 0.985, filter: "blur(6px)" }}
-            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, scale: 0.99, filter: "blur(6px)" }}
-            transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-          >
-            {/* Ambient glow */}
-            <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
-              <div
-                className="absolute -top-40 left-1/2 size-[640px] -translate-x-1/2 rounded-full"
-                style={{ background: "radial-gradient(closest-side, color-mix(in oklab, var(--color-green) 14%, transparent), transparent)" }}
+      {/* Conversation */}
+      <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto">
+        {!hasConversation ? (
+          <Welcome onPick={send} />
+        ) : (
+          <div className="mx-auto flex max-w-3xl flex-col gap-7 px-4 py-8 sm:px-6">
+            {messages.map((m, i) => (
+              <Message
+                key={i}
+                role={m.role}
+                content={m.content}
+                streaming={streaming && i === messages.length - 1 && m.role === "assistant"}
+                activeTool={i === messages.length - 1 && m.role === "assistant" ? activeTool : null}
               />
-              <div
-                className="absolute -bottom-48 right-[-10%] size-[560px] rounded-full"
-                style={{ background: "radial-gradient(closest-side, color-mix(in oklab, var(--color-cyan) 10%, transparent), transparent)" }}
-              />
-            </div>
-
-            {/* Top bar */}
-            <header className="relative z-10 flex h-14 shrink-0 items-center justify-between border-b border-[var(--color-border)] px-4 sm:px-6">
-              <div className="flex items-center gap-2.5">
-                <span className="grid size-8 place-items-center rounded-full bg-[color-mix(in_oklab,var(--color-green)_16%,transparent)] ring-1 ring-[color-mix(in_oklab,var(--color-green)_30%,transparent)]">
-                  <Sparkle />
-                </span>
-                <div className="leading-tight">
-                  <div className="text-[13.5px] font-semibold tracking-tight text-[var(--color-text)]">
-                    Asistente del motor
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.14em] text-[var(--color-text3)]">
-                    <span className="inline-block size-1.5 animate-pulse rounded-full bg-[var(--color-green)]" />
-                    Datos en vivo · Claude
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                {hasConversation && (
-                  <button
-                    type="button"
-                    onClick={() => setMessages([])}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-[12px] text-[var(--color-text3)] transition hover:bg-[var(--color-bg3)] hover:text-[var(--color-text2)] active:scale-[0.97]"
-                  >
-                    <IconPlus />
-                    Nueva
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  aria-label="Cerrar asistente"
-                  className="grid size-8 place-items-center rounded-lg text-[var(--color-text3)] transition hover:bg-[var(--color-bg3)] hover:text-[var(--color-text)] active:scale-[0.95]"
-                >
-                  <IconClose />
-                </button>
-              </div>
-            </header>
-
-            {/* Conversation */}
-            <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto">
-              {!hasConversation ? (
-                <Welcome onPick={send} />
-              ) : (
-                <div className="mx-auto flex max-w-3xl flex-col gap-7 px-4 py-8 sm:px-6">
-                  {messages.map((m, i) => (
-                    <Message
-                      key={i}
-                      role={m.role}
-                      content={m.content}
-                      streaming={streaming && i === messages.length - 1 && m.role === "assistant"}
-                      activeTool={i === messages.length - 1 && m.role === "assistant" ? activeTool : null}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Composer */}
-            <div className="relative z-10 shrink-0 px-4 pb-5 pt-2 sm:px-6">
-              <div className="mx-auto max-w-3xl">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    send(input);
-                  }}
-                  className="group flex items-end gap-2 rounded-[18px] border border-[var(--color-border2)] bg-[var(--color-bg2)] p-2 shadow-[var(--shadow-2)] transition focus-within:border-[color-mix(in_oklab,var(--color-green)_55%,transparent)] focus-within:shadow-[0_0_0_4px_color-mix(in_oklab,var(--color-green)_12%,transparent)]"
-                >
-                  <textarea
-                    ref={inputRef}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        send(input);
-                      }
-                    }}
-                    rows={1}
-                    placeholder="Pregunta sobre el motor, las acciones, los pronósticos…"
-                    className="max-h-[200px] flex-1 resize-none self-center bg-transparent px-2.5 py-2 text-[14px] leading-relaxed text-[var(--color-text)] outline-none placeholder:text-[var(--color-text3)]"
-                  />
-                  {streaming ? (
-                    <button
-                      type="button"
-                      onClick={() => abortRef.current?.abort()}
-                      aria-label="Detener"
-                      className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-[var(--color-bg4)] text-[var(--color-text2)] transition hover:text-[var(--color-text)] active:scale-[0.93]"
-                    >
-                      <span className="size-3 rounded-[3px] bg-current" />
-                    </button>
-                  ) : (
-                    <button
-                      type="submit"
-                      disabled={!input.trim()}
-                      aria-label="Enviar"
-                      className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-[var(--color-green)] text-black shadow-[0_2px_10px_-2px_color-mix(in_oklab,var(--color-green)_60%,transparent)] transition active:scale-[0.93] disabled:opacity-30 disabled:shadow-none"
-                    >
-                      <IconSend />
-                    </button>
-                  )}
-                </form>
-                <div className="mt-2 flex items-center justify-between gap-3 px-1.5">
-                  <p className="text-[10.5px] text-[var(--color-text3)] text-pretty">
-                    Las cifras vienen de la base en vivo. Puede equivocarse — no es asesoría financiera.
-                  </p>
-                  <p className="hidden shrink-0 text-[10.5px] text-[var(--color-text3)] sm:block">
-                    <kbd className="rounded bg-[var(--color-bg3)] px-1 py-0.5 font-mono text-[10px]">⏎</kbd> enviar
-                    <span className="mx-1">·</span>
-                    <kbd className="rounded bg-[var(--color-bg3)] px-1 py-0.5 font-mono text-[10px]">⇧⏎</kbd> nueva línea
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+            ))}
+          </div>
         )}
-      </AnimatePresence>
-    </>
+      </div>
+
+      {/* Composer */}
+      <div className="relative z-10 shrink-0 px-4 pb-5 pt-2 sm:px-6">
+        <div className="mx-auto max-w-3xl">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              send(input);
+            }}
+            className="group flex items-end gap-2 rounded-[18px] border border-[var(--color-border2)] bg-[var(--color-bg2)] p-2 shadow-[var(--shadow-2)] transition focus-within:border-[color-mix(in_oklab,var(--color-green)_55%,transparent)] focus-within:shadow-[0_0_0_4px_color-mix(in_oklab,var(--color-green)_12%,transparent)]"
+          >
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  send(input);
+                }
+              }}
+              rows={1}
+              placeholder="Pregunta sobre el motor, las acciones, los pronósticos…"
+              className="max-h-[200px] flex-1 resize-none self-center bg-transparent px-2.5 py-2 text-[14px] leading-relaxed text-[var(--color-text)] outline-none placeholder:text-[var(--color-text3)]"
+            />
+            {streaming ? (
+              <button
+                type="button"
+                onClick={() => abortRef.current?.abort()}
+                aria-label="Detener"
+                className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-[var(--color-bg4)] text-[var(--color-text2)] transition hover:text-[var(--color-text)] active:scale-[0.93]"
+              >
+                <span className="size-3 rounded-[3px] bg-current" />
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                aria-label="Enviar"
+                className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-[var(--color-green)] text-black shadow-[0_2px_10px_-2px_color-mix(in_oklab,var(--color-green)_60%,transparent)] transition active:scale-[0.93] disabled:opacity-30 disabled:shadow-none"
+              >
+                <IconSend />
+              </button>
+            )}
+          </form>
+          <div className="mt-2 flex items-center justify-between gap-3 px-1.5">
+            <p className="text-[10.5px] text-[var(--color-text3)] text-pretty">
+              Las cifras vienen de la base en vivo. Puede equivocarse — no es asesoría financiera.
+            </p>
+            <p className="hidden shrink-0 text-[10.5px] text-[var(--color-text3)] sm:block">
+              <kbd className="rounded bg-[var(--color-bg3)] px-1 py-0.5 font-mono text-[10px]">⏎</kbd> enviar
+              <span className="mx-1">·</span>
+              <kbd className="rounded bg-[var(--color-bg3)] px-1 py-0.5 font-mono text-[10px]">⇧⏎</kbd> nueva línea
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -429,9 +340,10 @@ function Markdown({ text }: { text: string }) {
       <Tag key={key} className="my-2 flex flex-col gap-1.5">
         {cur.items.map((it, i) => (
           <li key={i} className="flex gap-2.5">
-            <span className="mt-[9px] size-1.5 shrink-0 rounded-full bg-[var(--color-green)]/70" hidden={cur.ordered} />
-            {cur.ordered && (
+            {cur.ordered ? (
               <span className="shrink-0 tabular-nums text-[var(--color-text3)]">{i + 1}.</span>
+            ) : (
+              <span className="mt-[9px] size-1.5 shrink-0 rounded-full bg-[var(--color-green)]/70" />
             )}
             <span>{inline(it)}</span>
           </li>
@@ -520,24 +432,10 @@ function Sparkle({ small }: { small?: boolean }) {
     </svg>
   );
 }
-function IconClose() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
-  );
-}
 function IconSend() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
       <path d="M8 13V3M4 7l4-4 4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-function IconPlus() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden>
-      <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
     </svg>
   );
 }
