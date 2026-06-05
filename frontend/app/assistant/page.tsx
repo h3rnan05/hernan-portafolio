@@ -24,7 +24,7 @@ const TOOL_LABELS: Record<string, string> = {
 
 const SUGGESTIONS: { q: string; hint: string; icon: React.ReactNode }[] = [
   { q: "¿Qué acciones cubre el motor?", hint: "Las acciones y sus modelos", icon: <IconGrid /> },
-  { q: "¿De verdad funciona? Sé honesto.", hint: "El rendimiento fuera de muestra", icon: <IconTarget /> },
+  { q: "¿Qué tan confiables son las predicciones?", hint: "Desempeño y significancia fuera de muestra", icon: <IconTarget /> },
   { q: "Explícame el algoritmo en simple.", hint: "Cómo predice el motor", icon: <IconBook /> },
   { q: "¿A dónde va NVDA esta semana?", hint: "Pronóstico con banda de confianza", icon: <IconTrend /> },
 ];
@@ -84,6 +84,12 @@ export default function AssistantPage() {
             setActiveTool(null);
             commit();
           } else if (ev.type === "tool") {
+            // Keep a paragraph break between text written before a tool call
+            // and the continuation after it.
+            if (assistant && !assistant.endsWith("\n")) {
+              assistant += "\n\n";
+              commit();
+            }
             setActiveTool(ev.name);
           } else if (ev.type === "error") {
             assistant += (assistant ? "\n\n" : "") + `⚠️ ${ev.message}`;
@@ -327,6 +333,20 @@ function Thinking() {
 
 // ─── Minimal markdown (bold, inline code, bullet/numbered lists, headings) ────
 
+function splitRow(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((c) => c.trim());
+}
+const isTableRow = (s: string) => /^\s*\|.*\|\s*$/.test(s);
+const isTableSep = (s: string) => {
+  const t = s.trim();
+  return t.includes("|") && t.includes("-") && /^[\s:|-]+$/.test(t);
+};
+
 function Markdown({ text }: { text: string }) {
   const blocks: React.ReactNode[] = [];
   const lines = text.split("\n");
@@ -353,39 +373,92 @@ function Markdown({ text }: { text: string }) {
     list = null;
   };
 
-  lines.forEach((raw, idx) => {
-    const line = raw.trimEnd();
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i].trimEnd();
+
+    // Table: a row line immediately followed by a separator line.
+    if (isTableRow(line) && i + 1 < lines.length && isTableSep(lines[i + 1])) {
+      flush(`l${i}`);
+      const header = splitRow(line);
+      const rows: string[][] = [];
+      let j = i + 2;
+      while (j < lines.length && isTableRow(lines[j])) {
+        rows.push(splitRow(lines[j]));
+        j++;
+      }
+      blocks.push(
+        <div key={`t${i}`} className="my-3 overflow-x-auto rounded-[10px] border border-[var(--color-border2)]">
+          <table className="w-full border-collapse text-[12.5px]">
+            <thead>
+              <tr className="bg-[var(--color-bg3)]">
+                {header.map((h, hi) => (
+                  <th
+                    key={hi}
+                    className="whitespace-nowrap px-3 py-2 text-left font-semibold text-[var(--color-text)]"
+                  >
+                    {inline(h)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, ri) => (
+                <tr key={ri} className="border-t border-[var(--color-border)]">
+                  {r.map((c, ci) => (
+                    <td
+                      key={ci}
+                      className={`whitespace-nowrap px-3 py-1.5 align-top tabular-nums ${
+                        ci === 0
+                          ? "font-medium text-[var(--color-text)]"
+                          : "text-[var(--color-text2)]"
+                      }`}
+                    >
+                      {inline(c)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>,
+      );
+      i = j;
+      continue;
+    }
+
     const bullet = line.match(/^\s*[-•]\s+(.*)$/);
     const numbered = line.match(/^\s*\d+\.\s+(.*)$/);
     const heading = line.match(/^#{1,4}\s+(.*)$/);
 
     if (bullet) {
-      if (!list || list.ordered) flush(`l${idx}`);
+      if (!list || list.ordered) flush(`l${i}`);
       list = list ?? { ordered: false, items: [] };
       list.items.push(bullet[1]);
     } else if (numbered) {
-      if (!list || !list.ordered) flush(`l${idx}`);
+      if (!list || !list.ordered) flush(`l${i}`);
       list = list ?? { ordered: true, items: [] };
       list.items.push(numbered[1]);
     } else {
-      flush(`l${idx}`);
+      flush(`l${i}`);
       if (heading) {
         blocks.push(
-          <p key={idx} className="mb-1 mt-3 text-[15px] font-semibold text-[var(--color-text)]">
+          <p key={i} className="mb-1 mt-3 text-[15px] font-semibold text-[var(--color-text)]">
             {inline(heading[1])}
           </p>,
         );
       } else if (line.trim() === "") {
-        blocks.push(<div key={idx} className="h-2" />);
+        blocks.push(<div key={i} className="h-2" />);
       } else {
         blocks.push(
-          <p key={idx} className="my-1">
+          <p key={i} className="my-1">
             {inline(line)}
           </p>,
         );
       }
     }
-  });
+    i++;
+  }
   flush("last");
 
   return <div>{blocks}</div>;
