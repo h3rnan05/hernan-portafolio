@@ -29,6 +29,12 @@ def main(
     k: int = typer.Option(K_PER_STOCK, "--k", help="Predictors per stock"),
     lag: int = typer.Option(0, help="Override LAG_DAYS (0 = use config)"),
     min_obs: int = typer.Option(60, help="Minimum aligned rows before fitting"),
+    estimator: str = typer.Option(
+        "ridge",
+        "--estimator",
+        help="ols | ridge | lasso. Ridge is the production default — it beat "
+        "OLS and Lasso on the HER-13 out-of-sample walk-forward.",
+    ),
 ) -> None:
     settings = get_settings()
     lag_days = lag or settings.lag_days
@@ -41,6 +47,7 @@ def main(
                 k_per_stock=k,
                 lag_days=lag_days,
                 min_obs=min_obs,
+                estimator=estimator,
             )
 
         passed = sum(1 for r in results if r.status == "PASS")

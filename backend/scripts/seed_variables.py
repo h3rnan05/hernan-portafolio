@@ -511,6 +511,46 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
             {"name": "yfinance", "symbol": "GOOGL"},
         ],
     ),
+    # ─── Added stocks (HER-18) — same provider cascade ──────────────────────
+    (
+        "AAPL",
+        "Apple",
+        "stock",
+        "US Equity",
+        "USD",
+        [
+            {"name": "eodhd", "symbol": "AAPL.US"},
+            {"name": "polygon", "symbol": "AAPL"},
+            {"name": "twelve_data", "symbol": "AAPL"},
+            {"name": "yfinance", "symbol": "AAPL"},
+        ],
+    ),
+    (
+        "MSFT",
+        "Microsoft",
+        "stock",
+        "US Equity",
+        "USD",
+        [
+            {"name": "eodhd", "symbol": "MSFT.US"},
+            {"name": "polygon", "symbol": "MSFT"},
+            {"name": "twelve_data", "symbol": "MSFT"},
+            {"name": "yfinance", "symbol": "MSFT"},
+        ],
+    ),
+    (
+        "AMD",
+        "Advanced Micro Devices",
+        "stock",
+        "US Equity",
+        "USD",
+        [
+            {"name": "eodhd", "symbol": "AMD.US"},
+            {"name": "polygon", "symbol": "AMD"},
+            {"name": "twelve_data", "symbol": "AMD"},
+            {"name": "yfinance", "symbol": "AMD"},
+        ],
+    ),
 ]
 
 
@@ -524,6 +564,10 @@ async def main() -> None:
             "unit": v[4],
             "providers": v[5],
             "active": True,
+            # Every seeded stock is a regression target. Migration 0004 only
+            # backfilled the original 9; without setting it here, newly seeded
+            # stocks would default to is_target=False and never get a model.
+            "is_target": v[2] == "stock",
         }
         for v in VARIABLES
     ]
@@ -537,6 +581,7 @@ async def main() -> None:
             "category": stmt.excluded.category,
             "unit": stmt.excluded.unit,
             "providers": stmt.excluded.providers,
+            "is_target": stmt.excluded.is_target,
         },
     )
 
