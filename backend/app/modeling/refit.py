@@ -45,6 +45,7 @@ async def refit_all(
     lag_days: int = 1,
     min_obs: int = 60,
     only_ticker: str | None = None,
+    allow_reuse: bool = True,
 ) -> list[RefitOutcome]:
     """Refit every active stock against every active predictor.
 
@@ -124,6 +125,7 @@ async def refit_all(
         predictors=available_predictors,
         lag_days=lag_days,
         k_per_stock=k_per_stock,
+        allow_reuse=allow_reuse,
     )
 
     for tkr in tickers:
