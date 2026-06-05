@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.tools import TOOLS, dispatch
 from app.config import get_settings
 
-MODEL = "claude-opus-4-8"
+MODEL = "claude-sonnet-4-6"
 MAX_TOOL_ROUNDS = 6
 
 SYSTEM_PROMPT = """\
