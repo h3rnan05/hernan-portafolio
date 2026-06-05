@@ -24,7 +24,7 @@ const TOOL_LABELS: Record<string, string> = {
 
 const SUGGESTIONS: { q: string; hint: string; icon: React.ReactNode }[] = [
   { q: "¿Qué acciones cubre el motor?", hint: "Las acciones y sus modelos", icon: <IconGrid /> },
-  { q: "¿Qué tan confiables son las predicciones?", hint: "Desempeño y significancia fuera de muestra", icon: <IconTarget /> },
+  { q: "Evalúa el desempeño fuera de muestra", hint: "Validación walk-forward: aciertos y Sharpe", icon: <IconTarget /> },
   { q: "Explícame el algoritmo en simple.", hint: "Cómo predice el motor", icon: <IconBook /> },
   { q: "¿A dónde va NVDA esta semana?", hint: "Pronóstico con banda de confianza", icon: <IconTrend /> },
 ];
