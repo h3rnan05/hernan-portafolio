@@ -41,6 +41,13 @@ services:
       - key: ADMIN_BEARER_TOKEN
         sync: false
 
+      # ─── AI assistant (Claude) — required for the /chat endpoint ───────────
+      # Get a key at https://console.anthropic.com → API Keys.
+      # NOTE: this belongs on the BACKEND (Render), not on Vercel. The frontend
+      # never sees it; it only streams from this service's /chat endpoint.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
       # ─── Capital.com (optional; leave blank if not using) ──────────────────
       - key: CAPITAL_API_KEY
         sync: false
