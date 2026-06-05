@@ -66,19 +66,60 @@ async def load_returns_frame(
     wide = wide.reindex(combined).ffill()
     wide = wide.loc[wide.index.isin(bdays)]
 
-    # Log returns column-by-column. Series with non-positive values (e.g.
-    # the 10Y-2Y spread can go negative) get a level diff instead so we
-    # don't take log of negatives.
-    returns = pd.DataFrame(index=wide.index)
+    # Apply each variable's transform (HER-15). Default 'return' reproduces the
+    # original log-return behaviour, so callers see no change unless a variable
+    # has been reclassified to 'level' or 'surprise'.
+    transforms = await _load_transforms(session, list(wide.columns))
+    out = pd.DataFrame(index=wide.index)
     for col in wide.columns:
         s = wide[col].astype(float)
         if s.dropna().shape[0] < 2:
             continue
-        if (s.dropna() <= 0).any():
-            returns[col] = s.diff()
-        else:
-            returns[col] = np.log(s).diff()
-    return returns.dropna(how="all")
+        out[col] = apply_transform(s, transforms.get(col, "return"))
+    return out.dropna(how="all")
+
+
+def apply_transform(level: pd.Series, transform: str) -> pd.Series:
+    """Turn a forward-filled level series into a model input.
+
+    * 'return'   — log return, or a level diff for series that go non-positive
+      (e.g. a yield spread), since log of a non-positive number is undefined.
+    * 'level'    — the level itself, carried daily. A persistent, non-zero
+      regressor: the fix for monthly macro whose 1-day-lagged *return* is zero
+      ~95% of days (HER-15).
+    * 'surprise' — release-day change only (diff of the forward-filled level),
+      zero between releases. The event-study encoding.
+    """
+    s = level.astype(float)
+    if transform == "level":
+        return s
+    if transform == "surprise":
+        return s.diff()
+    # 'return' (default)
+    if (s.dropna() <= 0).any():
+        return s.diff()
+    return np.log(s).diff()
+
+
+async def _load_transforms(session: AsyncSession, ids: list[str]) -> dict[str, str]:
+    """Map ``{variable_id: transform}`` for the requested ids (default 'return')."""
+    if not ids:
+        return {}
+    stmt = select(Variable.id, Variable.transform).where(Variable.id.in_(ids))
+    return {row[0]: (row[1] or "return") for row in (await session.execute(stmt)).all()}
+
+
+async def load_variable_lags(session: AsyncSession, ids: list[str]) -> dict[str, int]:
+    """Map ``{variable_id: lag_days}`` for variables with a non-null override.
+
+    Variables absent from the result use the caller's global lag (HER-15).
+    """
+    if not ids:
+        return {}
+    stmt = select(Variable.id, Variable.lag_days).where(
+        Variable.id.in_(ids), Variable.lag_days.is_not(None)
+    )
+    return {row[0]: int(row[1]) for row in (await session.execute(stmt)).all()}
 
 
 async def load_active_model(session: AsyncSession, ticker: str) -> ModelFit | None:
@@ -172,6 +213,9 @@ async def save_active_model(
         durbin_watson=float(diag["durbin_watson"]),
         breusch_pagan_p=float(diag["breusch_pagan_p"]),
         max_vif=float(diag["max_vif"]),
+        resid_std=float(diag["resid_std"]) if diag.get("resid_std") is not None else None,
+        estimator=diag.get("estimator", "ols"),
+        alpha=float(diag["alpha"]) if diag.get("alpha") is not None else None,
         status=diag["status"],
         is_active=new_is_active,
     )
@@ -186,11 +230,13 @@ def lookback_window(end: date, days: int = 540) -> date:
 
 
 __all__ = [
+    "apply_transform",
     "latest_price",
     "list_predictor_ids",
     "list_tickers",
     "load_active_model",
     "load_returns_frame",
+    "load_variable_lags",
     "lookback_window",
     "save_active_model",
 ]

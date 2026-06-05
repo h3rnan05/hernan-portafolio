@@ -22,6 +22,8 @@ def _build_out(var: Variable, last_date=None, last_value=None) -> VariableOut:
         providers=var.providers,
         active=var.active,
         is_target=var.is_target,
+        lag_days=var.lag_days,
+        transform=var.transform,
         last_observed_on=last_date,
         last_value=float(last_value) if last_value is not None else None,
     )
@@ -110,6 +112,8 @@ async def create_variable(
         providers=[p.model_dump() for p in body.providers],
         active=True,
         is_target=body.is_target,
+        lag_days=body.lag_days,
+        transform=body.transform,
     )
     session.add(var)
     await session.commit()
@@ -144,6 +148,10 @@ async def patch_variable(
         var.active = body.active
     if body.is_target is not None:
         var.is_target = body.is_target
+    if body.lag_days is not None:
+        var.lag_days = body.lag_days
+    if body.transform is not None:
+        var.transform = body.transform
 
     await session.commit()
     await session.refresh(var)

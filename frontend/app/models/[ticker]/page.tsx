@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 
 import { HorizontalBarChart, TimeSeriesChart } from "@/components/charts";
 import { DiagnosticGauge, passes, StatusBadge } from "@/components/diagnostics";
+import { ForecastSection } from "@/components/forecast-section";
 import {
   Card,
   EmptyState,
@@ -57,6 +58,11 @@ export default async function ModelDetail({
 
   // Build a date-aligned predicted-vs-actual series for the chart
   const series = mergePredVsActual(predsR?.points ?? [], obsR);
+
+  // Recent realized prices to anchor the forecast band to history.
+  const forecastHistory = obsR
+    .map((o) => ({ date: o.observed_on, price: o.value }))
+    .sort((a, b) => (a.date < b.date ? -1 : 1));
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
@@ -119,6 +125,16 @@ export default async function ModelDetail({
           detail="< 10"
         />
       </div>
+
+      {/* Forecast — "¿A dónde va el precio?" (HER-17) */}
+      <Card className="mb-8">
+        <SectionHeader
+          eyebrow="Pronóstico"
+          title="¿A dónde va el precio? — próximos 5 días"
+          description="Trayectoria central del modelo con banda de confianza del 90% que se ensancha con el horizonte."
+        />
+        <ForecastSection ticker={model.ticker} history={forecastHistory} />
+      </Card>
 
       {/* Equation */}
       <Card className="mb-8">

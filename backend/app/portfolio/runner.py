@@ -17,7 +17,7 @@ from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modeling.data import latest_price, load_returns_frame
+from app.modeling.data import latest_price, load_returns_frame, load_variable_lags
 from app.modeling.prediction import prediction_record
 from app.models import (
     ModelFit,
@@ -69,8 +69,13 @@ async def run_daily_predictions(
     # the month. 90 days guarantees at least 2 prior releases for any monthly
     # series, so the ffill + diff in load_returns_frame yields a real value.
     all_predictors = sorted({p for m in active_models for p in m.predictor_ids})
+    lag_overrides = await load_variable_lags(session, all_predictors)
+    # Window must cover the longest per-variable lag plus enough calendar span
+    # to capture a monthly release (90d guarantees ≥2 releases for any monthly
+    # series). max_lag is in business days, so ~1.5×7/5 converts to calendar.
+    max_lag = max([lag_days, *lag_overrides.values()])
     end = target_date
-    start = end - timedelta(days=90)
+    start = end - timedelta(days=max(90, max_lag * 3 + 60))
     returns = await load_returns_frame(
         session,
         variable_ids=all_predictors,
@@ -82,13 +87,14 @@ async def run_daily_predictions(
         log.warning("predictions_no_returns", start=start, end=end)
         return out
 
-    # Pick the most-recent row whose timestamp is on or before target_date
+    # Rows on or before target_date, oldest→newest. eligible[-1] is the lag-1
+    # input; a predictor with lag L reads eligible[n_elig - L].
     cutoff = pd.Timestamp(target_date)
     eligible = returns.index[returns.index <= cutoff]
-    if len(eligible) < lag_days:
-        log.warning("predictions_insufficient_history", n=len(eligible))
+    n_elig = len(eligible)
+    if n_elig < lag_days:
+        log.warning("predictions_insufficient_history", n=n_elig)
         return out
-    lagged_row = returns.loc[eligible[-1]]  # this is the lag_days=1 input
 
     rows_to_upsert = []
     for m in active_models:
@@ -98,19 +104,21 @@ async def run_daily_predictions(
             continue
         _last_date, last_price_value = last
 
-        # Pull lagged returns for this model's predictors
+        # Pull each predictor at its own lag (HER-15): lag L → eligible[n_elig-L].
         lagged: dict[str, float] = {}
         skip = False
         for p in m.predictor_ids:
-            if p not in lagged_row or pd.isna(lagged_row[p]):
-                log.warning(
-                    "predictions_missing_predictor",
-                    ticker=m.ticker,
-                    predictor=p,
-                )
+            pos = n_elig - lag_overrides.get(p, lag_days)
+            if p not in returns.columns or pos < 0 or pos >= n_elig:
+                log.warning("predictions_missing_predictor", ticker=m.ticker, predictor=p)
                 skip = True
                 break
-            lagged[p] = float(lagged_row[p])
+            val = returns[p].loc[eligible[pos]]
+            if pd.isna(val):
+                log.warning("predictions_missing_predictor", ticker=m.ticker, predictor=p)
+                skip = True
+                break
+            lagged[p] = float(val)
         if skip:
             continue
 

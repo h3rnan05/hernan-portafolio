@@ -6,8 +6,6 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict
 
-from app.config import K_PER_STOCK
-
 
 class ModelSummary(BaseModel):
     """Compact view: list page."""
@@ -25,6 +23,9 @@ class ModelSummary(BaseModel):
     durbin_watson: float
     breusch_pagan_p: float
     max_vif: float
+    resid_std: float | None = None
+    estimator: str = "ols"
+    alpha: float | None = None
     status: str
     is_active: bool
 
@@ -43,6 +44,9 @@ class RefitRequest(BaseModel):
     lookback_days: int = 540
     k_per_stock: int = 3
     lag_days: int = 1
+    estimator: str = "ols"  # 'ols' | 'ridge' | 'lasso' (HER-16)
+    alpha: float | None = None  # fixed regularization; None → CV
+    allow_reuse: bool = True  # HER-14
 
 
 class RefitOutcomeOut(BaseModel):
@@ -52,6 +56,68 @@ class RefitOutcomeOut(BaseModel):
     n_obs: int | None = None
     predictor_ids: list[str] = []
     error: str | None = None
+
+
+class ValidationCurvePoint(BaseModel):
+    """One day of the cumulative-return comparison."""
+
+    on: date
+    strategy: float
+    buy_hold: float
+
+
+class ValidationResult(BaseModel):
+    """Out-of-sample walk-forward metrics for one ticker (HER-13)."""
+
+    ticker: str
+    estimator: str
+    train_window: int
+    step: int
+    n_windows: int
+    n_predictions: int
+    hit_rate: float | None = None
+    up_day_base_rate: float | None = None
+    edge_vs_base: float | None = None
+    hit_rate_pvalue: float | None = None
+    significant: bool = False
+    rmse: float | None = None
+    mae: float | None = None
+    sharpe_strategy: float | None = None
+    sharpe_buy_hold: float | None = None
+    total_return_strategy: float | None = None
+    total_return_buy_hold: float | None = None
+    cost_bps: float
+    curve: list[ValidationCurvePoint] = []
+    note: str | None = None
+
+
+class ForecastPoint(BaseModel):
+    """One day of the price projection with its confidence band."""
+
+    on: date
+    day: int
+    central: float
+    lower: float
+    upper: float
+
+
+class ForecastResult(BaseModel):
+    """Price forecast for one ticker with a widening band (HER-17)."""
+
+    ticker: str
+    as_of: date
+    last_price: float
+    horizon: int
+    confidence: float  # e.g. 0.90
+    direction: str  # 'up' | 'down'
+    direction_symbol: str  # '▲' | '▼'
+    expected_return_1d: float
+    sigma_daily: float
+    status: str  # active model status: PASS | REVIEW
+    estimator: str
+    sigma_source: str  # 'model_resid' | 'realized_vol'
+    points: list[ForecastPoint] = []
+    note: str | None = None
 
 
 class ObservationAudit(BaseModel):

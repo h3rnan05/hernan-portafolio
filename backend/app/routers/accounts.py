@@ -50,7 +50,9 @@ def _classify(
     for p in profiles:
         w = {k: float(v) for k, v in (p.weights or {}).items()}
         profile_vec = [w.get(t, 0.0) for t in tickers]
-        dist = math.sqrt(sum((u - v) ** 2 for u, v in zip(user_vec, profile_vec)))
+        dist = math.sqrt(
+            sum((u - v) ** 2 for u, v in zip(user_vec, profile_vec, strict=True))
+        )
         if best is None or dist < best[0]:
             best = (dist, p)
 

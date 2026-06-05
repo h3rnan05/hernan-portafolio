@@ -16,12 +16,16 @@ from app.schemas.holding import (
     HoldingUpdate,
 )
 from app.schemas.model import (
+    ForecastPoint,
+    ForecastResult,
     ModelAudit,
     ModelDetail,
     ModelSummary,
     ObservationAudit,
     RefitOutcomeOut,
     RefitRequest,
+    ValidationCurvePoint,
+    ValidationResult,
 )
 from app.schemas.observation import ObservationOut
 from app.schemas.portfolio import (
@@ -46,6 +50,8 @@ from app.schemas.variable import VariableCreate, VariableOut, VariablePatch
 __all__ = [
     "AccountHoldingIn",
     "AccountHoldingOut",
+    "ForecastPoint",
+    "ForecastResult",
     "HoldingIn",
     "HoldingOut",
     "HoldingProjection",
@@ -65,16 +71,18 @@ __all__ = [
     "PositionOut",
     "PositionsSyncOut",
     "PredictionPoint",
+    "ProfileMatch",
     "RefitOutcomeOut",
     "RefitRequest",
     "SimulateRequest",
     "SimulateResponse",
     "SimulatedTicker",
     "TickerPredictions",
-    "ProfileMatch",
     "UserAccountCreate",
     "UserAccountOut",
     "UserAccountPatch",
+    "ValidationCurvePoint",
+    "ValidationResult",
     "VariableCreate",
     "VariableOut",
     "VariablePatch",

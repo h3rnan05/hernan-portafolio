@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+import pandas as pd
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +18,7 @@ from app.modeling.data import (
     list_predictor_ids,
     list_tickers,
     load_returns_frame,
+    load_variable_lags,
     lookback_window,
     save_active_model,
 )
@@ -45,6 +47,9 @@ async def refit_all(
     lag_days: int = 1,
     min_obs: int = 60,
     only_ticker: str | None = None,
+    allow_reuse: bool = True,
+    estimator: str = "ols",
+    alpha: float | None = None,
 ) -> list[RefitOutcome]:
     """Refit every active stock against every active predictor.
 
@@ -118,12 +123,16 @@ async def refit_all(
         + [p for p in predictors if p not in returns.columns],
     )
 
+    lag_overrides = await load_variable_lags(session, available_predictors)
+
     chosen = select_features_greedy(
         returns,
         tickers=available_tickers,
         predictors=available_predictors,
         lag_days=lag_days,
+        lag_overrides=lag_overrides,
         k_per_stock=k_per_stock,
+        allow_reuse=allow_reuse,
     )
 
     for tkr in tickers:
@@ -134,8 +143,11 @@ async def refit_all(
             continue
 
         picks = chosen[tkr]
-        # Build aligned y/X (lagged predictors vs. contemporaneous y)
-        lagged = returns[picks].shift(lag_days)
+        # Build aligned y/X — each predictor lagged by its own override (HER-15)
+        # or the global lag — vs. contemporaneous y.
+        lagged = pd.DataFrame(index=returns.index)
+        for p in picks:
+            lagged[p] = returns[p].shift(lag_overrides.get(p, lag_days))
         aligned = returns[[tkr]].join(lagged, how="inner").dropna()
 
         if aligned.shape[0] < min_obs:
@@ -148,7 +160,7 @@ async def refit_all(
         X = aligned[picks]
 
         try:
-            diag = fit_and_diagnose(y, X)
+            diag = fit_and_diagnose(y, X, estimator=estimator, alpha=alpha)
         except Exception as e:
             log.error("refit_fit_failed", ticker=tkr, err=str(e))
             outcomes.append(RefitOutcome(tkr, "SKIPPED", None, aligned.shape[0], picks, str(e)))
