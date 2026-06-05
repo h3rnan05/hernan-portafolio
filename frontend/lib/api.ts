@@ -143,6 +143,58 @@ export type ForecastResult = {
   note: string | null;
 };
 
+// ─── AI assistant (chat) ─────────────────────────────────────────────────────
+
+export type ChatRole = "user" | "assistant";
+export type ChatMessage = { role: ChatRole; content: string };
+
+export type ChatEvent =
+  | { type: "text"; text: string }
+  | { type: "tool"; name: string }
+  | { type: "done" }
+  | { type: "error"; message: string };
+
+/**
+ * Stream an assistant turn from the backend `/chat` SSE endpoint. Yields parsed
+ * events as they arrive (text deltas, tool-call notices, done/error).
+ */
+export async function* chatStream(
+  messages: ChatMessage[],
+  signal?: AbortSignal,
+): AsyncGenerator<ChatEvent> {
+  const res = await fetch(`${API_URL}/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages }),
+    signal,
+  });
+  if (!res.ok || !res.body) {
+    yield { type: "error", message: `HTTP ${res.status}` };
+    return;
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const chunks = buf.split("\n\n");
+    buf = chunks.pop() ?? "";
+    for (const chunk of chunks) {
+      const line = chunk.trim();
+      if (!line.startsWith("data:")) continue;
+      const payload = line.slice(5).trim();
+      if (!payload) continue;
+      try {
+        yield JSON.parse(payload) as ChatEvent;
+      } catch {
+        // ignore malformed SSE frame
+      }
+    }
+  }
+}
+
 export type ObservationAudit = {
   variable_id: string;
   observed_on: string;
@@ -472,6 +524,8 @@ export const api = {
     request<ForecastResult>(
       `/models/${encodeURIComponent(ticker)}/forecast?horizon=${horizon}`,
     ),
+
+  chatEnabled: () => request<{ enabled: boolean }>("/chat/health"),
 
   modelAuditUrl: (ticker: string) =>
     `${API_URL}/models/${encodeURIComponent(ticker)}/audit`,

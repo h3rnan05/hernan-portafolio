@@ -14,6 +14,7 @@ from app.config import get_settings
 from app.logging import get_logger, setup_logging
 from app.routers import (
     accounts,
+    chat,
     health,
     holdings,
     models,
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(portfolios.router)
     app.include_router(positions.router)
     app.include_router(holdings.router)
+    app.include_router(chat.router)
 
     return app
 

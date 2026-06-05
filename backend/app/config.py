@@ -59,6 +59,9 @@ class Settings(BaseSettings):
     sentry_dsn: str = ""
     slack_webhook_url: str = ""
 
+    # AI assistant (Claude). Empty disables the /chat endpoint.
+    anthropic_api_key: str = ""
+
     @property
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
