@@ -9,6 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth import require_admin
 from app.db import AsyncSessionLocal, get_session
 from app.modeling.refit import refit_all
+from app.modeling.regression import ESTIMATORS
+from app.modeling.validation import walk_forward
 from app.models import ModelFit, Observation
 from app.schemas import (
     ModelAudit,
@@ -17,6 +19,8 @@ from app.schemas import (
     ObservationAudit,
     RefitOutcomeOut,
     RefitRequest,
+    ValidationCurvePoint,
+    ValidationResult,
 )
 
 router = APIRouter(prefix="/models", tags=["models"])
@@ -171,6 +175,62 @@ async def audit_model(
         is_active=m.is_active,
         observations=observations,
         observation_count=len(observations),
+    )
+
+
+@router.get("/{ticker}/validation", response_model=ValidationResult)
+async def validate_model(
+    ticker: str,
+    train_window: int = 252,
+    step: int = 5,
+    estimator: str = "ols",
+    cost_bps: float = 1.0,
+    session: AsyncSession = Depends(get_session),
+) -> ValidationResult:
+    """Out-of-sample walk-forward metrics for one ticker (HER-13).
+
+    Read-only. Recomputes on each call: rolls a ``train_window``-day window
+    across the history, refitting every ``step`` days and predicting the days
+    in between with the frozen model — selecting predictors *inside* each window
+    so the numbers carry no look-ahead bias.
+    """
+    if estimator not in ESTIMATORS:
+        raise HTTPException(400, f"estimator must be one of {ESTIMATORS}")
+    if train_window < 30 or step < 1:
+        raise HTTPException(400, "train_window must be ≥30 and step ≥1")
+
+    res = await walk_forward(
+        session,
+        ticker,
+        train_window=train_window,
+        step=step,
+        estimator=estimator,
+        cost_bps=cost_bps,
+    )
+    return ValidationResult(
+        ticker=res.ticker,
+        estimator=res.estimator,
+        train_window=res.train_window,
+        step=res.step,
+        n_windows=res.n_windows,
+        n_predictions=res.n_predictions,
+        hit_rate=res.hit_rate,
+        up_day_base_rate=res.up_day_base_rate,
+        edge_vs_base=res.edge_vs_base,
+        hit_rate_pvalue=res.hit_rate_pvalue,
+        significant=res.significant,
+        rmse=res.rmse,
+        mae=res.mae,
+        sharpe_strategy=res.sharpe_strategy,
+        sharpe_buy_hold=res.sharpe_buy_hold,
+        total_return_strategy=res.total_return_strategy,
+        total_return_buy_hold=res.total_return_buy_hold,
+        cost_bps=res.cost_bps,
+        curve=[
+            ValidationCurvePoint(on=c.on, strategy=c.strategy, buy_hold=c.buy_hold)
+            for c in res.curve
+        ],
+        note=res.note,
     )
 
 

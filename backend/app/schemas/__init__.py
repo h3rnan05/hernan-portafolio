@@ -22,6 +22,8 @@ from app.schemas.model import (
     ObservationAudit,
     RefitOutcomeOut,
     RefitRequest,
+    ValidationCurvePoint,
+    ValidationResult,
 )
 from app.schemas.observation import ObservationOut
 from app.schemas.portfolio import (
@@ -75,6 +77,8 @@ __all__ = [
     "UserAccountCreate",
     "UserAccountOut",
     "UserAccountPatch",
+    "ValidationCurvePoint",
+    "ValidationResult",
     "VariableCreate",
     "VariableOut",
     "VariablePatch",

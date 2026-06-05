@@ -58,6 +58,39 @@ class RefitOutcomeOut(BaseModel):
     error: str | None = None
 
 
+class ValidationCurvePoint(BaseModel):
+    """One day of the cumulative-return comparison."""
+
+    on: date
+    strategy: float
+    buy_hold: float
+
+
+class ValidationResult(BaseModel):
+    """Out-of-sample walk-forward metrics for one ticker (HER-13)."""
+
+    ticker: str
+    estimator: str
+    train_window: int
+    step: int
+    n_windows: int
+    n_predictions: int
+    hit_rate: float | None = None
+    up_day_base_rate: float | None = None
+    edge_vs_base: float | None = None
+    hit_rate_pvalue: float | None = None
+    significant: bool = False
+    rmse: float | None = None
+    mae: float | None = None
+    sharpe_strategy: float | None = None
+    sharpe_buy_hold: float | None = None
+    total_return_strategy: float | None = None
+    total_return_buy_hold: float | None = None
+    cost_bps: float
+    curve: list[ValidationCurvePoint] = []
+    note: str | None = None
+
+
 class ObservationAudit(BaseModel):
     """One row of the raw training input, as stored in the observations table."""
 
