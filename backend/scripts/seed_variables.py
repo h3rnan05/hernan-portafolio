@@ -511,46 +511,6 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
             {"name": "yfinance", "symbol": "GOOGL"},
         ],
     ),
-    # ─── Added stocks (HER-18) — same provider cascade ──────────────────────
-    (
-        "AAPL",
-        "Apple",
-        "stock",
-        "US Equity",
-        "USD",
-        [
-            {"name": "eodhd", "symbol": "AAPL.US"},
-            {"name": "polygon", "symbol": "AAPL"},
-            {"name": "twelve_data", "symbol": "AAPL"},
-            {"name": "yfinance", "symbol": "AAPL"},
-        ],
-    ),
-    (
-        "MSFT",
-        "Microsoft",
-        "stock",
-        "US Equity",
-        "USD",
-        [
-            {"name": "eodhd", "symbol": "MSFT.US"},
-            {"name": "polygon", "symbol": "MSFT"},
-            {"name": "twelve_data", "symbol": "MSFT"},
-            {"name": "yfinance", "symbol": "MSFT"},
-        ],
-    ),
-    (
-        "AMD",
-        "Advanced Micro Devices",
-        "stock",
-        "US Equity",
-        "USD",
-        [
-            {"name": "eodhd", "symbol": "AMD.US"},
-            {"name": "polygon", "symbol": "AMD"},
-            {"name": "twelve_data", "symbol": "AMD"},
-            {"name": "yfinance", "symbol": "AMD"},
-        ],
-    ),
 ]
 
 
