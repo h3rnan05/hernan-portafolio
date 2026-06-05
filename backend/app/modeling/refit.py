@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
+import pandas as pd
 import structlog
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -17,6 +18,7 @@ from app.modeling.data import (
     list_predictor_ids,
     list_tickers,
     load_returns_frame,
+    load_variable_lags,
     lookback_window,
     save_active_model,
 )
@@ -121,11 +123,14 @@ async def refit_all(
         + [p for p in predictors if p not in returns.columns],
     )
 
+    lag_overrides = await load_variable_lags(session, available_predictors)
+
     chosen = select_features_greedy(
         returns,
         tickers=available_tickers,
         predictors=available_predictors,
         lag_days=lag_days,
+        lag_overrides=lag_overrides,
         k_per_stock=k_per_stock,
         allow_reuse=allow_reuse,
     )
@@ -138,8 +143,11 @@ async def refit_all(
             continue
 
         picks = chosen[tkr]
-        # Build aligned y/X (lagged predictors vs. contemporaneous y)
-        lagged = returns[picks].shift(lag_days)
+        # Build aligned y/X — each predictor lagged by its own override (HER-15)
+        # or the global lag — vs. contemporaneous y.
+        lagged = pd.DataFrame(index=returns.index)
+        for p in picks:
+            lagged[p] = returns[p].shift(lag_overrides.get(p, lag_days))
         aligned = returns[[tkr]].join(lagged, how="inner").dropna()
 
         if aligned.shape[0] < min_obs:

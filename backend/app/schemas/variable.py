@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 VariableKind = Literal["predictor", "stock", "etf", "index", "portfolio"]
+VariableTransform = Literal["return", "level", "surprise"]
 
 
 class ProviderConfig(BaseModel):
@@ -26,6 +27,8 @@ class VariableOut(BaseModel):
     providers: list[ProviderConfig]
     active: bool
     is_target: bool
+    lag_days: int | None = None
+    transform: str = "return"
     last_observed_on: date | None = None
     last_value: float | None = None
 
@@ -40,6 +43,8 @@ class VariableCreate(BaseModel):
     unit: str | None = None
     providers: list[ProviderConfig] = []
     is_target: bool = False
+    lag_days: int | None = None
+    transform: VariableTransform = "return"
 
 
 class VariablePatch(BaseModel):
@@ -51,3 +56,5 @@ class VariablePatch(BaseModel):
     providers: list[ProviderConfig] | None = None
     active: bool | None = None
     is_target: bool | None = None
+    lag_days: int | None = None
+    transform: VariableTransform | None = None

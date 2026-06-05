@@ -49,6 +49,7 @@ from app.config import K_PER_STOCK
 from app.modeling.data import (
     list_predictor_ids,
     load_returns_frame,
+    load_variable_lags,
     lookback_window,
 )
 from app.modeling.feature_select import select_features_greedy
@@ -397,6 +398,8 @@ async def walk_forward(
             ticker, estimator, train_window, step, "no observations for ticker"
         )
 
+    lag_overrides = await load_variable_lags(session, predictors)
+
     return run_walk_forward_frame(
         returns,
         ticker,
@@ -405,6 +408,7 @@ async def walk_forward(
         step=step,
         k_per_stock=k_per_stock,
         lag_days=lag_days,
+        lag_overrides=lag_overrides,
         allow_reuse=allow_reuse,
         estimator=estimator,
         alpha=alpha,
