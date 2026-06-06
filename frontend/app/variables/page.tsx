@@ -5,6 +5,7 @@
 import Link from "next/link";
 
 import { Sparkline } from "@/components/charts";
+import { PremiumBadge, PremiumGate } from "@/components/premium-gate";
 import {
   Badge,
   Card,
@@ -43,31 +44,37 @@ export default async function VariablesPage() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-8">
-        <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
+        <div className="mb-1 flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
           Data
+          <PremiumBadge />
         </div>
         <h1 className="text-2xl font-semibold tracking-tight">
           Variables registry
         </h1>
         <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
           Every series this engine tracks, with its provider chain and last
-          observation. Click a row to see the full history.
+          observation. Click a row to see the full history.{" "}
+          <span className="text-[var(--color-text3)]">
+            Sección exclusiva para usuarios Premium.
+          </span>
         </p>
       </div>
 
-      <section className="mb-8">
-        <h2 className="mb-3 text-[11px] uppercase tracking-widest text-[var(--color-text3)]">
-          Stocks · {stocks.length}
-        </h2>
-        <VariableTable variables={stocks} sparkMap={sparkMap} />
-      </section>
+      <PremiumGate>
+        <section className="mb-8">
+          <h2 className="mb-3 text-[11px] uppercase tracking-widest text-[var(--color-text3)]">
+            Stocks · {stocks.length}
+          </h2>
+          <VariableTable variables={stocks} sparkMap={sparkMap} />
+        </section>
 
-      <section>
-        <h2 className="mb-3 text-[11px] uppercase tracking-widest text-[var(--color-text3)]">
-          Predictors · {predictors.length}
-        </h2>
-        <VariableTable variables={predictors} sparkMap={sparkMap} />
-      </section>
+        <section>
+          <h2 className="mb-3 text-[11px] uppercase tracking-widest text-[var(--color-text3)]">
+            Predictors · {predictors.length}
+          </h2>
+          <VariableTable variables={predictors} sparkMap={sparkMap} />
+        </section>
+      </PremiumGate>
     </div>
   );
 }

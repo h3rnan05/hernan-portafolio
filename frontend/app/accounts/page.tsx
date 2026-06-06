@@ -6,6 +6,7 @@
  * P5 aggressive) using L2 distance on portfolio weights.
  */
 
+import { CreatePortfolio } from "@/components/create-portfolio";
 import {
   Badge,
   Card,
@@ -61,6 +62,11 @@ export default async function AccountsPage() {
           </p>
         </div>
         <NewAccountButton />
+      </div>
+
+      {/* Crear portafolio — registered users track up to 5 portfolios (HER task 5) */}
+      <div className="mb-8">
+        <CreatePortfolio />
       </div>
 
       {error ? (
