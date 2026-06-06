@@ -235,6 +235,54 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
             {"name": "yfinance", "symbol": "^BSESN"},
         ],
     ),
+    # ─── US + Mexico index benchmarks (3) — for the Overview comparison chart ─
+    # The Overview "Comparativo de tu portafolio" chart plots the portfolio
+    # against NYSE, NASDAQ, IPC México, Nikkei 225, and FTSE 100. The Nikkei and
+    # FTSE proxies already exist above; these three add the US + MX benchmarks.
+    # Kept as `predictor` kind so the daily ingestion runner (which only pulls
+    # predictor/stock variables) keeps them current.
+    (
+        "NYSE_Composite",
+        "NYSE Composite (Vanguard VTI ETF proxy)",
+        "predictor",
+        "US Index",
+        "USD",
+        # ^NYA (NYSE Composite) has no reliable free feed; VTI (Vanguard Total
+        # Market) is the standard broad-US proxy and is on EODHD All-World.
+        [
+            {"name": "eodhd", "symbol": "VTI.US"},
+            {"name": "polygon", "symbol": "VTI"},
+            {"name": "twelve_data", "symbol": "VTI"},
+            {"name": "yfinance", "symbol": "VTI"},
+        ],
+    ),
+    (
+        "NASDAQ_Composite",
+        "NASDAQ 100 (Invesco QQQ ETF proxy)",
+        "predictor",
+        "US Index",
+        "USD",
+        # ^IXIC spot is licensed; QQQ (Invesco NASDAQ-100) tracks the tech-heavy
+        # index closely and is freely available.
+        [
+            {"name": "eodhd", "symbol": "QQQ.US"},
+            {"name": "polygon", "symbol": "QQQ"},
+            {"name": "twelve_data", "symbol": "QQQ"},
+            {"name": "yfinance", "symbol": "QQQ"},
+        ],
+    ),
+    (
+        "IPC_Mexico",
+        "IPC México (S&P/BMV IPC)",
+        "predictor",
+        "Mexico Index",
+        "Points",
+        [
+            {"name": "eodhd", "symbol": "MXX.INDX"},
+            {"name": "twelve_data", "symbol": "MXX"},
+            {"name": "yfinance", "symbol": "^MXX"},
+        ],
+    ),
     # ─── FX rates (4) — FRED primary, EODHD fallback (.FOREX) ───────────────
     (
         "EUR_USD",

@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const ROUTES: { href: string; label: string }[] = [
+import { AuthButton } from "@/components/auth-button";
+
+const ROUTES: { href: string; label: string; premium?: boolean }[] = [
   { href: "/", label: "Overview" },
   { href: "/accounts", label: "Accounts" },
   { href: "/holdings", label: "Holdings" },
@@ -11,7 +13,7 @@ const ROUTES: { href: string; label: string }[] = [
   { href: "/portfolios", label: "Portfolios" },
   { href: "/simulator", label: "Simulator" },
   { href: "/positions", label: "Positions" },
-  { href: "/variables", label: "Data" },
+  { href: "/variables", label: "Data", premium: true },
 ];
 
 export function TopNav() {
@@ -41,20 +43,38 @@ export function TopNav() {
           aria-label="Primary"
           className="ml-auto flex items-center gap-1 overflow-x-auto"
         >
-          {ROUTES.map(({ href, label }) => {
+          {ROUTES.map(({ href, label, premium }) => {
             const active = isActive(href);
             return (
               <Link
                 key={href}
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`relative inline-flex h-9 items-center px-3 text-[13px] font-medium transition-colors duration-150 ${
+                className={`relative inline-flex h-9 items-center gap-1 px-3 text-[13px] font-medium transition-colors duration-150 ${
                   active
                     ? "text-[var(--color-text)]"
                     : "text-[var(--color-text2)] hover:text-[var(--color-text)]"
                 }`}
               >
                 {label}
+                {premium && (
+                  <svg
+                    width="11"
+                    height="11"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    aria-label="Premium"
+                    className="text-[var(--color-amber)]"
+                  >
+                    <path
+                      d="M4.5 7V5.5a3.5 3.5 0 117 0V7m-8 0h9a1 1 0 011 1v5a1 1 0 01-1 1h-9a1 1 0 01-1-1V8a1 1 0 011-1z"
+                      stroke="currentColor"
+                      strokeWidth="1.3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
                 {active && (
                   <span
                     aria-hidden
@@ -85,6 +105,10 @@ export function TopNav() {
             </svg>
             Asistente AI
           </Link>
+        </div>
+
+        <div className="shrink-0">
+          <AuthButton />
         </div>
       </div>
     </header>

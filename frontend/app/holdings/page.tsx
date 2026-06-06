@@ -22,6 +22,8 @@ import {
   fmtRelative,
   SectionHeader,
 } from "@/components/primitives";
+import { PredictorsPanel } from "@/components/predictors-panel";
+import { StocksGrid } from "@/components/stocks-grid";
 import { useAdminToken } from "@/hooks/use-admin-token";
 import {
   api,
@@ -376,6 +378,26 @@ export default function HoldingsPage() {
           </button>
         </form>
       </Card>
+
+      {/* Stocks — the 9 tracked names (moved here from Overview) */}
+      <section className="mt-10">
+        <SectionHeader
+          eyebrow="Stocks"
+          title="Active holdings universe"
+          description="The 9 names this engine predicts. Each card links to its model + history."
+        />
+        <StocksGrid />
+      </section>
+
+      {/* Predictors — coverage status, balanced categories (moved from Overview) */}
+      <section className="mt-10">
+        <SectionHeader
+          eyebrow="Predictors"
+          title="Coverage status"
+          description="Which predictors are populated, grouped into balanced categories. The model layer needs these macro variables to fit meaningful equations."
+        />
+        <PredictorsPanel />
+      </section>
     </div>
   );
 }

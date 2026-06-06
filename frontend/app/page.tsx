@@ -13,8 +13,8 @@
 
 import Link from "next/link";
 
-import { AreaChartCmp, Sparkline } from "@/components/charts";
-import { StatusBadge } from "@/components/diagnostics";
+import { AreaChartCmp } from "@/components/charts";
+import { PortfolioComparison } from "@/components/portfolio-comparison";
 import {
   Badge,
   Card,
@@ -26,7 +26,7 @@ import {
   SectionHeader,
   StatTile,
 } from "@/components/primitives";
-import { api, ApiError, type Observation, type Variable } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -91,24 +91,6 @@ export default async function Overview() {
     .filter((d): d is string => !!d)
     .sort()
     .pop();
-
-  // Build sparklines server-side for the 9 stocks (cheap: 30-day windows)
-  const stockSparklines = await Promise.all(
-    stocks.map(async (s) => {
-      const obs = await safe(() =>
-        api.getObservations(s.id, {
-          from: daysAgoISO(60),
-          limit: 60,
-        }),
-      );
-      return {
-        ticker: s.id,
-        display: s.display_name,
-        last: s.last_value,
-        series: obs.ok ? obs.data : ([] as Observation[]),
-      };
-    }),
-  );
 
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
@@ -239,103 +221,15 @@ export default async function Overview() {
         </section>
       )}
 
-      {/* Stocks grid — 9 cards, current close + sparkline */}
+      {/* Comparative chart — portfolio vs major index benchmarks */}
       <section className="mb-10">
-        <SectionHeader
-          eyebrow="Stocks"
-          title="Active holdings"
-          description="The 9 names this engine predicts. Each card links to its model + history."
-        />
-        {stocks.length === 0 ? (
-          <EmptyState
-            title="No stocks loaded"
-            description="Seed the variables registry first."
-          />
-        ) : (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-3">
-            {stockSparklines.map((s) => (
-              <StockCard
-                key={s.ticker}
-                ticker={s.ticker}
-                display={s.display}
-                last={s.last}
-                series={s.series}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Coverage status — predictor health */}
-      <section className="mb-10">
-        <SectionHeader
-          eyebrow="Predictors"
-          title="Coverage status"
-          description="Which predictors are populated. The model layer needs the macro variables to fit meaningful equations."
-          right={
-            <Link
-              href="/variables"
-              className="rounded-[6px] bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
-            >
-              All data →
-            </Link>
-          }
-        />
-        <PredictorTable variables={predictors} />
+        <PortfolioComparison />
       </section>
     </div>
   );
 }
 
 // ─── Subcomponents ──────────────────────────────────────────────────────────
-
-function StockCard({
-  ticker,
-  display,
-  last,
-  series,
-}: {
-  ticker: string;
-  display: string;
-  last: number | null;
-  series: Observation[];
-}) {
-  const values = series.map((o) => o.value);
-  const first = values[0];
-  const lastVal = values[values.length - 1] ?? last;
-  const pct =
-    first != null && lastVal != null && first !== 0
-      ? (lastVal - first) / first
-      : null;
-  return (
-    <Link
-      href={`/models/${ticker}`}
-      className="group block rounded-[14px] bg-[var(--color-bg2)] p-4 transition-colors duration-150 hover:bg-[var(--color-bg3)] focus-visible:bg-[var(--color-bg3)] shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_1px_2px_rgba(0,0,0,0.3)]"
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="font-mono text-[15px] font-semibold tracking-tight">
-            {ticker}
-          </div>
-          <div className="mt-0.5 text-[11px] text-[var(--color-text3)]">
-            {display}
-          </div>
-        </div>
-        {pct !== null && (
-          <Badge tone={pct >= 0 ? "green" : "red"}>
-            {fmtPct(pct, { signed: true, decimals: 2 })}
-          </Badge>
-        )}
-      </div>
-      <div className="mt-4 flex items-end justify-between gap-3">
-        <div className="font-mono tabular text-xl font-semibold">
-          {last != null ? `$${fmtNumber(last, { decimals: 2 })}` : "—"}
-        </div>
-        <Sparkline values={values} width={96} height={32} />
-      </div>
-    </Link>
-  );
-}
 
 function YourPortfolioCard({
   projection,
@@ -555,59 +449,3 @@ async function PortfolioMiniChart({ portfolioId }: { portfolioId?: string }) {
   );
 }
 
-function PredictorTable({ variables }: { variables: Variable[] }) {
-  // Group by category for scannability
-  const grouped = new Map<string, Variable[]>();
-  for (const v of variables) {
-    const key = v.category ?? "Other";
-    if (!grouped.has(key)) grouped.set(key, []);
-    grouped.get(key)!.push(v);
-  }
-  const cats = Array.from(grouped.keys()).sort();
-
-  return (
-    <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-      {cats.map((cat) => (
-        <Card key={cat}>
-          <div className="mb-2 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-            {cat}
-          </div>
-          <ul className="divide-y divide-[var(--color-border)]">
-            {grouped.get(cat)!.map((v) => (
-              <li
-                key={v.id}
-                className="flex items-center justify-between gap-3 py-2 text-[12.5px]"
-              >
-                <Link
-                  href={`/variables/${encodeURIComponent(v.id)}`}
-                  className="truncate font-medium hover:text-[var(--color-cyan)]"
-                  title={v.display_name}
-                >
-                  {v.display_name}
-                </Link>
-                {v.last_observed_on ? (
-                  <span className="flex shrink-0 items-center gap-2 text-[var(--color-text3)]">
-                    <span className="font-mono tabular text-[var(--color-text2)]">
-                      {fmtNumber(v.last_value, { decimals: 2 })}
-                    </span>
-                    <Badge tone="green">live</Badge>
-                  </span>
-                ) : (
-                  <Badge tone="amber">no data</Badge>
-                )}
-              </li>
-            ))}
-          </ul>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-// ─── Helpers ────────────────────────────────────────────────────────────────
-
-function daysAgoISO(d: number): string {
-  const dt = new Date();
-  dt.setUTCDate(dt.getUTCDate() - d);
-  return dt.toISOString().slice(0, 10);
-}
