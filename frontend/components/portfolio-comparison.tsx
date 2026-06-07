@@ -395,7 +395,7 @@ function ComparisonTooltip({
               <span className="ml-auto font-mono tabular">
                 <SignedPct value={day} /> día
                 <span className="mx-1 text-[var(--color-text3)]">·</span>
-                <SignedPct value={cum} /> acum.
+                <SignedPct value={cum} /> acumulado
               </span>
             </div>
           );
