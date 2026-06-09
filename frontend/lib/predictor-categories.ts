@@ -19,11 +19,13 @@ export type PredictorGroup = {
 };
 
 // Ordered so the rendered grid has a deterministic, sensible flow.
+// Buckets are kept at 3–5 members each so the grid reads evenly.
 const BUCKET_ORDER = [
   "US Macro — Prices & Labor",
   "US Macro — Growth & Activity",
+  "Americas Indices",
   "Europe Indices",
-  "Asia & EM Indices",
+  "Asia-Pacific Indices",
   "FX Rates",
   "Commodities",
   "International Stocks",
@@ -46,15 +48,16 @@ const ID_TO_BUCKET: Record<string, string> = {
   FTSE_100: "Europe Indices",
   DAX: "Europe Indices",
   CAC_40: "Europe Indices",
-  // Asia & EM Indices (folds the former single-member Brazil/Korea/HK/India/MX/US index cats)
-  Nikkei_225: "Asia & EM Indices",
-  Hang_Seng: "Asia & EM Indices",
-  KOSPI: "Asia & EM Indices",
-  BSE_Sensex: "Asia & EM Indices",
-  Bovespa: "Asia & EM Indices",
-  IPC_Mexico: "Asia & EM Indices",
-  NYSE_Composite: "Asia & EM Indices",
-  NASDAQ_Composite: "Asia & EM Indices",
+  // Americas Indices (US broad-market proxies + LatAm)
+  NYSE_Composite: "Americas Indices",
+  NASDAQ_Composite: "Americas Indices",
+  IPC_Mexico: "Americas Indices",
+  Bovespa: "Americas Indices",
+  // Asia-Pacific Indices
+  Nikkei_225: "Asia-Pacific Indices",
+  Hang_Seng: "Asia-Pacific Indices",
+  KOSPI: "Asia-Pacific Indices",
+  BSE_Sensex: "Asia-Pacific Indices",
   // FX Rates
   EUR_USD: "FX Rates",
   EUR_JPY: "FX Rates",
