@@ -23,7 +23,17 @@ import {
 
 import { fmtDate, fmtNumber } from "@/components/primitives";
 
-type SeriesKey = { key: string; label: string; color: string };
+type SeriesKey = {
+  key: string;
+  label: string;
+  color: string;
+  /** Line thickness in px. Defaults to 1.75. Use a heavier value to emphasise
+   *  a primary series (e.g. the user's own portfolio). */
+  width?: number;
+  /** Render the line in a fainter tone — for secondary/benchmark series so the
+   *  emphasised series reads as the focal point. */
+  faded?: boolean;
+};
 
 const COLORS = {
   green: "var(--color-green)",
@@ -44,12 +54,16 @@ function CustomTooltip({
   label,
   unit = "",
   decimals = 2,
+  baseline,
 }: {
   active?: boolean;
   payload?: Array<{ name?: string; value?: number; color?: string }>;
   label?: string | number;
   unit?: string;
   decimals?: number;
+  /** When set, each row also shows the % change of its value versus this
+   *  baseline (e.g. 100 for series re-based to 100 at the window start). */
+  baseline?: number;
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const dateLabel =
@@ -62,20 +76,39 @@ function CustomTooltip({
         {dateLabel}
       </div>
       <div className="space-y-1">
-        {payload.map((p, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <span
-              className="size-2 rounded-full"
-              style={{ background: p.color }}
-              aria-hidden
-            />
-            <span className="text-[var(--color-text2)]">{p.name ?? ""}</span>
-            <span className="ml-auto font-mono tabular text-[var(--color-text)]">
-              {fmtNumber(p.value ?? null, { decimals })}
-              {unit}
-            </span>
-          </div>
-        ))}
+        {payload.map((p, i) => {
+          const v = p.value ?? null;
+          const pct =
+            baseline != null && baseline !== 0 && typeof v === "number"
+              ? ((v - baseline) / baseline) * 100
+              : null;
+          return (
+            <div key={i} className="flex items-center gap-3">
+              <span
+                className="size-2 rounded-full"
+                style={{ background: p.color }}
+                aria-hidden
+              />
+              <span className="text-[var(--color-text2)]">{p.name ?? ""}</span>
+              <span className="ml-auto font-mono tabular text-[var(--color-text)]">
+                {fmtNumber(v, { decimals })}
+                {unit}
+              </span>
+              {pct != null && (
+                <span
+                  className={`w-[52px] text-right font-mono tabular text-[11px] ${
+                    pct >= 0
+                      ? "text-[var(--color-green)]"
+                      : "text-[var(--color-red)]"
+                  }`}
+                >
+                  {pct >= 0 ? "+" : ""}
+                  {pct.toFixed(pct >= 100 || pct <= -100 ? 0 : 1)}%
+                </span>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -90,6 +123,9 @@ export function TimeSeriesChart({
   yDecimals = 2,
   yUnit = "",
   showLegend = true,
+  hidden,
+  onToggleSeries,
+  tooltipBaseline,
 }: {
   data: Array<Record<string, number | string | null>>;
   series: SeriesKey[];
@@ -97,7 +133,16 @@ export function TimeSeriesChart({
   yDecimals?: number;
   yUnit?: string;
   showLegend?: boolean;
+  /** Series keys currently hidden from the chart (their line is not drawn and
+   *  they drop out of the tooltip). */
+  hidden?: string[];
+  /** When provided, legend entries become buttons that toggle their series.
+   *  Without it the legend stays a static label row (back-compat default). */
+  onToggleSeries?: (key: string) => void;
+  /** Passed through to the tooltip so each row can show % change vs a baseline. */
+  tooltipBaseline?: number;
 }) {
+  const isHidden = (key: string) => hidden?.includes(key) ?? false;
   return (
     <div className="w-full" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
@@ -123,7 +168,11 @@ export function TimeSeriesChart({
           />
           <Tooltip
             content={
-              <CustomTooltip unit={yUnit} decimals={yDecimals} />
+              <CustomTooltip
+                unit={yUnit}
+                decimals={yDecimals}
+                baseline={tooltipBaseline}
+              />
             }
             cursor={{ stroke: COLORS.border, strokeWidth: 1 }}
           />
@@ -134,7 +183,9 @@ export function TimeSeriesChart({
               dataKey={s.key}
               name={s.label}
               stroke={s.color}
-              strokeWidth={1.75}
+              strokeWidth={s.width ?? 1.75}
+              strokeOpacity={s.faded ? 0.6 : 1}
+              hide={isHidden(s.key)}
               dot={false}
               activeDot={{ r: 4, strokeWidth: 0 }}
               isAnimationActive={false}
@@ -144,16 +195,41 @@ export function TimeSeriesChart({
       </ResponsiveContainer>
       {showLegend && (
         <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[11px] text-[var(--color-text2)]">
-          {series.map((s) => (
-            <span key={s.key} className="inline-flex items-center gap-1.5">
+          {series.map((s) => {
+            const off = isHidden(s.key);
+            const dot = (
               <span
-                className="inline-block size-2 rounded-full"
-                style={{ background: s.color }}
+                className="inline-block size-2 rounded-full transition-opacity"
+                style={{ background: s.color, opacity: off ? 0.3 : 1 }}
                 aria-hidden
               />
-              {s.label}
-            </span>
-          ))}
+            );
+            // Interactive (toggle) variant — only when a handler is supplied.
+            if (onToggleSeries) {
+              return (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => onToggleSeries(s.key)}
+                  aria-pressed={!off}
+                  className={`inline-flex items-center gap-1.5 rounded-[6px] px-1 py-0.5 transition-colors hover:text-[var(--color-text)] focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--color-border2)] ${
+                    off ? "text-[var(--color-text3)] line-through" : ""
+                  }`}
+                  title={off ? `Mostrar ${s.label}` : `Ocultar ${s.label}`}
+                >
+                  {dot}
+                  {s.label}
+                </button>
+              );
+            }
+            // Static label row (back-compat default).
+            return (
+              <span key={s.key} className="inline-flex items-center gap-1.5">
+                {dot}
+                {s.label}
+              </span>
+            );
+          })}
         </div>
       )}
     </div>
