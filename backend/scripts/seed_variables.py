@@ -145,10 +145,16 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
         # EODHD All-World plan does not include the spot FTSE.INDX feed
         # (FTSE Russell licenses the index commercially). iShares Core
         # FTSE 100 ETF tracks the index within 0.1% — drop-in proxy.
+        #
+        # CRITICAL: every provider in this chain MUST return the SAME instrument
+        # (the ISF ETF, quoted in GBX/pence ≈ 1,000). The old fallbacks
+        # `twelve_data UKX` and `yfinance ^FTSE` returned the FTSE 100 *index in
+        # points* (≈ 10,000) — a ~10x scale break that corrupted the series
+        # whenever EODHD fell back. yfinance `ISF.L` is the same ETF in pence,
+        # so the fallback now stays on-scale.
         [
             {"name": "eodhd", "symbol": "ISF.LSE"},
-            {"name": "twelve_data", "symbol": "UKX"},
-            {"name": "yfinance", "symbol": "^FTSE"},
+            {"name": "yfinance", "symbol": "ISF.L"},
         ],
     ),
     (
