@@ -54,22 +54,30 @@ function CustomTooltip({
   label,
   unit = "",
   decimals = 2,
-  baseline,
+  percent = false,
 }: {
   active?: boolean;
-  payload?: Array<{ name?: string; value?: number; color?: string }>;
+  payload?: Array<{
+    name?: string;
+    value?: number;
+    color?: string;
+    dataKey?: string | number;
+    payload?: Record<string, number | string | null>;
+  }>;
   label?: string | number;
   unit?: string;
   decimals?: number;
-  /** When set, each row also shows the % change of its value versus this
-   *  baseline (e.g. 100 for series re-based to 100 at the window start). */
-  baseline?: number;
+  /** Treat each series value as a signed % (e.g. cumulative return): the value
+   *  is coloured green/red and rendered with a sign. When the data row carries a
+   *  `<dataKey>__d` field, that day's return is shown alongside it. */
+  percent?: boolean;
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const dateLabel =
     typeof label === "string" || typeof label === "number"
       ? fmtDate(String(label))
       : String(label);
+  const signed = (x: number, d = 1) => `${x >= 0 ? "+" : ""}${x.toFixed(d)}%`;
   return (
     <div className="rounded-[10px] border border-[var(--color-border2)] bg-[var(--color-bg)] p-3 text-[12px] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
       <div className="mb-1.5 text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
@@ -78,10 +86,8 @@ function CustomTooltip({
       <div className="space-y-1">
         {payload.map((p, i) => {
           const v = p.value ?? null;
-          const pct =
-            baseline != null && baseline !== 0 && typeof v === "number"
-              ? ((v - baseline) / baseline) * 100
-              : null;
+          const day =
+            percent && p.payload ? p.payload[`${p.dataKey}__d`] : null;
           return (
             <div key={i} className="flex items-center gap-3">
               <span
@@ -90,20 +96,25 @@ function CustomTooltip({
                 aria-hidden
               />
               <span className="text-[var(--color-text2)]">{p.name ?? ""}</span>
-              <span className="ml-auto font-mono tabular text-[var(--color-text)]">
-                {fmtNumber(v, { decimals })}
-                {unit}
-              </span>
-              {pct != null && (
+              {percent && typeof v === "number" ? (
                 <span
-                  className={`w-[52px] text-right font-mono tabular text-[11px] ${
-                    pct >= 0
+                  className={`ml-auto font-mono tabular ${
+                    v >= 0
                       ? "text-[var(--color-green)]"
                       : "text-[var(--color-red)]"
                   }`}
                 >
-                  {pct >= 0 ? "+" : ""}
-                  {pct.toFixed(pct >= 100 || pct <= -100 ? 0 : 1)}%
+                  {signed(v, decimals)}
+                </span>
+              ) : (
+                <span className="ml-auto font-mono tabular text-[var(--color-text)]">
+                  {fmtNumber(v, { decimals })}
+                  {unit}
+                </span>
+              )}
+              {typeof day === "number" && (
+                <span className="w-[70px] text-right font-mono tabular text-[10px] text-[var(--color-text3)]">
+                  día {signed(day, 1)}
                 </span>
               )}
             </div>
@@ -125,7 +136,7 @@ export function TimeSeriesChart({
   showLegend = true,
   hidden,
   onToggleSeries,
-  tooltipBaseline,
+  percent = false,
 }: {
   data: Array<Record<string, number | string | null>>;
   series: SeriesKey[];
@@ -139,10 +150,13 @@ export function TimeSeriesChart({
   /** When provided, legend entries become buttons that toggle their series.
    *  Without it the legend stays a static label row (back-compat default). */
   onToggleSeries?: (key: string) => void;
-  /** Passed through to the tooltip so each row can show % change vs a baseline. */
-  tooltipBaseline?: number;
+  /** Treat values as signed % (cumulative return): the Y axis renders +/-%, a
+   *  dashed 0% baseline is drawn, and the tooltip shows coloured %s + day return. */
+  percent?: boolean;
 }) {
   const isHidden = (key: string) => hidden?.includes(key) ?? false;
+  const fmtPctTick = (v: number) =>
+    `${v > 0 ? "+" : ""}${fmtNumber(v, { decimals: 0 })}%`;
   return (
     <div className="w-full" style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
@@ -160,18 +174,29 @@ export function TimeSeriesChart({
           />
           <YAxis
             tickFormatter={(v) =>
-              fmtNumber(v, { decimals: yDecimals, compact: true })
+              percent
+                ? fmtPctTick(v)
+                : fmtNumber(v, { decimals: yDecimals, compact: true })
             }
             tickLine={false}
             axisLine={false}
             width={56}
           />
+          {percent && (
+            <ReferenceLine
+              y={0}
+              stroke={COLORS.text3}
+              strokeDasharray="4 4"
+              strokeOpacity={0.5}
+              ifOverflow="extendDomain"
+            />
+          )}
           <Tooltip
             content={
               <CustomTooltip
                 unit={yUnit}
                 decimals={yDecimals}
-                baseline={tooltipBaseline}
+                percent={percent}
               />
             }
             cursor={{ stroke: COLORS.border, strokeWidth: 1 }}

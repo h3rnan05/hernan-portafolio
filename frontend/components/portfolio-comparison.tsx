@@ -6,12 +6,13 @@
  * Plots the user's portfolio — the P3 Balanced risk profile, weighted by the
  * profile's own weights — against the major market benchmarks (NYSE/VTI,
  * NASDAQ/QQQ, IPC México, Nikkei 225, FTSE 100) over a selectable 7 / 30 /
- * 360-day window. Every series is re-based to 100 at the start of the active
- * window so they're comparable regardless of native units (USD, points, GBX…).
+ * 360-day window. Each series is shown as its CUMULATIVE % return from the
+ * window start (0%-based), so they're directly comparable regardless of native
+ * units (USD, points, GBX…) — pct[t] = (price[t] / price[windowStart] - 1)·100.
  *
  * The portfolio line is the thickest, in the accent green; benchmarks render in
- * fainter tones. The legend toggles each series on/off, and the tooltip shows
- * both the re-based value and the % change versus the window start.
+ * fainter tones. The legend toggles each series on/off; the tooltip shows each
+ * series' cumulative % plus that day's return.
  *
  * Benchmarks that aren't ingested yet simply don't render a line; the panel
  * notes which ones are pending so the chart never shows empty axes.
@@ -171,7 +172,10 @@ export function PortfolioComparison() {
     };
   }, []);
 
-  // Slice to the active window and re-base every series to 100 at window start.
+  // Slice to the active window and express every series as its CUMULATIVE %
+  // return from the window start (0%-based) — easier to compare than absolute
+  // levels. Each row also carries `<key>__d`: that day's day-over-day % return,
+  // surfaced in the tooltip.
   const chartData = useMemo(() => {
     if (!rows || rows.length === 0) return [];
     const cutoff = daysAgoISO(range);
@@ -185,13 +189,23 @@ export function PortfolioComparison() {
       );
       if (firstWithVal) bases.set(k, firstWithVal[k] as number);
     }
-    return slice.map((r) => {
+    return slice.map((r, idx) => {
       const out: RawRow = { date: r.date };
+      const prev = idx > 0 ? slice[idx - 1] : null;
       for (const k of keys) {
         const base = bases.get(k);
         const v = r[k];
+        // Cumulative % return vs the window's first value.
         out[k] =
-          typeof v === "number" && base && base !== 0 ? (v / base) * 100 : null;
+          typeof v === "number" && base && base !== 0
+            ? (v / base - 1) * 100
+            : null;
+        // Day-over-day % return (tooltip only).
+        const pv = prev ? prev[k] : null;
+        out[`${k}__d`] =
+          typeof v === "number" && typeof pv === "number" && pv !== 0
+            ? (v / pv - 1) * 100
+            : null;
       }
       return out;
     });
@@ -221,7 +235,7 @@ export function PortfolioComparison() {
       <SectionHeader
         eyebrow="Comparativo"
         title="Comparativo de tu portafolio"
-        description="Tu portafolio (perfil P3 Balanced, base 100) frente a los principales índices. Todas las series se rebasan a 100 al inicio del rango. Toca la leyenda para ocultar o mostrar cada serie."
+        description="Retorno acumulado (%) desde el inicio del rango. Tu portafolio (perfil P3 Balanced) frente a los principales índices. Toca la leyenda para ocultar o mostrar cada serie."
         right={
           <div className="inline-flex items-center gap-1 rounded-[8px] bg-[var(--color-bg3)] p-1">
             {RANGES.map((r) => (
@@ -260,7 +274,7 @@ export function PortfolioComparison() {
             height={300}
             hidden={hidden}
             onToggleSeries={toggleSeries}
-            tooltipBaseline={100}
+            percent
           />
           {pending.length > 0 && (
             <p className="mt-3 text-[11px] text-[var(--color-text3)]">
