@@ -3,11 +3,16 @@
 /**
  * "Comparativo de tu portafolio" (HER task 1).
  *
- * Plots an equal-weighted index of the 9 tracked stocks against the major
- * market benchmarks — NYSE (VTI), NASDAQ (QQQ), IPC México, Nikkei 225 and
- * FTSE 100 — over a selectable 7 / 30 / 360-day window. Every series is
- * re-based to 100 at the start of the active window so they're comparable
- * regardless of native units (USD, points, GBX…).
+ * Plots the user's portfolio — the P3 Balanced risk profile, weighted by the
+ * profile's own weights — against the major market benchmarks (NYSE/VTI,
+ * NASDAQ/QQQ, IPC México, Nikkei 225, FTSE 100) over a selectable 7 / 30 /
+ * 360-day window. Each series is shown as its CUMULATIVE % return from the
+ * window start (0%-based), so they're directly comparable regardless of native
+ * units (USD, points, GBX…) — pct[t] = (price[t] / price[windowStart] - 1)·100.
+ *
+ * The portfolio line is the thickest, in the accent green; benchmarks render in
+ * fainter tones. The legend toggles each series on/off; the tooltip shows each
+ * series' cumulative % plus that day's return.
  *
  * Benchmarks that aren't ingested yet simply don't render a line; the panel
  * notes which ones are pending so the chart never shows empty axes.
@@ -17,7 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { TimeSeriesChart } from "@/components/charts";
 import { Card, EmptyState, SectionHeader, Skeleton } from "@/components/primitives";
-import { api, type Observation, type Variable } from "@/lib/api";
+import { api, type Observation } from "@/lib/api";
 
 type RangeKey = 7 | 30 | 360;
 const RANGES: { key: RangeKey; label: string }[] = [
@@ -37,6 +42,8 @@ const BENCHMARKS: { id: string; label: string; color: string }[] = [
 
 const PORTFOLIO_KEY = "portfolio";
 const PORTFOLIO_COLOR = "var(--color-green)";
+// The spec's default "Mi portafolio" series is the P3 Balanced risk profile.
+const PORTFOLIO_PROFILE_ID = "P3_BALANCED";
 
 function daysAgoISO(d: number): string {
   const dt = new Date();
@@ -52,14 +59,41 @@ export function PortfolioComparison() {
   // Which benchmark ids actually returned data.
   const [available, setAvailable] = useState<string[]>([]);
   const [pending, setPending] = useState<string[]>([]);
+  // Series the user has toggled off via the legend.
+  const [hidden, setHidden] = useState<string[]>([]);
+
+  const toggleSeries = (key: string) =>
+    setHidden((h) =>
+      h.includes(key) ? h.filter((k) => k !== key) : [...h, key],
+    );
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const variables: Variable[] = await api.listVariables();
+        // The portfolio line follows the P3 Balanced profile. Fetch its weights
+        // and the variable registry together.
+        const [variables, profile] = await Promise.all([
+          api.listVariables(),
+          api.getPortfolio(PORTFOLIO_PROFILE_ID).catch(() => null),
+        ]);
         const byId = new Map(variables.map((v) => [v.id, v]));
-        const stocks = variables.filter((v) => v.kind === "stock");
+        const stockIds = variables
+          .filter((v) => v.kind === "stock")
+          .map((v) => v.id);
+
+        // P3 weights when available; otherwise fall back to an equal weight over
+        // every tracked stock so the line still renders if the profile API is
+        // down. Only positive-weight tickers contribute.
+        const profileWeights = profile?.weights ?? {};
+        const weights: Record<string, number> = Object.values(
+          profileWeights,
+        ).some((w) => w > 0)
+          ? profileWeights
+          : Object.fromEntries(stockIds.map((id) => [id, 1]));
+        const portfolioTickers = Object.keys(weights).filter(
+          (t) => (weights[t] ?? 0) > 0,
+        );
 
         // Which benchmarks exist + have at least one observation.
         const benchIds = BENCHMARKS.map((b) => b.id).filter((id) => {
@@ -72,7 +106,7 @@ export function PortfolioComparison() {
 
         const from = daysAgoISO(370);
 
-        // Fetch benchmark series + stock series in parallel.
+        // Fetch benchmark series + the portfolio's constituent series in parallel.
         const [benchSeries, stockSeries] = await Promise.all([
           Promise.all(
             benchIds.map(async (id) => ({
@@ -83,17 +117,17 @@ export function PortfolioComparison() {
             })),
           ),
           Promise.all(
-            stocks.map(async (s) => ({
-              id: s.id,
+            portfolioTickers.map(async (id) => ({
+              id,
               obs: await api
-                .getObservations(s.id, { from, limit: 400 })
+                .getObservations(id, { from, limit: 400 })
                 .catch(() => [] as Observation[]),
             })),
           ),
         ]);
 
-        // Build a base-100 equal-weight index of the 9 stocks as the portfolio.
-        const portfolioByDate = buildEqualWeightIndex(stockSeries);
+        // Build the base-100, weight-aware portfolio index (P3 Balanced).
+        const portfolioByDate = buildWeightedIndex(weights, stockSeries);
 
         // Per-benchmark date→value maps.
         const benchMaps = new Map<string, Map<string, number>>();
@@ -138,7 +172,10 @@ export function PortfolioComparison() {
     };
   }, []);
 
-  // Slice to the active window and re-base every series to 100 at window start.
+  // Slice to the active window and express every series as its CUMULATIVE %
+  // return from the window start (0%-based) — easier to compare than absolute
+  // levels. Each row also carries `<key>__d`: that day's day-over-day % return,
+  // surfaced in the tooltip.
   const chartData = useMemo(() => {
     if (!rows || rows.length === 0) return [];
     const cutoff = daysAgoISO(range);
@@ -152,13 +189,23 @@ export function PortfolioComparison() {
       );
       if (firstWithVal) bases.set(k, firstWithVal[k] as number);
     }
-    return slice.map((r) => {
+    return slice.map((r, idx) => {
       const out: RawRow = { date: r.date };
+      const prev = idx > 0 ? slice[idx - 1] : null;
       for (const k of keys) {
         const base = bases.get(k);
         const v = r[k];
+        // Cumulative % return vs the window's first value.
         out[k] =
-          typeof v === "number" && base && base !== 0 ? (v / base) * 100 : null;
+          typeof v === "number" && base && base !== 0
+            ? (v / base - 1) * 100
+            : null;
+        // Day-over-day % return (tooltip only).
+        const pv = prev ? prev[k] : null;
+        out[`${k}__d`] =
+          typeof v === "number" && typeof pv === "number" && pv !== 0
+            ? (v / pv - 1) * 100
+            : null;
       }
       return out;
     });
@@ -166,11 +213,18 @@ export function PortfolioComparison() {
 
   const series = useMemo(
     () => [
-      { key: PORTFOLIO_KEY, label: "Tu portafolio (equiponderado)", color: PORTFOLIO_COLOR },
+      {
+        key: PORTFOLIO_KEY,
+        label: "Tu portafolio (P3 Balanced)",
+        color: PORTFOLIO_COLOR,
+        width: 2.75, // thickest line — the focal series
+      },
       ...BENCHMARKS.filter((b) => available.includes(b.id)).map((b) => ({
         key: b.id,
         label: b.label,
         color: b.color,
+        width: 1.5,
+        faded: true, // benchmarks in fainter tones
       })),
     ],
     [available],
@@ -181,7 +235,7 @@ export function PortfolioComparison() {
       <SectionHeader
         eyebrow="Comparativo"
         title="Comparativo de tu portafolio"
-        description="Tu portafolio (equiponderado, base 100) frente a los principales índices. Todas las series se rebasan a 100 al inicio del rango."
+        description="Retorno acumulado (%) desde el inicio del rango. Tu portafolio (perfil P3 Balanced) frente a los principales índices. Toca la leyenda para ocultar o mostrar cada serie."
         right={
           <div className="inline-flex items-center gap-1 rounded-[8px] bg-[var(--color-bg3)] p-1">
             {RANGES.map((r) => (
@@ -218,6 +272,9 @@ export function PortfolioComparison() {
             yDecimals={1}
             yUnit=""
             height={300}
+            hidden={hidden}
+            onToggleSeries={toggleSeries}
+            percent
           />
           {pending.length > 0 && (
             <p className="mt-3 text-[11px] text-[var(--color-text3)]">
@@ -235,33 +292,50 @@ export function PortfolioComparison() {
 }
 
 /**
- * Equal-weight, base-100 index from a set of price series. Each ticker is
- * normalised to its own first observation, then averaged across tickers per
- * date. Dates where no ticker has yet started are skipped.
+ * Weighted, base-100 index from a set of price series (the P3 Balanced
+ * portfolio). Each ticker is normalised to its own first observation, then
+ * combined as a weighted average of those ratios.
+ *
+ * Observations are forward-filled per ticker across the union date axis (so a
+ * holiday on one exchange doesn't punch a hole in the line), and the weights
+ * are re-normalised over the tickers that have actually started trading on each
+ * date — a name whose history begins mid-window never skews the index.
  */
-function buildEqualWeightIndex(
+function buildWeightedIndex(
+  weights: Record<string, number>,
   stockSeries: { id: string; obs: Observation[] }[],
 ): Map<string, number> {
-  const firsts = new Map<string, number>();
-  for (const { id, obs } of stockSeries) {
-    if (obs.length > 0) firsts.set(id, obs[0].value);
-  }
-  // date → { sum, count } of normalised ratios
-  const acc = new Map<string, { sum: number; count: number }>();
-  for (const { id, obs } of stockSeries) {
-    const base = firsts.get(id);
-    if (!base) continue;
-    for (const o of obs) {
-      const ratio = o.value / base;
-      const cur = acc.get(o.observed_on) ?? { sum: 0, count: 0 };
-      cur.sum += ratio;
-      cur.count += 1;
-      acc.set(o.observed_on, cur);
-    }
-  }
+  const usable = stockSeries.filter(
+    (s) => s.obs.length > 0 && s.obs[0].value > 0 && (weights[s.id] ?? 0) > 0,
+  );
+  if (usable.length === 0) return new Map();
+
+  const firsts = new Map(usable.map((s) => [s.id, s.obs[0].value]));
+  const obsMaps = new Map(
+    usable.map((s) => [
+      s.id,
+      new Map(s.obs.map((o) => [o.observed_on, o.value])),
+    ]),
+  );
+  const dates = Array.from(
+    new Set(usable.flatMap((s) => s.obs.map((o) => o.observed_on))),
+  ).sort();
+
+  const carried = new Map<string, number>();
   const out = new Map<string, number>();
-  for (const [date, { sum, count }] of acc) {
-    if (count > 0) out.set(date, (sum / count) * 100);
+  for (const date of dates) {
+    let weighted = 0;
+    let wsum = 0;
+    for (const s of usable) {
+      const v = obsMaps.get(s.id)!.get(date);
+      if (v != null) carried.set(s.id, v);
+      const cv = carried.get(s.id);
+      if (cv == null) continue; // ticker hasn't started trading yet
+      const w = weights[s.id] ?? 0;
+      weighted += w * (cv / firsts.get(s.id)!);
+      wsum += w;
+    }
+    if (wsum > 0) out.set(date, (weighted / wsum) * 100);
   }
   return out;
 }
