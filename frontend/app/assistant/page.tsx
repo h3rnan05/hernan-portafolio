@@ -8,28 +8,30 @@
  */
 
 import { motion } from "motion/react";
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { chatStream, type ChatMessage } from "@/lib/api";
 
-const TOOL_LABELS: Record<string, string> = {
-  list_stocks: "Listando acciones",
-  get_model: "Leyendo el modelo",
-  get_forecast: "Calculando el pronóstico",
-  get_validation: "Validando fuera de muestra",
-  get_recent_predictions: "Revisando predicciones recientes",
-  list_variables: "Listando variables",
-  get_portfolios: "Leyendo portafolios",
+const TOOL_KEYS: Record<string, string> = {
+  list_stocks: "tool_list_stocks",
+  get_model: "tool_get_model",
+  get_forecast: "tool_get_forecast",
+  get_validation: "tool_get_validation",
+  get_recent_predictions: "tool_get_recent_predictions",
+  list_variables: "tool_list_variables",
+  get_portfolios: "tool_get_portfolios",
 };
 
-const SUGGESTIONS: { q: string; hint: string; icon: React.ReactNode }[] = [
-  { q: "¿Qué acciones cubre el motor?", hint: "Las acciones y sus modelos", icon: <IconGrid /> },
-  { q: "Evalúa el desempeño fuera de muestra", hint: "Validación walk-forward: aciertos y Sharpe", icon: <IconTarget /> },
-  { q: "Explícame el algoritmo en simple.", hint: "Cómo predice el motor", icon: <IconBook /> },
-  { q: "¿A dónde va NVDA esta semana?", hint: "Pronóstico con banda de confianza", icon: <IconTrend /> },
+const SUGGESTIONS: { n: number; icon: React.ReactNode }[] = [
+  { n: 1, icon: <IconGrid /> },
+  { n: 2, icon: <IconTarget /> },
+  { n: 3, icon: <IconBook /> },
+  { n: 4, icon: <IconTrend /> },
 ];
 
 export default function AssistantPage() {
+  const t = useTranslations("assistant");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
@@ -102,7 +104,7 @@ export default function AssistantPage() {
         // aborted or network error — keep whatever streamed
       } finally {
         if (!assistant) {
-          assistant = "⚠️ No se pudo obtener respuesta. Intenta de nuevo.";
+          assistant = t("no_response");
           commit();
         }
         setStreaming(false);
@@ -169,14 +171,14 @@ export default function AssistantPage() {
                 }
               }}
               rows={1}
-              placeholder="Pregunta sobre el motor, las acciones, los pronósticos…"
+              placeholder={t("placeholder")}
               className="max-h-[200px] flex-1 resize-none self-center bg-transparent px-2.5 py-2 text-[14px] leading-relaxed text-[var(--color-text)] outline-none placeholder:text-[var(--color-text3)]"
             />
             {streaming ? (
               <button
                 type="button"
                 onClick={() => abortRef.current?.abort()}
-                aria-label="Detener"
+                aria-label={t("stop")}
                 className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-[var(--color-bg4)] text-[var(--color-text2)] transition hover:text-[var(--color-text)] active:scale-[0.93]"
               >
                 <span className="size-3 rounded-[3px] bg-current" />
@@ -185,7 +187,7 @@ export default function AssistantPage() {
               <button
                 type="submit"
                 disabled={!input.trim()}
-                aria-label="Enviar"
+                aria-label={t("send")}
                 className="grid size-10 shrink-0 place-items-center rounded-[13px] bg-[var(--color-green)] text-black shadow-[0_2px_10px_-2px_color-mix(in_oklab,var(--color-green)_60%,transparent)] transition active:scale-[0.93] disabled:opacity-30 disabled:shadow-none"
               >
                 <IconSend />
@@ -194,12 +196,12 @@ export default function AssistantPage() {
           </form>
           <div className="mt-2 flex items-center justify-between gap-3 px-1.5">
             <p className="text-[10.5px] text-[var(--color-text3)] text-pretty">
-              Las cifras vienen de la base en vivo. Puede equivocarse — no es asesoría financiera.
+              {t("disclaimer")}
             </p>
             <p className="hidden shrink-0 text-[10.5px] text-[var(--color-text3)] sm:block">
-              <kbd className="rounded bg-[var(--color-bg3)] px-1 py-0.5 font-mono text-[10px]">⏎</kbd> enviar
+              <kbd className="rounded bg-[var(--color-bg3)] px-1 py-0.5 font-mono text-[10px]">⏎</kbd> {t("kbd_send")}
               <span className="mx-1">·</span>
-              <kbd className="rounded bg-[var(--color-bg3)] px-1 py-0.5 font-mono text-[10px]">⇧⏎</kbd> nueva línea
+              <kbd className="rounded bg-[var(--color-bg3)] px-1 py-0.5 font-mono text-[10px]">⇧⏎</kbd> {t("kbd_newline")}
             </p>
           </div>
         </div>
@@ -209,6 +211,7 @@ export default function AssistantPage() {
 }
 
 function Welcome({ onPick }: { onPick: (q: string) => void }) {
+  const t = useTranslations("assistant");
   return (
     <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-center px-5 py-10">
       <motion.div
@@ -222,23 +225,21 @@ function Welcome({ onPick }: { onPick: (q: string) => void }) {
           </span>
         </span>
         <h1 className="mt-5 text-balance text-[28px] font-semibold leading-tight tracking-tight text-[var(--color-text)] sm:text-[32px]">
-          Pregúntame lo que sea
+          {t("hero_title_1")}
           <br />
-          sobre el motor.
+          {t("hero_title_2")}
         </h1>
         <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-[var(--color-text2)] text-pretty">
-          Tengo acceso en vivo a los modelos, pronósticos, validaciones fuera de muestra y
-          datos del mercado. Te explico los conceptos en simple y te doy las cifras reales —
-          sin inventar nada.
+          {t("hero_subtitle")}
         </p>
       </motion.div>
 
       <div className="mt-8 grid gap-3 sm:grid-cols-2">
         {SUGGESTIONS.map((s, i) => (
           <motion.button
-            key={s.q}
+            key={s.n}
             type="button"
-            onClick={() => onPick(s.q)}
+            onClick={() => onPick(t(`suggest_${s.n}_q`))}
             initial={{ opacity: 0, y: 12, filter: "blur(4px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
             transition={{ duration: 0.35, delay: 0.08 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
@@ -249,9 +250,11 @@ function Welcome({ onPick }: { onPick: (q: string) => void }) {
             </span>
             <span className="min-w-0">
               <span className="block text-[13.5px] font-medium text-[var(--color-text)] text-pretty">
-                {s.q}
+                {t(`suggest_${s.n}_q`)}
               </span>
-              <span className="mt-0.5 block text-[11.5px] text-[var(--color-text3)]">{s.hint}</span>
+              <span className="mt-0.5 block text-[11.5px] text-[var(--color-text3)]">
+                {t(`suggest_${s.n}_h`)}
+              </span>
             </span>
           </motion.button>
         ))}
@@ -271,6 +274,7 @@ function Message({
   streaming: boolean;
   activeTool: string | null;
 }) {
+  const t = useTranslations("assistant");
   if (role === "user") {
     return (
       <motion.div
@@ -299,7 +303,9 @@ function Message({
         {activeTool && (
           <div className="mb-2 inline-flex items-center gap-2 overflow-hidden rounded-full border border-[var(--color-border2)] bg-[var(--color-bg2)] px-3 py-1 text-[12px] text-[var(--color-text2)]">
             <span className="size-1.5 animate-pulse rounded-full bg-[var(--color-cyan)]" />
-            <span className="shimmer">{TOOL_LABELS[activeTool] ?? "Consultando"}…</span>
+            <span className="shimmer">
+              {t(TOOL_KEYS[activeTool] ?? "tool_default")}…
+            </span>
           </div>
         )}
         {content ? (

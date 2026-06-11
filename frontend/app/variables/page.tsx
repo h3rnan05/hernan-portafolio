@@ -2,6 +2,7 @@
  * Variables — data explorer. Filterable list of all 39 variables.
  */
 
+import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 import { Sparkline } from "@/components/charts";
@@ -18,6 +19,7 @@ import { api, type Observation, type Variable } from "@/lib/api";
 export const revalidate = 3600;
 
 export default async function VariablesPage() {
+  const t = await getTranslations("data");
   const variables = await api.listVariables().catch(() => [] as Variable[]);
 
   // Pull 30d obs for every variable that has data — parallel
@@ -45,32 +47,27 @@ export default async function VariablesPage() {
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-8">
         <div className="mb-1 flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-          Data
+          {t("eyebrow")}
           <PremiumBadge />
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Variables registry
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
         <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
-          Every series this engine tracks, with its provider chain and last
-          observation. Click a row to see the full history.{" "}
-          <span className="text-[var(--color-text3)]">
-            Sección exclusiva para usuarios Premium.
-          </span>
+          {t("subtitle")}{" "}
+          <span className="text-[var(--color-text3)]">{t("premium_note")}</span>
         </p>
       </div>
 
       <PremiumGate>
         <section className="mb-8">
           <h2 className="mb-3 text-[11px] uppercase tracking-widest text-[var(--color-text3)]">
-            Stocks · {stocks.length}
+            {t("stocks_count", { count: stocks.length })}
           </h2>
           <VariableTable variables={stocks} sparkMap={sparkMap} />
         </section>
 
         <section>
           <h2 className="mb-3 text-[11px] uppercase tracking-widest text-[var(--color-text3)]">
-            Predictors · {predictors.length}
+            {t("predictors_count", { count: predictors.length })}
           </h2>
           <VariableTable variables={predictors} sparkMap={sparkMap} />
         </section>
@@ -79,26 +76,29 @@ export default async function VariablesPage() {
   );
 }
 
-function VariableTable({
+async function VariableTable({
   variables,
   sparkMap,
 }: {
   variables: Variable[];
   sparkMap: Map<string, Observation[]>;
 }) {
+  const t = await getTranslations("data");
+  const tc = await getTranslations("common");
+  const locale = await getLocale();
   return (
     <Card className="p-0 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-[12.5px]">
           <thead>
             <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg3)] text-left text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
-              <th className="px-4 py-2.5 font-medium">ID</th>
-              <th className="px-4 py-2.5 font-medium">Name</th>
-              <th className="px-4 py-2.5 font-medium">Category</th>
-              <th className="px-4 py-2.5 text-right font-medium">Last</th>
-              <th className="px-4 py-2.5 text-right font-medium">Value</th>
-              <th className="px-4 py-2.5 font-medium">Provider</th>
-              <th className="px-4 py-2.5 font-medium">Trend (60d)</th>
+              <th className="px-4 py-2.5 font-medium">{t("th_id")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("th_name")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("th_category")}</th>
+              <th className="px-4 py-2.5 text-right font-medium">{t("th_last")}</th>
+              <th className="px-4 py-2.5 text-right font-medium">{t("th_value")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("th_provider")}</th>
+              <th className="px-4 py-2.5 font-medium">{t("th_trend")}</th>
             </tr>
           </thead>
           <tbody>
@@ -127,11 +127,11 @@ function VariableTable({
                   </td>
                   <td className="px-4 py-2 text-right text-[var(--color-text3)]">
                     {v.last_observed_on ? (
-                      <span title={fmtDate(v.last_observed_on)}>
+                      <span title={fmtDate(v.last_observed_on, locale)}>
                         {fmtRelative(v.last_observed_on)}
                       </span>
                     ) : (
-                      <Badge tone="amber">no data</Badge>
+                      <Badge tone="amber">{tc("no_data")}</Badge>
                     )}
                   </td>
                   <td className="px-4 py-2 text-right font-mono tabular">

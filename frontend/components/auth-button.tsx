@@ -5,11 +5,13 @@
  * email + plan + sign-out when logged in. Opens an inline email/password modal.
  */
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 
 import { useAuth } from "@/components/auth-provider";
 
 export function AuthButton() {
+  const t = useTranslations("auth");
   const { configured, loading, user, profile, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -18,9 +20,9 @@ export function AuthButton() {
     return (
       <span
         className="hidden text-[11px] text-[var(--color-text3)] sm:inline"
-        title="Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to enable accounts."
+        title={t("offline_title")}
       >
-        Auth offline
+        {t("offline")}
       </span>
     );
   }
@@ -37,7 +39,7 @@ export function AuthButton() {
           onClick={() => setOpen(true)}
           className="rounded-full bg-[var(--color-bg3)] px-3.5 py-1.5 text-[12px] font-semibold text-[var(--color-text)] hover:bg-[var(--color-bg4)] active:scale-[0.97]"
         >
-          Iniciar sesión
+          {t("sign_in")}
         </button>
         {open && <AuthModal onClose={() => setOpen(false)} />}
       </>
@@ -57,7 +59,7 @@ export function AuthButton() {
         <span className="hidden max-w-[140px] truncate sm:inline">{user.email}</span>
         {profile?.is_premium && (
           <span className="rounded-[5px] bg-[color-mix(in_srgb,var(--color-amber)_18%,transparent)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--color-amber)]">
-            Premium
+            {t("premium")}
           </span>
         )}
       </button>
@@ -66,7 +68,7 @@ export function AuthButton() {
           <div className="border-b border-[var(--color-border)] px-2 pb-2 text-[11px] text-[var(--color-text3)]">
             <div className="truncate text-[var(--color-text2)]">{user.email}</div>
             <div className="mt-0.5">
-              Plan: {profile?.is_premium ? "Premium" : "Free"}
+              {t("plan", { plan: profile?.is_premium ? t("premium") : t("free") })}
             </div>
           </div>
           <button
@@ -77,7 +79,7 @@ export function AuthButton() {
             }}
             className="mt-1 w-full rounded-[8px] px-2 py-1.5 text-left text-[12px] text-[var(--color-text2)] hover:bg-[var(--color-bg3)] hover:text-[var(--color-text)]"
           >
-            Cerrar sesión
+            {t("sign_out")}
           </button>
         </div>
       )}
@@ -86,6 +88,8 @@ export function AuthButton() {
 }
 
 function AuthModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("auth");
+  const tc = useTranslations("common");
   const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -107,7 +111,7 @@ function AuthModal({ onClose }: { onClose: () => void }) {
       return;
     }
     if (mode === "signup") {
-      setInfo("Cuenta creada. Revisa tu correo si se requiere confirmación.");
+      setInfo(t("signup_confirm"));
       return;
     }
     onClose();
@@ -128,7 +132,7 @@ function AuthModal({ onClose }: { onClose: () => void }) {
             onClick={() => setMode("signin")}
             className={`text-[13px] font-semibold ${mode === "signin" ? "text-[var(--color-text)]" : "text-[var(--color-text3)]"}`}
           >
-            Iniciar sesión
+            {t("sign_in")}
           </button>
           <span className="text-[var(--color-text3)]">·</span>
           <button
@@ -136,7 +140,7 @@ function AuthModal({ onClose }: { onClose: () => void }) {
             onClick={() => setMode("signup")}
             className={`text-[13px] font-semibold ${mode === "signup" ? "text-[var(--color-text)]" : "text-[var(--color-text3)]"}`}
           >
-            Crear cuenta
+            {t("create_account")}
           </button>
         </div>
         <form onSubmit={submit} className="space-y-3">
@@ -145,7 +149,7 @@ function AuthModal({ onClose }: { onClose: () => void }) {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="tu@correo.com"
+            placeholder={t("email_placeholder")}
             className="w-full rounded-[8px] bg-[var(--color-bg3)] px-3 py-2 text-[13px] text-[var(--color-text)] outline-none focus:ring-1 focus:ring-[var(--color-cyan)]"
           />
           <input
@@ -154,7 +158,7 @@ function AuthModal({ onClose }: { onClose: () => void }) {
             minLength={6}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="Contraseña"
+            placeholder={t("password_placeholder")}
             className="w-full rounded-[8px] bg-[var(--color-bg3)] px-3 py-2 text-[13px] text-[var(--color-text)] outline-none focus:ring-1 focus:ring-[var(--color-cyan)]"
           />
           {error && <div className="text-[12px] text-[var(--color-red)]">{error}</div>}
@@ -165,14 +169,14 @@ function AuthModal({ onClose }: { onClose: () => void }) {
               onClick={onClose}
               className="rounded-[8px] px-3 py-2 text-[12px] font-medium text-[var(--color-text3)] hover:text-[var(--color-text)]"
             >
-              Cancelar
+              {tc("cancel")}
             </button>
             <button
               type="submit"
               disabled={busy}
               className="rounded-[8px] bg-[var(--color-cyan)] px-4 py-2 text-[12px] font-semibold text-black hover:opacity-90 disabled:opacity-50"
             >
-              {busy ? "…" : mode === "signin" ? "Entrar" : "Crear"}
+              {busy ? "…" : mode === "signin" ? t("enter") : t("create")}
             </button>
           </div>
         </form>

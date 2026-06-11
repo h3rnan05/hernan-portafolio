@@ -5,6 +5,7 @@
  * model, see the per-ticker + portfolio-level impact in real time.
  */
 
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -20,21 +21,23 @@ import { api, type SimulateResponse, type Variable } from "@/lib/api";
 
 const PRESET_SLIDERS: Array<{
   id: string;
-  label: string;
+  tkey: string;
   min: number;
   max: number;
   step: number;
   unit: string;
 }> = [
-  { id: "CPI_YoY_US", label: "CPI YoY shock", min: -0.02, max: 0.02, step: 0.0005, unit: "log-ret" },
-  { id: "EUR_USD", label: "EUR/USD move", min: -0.03, max: 0.03, step: 0.001, unit: "log-ret" },
-  { id: "Brent_Crude", label: "Brent move", min: -0.05, max: 0.05, step: 0.002, unit: "log-ret" },
-  { id: "Gold_Spot", label: "Gold move", min: -0.04, max: 0.04, step: 0.001, unit: "log-ret" },
-  { id: "Unemployment_Rate_US", label: "Unemployment shock", min: -0.02, max: 0.02, step: 0.0005, unit: "log-ret" },
-  { id: "USD_CNY", label: "USD/CNY move", min: -0.02, max: 0.02, step: 0.001, unit: "log-ret" },
+  { id: "CPI_YoY_US", tkey: "slider_cpi", min: -0.02, max: 0.02, step: 0.0005, unit: "log-ret" },
+  { id: "EUR_USD", tkey: "slider_eurusd", min: -0.03, max: 0.03, step: 0.001, unit: "log-ret" },
+  { id: "Brent_Crude", tkey: "slider_brent", min: -0.05, max: 0.05, step: 0.002, unit: "log-ret" },
+  { id: "Gold_Spot", tkey: "slider_gold", min: -0.04, max: 0.04, step: 0.001, unit: "log-ret" },
+  { id: "Unemployment_Rate_US", tkey: "slider_unemployment", min: -0.02, max: 0.02, step: 0.0005, unit: "log-ret" },
+  { id: "USD_CNY", tkey: "slider_usdcny", min: -0.02, max: 0.02, step: 0.001, unit: "log-ret" },
 ];
 
 export default function SimulatorPage() {
+  const t = useTranslations("simulator");
+  const tc = useTranslations("common");
   const [variables, setVariables] = useState<Variable[]>([]);
   const [inputs, setInputs] = useState<Record<string, number>>(
     Object.fromEntries(PRESET_SLIDERS.map((s) => [s.id, 0])),
@@ -75,13 +78,11 @@ export default function SimulatorPage() {
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-8">
         <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-          Simulator
+          {t("eyebrow")}
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">What-if scenarios</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
         <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
-          Push hypothetical lagged returns through every active model. Unmoved
-          predictors default to zero, so deltas reflect the marginal effect of
-          the shocks you set below.
+          {t("subtitle")}
         </p>
       </div>
 
@@ -89,9 +90,9 @@ export default function SimulatorPage() {
         {/* Inputs */}
         <Card>
           <SectionHeader
-            eyebrow="Inputs"
-            title="Predictor shocks"
-            description="Slide to move a single predictor's lagged log-return."
+            eyebrow={t("inputs_eyebrow")}
+            title={t("inputs_title")}
+            description={t("inputs_desc")}
           />
           <div className="space-y-5">
             {PRESET_SLIDERS.map((s) => (
@@ -101,7 +102,7 @@ export default function SimulatorPage() {
                     htmlFor={`slider-${s.id}`}
                     className="text-[12px] font-medium text-[var(--color-text)]"
                   >
-                    {s.label}
+                    {t(s.tkey)}
                   </label>
                   <span className="font-mono tabular text-[11.5px] text-[var(--color-text2)]">
                     {fmtPct(inputs[s.id] ?? 0, { signed: true, decimals: 3 })}
@@ -131,7 +132,7 @@ export default function SimulatorPage() {
                   htmlFor="horizon"
                   className="text-[12px] font-medium text-[var(--color-text)]"
                 >
-                  Horizon (days)
+                  {t("horizon")}
                 </label>
                 <span className="font-mono tabular text-[11.5px] text-[var(--color-text2)]">
                   {horizon}d
@@ -158,7 +159,7 @@ export default function SimulatorPage() {
               }
               className="w-full rounded-[10px] bg-[var(--color-bg4)] py-2 text-[12px] font-medium text-[var(--color-text2)] transition active:scale-[0.97] hover:bg-[var(--color-border3)] hover:text-[var(--color-text)]"
             >
-              Reset to zero
+              {t("reset")}
             </button>
           </div>
         </Card>
@@ -167,7 +168,7 @@ export default function SimulatorPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-3">
             <StatTile
-              label="Portfolio value"
+              label={t("stat_portfolio_value")}
               value={
                 response
                   ? `$${fmtNumber(response.portfolio_value, { decimals: 2 })}`
@@ -175,12 +176,12 @@ export default function SimulatorPage() {
               }
               hint={
                 response
-                  ? `vs $${fmtNumber(response.portfolio_value_baseline, { decimals: 2 })}`
+                  ? t("stat_portfolio_vs", { value: fmtNumber(response.portfolio_value_baseline, { decimals: 2 }) })
                   : undefined
               }
             />
             <StatTile
-              label="Delta"
+              label={t("stat_delta")}
               value={
                 response
                   ? `$${fmtNumber(response.delta, { decimals: 2 })}`
@@ -199,16 +200,16 @@ export default function SimulatorPage() {
               }
             />
             <StatTile
-              label="Horizon"
+              label={t("stat_horizon")}
               value={`${response?.horizon_days ?? horizon}d`}
-              hint="1-day predictions extrapolated"
+              hint={t("stat_horizon_hint")}
               mono={false}
             />
           </div>
 
           {loading && (
             <div className="text-[11.5px] text-[var(--color-text3)]">
-              Recomputing…
+              {t("recomputing")}
             </div>
           )}
           {error && (
@@ -219,30 +220,30 @@ export default function SimulatorPage() {
 
           {!response || response.per_ticker.length === 0 ? (
             <EmptyState
-              title="No active models to simulate against"
-              description="Fit models first (see Models page), then return here to push hypothetical shocks through them."
+              title={t("empty_title")}
+              description={t("empty_desc")}
             />
           ) : (
             <Card>
               <SectionHeader
-                eyebrow="Per-ticker"
-                title="Predicted next-day price"
-                description="Contributions decompose the predicted return into β·shock pairs."
+                eyebrow={t("per_ticker_eyebrow")}
+                title={t("per_ticker_title")}
+                description={t("per_ticker_desc")}
               />
               <div className="overflow-x-auto">
                 <table className="w-full text-[12.5px]">
                   <thead>
                     <tr className="border-b border-[var(--color-border)] text-left text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
-                      <th className="py-2 pr-3 font-medium">Ticker</th>
-                      <th className="py-2 pr-3 text-right font-medium">Last</th>
+                      <th className="py-2 pr-3 font-medium">{tc("ticker")}</th>
+                      <th className="py-2 pr-3 text-right font-medium">{tc("last")}</th>
                       <th className="py-2 pr-3 text-right font-medium">
-                        Predicted
+                        {tc("predicted")}
                       </th>
                       <th className="py-2 pr-3 text-right font-medium">
-                        Δ return
+                        {t("th_delta_return")}
                       </th>
                       <th className="py-2 pr-3 text-left font-medium">
-                        Top driver
+                        {t("th_top_driver")}
                       </th>
                     </tr>
                   </thead>

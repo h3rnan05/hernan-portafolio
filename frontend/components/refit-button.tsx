@@ -6,6 +6,7 @@
  * Token comes from useAdminToken (prompt once, cache in localStorage).
  */
 
+import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -14,6 +15,7 @@ import { useAdminToken } from "@/hooks/use-admin-token";
 import { api, ApiError, type RefitOutcome } from "@/lib/api";
 
 export function RefitButton() {
+  const t = useTranslations("models");
   const router = useRouter();
   const { ensure } = useAdminToken();
   const [busy, setBusy] = useState(false);
@@ -24,11 +26,7 @@ export function RefitButton() {
     if (busy) return;
     const token = ensure();
     if (!token) return;
-    if (
-      !window.confirm(
-        "Re-fit every model? Takes a few seconds and replaces all 9 active models with fresh fits.",
-      )
-    ) {
+    if (!window.confirm(t("refit_confirm"))) {
       return;
     }
     setBusy(true);
@@ -58,7 +56,7 @@ export function RefitButton() {
             : "bg-[var(--color-cyan)] text-[var(--color-bg)] hover:brightness-110")
         }
       >
-        {busy ? "Refitting…" : "Refit all models"}
+        {busy ? t("refitting") : t("refit_button")}
       </button>
       {error && (
         <div className="max-w-xs rounded-[6px] bg-[color-mix(in_srgb,var(--color-red)_10%,transparent)] px-2 py-1 text-[11px] text-[var(--color-red)]">

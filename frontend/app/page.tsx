@@ -3,14 +3,14 @@
  *
  * Renders system-wide state at a glance:
  *   * health + last ingestion freshness
- *   * the 9 stocks with their last close + sparkline
  *   * the 5 risk-profile portfolios with MAPE + weights
- *   * the model coverage status
+ *   * your holdings vs predictions
+ *   * the portfolio-vs-benchmark comparison
  *
- * Server-rendered with parallel fetches; client polling layer would be
- * added per-section if/when latency budgets require it.
+ * Server-rendered with parallel fetches; strings come from next-intl.
  */
 
+import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 import { AreaChartCmp } from "@/components/charts";
@@ -46,7 +46,22 @@ async function safe<T>(fn: () => Promise<T>): Promise<Safe<T>> {
   }
 }
 
+/** Translate a profile id ("P3_BALANCED") to its localized name via its P# code. */
+function profileName(id: string, tp: (key: string) => string): string {
+  const code = id.split("_")[0];
+  try {
+    return tp(`${code}.name`);
+  } catch {
+    return id;
+  }
+}
+
 export default async function Overview() {
+  const t = await getTranslations("overview");
+  const tp = await getTranslations("profiles");
+  const tc = await getTranslations("common");
+  const locale = await getLocale();
+
   const [healthR, varsR, modelsR, portfoliosR, projectionR] = await Promise.all([
     safe(() => api.health()),
     safe(() => api.listVariables()),
@@ -63,13 +78,15 @@ export default async function Overview() {
           <div className="flex items-start gap-4">
             <span className="mt-1 inline-block size-2 rounded-full bg-[var(--color-red)]" />
             <div>
-              <h1 className="text-base font-semibold">Backend unreachable</h1>
+              <h1 className="text-base font-semibold">
+                {t("backend_unreachable_title")}
+              </h1>
               <p className="mt-1 text-[13px] text-[var(--color-text2)]">
-                The API isn&rsquo;t responding. Start it locally with{" "}
-                <code className="text-[var(--color-cyan)]">
-                  cd backend &amp;&amp; uv run uvicorn app.main:app --reload
-                </code>{" "}
-                or check the deploy.
+                {t.rich("backend_unreachable_desc", {
+                  code: (chunks) => (
+                    <code className="text-[var(--color-cyan)]">{chunks}</code>
+                  ),
+                })}
               </p>
               <p className="mt-2 font-mono text-[11px] text-[var(--color-text3)]">
                 {healthR.error}
@@ -100,15 +117,13 @@ export default async function Overview() {
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-            Live · v{healthR.data.version}
+            {t("eyebrow_live", { version: healthR.data.version })}
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Portfolio prediction engine
+            {t("hero_title")}
           </h1>
           <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
-            Lagged OLS regression on 9 stocks against ~30 macro &amp; market
-            predictors. Daily ingestion · weekly refit · four-test diagnostic
-            battery before any model goes live.
+            {t("hero_subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -125,7 +140,9 @@ export default async function Overview() {
               }
             />
             <span className="font-medium">
-              {latestObs ? `Data thru ${fmtDate(latestObs)}` : "No data yet"}
+              {latestObs
+                ? t("data_thru", { date: fmtDate(latestObs, locale) })
+                : t("no_data_yet")}
             </span>
             {latestObs && (
               <span className="text-[var(--color-text3)]">
@@ -139,30 +156,35 @@ export default async function Overview() {
       {/* Top metric strip */}
       <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatTile
-          label="Variables tracked"
+          label={t("stat_variables_tracked")}
           value={`${withData} / ${variables.length}`}
-          hint={`${predictors.length} predictors · ${stocks.length} stocks`}
+          hint={t("stat_variables_hint", {
+            predictors: predictors.length,
+            stocks: stocks.length,
+          })}
         />
         <StatTile
-          label="Active models"
+          label={t("stat_active_models")}
           value={`${models.filter((m) => m.is_active && m.status === "PASS").length} / ${stocks.length}`}
           hint={
             models.length === 0
-              ? "No fits yet — run refit_all"
-              : `${models.filter((m) => m.status === "PASS").length} pass diagnostics`
+              ? t("stat_active_models_none")
+              : t("stat_active_models_pass", {
+                  count: models.filter((m) => m.status === "PASS").length,
+                })
           }
         />
         <StatTile
-          label="Risk profiles"
+          label={t("stat_risk_profiles")}
           value={portfolios.length || "—"}
           hint={
             portfolios.length === 0
-              ? "Computed after first refit"
-              : "P1 conservative → P5 aggressive"
+              ? t("stat_risk_profiles_none")
+              : t("stat_risk_profiles_range")
           }
         />
         <StatTile
-          label="Best MAPE 30d"
+          label={t("stat_best_mape")}
           value={
             portfolios.some((p) => p.mape_30d !== null)
               ? fmtPct(
@@ -174,29 +196,29 @@ export default async function Overview() {
                 )
               : "—"
           }
-          hint="Lower is better"
+          hint={tc("lower_is_better")}
         />
       </div>
 
       {/* Portfolio rollup — chart for top-MAPE profile when data exists */}
       <section className="mb-10">
         <SectionHeader
-          eyebrow="Portfolio"
-          title="Predicted vs. realized value"
-          description="The active model fleet, rolled up across the 5 risk profiles."
+          eyebrow={t("section_portfolio_eyebrow")}
+          title={t("section_portfolio_title")}
+          description={t("section_portfolio_desc")}
           right={
             <Link
               href="/portfolios"
               className="rounded-[6px] bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
             >
-              All profiles →
+              {tc("all_profiles")}
             </Link>
           }
         />
         {portfolios.length === 0 ? (
           <EmptyState
-            title="Portfolio weights not computed yet"
-            description="Run the daily prediction pipeline once models are fit — weights get rebuilt automatically."
+            title={t("empty_weights_title")}
+            description={t("empty_weights_desc")}
           />
         ) : (
           <PortfolioRollupCard portfolios={portfolios} />
@@ -207,15 +229,15 @@ export default async function Overview() {
       {projectionR.ok && projectionR.data.rows.length > 0 && (
         <section className="mb-10">
           <SectionHeader
-            eyebrow="Your portfolio"
-            title="Today's position vs tomorrow's prediction"
-            description="Your real holdings priced today, vs. what the active models predict for each ticker. Delta is what you'd see if the predictions play out."
+            eyebrow={t("your_portfolio_eyebrow")}
+            title={t("your_portfolio_title")}
+            description={t("your_portfolio_desc")}
             right={
               <Link
                 href="/holdings"
                 className="rounded-[6px] bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
               >
-                Edit holdings →
+                {tc("edit_holdings")}
               </Link>
             }
           />
@@ -233,7 +255,7 @@ export default async function Overview() {
 
 // ─── Subcomponents ──────────────────────────────────────────────────────────
 
-function YourPortfolioCard({
+async function YourPortfolioCard({
   projection,
 }: {
   projection: {
@@ -252,6 +274,8 @@ function YourPortfolioCard({
     projected_delta_pct: number | null;
   };
 }) {
+  const t = await getTranslations("overview");
+  const tc = await getTranslations("common");
   const totalPredCovered = projection.rows.filter(
     (r) => r.predicted_price !== null,
   ).length;
@@ -259,22 +283,25 @@ function YourPortfolioCard({
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1fr_2fr]">
       <Card>
         <SectionHeader
-          eyebrow="Rollup"
-          title="Where you stand"
+          eyebrow={t("rollup_where_eyebrow")}
+          title={t("rollup_where_title")}
           description={
             totalPredCovered === projection.rows.length
-              ? "All holdings have a live prediction."
-              : `${totalPredCovered} of ${projection.rows.length} holdings have a live prediction; others use current price.`
+              ? t("rollup_where_all")
+              : t("rollup_where_partial", {
+                  covered: totalPredCovered,
+                  total: projection.rows.length,
+                })
           }
         />
         <div className="space-y-3">
           <StatTile
-            label="Current market value"
+            label={t("current_mv")}
             value={`$${fmtNumber(projection.current_market_value, { decimals: 2 })}`}
-            hint={`${projection.rows.length} positions`}
+            hint={t("positions_count", { count: projection.rows.length })}
           />
           <StatTile
-            label="Projected (next trading day)"
+            label={t("projected_next")}
             value={`$${fmtNumber(projection.projected_market_value, { decimals: 2 })}`}
             delta={
               projection.projected_delta_pct !== null
@@ -289,27 +316,33 @@ function YourPortfolioCard({
             }
             hint={
               projection.projected_delta >= 0
-                ? `+$${fmtNumber(projection.projected_delta, { decimals: 2 })} if predictions play out`
-                : `-$${fmtNumber(Math.abs(projection.projected_delta), { decimals: 2 })} if predictions play out`
+                ? t("projected_gain", {
+                    amount: fmtNumber(projection.projected_delta, { decimals: 2 }),
+                  })
+                : t("projected_loss", {
+                    amount: fmtNumber(Math.abs(projection.projected_delta), {
+                      decimals: 2,
+                    }),
+                  })
             }
           />
         </div>
       </Card>
       <Card>
         <SectionHeader
-          eyebrow="Per-ticker"
-          title="Holding vs prediction"
-          description="Each row: today's market price vs. the model's next-day prediction for that ticker."
+          eyebrow={t("per_ticker_eyebrow")}
+          title={t("per_ticker_title")}
+          description={t("per_ticker_desc")}
         />
         <div className="overflow-x-auto">
           <table className="w-full text-[12px]">
             <thead>
               <tr className="border-b border-[var(--color-border)] text-left text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
-                <th className="py-2 pr-3 font-medium">Ticker</th>
-                <th className="py-2 pr-3 text-right font-medium">Qty</th>
-                <th className="py-2 pr-3 text-right font-medium">Last</th>
-                <th className="py-2 pr-3 text-right font-medium">Predicted</th>
-                <th className="py-2 pr-3 text-right font-medium">Δ MV</th>
+                <th className="py-2 pr-3 font-medium">{tc("ticker")}</th>
+                <th className="py-2 pr-3 text-right font-medium">{tc("qty")}</th>
+                <th className="py-2 pr-3 text-right font-medium">{tc("last")}</th>
+                <th className="py-2 pr-3 text-right font-medium">{tc("predicted")}</th>
+                <th className="py-2 pr-3 text-right font-medium">{t("th_delta_mv")}</th>
               </tr>
             </thead>
             <tbody>
@@ -362,7 +395,7 @@ function YourPortfolioCard({
   );
 }
 
-function PortfolioRollupCard({
+async function PortfolioRollupCard({
   portfolios,
 }: {
   portfolios: Array<{
@@ -372,22 +405,25 @@ function PortfolioRollupCard({
     mape_30d: number | null;
   }>;
 }) {
-  // No prediction history yet → degrade gracefully but show weights
+  const t = await getTranslations("overview");
+  const tp = await getTranslations("profiles");
+  const tc = await getTranslations("common");
+  const headline = portfolios[2] ?? portfolios[0];
   return (
     <div className="grid grid-cols-1 gap-3 lg:grid-cols-[2fr_1fr]">
       <Card>
         <SectionHeader
-          eyebrow="Most-tracked profile"
-          title={portfolios[2]?.name ?? portfolios[0]?.name ?? "—"}
-          description="Predicted portfolio value vs. realized actuals. Filled once daily predictions backfill."
+          eyebrow={t("rollup_eyebrow")}
+          title={headline ? profileName(headline.id, tp) : "—"}
+          description={t("rollup_chart_desc")}
         />
-        <PortfolioMiniChart portfolioId={portfolios[2]?.id ?? portfolios[0]?.id} />
+        <PortfolioMiniChart portfolioId={headline?.id} />
       </Card>
       <Card>
         <SectionHeader
-          eyebrow="Ranked"
-          title="By 30-day MAPE"
-          description="Lower error = better."
+          eyebrow={t("ranked_eyebrow")}
+          title={t("ranked_title")}
+          description={t("ranked_desc")}
         />
         <ul className="space-y-2">
           {[...portfolios]
@@ -406,11 +442,11 @@ function PortfolioRollupCard({
                     #{i + 1}
                   </span>
                   <span className="font-medium text-[var(--color-text)]">
-                    {p.name}
+                    {p.id.split("_")[0]} {profileName(p.id, tp)}
                   </span>
                 </span>
                 <span className="font-mono tabular text-[var(--color-text2)]">
-                  {p.mape_30d !== null ? fmtPct(p.mape_30d) : "no data"}
+                  {p.mape_30d !== null ? fmtPct(p.mape_30d) : tc("no_data")}
                 </span>
               </li>
             ))}
@@ -421,17 +457,19 @@ function PortfolioRollupCard({
 }
 
 async function PortfolioMiniChart({ portfolioId }: { portfolioId?: string }) {
+  const t = await getTranslations("overview");
+  const tc = await getTranslations("common");
   if (!portfolioId)
     return (
       <div className="py-12 text-center text-[12px] text-[var(--color-text3)]">
-        No portfolio selected.
+        {t("no_portfolio_selected")}
       </div>
     );
   const data = await safe(() => api.getPortfolioPredictions(portfolioId, 60));
   if (!data.ok || data.data.points.length === 0)
     return (
       <div className="py-12 text-center text-[12px] text-[var(--color-text3)]">
-        No prediction history yet.
+        {t("no_prediction_history")}
       </div>
     );
   const chartData = data.data.points.map((p) => ({
@@ -443,11 +481,10 @@ async function PortfolioMiniChart({ portfolioId }: { portfolioId?: string }) {
     <AreaChartCmp
       data={chartData}
       dataKey="predicted"
-      label="Predicted"
+      label={tc("predicted")}
       yUnit=""
       yDecimals={2}
       height={200}
     />
   );
 }
-

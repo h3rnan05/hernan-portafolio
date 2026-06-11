@@ -81,7 +81,7 @@
     "per_ticker_desc": "Each row: today's market price vs. the model's next-day prediction for that ticker.",
     "th_delta_mv": "Δ MV",
     "backend_unreachable_title": "Backend unreachable",
-    "backend_unreachable_desc": "The API isn't responding. Start it locally with {cmd} or check the deploy."
+    "backend_unreachable_desc": "The API isn't responding. Start it locally with <code>cd backend && uv run uvicorn app.main:app --reload</code> or check the deploy."
   },
   "portfolios": {
     "eyebrow": "Portfolios",
@@ -102,11 +102,21 @@
     "mape_30d": "MAPE 30d"
   },
   "profiles": {
-    "P1": { "name": "Conservative" },
-    "P2": { "name": "Mod Conservative" },
-    "P3": { "name": "Balanced" },
-    "P4": { "name": "Mod Aggressive" },
-    "P5": { "name": "Aggressive" }
+    "P1": {
+      "name": "Conservative"
+    },
+    "P2": {
+      "name": "Mod Conservative"
+    },
+    "P3": {
+      "name": "Balanced"
+    },
+    "P4": {
+      "name": "Mod Aggressive"
+    },
+    "P5": {
+      "name": "Aggressive"
+    }
   },
   "growth": {
     "eyebrow": "Growth",
@@ -207,7 +217,8 @@
     "rollup_title": "Profiles built from the active model fleet",
     "rollup_desc": "Each profile reweights the same per-stock predictions. P1 leans defensive; P5 leans into predicted upside.",
     "refit_button": "Refit all models",
-    "refitting": "Refitting…"
+    "refitting": "Refitting…",
+    "refit_confirm": "Re-fit every model? Takes a few seconds and replaces all 9 active models with fresh fits."
   },
   "accounts": {
     "eyebrow": "Portfolio · {count} {accounts}",
@@ -236,7 +247,8 @@
     "create": "Create account",
     "creating": "Creating…",
     "err_name_required": "Account name is required.",
-    "err_create": "Failed to create account."
+    "err_create": "Failed to create account.",
+    "field_avg_price": "Avg price"
   },
   "createPortfolio": {
     "eyebrow": "Create portfolio",

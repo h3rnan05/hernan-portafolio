@@ -32,13 +32,10 @@ import {
 } from "@/components/primitives";
 import { useCached } from "@/hooks/use-cached";
 import { api, type GrowthResponse, type GrowthSeries } from "@/lib/api";
+import { useLocale, useTranslations } from "next-intl";
 
 type WindowKey = 30 | 90 | 360;
-const WINDOWS: { key: WindowKey; label: string }[] = [
-  { key: 30, label: "30 días" },
-  { key: 90, label: "90 días" },
-  { key: 360, label: "360 días" },
-];
+const WINDOW_KEYS: WindowKey[] = [30, 90, 360];
 
 // Cool (P1) → warm (P5); benchmark dashed gray.
 const SERIES_STYLE: Record<string, { color: string; dash?: string; width: number }> = {
@@ -51,8 +48,15 @@ const SERIES_STYLE: Record<string, { color: string; dash?: string; width: number
 };
 
 export function GrowthChart() {
+  const t = useTranslations("growth");
+  const tp = useTranslations("profiles");
+  const locale = useLocale();
   const [window, setWindow] = useState<WindowKey>(90);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+
+  // Localized display label for a series ("P3 Balanceado", or the benchmark).
+  const labelFor = (profile: string) =>
+    profile === "BENCH" ? t("benchmark") : `${profile} ${tp(`${profile}.name`)}`;
 
   // Per-window SWR key → toggles re-fetch; revisited windows serve instantly.
   const { data, isCold } = useCached<GrowthResponse>(
@@ -90,24 +94,24 @@ export function GrowthChart() {
   return (
     <Card>
       <SectionHeader
-        eyebrow="Crecimiento"
-        title="¿Cuánto valdrían $10,000?"
-        description="Rendimiento histórico de cada perfil de riesgo vs. el mercado"
+        eyebrow={t("eyebrow")}
+        title={t("title")}
+        description={t("subtitle")}
         right={
           <div className="inline-flex items-center gap-1 rounded-[8px] bg-[var(--color-bg3)] p-1">
-            {WINDOWS.map((w) => (
+            {WINDOW_KEYS.map((w) => (
               <button
-                key={w.key}
+                key={w}
                 type="button"
-                onClick={() => setWindow(w.key)}
-                aria-pressed={window === w.key}
+                onClick={() => setWindow(w)}
+                aria-pressed={window === w}
                 className={`rounded-[6px] px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                  window === w.key
+                  window === w
                     ? "bg-[var(--color-bg)] text-[var(--color-text)] shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
                     : "text-[var(--color-text3)] hover:text-[var(--color-text2)]"
                 }`}
               >
-                {w.label}
+                {t(`window_${w}`)}
               </button>
             ))}
           </div>
@@ -120,10 +124,7 @@ export function GrowthChart() {
           aria-hidden
         />
       ) : series.length === 0 ? (
-        <EmptyState
-          title="Sin historial de precios suficiente"
-          description="La gráfica aparece cuando hay observaciones de precios en la ventana. Ejecuta la ingesta diaria para poblar las series."
-        />
+        <EmptyState title={t("empty_title")} description={t("empty_desc")} />
       ) : (
         <>
           <div className="w-full" style={{ height: 320 }}>
@@ -135,7 +136,7 @@ export function GrowthChart() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                 <XAxis
                   dataKey="date"
-                  tickFormatter={(v) => fmtDate(String(v)).slice(0, 6)}
+                  tickFormatter={(v) => fmtDate(String(v), locale).slice(0, 6)}
                   tickLine={false}
                   axisLine={false}
                   minTickGap={32}
@@ -156,7 +157,13 @@ export function GrowthChart() {
                   strokeWidth={1}
                 />
                 <Tooltip
-                  content={<GrowthTooltip series={series} hidden={hidden} />}
+                  content={
+                    <GrowthTooltip
+                      hidden={hidden}
+                      labelFor={labelFor}
+                      locale={locale}
+                    />
+                  }
                   cursor={{ stroke: "var(--color-border)" }}
                 />
                 {series.map((s) => {
@@ -166,7 +173,7 @@ export function GrowthChart() {
                       key={s.profile}
                       type="monotone"
                       dataKey={s.profile}
-                      name={s.label}
+                      name={labelFor(s.profile)}
                       hide={hidden.has(s.profile)}
                       stroke={style.color}
                       strokeWidth={style.width}
@@ -188,6 +195,8 @@ export function GrowthChart() {
               <LegendItem
                 key={s.profile}
                 series={s}
+                label={labelFor(s.profile)}
+                showHideTitle={hidden.has(s.profile) ? t("show_line") : t("hide_line")}
                 hidden={hidden.has(s.profile)}
                 onToggle={() => toggle(s.profile)}
               />
@@ -201,10 +210,14 @@ export function GrowthChart() {
 
 function LegendItem({
   series,
+  label,
+  showHideTitle,
   hidden,
   onToggle,
 }: {
   series: GrowthSeries;
+  label: string;
+  showHideTitle: string;
   hidden: boolean;
   onToggle: () => void;
 }) {
@@ -217,7 +230,7 @@ function LegendItem({
       type="button"
       onClick={onToggle}
       aria-pressed={!hidden}
-      title={hidden ? "Mostrar línea" : "Ocultar línea"}
+      title={showHideTitle}
       className={`inline-flex items-center gap-2 rounded-[8px] bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11.5px] transition-opacity ${
         hidden ? "opacity-40" : "hover:bg-[var(--color-bg4)]"
       }`}
@@ -232,9 +245,7 @@ function LegendItem({
         }}
         aria-hidden
       />
-      <span className="font-medium text-[var(--color-text2)]">
-        {series.profile === "BENCH" ? series.label : `${series.profile} ${series.label}`}
-      </span>
+      <span className="font-medium text-[var(--color-text2)]">{label}</span>
       <span className="font-mono tabular text-[var(--color-text)]">
         ${fmtNumber(final, { decimals: 0 })}
       </span>
@@ -252,21 +263,18 @@ function GrowthTooltip({
   active,
   payload,
   label,
-  series,
   hidden,
+  labelFor,
+  locale,
 }: {
   active?: boolean;
   payload?: Array<{ dataKey?: string | number; value?: number; color?: string }>;
   label?: string | number;
-  series?: GrowthSeries[];
   hidden?: Set<string>;
+  labelFor?: (profile: string) => string;
+  locale?: string;
 }) {
   if (!active || !payload || payload.length === 0) return null;
-  const labelFor = (key: string) => {
-    const s = series?.find((x) => x.profile === key);
-    if (!s) return key;
-    return s.profile === "BENCH" ? s.label : `${s.profile} ${s.label}`;
-  };
   const rows = payload
     .filter((p) => !hidden?.has(String(p.dataKey)) && typeof p.value === "number")
     .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
@@ -274,7 +282,7 @@ function GrowthTooltip({
   return (
     <div className="rounded-[10px] border border-[var(--color-border2)] bg-[var(--color-bg)] p-3 text-[12px] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
       <div className="mb-1.5 text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
-        {fmtDate(String(label))}
+        {fmtDate(String(label), locale)}
       </div>
       <div className="space-y-1">
         {rows.map((p, i) => (
@@ -285,7 +293,7 @@ function GrowthTooltip({
               aria-hidden
             />
             <span className="min-w-[130px] text-[var(--color-text2)]">
-              {labelFor(String(p.dataKey))}
+              {labelFor ? labelFor(String(p.dataKey)) : String(p.dataKey)}
             </span>
             <span className="ml-auto font-mono tabular text-[var(--color-text)]">
               ${fmtNumber(p.value ?? 0, { decimals: 2 })}

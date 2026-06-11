@@ -9,18 +9,22 @@
  * overlay with an upgrade/sign-in CTA is shown on top.
  */
 
+import { useTranslations } from "next-intl";
+
 import { useAuth } from "@/components/auth-provider";
 
 export function PremiumBadge() {
+  const t = useTranslations("premium");
   return (
     <span className="inline-flex items-center gap-1.5 rounded-[6px] bg-[color-mix(in_srgb,var(--color-amber)_15%,transparent)] px-2 py-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[var(--color-amber)]">
       <LockIcon className="size-3" />
-      Premium
+      {t("badge")}
     </span>
   );
 }
 
 export function PremiumGate({ children }: { children: React.ReactNode }) {
+  const t = useTranslations("premium");
   const { configured, loading, user, isPremium } = useAuth();
 
   // Nothing to gate when auth isn't wired up, or while we don't know yet.
@@ -41,18 +45,12 @@ export function PremiumGate({ children }: { children: React.ReactNode }) {
           <div className="mx-auto mb-3 grid size-11 place-items-center rounded-full bg-[color-mix(in_srgb,var(--color-amber)_18%,transparent)] text-[var(--color-amber)]">
             <LockIcon className="size-5" />
           </div>
-          <h3 className="text-[15px] font-semibold">
-            Accede con tu cuenta Premium
-          </h3>
+          <h3 className="text-[15px] font-semibold">{t("title")}</h3>
           <p className="mt-1.5 text-[12.5px] text-[var(--color-text2)]">
-            {user
-              ? "Esta sección de datos es exclusiva para usuarios de paga. Actualiza tu plan a Premium para ver la información completa."
-              : "Esta sección de datos es exclusiva para usuarios de paga. Inicia sesión con tu cuenta Premium desde el botón en la esquina superior derecha."}
+            {user ? t("desc_user") : t("desc_guest")}
           </p>
           <p className="mt-3 text-[11px] text-[var(--color-text3)]">
-            {user
-              ? "Tu plan actual es Free."
-              : "¿Aún no tienes cuenta? Crea una en segundos."}
+            {user ? t("note_user") : t("note_guest")}
           </p>
         </div>
       </div>

@@ -23,6 +23,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 
 import { TimeSeriesChart } from "@/components/charts";
 import { Card, EmptyState, SectionHeader, Skeleton } from "@/components/primitives";
@@ -30,11 +31,7 @@ import { useCached } from "@/hooks/use-cached";
 import { api, type Observation } from "@/lib/api";
 
 type RangeKey = 7 | 30 | 360;
-const RANGES: { key: RangeKey; label: string }[] = [
-  { key: 7, label: "7 días" },
-  { key: 30, label: "30 días" },
-  { key: 360, label: "360 días" },
-];
+const RANGE_KEYS: RangeKey[] = [7, 30, 360];
 
 // Benchmark id → display + colour. Order controls legend order.
 const BENCHMARKS: { id: string; label: string; color: string }[] = [
@@ -162,6 +159,7 @@ async function buildComparison(): Promise<ComparisonData> {
 }
 
 export function PortfolioComparison() {
+  const t = useTranslations("comparison");
   const [range, setRange] = useState<RangeKey>(30);
   // Series the user has toggled off via the legend.
   const [hidden, setHidden] = useState<string[]>([]);
@@ -220,7 +218,7 @@ export function PortfolioComparison() {
     () => [
       {
         key: PORTFOLIO_KEY,
-        label: "Tu portafolio (P3 Balanced)",
+        label: t("your_portfolio"),
         color: PORTFOLIO_COLOR,
         width: 2.75, // thickest line — the focal series
       },
@@ -232,30 +230,30 @@ export function PortfolioComparison() {
         faded: true, // benchmarks in fainter tones
       })),
     ],
-    [available],
+    [available, t],
   );
 
   return (
     <Card>
       <SectionHeader
-        eyebrow="Comparativo"
-        title="Comparativo de tu portafolio"
-        description="Retorno acumulado (%) desde el inicio del rango. Tu portafolio (perfil P3 Balanced) frente a los principales índices. Toca la leyenda para ocultar o mostrar cada serie."
+        eyebrow={t("eyebrow")}
+        title={t("title")}
+        description={t("subtitle")}
         right={
           <div className="inline-flex items-center gap-1 rounded-[8px] bg-[var(--color-bg3)] p-1">
-            {RANGES.map((r) => (
+            {RANGE_KEYS.map((r) => (
               <button
-                key={r.key}
+                key={r}
                 type="button"
-                onClick={() => setRange(r.key)}
-                aria-pressed={range === r.key}
+                onClick={() => setRange(r)}
+                aria-pressed={range === r}
                 className={`rounded-[6px] px-2.5 py-1 text-[11px] font-medium transition-colors ${
-                  range === r.key
+                  range === r
                     ? "bg-[var(--color-bg)] text-[var(--color-text)] shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
                     : "text-[var(--color-text3)] hover:text-[var(--color-text2)]"
                 }`}
               >
-                {r.label}
+                {t(`window_${r}`)}
               </button>
             ))}
           </div>
@@ -265,10 +263,7 @@ export function PortfolioComparison() {
       {isCold || rows === null ? (
         <Skeleton className="h-[280px]" />
       ) : chartData.length < 2 ? (
-        <EmptyState
-          title="Sin datos suficientes todavía"
-          description="El comparativo aparece cuando hay al menos dos observaciones en el rango. Ejecuta la ingesta diaria para poblar las series."
-        />
+        <EmptyState title={t("empty_title")} description={t("empty_desc")} />
       ) : (
         <>
           <TimeSeriesChart
@@ -283,11 +278,11 @@ export function PortfolioComparison() {
           />
           {pending.length > 0 && (
             <p className="mt-3 text-[11px] text-[var(--color-text3)]">
-              Pendientes de ingesta (sin datos aún):{" "}
-              {pending
-                .map((id) => BENCHMARKS.find((b) => b.id === id)?.label ?? id)
-                .join(" · ")}
-              .
+              {t("pending_ingest", {
+                list: pending
+                  .map((id) => BENCHMARKS.find((b) => b.id === id)?.label ?? id)
+                  .join(" · "),
+              })}
             </p>
           )}
         </>

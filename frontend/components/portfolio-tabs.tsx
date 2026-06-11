@@ -8,6 +8,7 @@
  * historical weight-evolution chart. Data is fetched server-side and passed in.
  */
 
+import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -64,6 +65,7 @@ export function PortfolioTabs({
       : profiles[0]?.portfolio.id,
   );
   const active = profiles.find((p) => p.portfolio.id === activeId) ?? profiles[0];
+  const tp = useTranslations("profiles");
   if (!active) return null;
 
   return (
@@ -76,6 +78,7 @@ export function PortfolioTabs({
         {profiles.map((p) => {
           const isActive = p.portfolio.id === active.portfolio.id;
           const tone = PROFILE_TONES[p.portfolio.id] ?? "blue";
+          const code = p.portfolio.id.split("_")[0];
           return (
             <button
               key={p.portfolio.id}
@@ -89,10 +92,8 @@ export function PortfolioTabs({
                   : "text-[var(--color-text3)] hover:text-[var(--color-text2)]"
               }`}
             >
-              <Badge tone={tone}>{p.portfolio.id.split("_")[0]}</Badge>
-              <span className="hidden sm:inline">
-                {profileShortName(p.portfolio.name)}
-              </span>
+              <Badge tone={tone}>{code}</Badge>
+              <span className="hidden sm:inline">{tp(`${code}.name`)}</span>
             </button>
           );
         })}
@@ -104,14 +105,21 @@ export function PortfolioTabs({
 }
 
 function ProfilePanel({ detail }: { detail: ProfileDetail }) {
+  const t = useTranslations("portfolios");
+  const tp = useTranslations("profiles");
+  const tc = useTranslations("common");
+  const locale = useLocale();
   const { portfolio, tickers, chartData } = detail;
   const sorted = Object.entries(portfolio.weights).sort((a, b) => b[1] - a[1]);
+  const code = portfolio.id.split("_")[0];
 
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight">{portfolio.name}</h2>
+          <h2 className="text-xl font-semibold tracking-tight">
+            {code} {tp(`${code}.name`)}
+          </h2>
           {portfolio.description && (
             <p className="mt-1 max-w-2xl text-[13px] text-[var(--color-text2)]">
               {portfolio.description}
@@ -121,7 +129,7 @@ function ProfilePanel({ detail }: { detail: ProfileDetail }) {
         <div className="flex items-center gap-4">
           <div className="text-right">
             <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
-              MAPE 30d
+              {t("mape_30d")}
             </div>
             <div className="mt-0.5 font-mono tabular text-base font-semibold">
               {portfolio.mape_30d !== null ? fmtPct(portfolio.mape_30d) : "—"}
@@ -131,7 +139,7 @@ function ProfilePanel({ detail }: { detail: ProfileDetail }) {
             href={`/portfolios/${portfolio.id}`}
             className="rounded-[6px] bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
           >
-            Full history →
+            {tc("full_history")}
           </Link>
         </div>
       </div>
@@ -139,9 +147,9 @@ function ProfilePanel({ detail }: { detail: ProfileDetail }) {
       {/* Current weights */}
       <Card>
         <SectionHeader
-          eyebrow="Current"
-          title="Active weights"
-          description="Most recent rebuild of this risk profile."
+          eyebrow={t("current_eyebrow")}
+          title={t("current_title")}
+          description={t("current_desc")}
         />
         <div className="flex h-3 overflow-hidden rounded-[6px] bg-[var(--color-bg3)]">
           {sorted.map(([ticker, w], i) => (
@@ -177,21 +185,25 @@ function ProfilePanel({ detail }: { detail: ProfileDetail }) {
       {/* History */}
       <Card>
         <SectionHeader
-          eyebrow={`${chartData.length} snapshots`}
-          title="Weight evolution"
-          description="How the algorithm has reallocated capital between holdings over time. Each line is one ticker."
+          eyebrow={t("snapshots_count", { count: chartData.length })}
+          title={t("history_title")}
+          description={t("history_desc")}
         />
         {chartData.length < 2 ? (
           <EmptyState
-            title={chartData.length === 0 ? "No snapshots yet" : "Just one snapshot so far"}
-            description="History accumulates one row per cron run (daily). The line chart unlocks after ~3 days of snapshots."
+            title={
+              chartData.length === 0
+                ? t("no_snapshots_title")
+                : t("one_snapshot_title")
+            }
+            description={t("snapshots_desc")}
           />
         ) : (
           <TimeSeriesChart
             data={chartData}
-            series={tickers.map((t, i) => ({
-              key: t,
-              label: t,
+            series={tickers.map((tk, i) => ({
+              key: tk,
+              label: tk,
               color: SERIES_COLORS[i % SERIES_COLORS.length],
             }))}
             yDecimals={1}
@@ -201,8 +213,10 @@ function ProfilePanel({ detail }: { detail: ProfileDetail }) {
         )}
         {detail.firstSnapshot && detail.lastSnapshot && (
           <div className="mt-3 text-[11px] text-[var(--color-text3)]">
-            First snapshot {fmtDate(detail.firstSnapshot)} · latest{" "}
-            {fmtDate(detail.lastSnapshot)}
+            {t("first_snapshot", {
+              first: fmtDate(detail.firstSnapshot, locale),
+              last: fmtDate(detail.lastSnapshot, locale),
+            })}
           </div>
         )}
       </Card>
@@ -223,9 +237,4 @@ function weightColor(i: number): string {
     "bg-[var(--color-text4)]",
   ];
   return colors[i % colors.length];
-}
-
-function profileShortName(name: string): string {
-  // "P3 Balanced" → "Balanced"; falls back to the whole name.
-  return name.replace(/^P\d+\s*/, "") || name;
 }

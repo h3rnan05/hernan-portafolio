@@ -8,6 +8,7 @@
  * client Holdings page without a server round-trip.
  */
 
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 
 import { Sparkline } from "@/components/charts";
@@ -58,6 +59,7 @@ async function fetchStocksGrid(): Promise<StockSeries[]> {
 }
 
 export function StocksGrid() {
+  const t = useTranslations("stocks");
   // SWR cache → instant on revisits, background refresh, skeleton only on cold.
   const { data, isCold } = useCached("stocks-grid", fetchStocksGrid);
 
@@ -66,12 +68,7 @@ export function StocksGrid() {
   }
 
   if (!data || data.length === 0) {
-    return (
-      <EmptyState
-        title="No stocks loaded"
-        description="Seed the variables registry first."
-      />
-    );
+    return <EmptyState title={t("empty_title")} description={t("empty_desc")} />;
   }
 
   return (

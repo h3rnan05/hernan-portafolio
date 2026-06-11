@@ -8,6 +8,7 @@
  * shareable and survives reloads.
  */
 
+import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 import Link from "next/link";
@@ -49,6 +50,7 @@ export default async function ModelsPage({
 }) {
   const { tab: tabParam } = await searchParams;
   const tab = tabParam === "portfolio" ? "portfolio" : "stocks";
+  const t = await getTranslations("models");
 
   let models: ModelSummary[] = [];
   let portfolios: Portfolio[] = [];
@@ -89,16 +91,12 @@ export default async function ModelsPage({
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-            Models · {counts.pass} pass / {counts.review} review
-            {counts.fail > 0 && ` / ${counts.fail} fail`}
+            {t("eyebrow", { pass: counts.pass, review: counts.review })}
+            {counts.fail > 0 && t("eyebrow_fail", { fail: counts.fail })}
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Fitted regressions
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
-            One OLS model per stock with non-overlapping predictors. Only PASS
-            models generate live predictions. REVIEW means the fit landed but
-            failed at least one of the four diagnostic gates.
+            {t("subtitle")}
           </p>
         </div>
         <RefitButton />
@@ -108,8 +106,8 @@ export default async function ModelsPage({
         <Suspense fallback={null}>
           <TabNav
             tabs={[
-              { key: "stocks", label: "Modelos por Acción" },
-              { key: "portfolio", label: "Modelo de Portafolio" },
+              { key: "stocks", label: t("tab_stocks") },
+              { key: "portfolio", label: t("tab_portfolio") },
             ]}
           />
         </Suspense>
@@ -130,13 +128,12 @@ export default async function ModelsPage({
 
 // ─── Tab 1: per-stock models ──────────────────────────────────────────────────
 
-function StockModelsGrid({ models }: { models: ModelSummary[] }) {
+async function StockModelsGrid({ models }: { models: ModelSummary[] }) {
+  const t = await getTranslations("models");
+  const locale = await getLocale();
   if (models.length === 0) {
     return (
-      <EmptyState
-        title="No models fit yet"
-        description="Click 'Refit all models' once enough observations have landed."
-      />
+      <EmptyState title={t("empty_title")} description={t("empty_desc")} />
     );
   }
   return (
@@ -155,8 +152,10 @@ function StockModelsGrid({ models }: { models: ModelSummary[] }) {
                   {m.ticker}
                 </div>
                 <div className="mt-0.5 text-[11px] text-[var(--color-text3)]">
-                  Fit {fmtRelative(m.fitted_at)} ·{" "}
-                  {fmtNumber(m.n_obs, { decimals: 0 })} obs
+                  {t("fit_relative", {
+                    when: fmtRelative(m.fitted_at),
+                    n: fmtNumber(m.n_obs, { decimals: 0 }),
+                  })}
                 </div>
               </div>
               <StatusBadge status={m.status} />
@@ -185,7 +184,7 @@ function StockModelsGrid({ models }: { models: ModelSummary[] }) {
             </div>
             <div className="mt-4">
               <div className="mb-1.5 text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
-                Predictors
+                {t("predictors_label")}
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {m.predictor_ids.map((p) => (
@@ -199,8 +198,10 @@ function StockModelsGrid({ models }: { models: ModelSummary[] }) {
               </div>
             </div>
             <div className="mt-3 text-[11px] text-[var(--color-text3)]">
-              Training window {fmtDate(m.training_start)} →{" "}
-              {fmtDate(m.training_end)}
+              {t("training_window", {
+                start: fmtDate(m.training_start, locale),
+                end: fmtDate(m.training_end, locale),
+              })}
             </div>
           </Link>
         );
@@ -211,18 +212,21 @@ function StockModelsGrid({ models }: { models: ModelSummary[] }) {
 
 // ─── Tab 2: portfolio-level model rollup ──────────────────────────────────────
 
-function PortfolioModelView({
+async function PortfolioModelView({
   portfolios,
   activeModels,
 }: {
   portfolios: Portfolio[];
   activeModels: ModelSummary[];
 }) {
+  const t = await getTranslations("models");
+  const tp = await getTranslations("profiles");
+  const tc = await getTranslations("common");
   if (portfolios.length === 0) {
     return (
       <EmptyState
-        title="Portfolio model not built yet"
-        description="The 5 risk-profile portfolios are computed by the daily prediction job once at least one stock model is active."
+        title={t("portfolio_empty_title")}
+        description={t("portfolio_empty_desc")}
       />
     );
   }
@@ -235,37 +239,38 @@ function PortfolioModelView({
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <StatTile label="Risk profiles" value={portfolios.length} hint="P1 → P5" />
+        <StatTile label={t("stat_risk_profiles")} value={portfolios.length} hint="P1 → P5" />
         <StatTile
-          label="Feeding models"
+          label={t("stat_feeding_models")}
           value={`${passModels} / ${activeModels.length}`}
-          hint="PASS stock models"
+          hint={t("stat_feeding_hint")}
         />
         <StatTile
-          label="Best MAPE 30d"
+          label={t("stat_best_mape")}
           value={mapes.length ? fmtPct(Math.min(...mapes)) : "—"}
-          hint="Lower is better"
+          hint={tc("lower_is_better")}
         />
         <StatTile
-          label="Avg MAPE 30d"
+          label={t("stat_avg_mape")}
           value={
             mapes.length
               ? fmtPct(mapes.reduce((a, b) => a + b, 0) / mapes.length)
               : "—"
           }
-          hint="Across profiles"
+          hint={t("stat_avg_mape_hint")}
         />
       </div>
 
       <SectionHeader
-        eyebrow="Rollup"
-        title="Profiles built from the active model fleet"
-        description="Each profile reweights the same per-stock predictions. P1 leans defensive; P5 leans into predicted upside."
+        eyebrow={t("rollup_eyebrow")}
+        title={t("rollup_title")}
+        description={t("rollup_desc")}
       />
 
       <div className="space-y-3">
         {portfolios.map((p) => {
           const sorted = Object.entries(p.weights).sort((a, b) => b[1] - a[1]);
+          const code = p.id.split("_")[0];
           return (
             <Card key={p.id}>
               <div className="flex items-start justify-between gap-4">
@@ -275,9 +280,9 @@ function PortfolioModelView({
                       href={`/portfolios?profile=${p.id}`}
                       className="text-[14px] font-semibold hover:text-[var(--color-cyan)]"
                     >
-                      {p.name}
+                      {code} {tp(`${code}.name`)}
                     </Link>
-                    <Badge tone="neutral">{p.id.split("_")[0]}</Badge>
+                    <Badge tone="neutral">{code}</Badge>
                   </div>
                   {p.description && (
                     <p className="mt-1 text-[12px] text-[var(--color-text2)]">

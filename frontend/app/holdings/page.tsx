@@ -11,6 +11,7 @@
  * localStorage via useAdminToken.
  */
 
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
 import {
@@ -46,6 +47,8 @@ const SUPPORTED_TICKERS = [
 ];
 
 export default function HoldingsPage() {
+  const t = useTranslations("holdings");
+  const tc = useTranslations("common");
   const { ensure: ensureToken, clear: clearToken } = useAdminToken();
   const [data, setData] = useState<HoldingsResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -86,7 +89,7 @@ export default function HoldingsPage() {
     const qty = parseFloat(newQty);
     const avg = parseFloat(newAvg);
     if (Number.isNaN(qty) || Number.isNaN(avg)) {
-      setError("Quantity and avg price must be numbers");
+      setError(t("err_numbers"));
       return;
     }
     setBusy(true);
@@ -131,7 +134,7 @@ export default function HoldingsPage() {
   };
 
   const handleDelete = async (ticker: string) => {
-    if (!window.confirm(`Delete ${ticker}?`)) return;
+    if (!window.confirm(t("delete_confirm", { ticker }))) return;
     const token = ensureToken();
     if (!token) return;
     setBusy(true);
@@ -151,7 +154,7 @@ export default function HoldingsPage() {
     if (!token) return;
     const rows = parseBulkText(bulkText);
     if (rows.length === 0) {
-      setError("No valid rows parsed. Format: TICKER, QTY, AVG_PRICE per line");
+      setError(t("err_bulk_parse"));
       return;
     }
     setBusy(true);
@@ -173,14 +176,11 @@ export default function HoldingsPage() {
       <div className="mb-8 flex items-end justify-between gap-4">
         <div>
           <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-            Holdings · your portfolio
+            {t("eyebrow")}
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            Your holdings
-          </h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
-            Manually entered positions. P&amp;L is computed against the latest
-            close in the observations table — no broker connection needed.
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -189,15 +189,15 @@ export default function HoldingsPage() {
             onClick={() => setBulkOpen((b) => !b)}
             className="rounded-[6px] bg-[var(--color-bg3)] px-3 py-1.5 text-[12px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)] active:scale-[0.97]"
           >
-            {bulkOpen ? "Cancel bulk" : "Bulk import"}
+            {bulkOpen ? t("cancel_bulk") : t("bulk_import")}
           </button>
           <button
             type="button"
             onClick={clearToken}
             className="rounded-[6px] bg-[var(--color-bg3)] px-3 py-1.5 text-[11px] text-[var(--color-text3)] hover:text-[var(--color-text2)]"
-            title="Clear cached admin token"
+            title={t("clear_token_title")}
           >
-            Clear token
+            {t("clear_token")}
           </button>
         </div>
       </div>
@@ -205,17 +205,17 @@ export default function HoldingsPage() {
       {/* Summary */}
       {data && data.summary.n > 0 && (
         <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <SummaryTile label="Positions" value={String(data.summary.n)} />
+          <SummaryTile label={t("summary_positions")} value={String(data.summary.n)} />
           <SummaryTile
-            label="Cost basis"
+            label={t("summary_cost_basis")}
             value={`$${fmtNumber(data.summary.cost_basis, { decimals: 2 })}`}
           />
           <SummaryTile
-            label="Market value"
+            label={t("summary_market_value")}
             value={`$${fmtNumber(data.summary.market_value, { decimals: 2 })}`}
           />
           <SummaryTile
-            label="Unrealized P&L"
+            label={t("summary_unrealized_pnl")}
             value={`$${fmtNumber(data.summary.open_pnl, { decimals: 2 })}`}
             delta={
               data.summary.open_pnl_pct !== null
@@ -242,9 +242,9 @@ export default function HoldingsPage() {
       {bulkOpen && (
         <Card className="mb-6">
           <SectionHeader
-            eyebrow="Bulk"
-            title="Paste your portfolio"
-            description="One line per ticker: `TICKER, QUANTITY, AVG_PRICE`. Optional notes after a fourth comma. Existing rows get overwritten."
+            eyebrow={t("bulk_eyebrow")}
+            title={t("bulk_title")}
+            description={t("bulk_desc")}
           />
           <textarea
             rows={6}
@@ -261,7 +261,7 @@ export default function HoldingsPage() {
               disabled={busy}
               className="rounded-[8px] bg-[var(--color-cyan)] px-3 py-1.5 text-[12px] font-semibold text-[var(--color-bg)] disabled:opacity-50 active:scale-[0.97]"
             >
-              {busy ? "Importing…" : "Import"}
+              {busy ? t("importing") : t("import")}
             </button>
           </div>
         </Card>
@@ -281,8 +281,8 @@ export default function HoldingsPage() {
         ) : !data || data.holdings.length === 0 ? (
           <div className="p-8">
             <EmptyState
-              title="No holdings yet"
-              description="Add one below, or use Bulk Import to paste a full list."
+              title={t("empty_title")}
+              description={t("empty_desc")}
             />
           </div>
         ) : (
@@ -290,15 +290,15 @@ export default function HoldingsPage() {
             <table className="w-full text-[12.5px]">
               <thead>
                 <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg3)] text-left text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
-                  <th className="px-4 py-2.5 font-medium">Ticker</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Qty</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Avg</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Last</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Mkt Value</th>
+                  <th className="px-4 py-2.5 font-medium">{tc("ticker")}</th>
+                  <th className="px-4 py-2.5 text-right font-medium">{tc("qty")}</th>
+                  <th className="px-4 py-2.5 text-right font-medium">{t("th_avg")}</th>
+                  <th className="px-4 py-2.5 text-right font-medium">{tc("last")}</th>
+                  <th className="px-4 py-2.5 text-right font-medium">{t("th_mkt_value")}</th>
                   <th className="px-4 py-2.5 text-right font-medium">P&L</th>
                   <th className="px-4 py-2.5 text-right font-medium">P&L %</th>
-                  <th className="px-4 py-2.5 font-medium">Notes</th>
-                  <th className="px-4 py-2.5 text-right font-medium">Updated</th>
+                  <th className="px-4 py-2.5 font-medium">{tc("notes")}</th>
+                  <th className="px-4 py-2.5 text-right font-medium">{tc("updated")}</th>
                   <th className="px-4 py-2.5 w-12"></th>
                 </tr>
               </thead>
@@ -321,30 +321,30 @@ export default function HoldingsPage() {
       {/* Add-new form */}
       <Card>
         <SectionHeader
-          eyebrow="Add"
-          title="New holding"
-          description="Pick a ticker from the supported set, enter quantity + average cost."
+          eyebrow={t("add_eyebrow")}
+          title={t("add_title")}
+          description={t("add_desc")}
         />
         <form
           onSubmit={handleAdd}
           className="grid grid-cols-2 gap-3 md:grid-cols-[120px_120px_120px_1fr_120px]"
         >
           <label className="flex flex-col gap-1 text-[11px] text-[var(--color-text3)]">
-            Ticker
+            {t("field_ticker")}
             <select
               value={newTicker}
               onChange={(e) => setNewTicker(e.target.value)}
               className="h-9 rounded-[8px] bg-[var(--color-bg3)] px-2 text-[13px] text-[var(--color-text)] font-mono focus:outline-none"
             >
-              {SUPPORTED_TICKERS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              {SUPPORTED_TICKERS.map((tk) => (
+                <option key={tk} value={tk}>
+                  {tk}
                 </option>
               ))}
             </select>
           </label>
           <label className="flex flex-col gap-1 text-[11px] text-[var(--color-text3)]">
-            Quantity
+            {t("field_quantity")}
             <input
               type="number"
               step="any"
@@ -356,7 +356,7 @@ export default function HoldingsPage() {
             />
           </label>
           <label className="flex flex-col gap-1 text-[11px] text-[var(--color-text3)]">
-            Avg price
+            {t("field_avg_price")}
             <input
               type="number"
               step="any"
@@ -368,7 +368,7 @@ export default function HoldingsPage() {
             />
           </label>
           <label className="flex flex-col gap-1 text-[11px] text-[var(--color-text3)]">
-            Notes (optional)
+            {t("field_notes")}
             <input
               type="text"
               value={newNotes}
@@ -381,7 +381,7 @@ export default function HoldingsPage() {
             disabled={busy}
             className="h-9 self-end rounded-[8px] bg-[var(--color-green)] px-3 text-[12px] font-semibold text-[var(--color-bg)] disabled:opacity-50 active:scale-[0.97]"
           >
-            {busy ? "Saving…" : "Add"}
+            {busy ? tc("saving") : t("add_button")}
           </button>
         </form>
       </Card>
@@ -389,9 +389,9 @@ export default function HoldingsPage() {
       {/* Stocks — the 9 tracked names (moved here from Overview) */}
       <section className="mt-10">
         <SectionHeader
-          eyebrow="Stocks"
-          title="Active holdings universe"
-          description="The 9 names this engine predicts. Each card links to its model + history."
+          eyebrow={t("stocks_eyebrow")}
+          title={t("stocks_title")}
+          description={t("stocks_desc")}
         />
         <StocksGrid />
       </section>
@@ -399,9 +399,9 @@ export default function HoldingsPage() {
       {/* Predictors — coverage status, balanced categories (moved from Overview) */}
       <section className="mt-10">
         <SectionHeader
-          eyebrow="Predictors"
-          title="Coverage status"
-          description="Which predictors are populated, grouped into balanced categories. The model layer needs these macro variables to fit meaningful equations."
+          eyebrow={t("predictors_eyebrow")}
+          title={t("predictors_title")}
+          description={t("predictors_desc")}
         />
         <PredictorsPanel />
       </section>
@@ -422,6 +422,7 @@ function HoldingRow({
   onDelete: (ticker: string) => void | Promise<void>;
   busy: boolean;
 }) {
+  const tc = useTranslations("common");
   const [editing, setEditing] = useState(false);
   const [qty, setQty] = useState(holding.quantity.toString());
   const [avg, setAvg] = useState(holding.avg_price.toString());
@@ -505,7 +506,7 @@ function HoldingRow({
                 onClick={save}
                 className="rounded-[4px] bg-[var(--color-green)] px-2 py-0.5 text-[10.5px] font-semibold text-[var(--color-bg)] active:scale-[0.96]"
               >
-                save
+                {tc("save")}
               </button>
               <button
                 type="button"
@@ -526,7 +527,7 @@ function HoldingRow({
                 onClick={() => setEditing(true)}
                 className="rounded-[4px] px-2 py-0.5 text-[10.5px] text-[var(--color-text2)] hover:text-[var(--color-text)]"
               >
-                edit
+                {tc("edit")}
               </button>
               <button
                 type="button"
@@ -534,7 +535,7 @@ function HoldingRow({
                 disabled={busy}
                 className="rounded-[4px] px-2 py-0.5 text-[10.5px] text-[var(--color-red)] hover:bg-[color-mix(in_srgb,var(--color-red)_15%,transparent)]"
               >
-                del
+                {tc("delete")}
               </button>
             </>
           )}

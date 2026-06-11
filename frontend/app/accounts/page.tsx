@@ -6,6 +6,8 @@
  * P5 aggressive) using L2 distance on portfolio weights.
  */
 
+import { getLocale, getTranslations } from "next-intl/server";
+
 import { CreatePortfolio } from "@/components/create-portfolio";
 import {
   Badge,
@@ -39,6 +41,9 @@ function profileTone(profileId: string | null) {
 }
 
 export default async function AccountsPage() {
+  const t = await getTranslations("accounts");
+  const tc = await getTranslations("common");
+  const locale = await getLocale();
   let accounts: Awaited<ReturnType<typeof api.listAccounts>> = [];
   let error: string | null = null;
   try {
@@ -52,13 +57,14 @@ export default async function AccountsPage() {
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
           <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-            Portfolio · {accounts.length} account{accounts.length !== 1 ? "s" : ""}
+            {t("eyebrow", {
+              count: accounts.length,
+              accounts: accounts.length === 1 ? t("account_one") : t("account_other"),
+            })}
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">User accounts</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
           <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
-            Each account holds its own positions. The engine automatically
-            classifies each account into the nearest of the 5 risk profiles
-            (P1 conservative → P5 aggressive) based on the current portfolio weights.
+            {t("subtitle")}
           </p>
         </div>
         <NewAccountButton />
@@ -74,10 +80,7 @@ export default async function AccountsPage() {
           <div className="text-[13px] text-[var(--color-red)]">{error}</div>
         </Card>
       ) : accounts.length === 0 ? (
-        <EmptyState
-          title="No accounts yet"
-          description="Click 'New account' to create your first portfolio account."
-        />
+        <EmptyState title={t("empty_title")} description={t("empty_desc")} />
       ) : (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {accounts.map((a) => (
@@ -91,8 +94,14 @@ export default async function AccountsPage() {
                     </div>
                   )}
                   <div className="mt-1 text-[11px] text-[var(--color-text3)]">
-                    Created {fmtDate(a.created_at)} · {a.holdings.length} position
-                    {a.holdings.length !== 1 ? "s" : ""}
+                    {t("created_positions", {
+                      date: fmtDate(a.created_at, locale),
+                      count: a.holdings.length,
+                      positions:
+                        a.holdings.length === 1
+                          ? t("position_one")
+                          : t("position_other"),
+                    })}
                   </div>
                 </div>
                 {a.profile_match ? (
@@ -101,11 +110,13 @@ export default async function AccountsPage() {
                       {a.profile_match.profile_name}
                     </Badge>
                     <span className="text-[10px] text-[var(--color-text3)]">
-                      dist {a.profile_match.distance.toFixed(3)}
+                      {t("distance", {
+                        value: a.profile_match.distance.toFixed(3),
+                      })}
                     </span>
                   </div>
                 ) : (
-                  <Badge tone="neutral">unclassified</Badge>
+                  <Badge tone="neutral">{t("unclassified")}</Badge>
                 )}
               </div>
 
@@ -113,7 +124,7 @@ export default async function AccountsPage() {
                 <div className="mb-4 font-mono text-xl font-semibold">
                   ${fmtNumber(a.total_market_value, { decimals: 2 })}
                   <span className="ml-2 text-[12px] font-normal text-[var(--color-text3)]">
-                    market value
+                    {t("market_value_label")}
                   </span>
                 </div>
               )}
@@ -123,9 +134,9 @@ export default async function AccountsPage() {
                   <table className="w-full text-[12px]">
                     <thead>
                       <tr className="border-b border-[var(--color-border)] text-left text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
-                        <th className="py-1.5 pr-3 font-medium">Ticker</th>
-                        <th className="py-1.5 pr-3 text-right font-medium">Qty</th>
-                        <th className="py-1.5 pr-3 text-right font-medium">Last</th>
+                        <th className="py-1.5 pr-3 font-medium">{tc("ticker")}</th>
+                        <th className="py-1.5 pr-3 text-right font-medium">{tc("qty")}</th>
+                        <th className="py-1.5 pr-3 text-right font-medium">{tc("last")}</th>
                         <th className="py-1.5 text-right font-medium">P&L</th>
                       </tr>
                     </thead>

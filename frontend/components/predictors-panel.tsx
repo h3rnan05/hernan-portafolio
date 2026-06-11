@@ -7,6 +7,7 @@
  * Moved off the Overview page (HER tasks 2 & 3) and fetches client-side.
  */
 
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 
 import {
@@ -25,6 +26,8 @@ async function fetchPredictorGroups(): Promise<PredictorGroup[]> {
 }
 
 export function PredictorsPanel() {
+  const t = useTranslations("predictors");
+  const tc = useTranslations("common");
   const { data: groups, isCold } = useCached(
     "predictors-panel",
     fetchPredictorGroups,
@@ -43,7 +46,10 @@ export function PredictorsPanel() {
               {g.label}
             </span>
             <span className="text-[10px] text-[var(--color-text3)]">
-              {g.items.filter((v) => v.last_observed_on).length}/{g.items.length} live
+              {t("live_count", {
+                live: g.items.filter((v) => v.last_observed_on).length,
+                total: g.items.length,
+              })}
             </span>
           </div>
           <ul className="divide-y divide-[var(--color-border)]">
@@ -64,10 +70,10 @@ export function PredictorsPanel() {
                     <span className="font-mono tabular text-[var(--color-text2)]">
                       {fmtNumber(v.last_value, { decimals: 2 })}
                     </span>
-                    <Badge tone="green">live</Badge>
+                    <Badge tone="green">{tc("live")}</Badge>
                   </span>
                 ) : (
-                  <Badge tone="amber">no data</Badge>
+                  <Badge tone="amber">{tc("no_data")}</Badge>
                 )}
               </li>
             ))}

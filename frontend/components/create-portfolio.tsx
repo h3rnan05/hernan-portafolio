@@ -10,6 +10,7 @@
  * constraint and a max of 5 in the UI.
  */
 
+import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/components/auth-provider";
@@ -38,6 +39,8 @@ type Draft = {
 };
 
 export function CreatePortfolio() {
+  const t = useTranslations("createPortfolio");
+  const tc = useTranslations("common");
   const { configured, loading: authLoading, user } = useAuth();
   const supabase = getSupabaseBrowserClient();
 
@@ -125,7 +128,7 @@ export function CreatePortfolio() {
   async function save(draft: Draft) {
     if (!supabase || !user) return;
     if (!draft.name.trim()) {
-      setError("El portafolio necesita un nombre.");
+      setError(t("err_name"));
       return;
     }
     setSavingSlot(draft.slot);
@@ -154,7 +157,7 @@ export function CreatePortfolio() {
       return;
     }
     if (!supabase || !user) return;
-    if (!window.confirm(`¿Eliminar "${draft.name}"?`)) return;
+    if (!window.confirm(t("delete_confirm", { name: draft.name }))) return;
     setSavingSlot(draft.slot);
     const { error } = await supabase
       .from("user_portfolios")
@@ -173,9 +176,9 @@ export function CreatePortfolio() {
     return (
       <Card>
         <SectionHeader
-          eyebrow="Crear portafolio"
-          title="Configura tus portafolios"
-          description="Conecta Supabase (NEXT_PUBLIC_SUPABASE_URL / ANON_KEY) para guardar portafolios por usuario."
+          eyebrow={t("eyebrow")}
+          title={t("title_configure")}
+          description={t("desc_configure")}
         />
       </Card>
     );
@@ -184,7 +187,7 @@ export function CreatePortfolio() {
   if (authLoading) {
     return (
       <Card>
-        <div className="text-[12.5px] text-[var(--color-text3)]">Cargando…</div>
+        <div className="text-[12.5px] text-[var(--color-text3)]">{tc("loading")}</div>
       </Card>
     );
   }
@@ -193,9 +196,9 @@ export function CreatePortfolio() {
     return (
       <Card>
         <SectionHeader
-          eyebrow="Crear portafolio"
-          title="Inicia sesión para crear portafolios"
-          description="Necesitas una cuenta para seleccionar y guardar hasta 5 portafolios. Usa el botón 'Iniciar sesión' arriba a la derecha."
+          eyebrow={t("eyebrow")}
+          title={t("title_signin")}
+          description={t("desc_signin")}
         />
       </Card>
     );
@@ -206,18 +209,18 @@ export function CreatePortfolio() {
   return (
     <Card>
       <SectionHeader
-        eyebrow="Crear portafolio"
-        title="Tus portafolios"
-        description="Selecciona hasta 5 portafolios para seguir. Para cada uno elige los activos a incluir."
+        eyebrow={t("eyebrow")}
+        title={t("title_yours")}
+        description={t("desc_yours")}
         right={
           <button
             type="button"
             onClick={addPortfolio}
             disabled={atMax}
             className="rounded-[8px] bg-[var(--color-cyan)] px-3 py-1.5 text-[12px] font-semibold text-black hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            title={atMax ? "Máximo 5 portafolios" : "Añadir portafolio"}
+            title={atMax ? t("add_title_max") : t("add_title")}
           >
-            + Añadir ({drafts.length}/{MAX_PORTFOLIOS})
+            {t("add", { count: drafts.length, max: MAX_PORTFOLIOS })}
           </button>
         }
       />
@@ -229,11 +232,11 @@ export function CreatePortfolio() {
       )}
 
       {loading ? (
-        <div className="text-[12.5px] text-[var(--color-text3)]">Cargando portafolios…</div>
+        <div className="text-[12.5px] text-[var(--color-text3)]">{t("loading")}</div>
       ) : drafts.length === 0 ? (
         <EmptyState
-          title="Sin portafolios todavía"
-          description="Pulsa '+ Añadir' para crear tu primer portafolio (hasta 5)."
+          title={t("empty_title")}
+          description={t("empty_desc")}
         />
       ) : (
         <div className="space-y-3">
@@ -246,49 +249,49 @@ export function CreatePortfolio() {
                 className="rounded-[12px] bg-[var(--color-bg3)] p-4"
               >
                 <div className="mb-3 flex items-center gap-3">
-                  <Badge tone="neutral">Slot {d.slot}</Badge>
+                  <Badge tone="neutral">{t("slot", { n: d.slot })}</Badge>
                   <input
                     value={d.name}
                     onChange={(e) => patchDraft(d.slot, { name: e.target.value })}
-                    placeholder="Nombre del portafolio"
+                    placeholder={t("name_placeholder")}
                     className="flex-1 rounded-[8px] bg-[var(--color-bg)] px-3 py-1.5 text-[13px] font-medium text-[var(--color-text)] outline-none focus:ring-1 focus:ring-[var(--color-cyan)]"
                   />
-                  {!d.id && <Badge tone="amber">sin guardar</Badge>}
+                  {!d.id && <Badge tone="amber">{t("unsaved")}</Badge>}
                 </div>
 
                 <div className="mb-2 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-                  Activos ({d.assets.length})
+                  {t("assets_count", { count: d.assets.length })}
                 </div>
                 <div className="flex flex-wrap gap-1.5">
-                  {AVAILABLE_ASSETS.map((t) => {
-                    const on = d.assets.includes(t);
+                  {AVAILABLE_ASSETS.map((tk) => {
+                    const on = d.assets.includes(tk);
                     return (
                       <button
-                        key={t}
+                        key={tk}
                         type="button"
-                        onClick={() => toggleAsset(d.slot, t)}
+                        onClick={() => toggleAsset(d.slot, tk)}
                         className={`rounded-[6px] px-2 py-1 font-mono text-[11.5px] transition-colors ${
                           on
                             ? "bg-[var(--color-cyan)] text-black"
                             : "bg-[var(--color-bg4)] text-[var(--color-text2)] hover:text-[var(--color-text)]"
                         }`}
                       >
-                        {t}
+                        {tk}
                       </button>
                     );
                   })}
                   {/* Custom tickers already chosen but outside the standard set */}
                   {d.assets
-                    .filter((t) => !AVAILABLE_ASSETS.includes(t))
-                    .map((t) => (
+                    .filter((tk) => !AVAILABLE_ASSETS.includes(tk))
+                    .map((tk) => (
                       <button
-                        key={t}
+                        key={tk}
                         type="button"
-                        onClick={() => toggleAsset(d.slot, t)}
+                        onClick={() => toggleAsset(d.slot, tk)}
                         className="rounded-[6px] bg-[var(--color-violet)] px-2 py-1 font-mono text-[11.5px] text-black"
-                        title="Quitar"
+                        title={t("remove")}
                       >
-                        {t} ×
+                        {tk} ×
                       </button>
                     ))}
                 </div>
@@ -305,7 +308,7 @@ export function CreatePortfolio() {
                         addCustom(d.slot);
                       }
                     }}
-                    placeholder="Ticker personalizado (p. ej. AAPL)"
+                    placeholder={t("custom_placeholder")}
                     className="w-56 rounded-[8px] bg-[var(--color-bg)] px-2.5 py-1.5 font-mono text-[12px] text-[var(--color-text)] outline-none focus:ring-1 focus:ring-[var(--color-cyan)]"
                   />
                   <button
@@ -313,7 +316,7 @@ export function CreatePortfolio() {
                     onClick={() => addCustom(d.slot)}
                     className="rounded-[8px] bg-[var(--color-bg4)] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
                   >
-                    Añadir activo
+                    {t("add_asset")}
                   </button>
 
                   <div className="ml-auto flex items-center gap-2">
@@ -323,7 +326,7 @@ export function CreatePortfolio() {
                       disabled={savingSlot === d.slot}
                       className="rounded-[8px] px-2.5 py-1.5 text-[12px] font-medium text-[var(--color-red)] hover:bg-[color-mix(in_srgb,var(--color-red)_12%,transparent)] disabled:opacity-50"
                     >
-                      Eliminar
+                      {t("delete")}
                     </button>
                     <button
                       type="button"
@@ -331,7 +334,7 @@ export function CreatePortfolio() {
                       disabled={savingSlot === d.slot}
                       className="rounded-[8px] bg-[var(--color-green)] px-3 py-1.5 text-[12px] font-semibold text-[var(--color-bg)] disabled:opacity-50 active:scale-[0.97]"
                     >
-                      {savingSlot === d.slot ? "Guardando…" : "Guardar"}
+                      {savingSlot === d.slot ? t("saving") : t("save")}
                     </button>
                   </div>
                 </div>

@@ -81,7 +81,7 @@
     "per_ticker_desc": "Cada fila: el precio de mercado de hoy vs. la predicción del modelo para mañana de ese ticker.",
     "th_delta_mv": "Δ Valor",
     "backend_unreachable_title": "Backend inaccesible",
-    "backend_unreachable_desc": "La API no responde. Inícialo localmente con {cmd} o revisa el despliegue."
+    "backend_unreachable_desc": "La API no responde. Inícialo localmente con <code>cd backend && uv run uvicorn app.main:app --reload</code> o revisa el despliegue."
   },
   "portfolios": {
     "eyebrow": "Portafolios",
@@ -102,11 +102,21 @@
     "mape_30d": "MAPE 30d"
   },
   "profiles": {
-    "P1": { "name": "Conservador" },
-    "P2": { "name": "Moderado Conservador" },
-    "P3": { "name": "Balanceado" },
-    "P4": { "name": "Moderado Agresivo" },
-    "P5": { "name": "Agresivo" }
+    "P1": {
+      "name": "Conservador"
+    },
+    "P2": {
+      "name": "Moderado Conservador"
+    },
+    "P3": {
+      "name": "Balanceado"
+    },
+    "P4": {
+      "name": "Moderado Agresivo"
+    },
+    "P5": {
+      "name": "Agresivo"
+    }
   },
   "growth": {
     "eyebrow": "Crecimiento",
@@ -207,7 +217,8 @@
     "rollup_title": "Perfiles construidos a partir de la flota de modelos activos",
     "rollup_desc": "Cada perfil repondera las mismas predicciones por acción. P1 se inclina a lo defensivo; P5 hacia el potencial de subida predicho.",
     "refit_button": "Reajustar todos los modelos",
-    "refitting": "Reajustando…"
+    "refitting": "Reajustando…",
+    "refit_confirm": "¿Reajustar todos los modelos? Tarda unos segundos y reemplaza los 9 modelos activos con ajustes nuevos."
   },
   "accounts": {
     "eyebrow": "Portafolio · {count} {accounts}",
@@ -236,7 +247,8 @@
     "create": "Crear cuenta",
     "creating": "Creando…",
     "err_name_required": "El nombre de la cuenta es obligatorio.",
-    "err_create": "No se pudo crear la cuenta."
+    "err_create": "No se pudo crear la cuenta.",
+    "field_avg_price": "Precio prom."
   },
   "createPortfolio": {
     "eyebrow": "Crear portafolio",
@@ -252,7 +264,7 @@
     "loading": "Cargando portafolios…",
     "empty_title": "Sin portafolios todavía",
     "empty_desc": "Pulsa '+ Añadir' para crear tu primer portafolio (hasta 5).",
-    "slot": "Slot {n}",
+    "slot": "Espacio {n}",
     "name_placeholder": "Nombre del portafolio",
     "unsaved": "sin guardar",
     "assets_count": "Activos ({count})",
@@ -274,9 +286,9 @@
   "simulator": {
     "eyebrow": "Simulador",
     "title": "Escenarios hipotéticos",
-    "subtitle": "Empuja retornos rezagados hipotéticos a través de cada modelo activo. Los predictores sin mover quedan en cero, así que los deltas reflejan el efecto marginal de los shocks que configures abajo.",
+    "subtitle": "Empuja retornos rezagados hipotéticos a través de cada modelo activo. Los predictores sin mover quedan en cero, así que los deltas reflejan el efecto marginal de los impactos que configures abajo.",
     "inputs_eyebrow": "Entradas",
-    "inputs_title": "Shocks de predictores",
+    "inputs_title": "Impactos de predictores",
     "inputs_desc": "Desliza para mover el retorno log rezagado de un solo predictor.",
     "horizon": "Horizonte (días)",
     "reset": "Restablecer a cero",
@@ -287,17 +299,17 @@
     "stat_horizon_hint": "Predicciones de 1 día extrapoladas",
     "recomputing": "Recalculando…",
     "empty_title": "Sin modelos activos para simular",
-    "empty_desc": "Ajusta modelos primero (ver la página de Modelos), luego regresa aquí para empujar shocks hipotéticos a través de ellos.",
+    "empty_desc": "Ajusta modelos primero (ver la página de Modelos), luego regresa aquí para empujar impactos hipotéticos a través de ellos.",
     "per_ticker_eyebrow": "Por ticker",
     "per_ticker_title": "Precio predicho para el próximo día",
     "per_ticker_desc": "Las contribuciones descomponen el retorno predicho en pares β·shock.",
     "th_delta_return": "Δ retorno",
     "th_top_driver": "Driver principal",
-    "slider_cpi": "Shock de CPI interanual",
+    "slider_cpi": "Impacto de CPI interanual",
     "slider_eurusd": "Movimiento EUR/USD",
     "slider_brent": "Movimiento Brent",
     "slider_gold": "Movimiento Oro",
-    "slider_unemployment": "Shock de desempleo",
+    "slider_unemployment": "Impacto de desempleo",
     "slider_usdcny": "Movimiento USD/CNY"
   },
   "data": {
@@ -320,7 +332,7 @@
     "title": "Accede con tu cuenta Premium",
     "desc_user": "Esta sección de datos es exclusiva para usuarios de paga. Actualiza tu plan a Premium para ver la información completa.",
     "desc_guest": "Esta sección de datos es exclusiva para usuarios de paga. Inicia sesión con tu cuenta Premium desde el botón en la esquina superior derecha.",
-    "note_user": "Tu plan actual es Free.",
+    "note_user": "Tu plan actual es Gratis.",
     "note_guest": "¿Aún no tienes cuenta? Crea una en segundos.",
     "badge": "Premium"
   },
@@ -331,7 +343,7 @@
     "sign_out": "Cerrar sesión",
     "plan": "Plan: {plan}",
     "premium": "Premium",
-    "free": "Free",
+    "free": "Gratis",
     "create_account": "Crear cuenta",
     "email_placeholder": "tu@correo.com",
     "password_placeholder": "Contraseña",

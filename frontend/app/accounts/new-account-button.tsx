@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -8,6 +9,8 @@ import { api } from "@/lib/api";
 type HoldingRow = { ticker: string; quantity: string; avg_price: string };
 
 export function NewAccountButton() {
+  const t = useTranslations("accounts");
+  const tc = useTranslations("common");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
@@ -34,7 +37,7 @@ export function NewAccountButton() {
     e.preventDefault();
     setError(null);
     if (!name.trim()) {
-      setError("Account name is required.");
+      setError(t("err_name_required"));
       return;
     }
     const validHoldings = holdings.filter(
@@ -57,7 +60,7 @@ export function NewAccountButton() {
       setHoldings([{ ticker: "", quantity: "", avg_price: "" }]);
       router.refresh();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to create account.");
+      setError(err instanceof Error ? err.message : t("err_create"));
     } finally {
       setLoading(false);
     }
@@ -69,35 +72,35 @@ export function NewAccountButton() {
         onClick={() => setOpen(true)}
         className="rounded-[8px] bg-[var(--color-bg3)] px-3 py-2 text-[12px] font-medium text-[var(--color-text)] hover:bg-[var(--color-bg4)]"
       >
-        + New account
+        {t("new_account")}
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
           <div className="w-full max-w-lg rounded-[16px] bg-[var(--color-bg2)] p-6 shadow-xl">
-            <h2 className="mb-4 text-[15px] font-semibold">New account</h2>
+            <h2 className="mb-4 text-[15px] font-semibold">{t("modal_title")}</h2>
             <form onSubmit={submit} className="space-y-4">
               <div>
                 <label className="mb-1 block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-                  Name *
+                  {t("field_name_required")}
                 </label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Main brokerage"
+                  placeholder={t("field_name_placeholder")}
                   className="w-full rounded-[8px] bg-[var(--color-bg3)] px-3 py-2 text-[13px] text-[var(--color-text)] outline-none focus:ring-1 focus:ring-[var(--color-cyan)]"
                 />
               </div>
               <div>
                 <label className="mb-1 block text-[11px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-                  Description
+                  {t("field_description")}
                 </label>
                 <input
                   type="text"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Optional note"
+                  placeholder={t("field_description_placeholder")}
                   className="w-full rounded-[8px] bg-[var(--color-bg3)] px-3 py-2 text-[13px] text-[var(--color-text)] outline-none focus:ring-1 focus:ring-[var(--color-cyan)]"
                 />
               </div>
@@ -105,21 +108,21 @@ export function NewAccountButton() {
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <label className="text-[11px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-                    Holdings
+                    {t("holdings_label")}
                   </label>
                   <button
                     type="button"
                     onClick={addRow}
                     className="text-[11px] text-[var(--color-cyan)] hover:underline"
                   >
-                    + Add row
+                    {t("add_row")}
                   </button>
                 </div>
                 <div className="space-y-2">
                   <div className="grid grid-cols-[2fr_1fr_1fr_auto] gap-2 text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
-                    <span>Ticker</span>
-                    <span>Qty</span>
-                    <span>Avg price</span>
+                    <span>{tc("ticker")}</span>
+                    <span>{tc("qty")}</span>
+                    <span>{t("field_avg_price")}</span>
                     <span />
                   </div>
                   {holdings.map((h, i) => (
@@ -153,7 +156,7 @@ export function NewAccountButton() {
                         type="button"
                         onClick={() => removeRow(i)}
                         className="px-1 text-[var(--color-text3)] hover:text-[var(--color-red)]"
-                        aria-label="Remove row"
+                        aria-label={t("remove_row")}
                       >
                         ×
                       </button>
@@ -172,14 +175,14 @@ export function NewAccountButton() {
                   onClick={() => setOpen(false)}
                   className="rounded-[8px] px-3 py-2 text-[12px] font-medium text-[var(--color-text3)] hover:text-[var(--color-text)]"
                 >
-                  Cancel
+                  {tc("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
                   className="rounded-[8px] bg-[var(--color-cyan)] px-4 py-2 text-[12px] font-medium text-black hover:opacity-90 disabled:opacity-50"
                 >
-                  {loading ? "Creating…" : "Create account"}
+                  {loading ? t("creating") : t("create")}
                 </button>
               </div>
             </form>

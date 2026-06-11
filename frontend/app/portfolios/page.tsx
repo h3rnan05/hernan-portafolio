@@ -7,6 +7,8 @@
  * client tab component.
  */
 
+import { getTranslations } from "next-intl/server";
+
 import { GrowthChart } from "@/components/growth-chart";
 import { Card, EmptyState } from "@/components/primitives";
 import {
@@ -32,6 +34,7 @@ export default async function PortfoliosPage({
   searchParams: Promise<{ profile?: string }>;
 }) {
   const { profile: initialId } = await searchParams;
+  const t = await getTranslations("portfolios");
 
   let portfolios: Portfolio[] = [];
   let error: string | null = null;
@@ -77,15 +80,11 @@ export default async function PortfoliosPage({
     <div className="mx-auto max-w-7xl px-6 py-8">
       <div className="mb-8">
         <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-          Portfolios
+          {t("eyebrow")}
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Five risk profiles
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
         <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
-          Deterministic weight builders from the active models&rsquo; quality
-          and predicted Sharpe. P1 weights inversely to volatility; P5 leans
-          into upside. Select a profile to see its full detail.
+          {t("subtitle")}
         </p>
       </div>
 
@@ -99,10 +98,7 @@ export default async function PortfoliosPage({
           <div className="text-[13px] text-[var(--color-red)]">{error}</div>
         </Card>
       ) : details.length === 0 ? (
-        <EmptyState
-          title="Portfolios not built yet"
-          description="The portfolio table is populated by the daily prediction job after at least one model is active."
-        />
+        <EmptyState title={t("empty_title")} description={t("empty_desc")} />
       ) : (
         <PortfolioTabs profiles={details} initialId={initialId} />
       )}
