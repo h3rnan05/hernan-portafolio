@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_admin
+from app.cache import bust_cache, ttl_cache
 from app.db import AsyncSessionLocal, get_session
 from app.modeling.forecast import compute_forecast
 from app.modeling.refit import refit_all
@@ -37,7 +38,9 @@ def _equation(intercept: float, coefficients: dict[str, float]) -> str:
 
 
 @router.get("", response_model=list[ModelSummary])
+@ttl_cache(seconds=3600)
 async def list_models(
+    response: Response,
     only_active: bool = True,
     session: AsyncSession = Depends(get_session),
 ) -> list[ModelSummary]:
@@ -70,8 +73,10 @@ async def list_models(
 
 
 @router.get("/{ticker}", response_model=ModelDetail)
+@ttl_cache(seconds=3600)
 async def get_model(
     ticker: str,
+    response: Response,
     session: AsyncSession = Depends(get_session),
 ) -> ModelDetail:
     """Active model detail for one ticker."""
@@ -275,6 +280,8 @@ async def refit_all_models(req: RefitRequest | None = None) -> list[RefitOutcome
             alpha=req.alpha,
             allow_reuse=req.allow_reuse,
         )
+    # Models changed → drop cached read responses so they recompute once.
+    bust_cache()
     return [
         RefitOutcomeOut(
             ticker=o.ticker,
@@ -301,6 +308,7 @@ async def refit_one_model(ticker: str) -> RefitOutcomeOut:
     """
     async with AsyncSessionLocal() as session:
         outcomes = await refit_all(session, only_ticker=ticker)
+    bust_cache()
     if not outcomes:
         raise HTTPException(404, f"Ticker {ticker} not in active stock set")
     o = outcomes[0]

@@ -17,7 +17,7 @@
  * cerrada para que el "% día" nunca sea NaN.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   CartesianGrid,
   Line,
@@ -29,7 +29,8 @@ import {
   YAxis,
 } from "recharts";
 
-import { Card, EmptyState, fmtDate, SectionHeader, Skeleton } from "@/components/primitives";
+import { Card, EmptyState, fmtDate, SectionHeader } from "@/components/primitives";
+import { useCached } from "@/hooks/use-cached";
 import {
   api,
   type Observation,
@@ -83,118 +84,117 @@ function daysAgoISO(d: number): string {
 // precalculado una sola vez (independiente de la ventana): `${key}__day`.
 type FilledRow = Record<string, number | string | null>;
 
+type ComparisonData = {
+  rows: FilledRow[];
+  available: string[];
+  pending: string[];
+};
+
+/**
+ * Fetch + align all series and precompute the per-day % (independent of the
+ * window). Pulled out of the component so SWR can cache the (expensive) result
+ * across mounts and revalidate it in the background.
+ */
+async function buildComparison(): Promise<ComparisonData> {
+  const variables: Variable[] = await api.listVariables();
+  const byId = new Map(variables.map((v) => [v.id, v]));
+
+  const benchIds = BENCHMARKS.map((b) => b.key).filter((id) => {
+    const v = byId.get(id);
+    return v && v.last_observed_on;
+  });
+  const pendingIds = BENCHMARKS.map((b) => b.key).filter(
+    (id) => !benchIds.includes(id),
+  );
+
+  const from = daysAgoISO(370);
+
+  // Serie REALIZADA de P3 (actual_value) + benchmarks, en paralelo.
+  const [p3, benchSeries] = await Promise.all([
+    api
+      .getPortfolioPredictions(PORTFOLIO_PROFILE, 400)
+      .catch(() => null as PortfolioPredictions | null),
+    Promise.all(
+      benchIds.map(async (id) => ({
+        id,
+        obs: await api
+          .getObservations(id, { from, limit: 400 })
+          .catch(() => [] as Observation[]),
+      })),
+    ),
+  ]);
+
+  // date → precio del portafolio (realizado).
+  let portfolioByDate = new Map<string, number>();
+  if (p3) {
+    for (const pt of p3.points) {
+      if (pt.actual_value != null)
+        portfolioByDate.set(pt.predicted_for, pt.actual_value);
+    }
+  }
+  // Fallback: índice equiponderado de las 9 acciones si P3 no tiene actuals.
+  if (portfolioByDate.size < 2) {
+    const stocks = variables.filter((v) => v.kind === "stock");
+    const stockSeries = await Promise.all(
+      stocks.map(async (s) => ({
+        id: s.id,
+        obs: await api
+          .getObservations(s.id, { from, limit: 400 })
+          .catch(() => [] as Observation[]),
+      })),
+    );
+    portfolioByDate = buildEqualWeightIndex(stockSeries);
+  }
+
+  const benchMaps = new Map<string, Map<string, number>>();
+  for (const { id, obs } of benchSeries) {
+    benchMaps.set(id, new Map(obs.map((o) => [o.observed_on, o.value])));
+  }
+
+  // Eje maestro = unión de fechas, ordenado.
+  const dateSet = new Set<string>(portfolioByDate.keys());
+  for (const m of benchMaps.values())
+    for (const d of m.keys()) dateSet.add(d);
+  const dates = Array.from(dateSet).sort();
+
+  // Forward-fill + % del día por serie.
+  const keys = [PORTFOLIO_KEY, ...benchIds];
+  const carried = new Map<string, number | null>();
+  const prev = new Map<string, number | null>();
+  for (const k of keys) {
+    carried.set(k, null);
+    prev.set(k, null);
+  }
+
+  const built: FilledRow[] = dates.map((date) => {
+    const row: FilledRow = { date };
+    for (const k of keys) {
+      const raw =
+        k === PORTFOLIO_KEY
+          ? portfolioByDate.get(date)
+          : benchMaps.get(k)!.get(date);
+      if (raw != null) carried.set(k, raw);
+      const val = carried.get(k) ?? null;
+      row[k] = val;
+      // % del día contra el día anterior rellenado (cerrado ⇒ 0%).
+      const p = prev.get(k);
+      row[`${k}__day`] =
+        val != null && p != null && p !== 0 ? (val / p - 1) * 100 : null;
+      prev.set(k, val);
+    }
+    return row;
+  });
+
+  return { rows: built, available: benchIds, pending: pendingIds };
+}
+
 export function PortfolioComparison() {
   const [range, setRange] = useState<RangeKey>(30);
-  const [rows, setRows] = useState<FilledRow[] | null>(null);
-  const [available, setAvailable] = useState<string[]>([]);
-  const [pending, setPending] = useState<string[]>([]);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const variables: Variable[] = await api.listVariables();
-        const byId = new Map(variables.map((v) => [v.id, v]));
-
-        const benchIds = BENCHMARKS.map((b) => b.key).filter((id) => {
-          const v = byId.get(id);
-          return v && v.last_observed_on;
-        });
-        const pendingIds = BENCHMARKS.map((b) => b.key).filter(
-          (id) => !benchIds.includes(id),
-        );
-
-        const from = daysAgoISO(370);
-
-        // Serie REALIZADA de P3 (actual_value) + benchmarks, en paralelo.
-        const [p3, benchSeries] = await Promise.all([
-          api
-            .getPortfolioPredictions(PORTFOLIO_PROFILE, 400)
-            .catch(() => null as PortfolioPredictions | null),
-          Promise.all(
-            benchIds.map(async (id) => ({
-              id,
-              obs: await api
-                .getObservations(id, { from, limit: 400 })
-                .catch(() => [] as Observation[]),
-            })),
-          ),
-        ]);
-
-        // date → precio del portafolio (realizado).
-        let portfolioByDate = new Map<string, number>();
-        if (p3) {
-          for (const pt of p3.points) {
-            if (pt.actual_value != null)
-              portfolioByDate.set(pt.predicted_for, pt.actual_value);
-          }
-        }
-        // Fallback: índice equiponderado de las 9 acciones si P3 no tiene actuals.
-        if (portfolioByDate.size < 2) {
-          const stocks = variables.filter((v) => v.kind === "stock");
-          const stockSeries = await Promise.all(
-            stocks.map(async (s) => ({
-              id: s.id,
-              obs: await api
-                .getObservations(s.id, { from, limit: 400 })
-                .catch(() => [] as Observation[]),
-            })),
-          );
-          portfolioByDate = buildEqualWeightIndex(stockSeries);
-        }
-
-        const benchMaps = new Map<string, Map<string, number>>();
-        for (const { id, obs } of benchSeries) {
-          benchMaps.set(id, new Map(obs.map((o) => [o.observed_on, o.value])));
-        }
-
-        // Eje maestro = unión de fechas, ordenado.
-        const dateSet = new Set<string>(portfolioByDate.keys());
-        for (const m of benchMaps.values())
-          for (const d of m.keys()) dateSet.add(d);
-        const dates = Array.from(dateSet).sort();
-
-        // Forward-fill + % del día por serie.
-        const keys = [PORTFOLIO_KEY, ...benchIds];
-        const carried = new Map<string, number | null>();
-        const prev = new Map<string, number | null>();
-        for (const k of keys) {
-          carried.set(k, null);
-          prev.set(k, null);
-        }
-
-        const built: FilledRow[] = dates.map((date) => {
-          const row: FilledRow = { date };
-          for (const k of keys) {
-            const raw =
-              k === PORTFOLIO_KEY
-                ? portfolioByDate.get(date)
-                : benchMaps.get(k)!.get(date);
-            const before = carried.get(k) ?? null;
-            if (raw != null) carried.set(k, raw);
-            const val = carried.get(k) ?? null;
-            row[k] = val;
-            // % del día contra el día anterior rellenado (cerrado ⇒ 0%).
-            const p = prev.get(k);
-            row[`${k}__day`] =
-              val != null && p != null && p !== 0 ? (val / p - 1) * 100 : null;
-            prev.set(k, val);
-          }
-          return row;
-        });
-
-        if (!active) return;
-        setRows(built);
-        setAvailable(benchIds);
-        setPending(pendingIds);
-      } catch {
-        if (active) setRows([]);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
+  // SWR-cached: instant on revisits, background refresh, skeleton only on cold.
+  const { data, isCold } = useCached("portfolio-comparison", buildComparison);
+  const rows = data?.rows ?? null;
+  const available = data?.available ?? [];
+  const pending = data?.pending ?? [];
 
   const meta = useMemo<SeriesMeta[]>(
     () => [PORTFOLIO_META, ...BENCHMARKS.filter((b) => available.includes(b.key))],
@@ -255,8 +255,11 @@ export function PortfolioComparison() {
         }
       />
 
-      {rows === null ? (
-        <Skeleton className="h-[300px]" />
+      {isCold || rows === null ? (
+        <div
+          className="h-[300px] w-full animate-pulse rounded-[10px] bg-[var(--color-bg3)]"
+          aria-hidden
+        />
       ) : chartData.length < 2 ? (
         <EmptyState
           title="Sin datos suficientes todavía"

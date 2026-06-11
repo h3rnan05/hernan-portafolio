@@ -14,7 +14,7 @@ import {
 } from "@/components/portfolio-tabs";
 import { api, ApiError, type Portfolio, type PortfolioSnapshot } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 // Canonical display order for the five profiles.
 const PROFILE_ORDER = [

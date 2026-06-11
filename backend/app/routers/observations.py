@@ -2,10 +2,11 @@
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.cache import ttl_cache
 from app.db import get_session
 from app.models import Observation, Variable
 from app.schemas import ObservationOut
@@ -14,8 +15,10 @@ router = APIRouter(prefix="/observations", tags=["observations"])
 
 
 @router.get("/{variable_id}", response_model=list[ObservationOut])
+@ttl_cache(seconds=3600)
 async def get_observations(
     variable_id: str,
+    response: Response,
     from_date: date | None = Query(None, alias="from"),
     to_date: date | None = Query(None, alias="to"),
     limit: int = Query(1000, ge=1, le=10000),

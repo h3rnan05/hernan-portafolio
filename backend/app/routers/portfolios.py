@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.cache import ttl_cache
 from app.db import get_session
 from app.models import Portfolio, PortfolioSnapshot, Prediction
 from app.schemas import PortfolioOut, PortfolioSnapshotOut
@@ -64,7 +65,9 @@ async def _portfolio_mape_30d(
 
 
 @router.get("", response_model=list[PortfolioOut])
+@ttl_cache(seconds=3600)
 async def list_portfolios(
+    response: Response,
     session: AsyncSession = Depends(get_session),
 ) -> list[PortfolioOut]:
     """List the 5 risk profiles, with 30-day rolled-up MAPE when available."""
@@ -89,8 +92,10 @@ async def list_portfolios(
 
 
 @router.get("/{portfolio_id}", response_model=PortfolioOut)
+@ttl_cache(seconds=3600)
 async def get_portfolio(
     portfolio_id: str,
+    response: Response,
     session: AsyncSession = Depends(get_session),
 ) -> PortfolioOut:
     p = await session.get(Portfolio, portfolio_id)
@@ -112,8 +117,10 @@ async def get_portfolio(
     "/{portfolio_id}/history",
     response_model=list[PortfolioSnapshotOut],
 )
+@ttl_cache(seconds=3600)
 async def get_portfolio_history(
     portfolio_id: str,
+    response: Response,
     days: int = 90,
     session: AsyncSession = Depends(get_session),
 ) -> list[PortfolioSnapshotOut]:

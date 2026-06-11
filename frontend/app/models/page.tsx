@@ -28,8 +28,7 @@ import { RefitButton } from "@/components/refit-button";
 import { TabNav } from "@/components/tab-nav";
 import { api, ApiError, type ModelSummary, type Portfolio } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+export const revalidate = 3600;
 
 const WEIGHT_COLORS = [
   "bg-[var(--color-green)]",

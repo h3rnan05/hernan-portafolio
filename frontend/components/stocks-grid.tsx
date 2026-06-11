@@ -9,7 +9,6 @@
  */
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 import { Sparkline } from "@/components/charts";
 import {
@@ -17,8 +16,9 @@ import {
   EmptyState,
   fmtNumber,
   fmtPct,
-  Skeleton,
 } from "@/components/primitives";
+import { StocksGridSkeleton } from "@/components/skeleton";
+import { useCached } from "@/hooks/use-cached";
 import { api, type Observation, type Variable } from "@/lib/api";
 
 type StockSeries = {
@@ -34,54 +34,38 @@ function daysAgoISO(d: number): string {
   return dt.toISOString().slice(0, 10);
 }
 
-export function StocksGrid() {
-  const [data, setData] = useState<StockSeries[] | null>(null);
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
+async function fetchStocksGrid(): Promise<StockSeries[]> {
+  const stocks: Variable[] = await api.listVariables("stock");
+  return Promise.all(
+    stocks.map(async (s) => {
+      let series: Observation[] = [];
       try {
-        const stocks: Variable[] = await api.listVariables("stock");
-        const withSeries = await Promise.all(
-          stocks.map(async (s) => {
-            let series: Observation[] = [];
-            try {
-              series = await api.getObservations(s.id, {
-                from: daysAgoISO(60),
-                limit: 60,
-              });
-            } catch {
-              series = [];
-            }
-            return {
-              ticker: s.id,
-              display: s.display_name,
-              last: s.last_value,
-              series,
-            };
-          }),
-        );
-        if (active) setData(withSeries);
+        series = await api.getObservations(s.id, {
+          from: daysAgoISO(60),
+          limit: 60,
+        });
       } catch {
-        if (active) setData([]);
+        series = [];
       }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
+      return {
+        ticker: s.id,
+        display: s.display_name,
+        last: s.last_value,
+        series,
+      };
+    }),
+  );
+}
 
-  if (data === null) {
-    return (
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {Array.from({ length: 9 }).map((_, i) => (
-          <Skeleton key={i} className="h-[104px]" />
-        ))}
-      </div>
-    );
+export function StocksGrid() {
+  // SWR cache → instant on revisits, background refresh, skeleton only on cold.
+  const { data, isCold } = useCached("stocks-grid", fetchStocksGrid);
+
+  if (isCold) {
+    return <StocksGridSkeleton />;
   }
 
-  if (data.length === 0) {
+  if (!data || data.length === 0) {
     return (
       <EmptyState
         title="No stocks loaded"

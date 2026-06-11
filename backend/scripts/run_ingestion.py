@@ -16,6 +16,7 @@ import asyncio
 import structlog
 import typer
 
+from app.cache import bust_cache
 from app.db import AsyncSessionLocal
 from app.ingestion import (
     BalticDryIndexProvider,
@@ -103,6 +104,10 @@ def run(
             print(f"  {prov:12s} {n:6d}")
 
     asyncio.run(_run())
+
+    # New observations landed → invalidate cached read responses.
+    bust_cache()
+    print("Cache busted.")
 
 
 if __name__ == "__main__":

@@ -423,19 +423,37 @@ class ApiError extends Error {
   }
 }
 
-type RequestOpts = RequestInit & { adminToken?: string };
+type RequestOpts = RequestInit & {
+  adminToken?: string;
+  /**
+   * When set on a GET, the response is cached in Next's Data Cache and
+   * revalidated after this many seconds (shared across requests/users → the
+   * backend is hit at most once per window). Omit for live, uncached fetches
+   * (the default `no-store`). Ignored on the client, where the browser fetches
+   * normally and lib/api's SWR layer handles staleness.
+   */
+  revalidate?: number;
+};
 
 async function request<T>(path: string, init?: RequestOpts): Promise<T> {
   const url = `${API_URL}${path}`;
+  const { adminToken, revalidate, ...fetchInit } = init ?? {};
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(init?.headers as Record<string, string> | undefined),
   };
-  if (init?.adminToken) {
-    headers["Authorization"] = `Bearer ${init.adminToken}`;
+  if (adminToken) {
+    headers["Authorization"] = `Bearer ${adminToken}`;
   }
 
-  const res = await fetch(url, { ...init, headers, cache: "no-store" });
+  const method = (fetchInit.method ?? "GET").toUpperCase();
+  // GET + revalidate → ISR/Data-Cache; everything else stays live (no-store).
+  const cacheInit: RequestInit & { next?: { revalidate: number } } =
+    revalidate !== undefined && method === "GET"
+      ? { next: { revalidate } }
+      : { cache: "no-store" };
+
+  const res = await fetch(url, { ...fetchInit, headers, ...cacheInit });
   if (!res.ok) {
     const body = await res.text().catch(() => "");
     throw new ApiError(
@@ -455,10 +473,14 @@ export const api = {
   health: () => request<Health>("/health"),
 
   listVariables: (kind?: Variable["kind"]) =>
-    request<Variable[]>(`/variables${kind ? `?kind=${kind}` : ""}`),
+    request<Variable[]>(`/variables${kind ? `?kind=${kind}` : ""}`, {
+      revalidate: 3600,
+    }),
 
   getVariable: (id: string) =>
-    request<Variable>(`/variables/${encodeURIComponent(id)}`),
+    request<Variable>(`/variables/${encodeURIComponent(id)}`, {
+      revalidate: 3600,
+    }),
 
   createVariable: (body: VariableCreate, adminToken: string) =>
     request<Variable>("/variables", {
@@ -494,14 +516,19 @@ export const api = {
     const suffix = qs.toString() ? `?${qs}` : "";
     return request<Observation[]>(
       `/observations/${encodeURIComponent(id)}${suffix}`,
+      { revalidate: 3600 },
     );
   },
 
   listModels: (onlyActive = true) =>
-    request<ModelSummary[]>(`/models?only_active=${onlyActive}`),
+    request<ModelSummary[]>(`/models?only_active=${onlyActive}`, {
+      revalidate: 3600,
+    }),
 
   getModel: (ticker: string) =>
-    request<ModelDetail>(`/models/${encodeURIComponent(ticker)}`),
+    request<ModelDetail>(`/models/${encodeURIComponent(ticker)}`, {
+      revalidate: 3600,
+    }),
 
   getModelAudit: (ticker: string) =>
     request<ModelAudit>(`/models/${encodeURIComponent(ticker)}/audit`),
@@ -546,11 +573,13 @@ export const api = {
   getPredictions: (ticker: string, days = 30) =>
     request<TickerPredictions>(
       `/predictions/${encodeURIComponent(ticker)}?days=${days}`,
+      { revalidate: 3600 },
     ),
 
   getPortfolioPredictions: (portfolioId: string, days = 30) =>
     request<PortfolioPredictions>(
       `/predictions/portfolio/${encodeURIComponent(portfolioId)}?days=${days}`,
+      { revalidate: 3600 },
     ),
 
   simulate: (inputs: Record<string, number>, horizonDays = 7) =>
@@ -559,14 +588,18 @@ export const api = {
       body: JSON.stringify({ inputs, horizon_days: horizonDays }),
     }),
 
-  listPortfolios: () => request<Portfolio[]>("/portfolios"),
+  listPortfolios: () =>
+    request<Portfolio[]>("/portfolios", { revalidate: 3600 }),
 
   getPortfolio: (id: string) =>
-    request<Portfolio>(`/portfolios/${encodeURIComponent(id)}`),
+    request<Portfolio>(`/portfolios/${encodeURIComponent(id)}`, {
+      revalidate: 3600,
+    }),
 
   getPortfolioHistory: (id: string, days = 90) =>
     request<PortfolioSnapshot[]>(
       `/portfolios/${encodeURIComponent(id)}/history?days=${days}`,
+      { revalidate: 3600 },
     ),
 
   getHoldingsProjection: () =>
