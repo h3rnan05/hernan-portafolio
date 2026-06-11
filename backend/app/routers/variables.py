@@ -1,10 +1,11 @@
 """Variables endpoint — list all tracked variables."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth import require_admin
+from app.cache import ttl_cache
 from app.db import get_session
 from app.models import Observation, Variable
 from app.schemas import VariableCreate, VariableOut, VariablePatch
@@ -30,7 +31,9 @@ def _build_out(var: Variable, last_date=None, last_value=None) -> VariableOut:
 
 
 @router.get("", response_model=list[VariableOut])
+@ttl_cache(seconds=3600)
 async def list_variables(
+    response: Response,
     kind: str | None = None,
     session: AsyncSession = Depends(get_session),
 ) -> list[VariableOut]:
@@ -63,8 +66,10 @@ async def list_variables(
 
 
 @router.get("/{variable_id}", response_model=VariableOut)
+@ttl_cache(seconds=3600)
 async def get_variable(
     variable_id: str,
+    response: Response,
     session: AsyncSession = Depends(get_session),
 ) -> VariableOut:
     """Single variable detail."""

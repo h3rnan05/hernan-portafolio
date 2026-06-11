@@ -8,43 +8,30 @@
  */
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
 import {
   Badge,
   Card,
   fmtNumber,
-  Skeleton,
 } from "@/components/primitives";
+import { PredictorsSkeleton } from "@/components/skeleton";
+import { useCached } from "@/hooks/use-cached";
 import { api, type Variable } from "@/lib/api";
 import { regroupPredictors, type PredictorGroup } from "@/lib/predictor-categories";
 
+async function fetchPredictorGroups(): Promise<PredictorGroup[]> {
+  const predictors: Variable[] = await api.listVariables("predictor");
+  return regroupPredictors(predictors);
+}
+
 export function PredictorsPanel() {
-  const [groups, setGroups] = useState<PredictorGroup[] | null>(null);
+  const { data: groups, isCold } = useCached(
+    "predictors-panel",
+    fetchPredictorGroups,
+  );
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        const predictors: Variable[] = await api.listVariables("predictor");
-        if (active) setGroups(regroupPredictors(predictors));
-      } catch {
-        if (active) setGroups([]);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  if (groups === null) {
-    return (
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-40" />
-        ))}
-      </div>
-    );
+  if (isCold || !groups) {
+    return <PredictorsSkeleton />;
   }
 
   return (

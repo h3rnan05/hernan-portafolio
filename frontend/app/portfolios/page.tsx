@@ -7,6 +7,7 @@
  * client tab component.
  */
 
+import { GrowthChart } from "@/components/growth-chart";
 import { Card, EmptyState } from "@/components/primitives";
 import {
   PortfolioTabs,
@@ -14,7 +15,7 @@ import {
 } from "@/components/portfolio-tabs";
 import { api, ApiError, type Portfolio, type PortfolioSnapshot } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 // Canonical display order for the five profiles.
 const PROFILE_ORDER = [
@@ -86,6 +87,11 @@ export default async function PortfoliosPage({
           and predicted Sharpe. P1 weights inversely to volatility; P5 leans
           into upside. Select a profile to see its full detail.
         </p>
+      </div>
+
+      {/* Centerpiece: growth of $10,000 per profile vs the market */}
+      <div className="mb-8">
+        <GrowthChart />
       </div>
 
       {error ? (

@@ -12,6 +12,7 @@ import asyncio
 import structlog
 import typer
 
+from app.cache import bust_cache
 from app.config import K_PER_STOCK, get_settings
 from app.db import AsyncSessionLocal
 from app.logging import setup_logging
@@ -63,6 +64,10 @@ def main(
             print(f"  {r.ticker:<8} {r.status:<8} {r2:>7} {n:>5}  {preds}")
 
     asyncio.run(_run())
+
+    # Models changed → invalidate cached read responses.
+    bust_cache()
+    print("Cache busted.")
 
 
 if __name__ == "__main__":

@@ -269,8 +269,15 @@ export default function HoldingsPage() {
 
       {/* Holdings table */}
       <Card className="mb-6 overflow-hidden p-0">
-        {loading ? (
-          <div className="p-6 text-[12.5px] text-[var(--color-text3)]">Loading…</div>
+        {loading && !data ? (
+          <div className="space-y-2 p-4" aria-hidden>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-8 w-full animate-pulse rounded-[8px] bg-[var(--color-bg3)]"
+              />
+            ))}
+          </div>
         ) : !data || data.holdings.length === 0 ? (
           <div className="p-8">
             <EmptyState

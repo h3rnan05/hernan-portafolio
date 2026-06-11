@@ -28,8 +28,10 @@ import {
 } from "@/components/primitives";
 import { api, ApiError } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
+// Heavy daily-data fetches are cached in Next's Data Cache (revalidate=3600 in
+// lib/api). The page revalidates hourly; live bits (health, holdings) use
+// no-store and keep the route dynamic, so they stay fresh.
+export const revalidate = 3600;
 
 type Safe<T> = { ok: true; data: T } | { ok: false; error: string };
 

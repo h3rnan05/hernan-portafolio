@@ -15,7 +15,7 @@ import {
 } from "@/components/primitives";
 import { api, type Observation, type Variable } from "@/lib/api";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
 
 export default async function VariablesPage() {
   const variables = await api.listVariables().catch(() => [] as Variable[]);

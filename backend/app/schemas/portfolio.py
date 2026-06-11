@@ -18,6 +18,28 @@ class PortfolioOut(BaseModel):
     mape_30d: float | None = None  # filled when prediction history exists
 
 
+class GrowthPoint(BaseModel):
+    """One day of the growth-of-$10k series."""
+
+    date: str  # ISO date
+    value: float
+
+
+class GrowthSeries(BaseModel):
+    """Growth-of-$10k line for one risk profile (or the benchmark)."""
+
+    profile: str  # "P1".."P5" or "BENCH"
+    label: str
+    points: list[GrowthPoint]
+
+
+class GrowthResponse(BaseModel):
+    """Growth-of-$10,000 comparison across the 5 profiles + benchmark."""
+
+    window: int
+    series: list[GrowthSeries]
+
+
 class PortfolioSnapshotOut(BaseModel):
     """One historical snapshot of a portfolio's weights."""
 

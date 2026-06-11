@@ -12,6 +12,7 @@ import asyncio
 import structlog
 import typer
 
+from app.cache import bust_cache
 from app.db import AsyncSessionLocal
 from app.logging import setup_logging
 from app.portfolio.runner import (
@@ -54,6 +55,10 @@ def main(
         print(f"Portfolios rebuilt: {len(profiles)}")
 
     asyncio.run(_run())
+
+    # Predictions + portfolios changed → invalidate cached read responses.
+    bust_cache()
+    print("Cache busted.")
 
 
 if __name__ == "__main__":

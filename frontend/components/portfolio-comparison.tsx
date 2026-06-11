@@ -16,12 +16,17 @@
  *
  * Benchmarks that aren't ingested yet simply don't render a line; the panel
  * notes which ones are pending so the chart never shows empty axes.
+ *
+ * Data is fetched through the SWR cache (hooks/use-cached): revisits render the
+ * last response instantly and refresh in the background; the skeleton shows
+ * only on a true cold load.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { TimeSeriesChart } from "@/components/charts";
 import { Card, EmptyState, SectionHeader, Skeleton } from "@/components/primitives";
+import { useCached } from "@/hooks/use-cached";
 import { api, type Observation } from "@/lib/api";
 
 type RangeKey = 7 | 30 | 360;
@@ -53,124 +58,124 @@ function daysAgoISO(d: number): string {
 
 type RawRow = Record<string, number | string | null>;
 
+type ComparisonData = {
+  rows: RawRow[];
+  available: string[];
+  pending: string[];
+};
+
+/**
+ * Fetch + align all series (independent of the selected window). Extracted from
+ * the component so SWR can cache the result across mounts and revalidate it in
+ * the background.
+ */
+async function buildComparison(): Promise<ComparisonData> {
+  // The portfolio line follows the P3 Balanced profile. Fetch its weights
+  // and the variable registry together.
+  const [variables, profile] = await Promise.all([
+    api.listVariables(),
+    api.getPortfolio(PORTFOLIO_PROFILE_ID).catch(() => null),
+  ]);
+  const byId = new Map(variables.map((v) => [v.id, v]));
+  const stockIds = variables
+    .filter((v) => v.kind === "stock")
+    .map((v) => v.id);
+
+  // P3 weights when available; otherwise fall back to an equal weight over
+  // every tracked stock so the line still renders if the profile API is
+  // down. Only positive-weight tickers contribute.
+  const profileWeights = profile?.weights ?? {};
+  const weights: Record<string, number> = Object.values(
+    profileWeights,
+  ).some((w) => w > 0)
+    ? profileWeights
+    : Object.fromEntries(stockIds.map((id) => [id, 1]));
+  const portfolioTickers = Object.keys(weights).filter(
+    (t) => (weights[t] ?? 0) > 0,
+  );
+
+  // Which benchmarks exist + have at least one observation.
+  const benchIds = BENCHMARKS.map((b) => b.id).filter((id) => {
+    const v = byId.get(id);
+    return v && v.last_observed_on;
+  });
+  const pendingIds = BENCHMARKS.map((b) => b.id).filter(
+    (id) => !benchIds.includes(id),
+  );
+
+  const from = daysAgoISO(370);
+
+  // Fetch benchmark series + the portfolio's constituent series in parallel.
+  const [benchSeries, stockSeries] = await Promise.all([
+    Promise.all(
+      benchIds.map(async (id) => ({
+        id,
+        obs: await api
+          .getObservations(id, { from, limit: 400 })
+          .catch(() => [] as Observation[]),
+      })),
+    ),
+    Promise.all(
+      portfolioTickers.map(async (id) => ({
+        id,
+        obs: await api
+          .getObservations(id, { from, limit: 400 })
+          .catch(() => [] as Observation[]),
+      })),
+    ),
+  ]);
+
+  // Build the base-100, weight-aware portfolio index (P3 Balanced).
+  const portfolioByDate = buildWeightedIndex(weights, stockSeries);
+
+  // Per-benchmark date→value maps.
+  const benchMaps = new Map<string, Map<string, number>>();
+  for (const { id, obs } of benchSeries) {
+    benchMaps.set(id, new Map(obs.map((o) => [o.observed_on, o.value])));
+  }
+
+  // Master date axis = union of portfolio + benchmark dates, sorted.
+  const dateSet = new Set<string>(portfolioByDate.keys());
+  for (const m of benchMaps.values())
+    for (const d of m.keys()) dateSet.add(d);
+  const dates = Array.from(dateSet).sort();
+
+  // Forward-fill each series across the master axis.
+  const carried = new Map<string, number | null>();
+  carried.set(PORTFOLIO_KEY, null);
+  for (const id of benchIds) carried.set(id, null);
+
+  const rows: RawRow[] = dates.map((date) => {
+    const row: RawRow = { date };
+    const pv = portfolioByDate.get(date);
+    if (pv != null) carried.set(PORTFOLIO_KEY, pv);
+    row[PORTFOLIO_KEY] = carried.get(PORTFOLIO_KEY) ?? null;
+    for (const id of benchIds) {
+      const bv = benchMaps.get(id)!.get(date);
+      if (bv != null) carried.set(id, bv);
+      row[id] = carried.get(id) ?? null;
+    }
+    return row;
+  });
+
+  return { rows, available: benchIds, pending: pendingIds };
+}
+
 export function PortfolioComparison() {
   const [range, setRange] = useState<RangeKey>(30);
-  const [rows, setRows] = useState<RawRow[] | null>(null);
-  // Which benchmark ids actually returned data.
-  const [available, setAvailable] = useState<string[]>([]);
-  const [pending, setPending] = useState<string[]>([]);
   // Series the user has toggled off via the legend.
   const [hidden, setHidden] = useState<string[]>([]);
+
+  // SWR cache → instant on revisits, background refresh, skeleton only on cold.
+  const { data, isCold } = useCached("portfolio-comparison", buildComparison);
+  const rows = data?.rows ?? null;
+  const available = useMemo(() => data?.available ?? [], [data]);
+  const pending = data?.pending ?? [];
 
   const toggleSeries = (key: string) =>
     setHidden((h) =>
       h.includes(key) ? h.filter((k) => k !== key) : [...h, key],
     );
-
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      try {
-        // The portfolio line follows the P3 Balanced profile. Fetch its weights
-        // and the variable registry together.
-        const [variables, profile] = await Promise.all([
-          api.listVariables(),
-          api.getPortfolio(PORTFOLIO_PROFILE_ID).catch(() => null),
-        ]);
-        const byId = new Map(variables.map((v) => [v.id, v]));
-        const stockIds = variables
-          .filter((v) => v.kind === "stock")
-          .map((v) => v.id);
-
-        // P3 weights when available; otherwise fall back to an equal weight over
-        // every tracked stock so the line still renders if the profile API is
-        // down. Only positive-weight tickers contribute.
-        const profileWeights = profile?.weights ?? {};
-        const weights: Record<string, number> = Object.values(
-          profileWeights,
-        ).some((w) => w > 0)
-          ? profileWeights
-          : Object.fromEntries(stockIds.map((id) => [id, 1]));
-        const portfolioTickers = Object.keys(weights).filter(
-          (t) => (weights[t] ?? 0) > 0,
-        );
-
-        // Which benchmarks exist + have at least one observation.
-        const benchIds = BENCHMARKS.map((b) => b.id).filter((id) => {
-          const v = byId.get(id);
-          return v && v.last_observed_on;
-        });
-        const pendingIds = BENCHMARKS.map((b) => b.id).filter(
-          (id) => !benchIds.includes(id),
-        );
-
-        const from = daysAgoISO(370);
-
-        // Fetch benchmark series + the portfolio's constituent series in parallel.
-        const [benchSeries, stockSeries] = await Promise.all([
-          Promise.all(
-            benchIds.map(async (id) => ({
-              id,
-              obs: await api
-                .getObservations(id, { from, limit: 400 })
-                .catch(() => [] as Observation[]),
-            })),
-          ),
-          Promise.all(
-            portfolioTickers.map(async (id) => ({
-              id,
-              obs: await api
-                .getObservations(id, { from, limit: 400 })
-                .catch(() => [] as Observation[]),
-            })),
-          ),
-        ]);
-
-        // Build the base-100, weight-aware portfolio index (P3 Balanced).
-        const portfolioByDate = buildWeightedIndex(weights, stockSeries);
-
-        // Per-benchmark date→value maps.
-        const benchMaps = new Map<string, Map<string, number>>();
-        for (const { id, obs } of benchSeries) {
-          benchMaps.set(id, new Map(obs.map((o) => [o.observed_on, o.value])));
-        }
-
-        // Master date axis = union of portfolio + benchmark dates, sorted.
-        const dateSet = new Set<string>(portfolioByDate.keys());
-        for (const m of benchMaps.values())
-          for (const d of m.keys()) dateSet.add(d);
-        const dates = Array.from(dateSet).sort();
-
-        // Forward-fill each series across the master axis.
-        const carried = new Map<string, number | null>();
-        carried.set(PORTFOLIO_KEY, null);
-        for (const id of benchIds) carried.set(id, null);
-
-        const built: RawRow[] = dates.map((date) => {
-          const row: RawRow = { date };
-          const pv = portfolioByDate.get(date);
-          if (pv != null) carried.set(PORTFOLIO_KEY, pv);
-          row[PORTFOLIO_KEY] = carried.get(PORTFOLIO_KEY) ?? null;
-          for (const id of benchIds) {
-            const bv = benchMaps.get(id)!.get(date);
-            if (bv != null) carried.set(id, bv);
-            row[id] = carried.get(id) ?? null;
-          }
-          return row;
-        });
-
-        if (!active) return;
-        setRows(built);
-        setAvailable(benchIds);
-        setPending(pendingIds);
-      } catch {
-        if (active) setRows([]);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
 
   // Slice to the active window and express every series as its CUMULATIVE %
   // return from the window start (0%-based) — easier to compare than absolute
@@ -257,7 +262,7 @@ export function PortfolioComparison() {
         }
       />
 
-      {rows === null ? (
+      {isCold || rows === null ? (
         <Skeleton className="h-[280px]" />
       ) : chartData.length < 2 ? (
         <EmptyState

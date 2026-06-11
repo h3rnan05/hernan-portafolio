@@ -5,10 +5,11 @@ from __future__ import annotations
 import math
 from datetime import date, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.cache import ttl_cache
 from app.db import get_session
 from app.modeling.data import latest_price
 from app.modeling.prediction import predict_next_return
@@ -38,8 +39,10 @@ def _mape(points: list[PredictionPoint]) -> float | None:
 
 
 @router.get("/portfolio/{portfolio_id}", response_model=PortfolioPredictions)
+@ttl_cache(seconds=3600)
 async def portfolio_predictions(
     portfolio_id: str,
+    response: Response,
     days: int = Query(30, ge=1, le=365),
     session: AsyncSession = Depends(get_session),
 ) -> PortfolioPredictions:
@@ -104,8 +107,10 @@ async def portfolio_predictions(
 
 
 @router.get("/{ticker}", response_model=TickerPredictions)
+@ttl_cache(seconds=3600)
 async def get_predictions(
     ticker: str,
+    response: Response,
     days: int = Query(30, ge=1, le=365),
     session: AsyncSession = Depends(get_session),
 ) -> TickerPredictions:
