@@ -55,6 +55,7 @@ function CustomTooltip({
   unit = "",
   decimals = 2,
   percent = false,
+  locale,
 }: {
   active?: boolean;
   payload?: Array<{
@@ -71,12 +72,15 @@ function CustomTooltip({
    *  is coloured green/red and rendered with a sign. When the data row carries a
    *  `<dataKey>__d` field, that day's return is shown alongside it. */
   percent?: boolean;
+  /** Active UI locale ("es" | "en") for date formatting + the day-return label. */
+  locale?: string;
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const dateLabel =
     typeof label === "string" || typeof label === "number"
-      ? fmtDate(String(label))
+      ? fmtDate(String(label), locale)
       : String(label);
+  const dayLabel = locale === "en" ? "day" : "día";
   const signed = (x: number, d = 1) => `${x >= 0 ? "+" : ""}${x.toFixed(d)}%`;
   return (
     <div className="rounded-[10px] border border-[var(--color-border2)] bg-[var(--color-bg)] p-3 text-[12px] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
@@ -114,7 +118,7 @@ function CustomTooltip({
               )}
               {typeof day === "number" && (
                 <span className="w-[70px] text-right font-mono tabular text-[10px] text-[var(--color-text3)]">
-                  día {signed(day, 1)}
+                  {dayLabel} {signed(day, 1)}
                 </span>
               )}
             </div>
@@ -137,6 +141,7 @@ export function TimeSeriesChart({
   hidden,
   onToggleSeries,
   percent = false,
+  locale,
 }: {
   data: Array<Record<string, number | string | null>>;
   series: SeriesKey[];
@@ -153,6 +158,8 @@ export function TimeSeriesChart({
   /** Treat values as signed % (cumulative return): the Y axis renders +/-%, a
    *  dashed 0% baseline is drawn, and the tooltip shows coloured %s + day return. */
   percent?: boolean;
+  /** Active UI locale ("es" | "en") so the date axis + tooltip format per-locale. */
+  locale?: string;
 }) {
   const isHidden = (key: string) => hidden?.includes(key) ?? false;
   const fmtPctTick = (v: number) =>
@@ -167,7 +174,7 @@ export function TimeSeriesChart({
           <CartesianGrid strokeDasharray="3 3" stroke={COLORS.border} />
           <XAxis
             dataKey="date"
-            tickFormatter={(v) => fmtDate(String(v)).slice(0, 6)}
+            tickFormatter={(v) => fmtDate(String(v), locale).slice(0, 6)}
             tickLine={false}
             axisLine={false}
             minTickGap={32}
@@ -197,6 +204,7 @@ export function TimeSeriesChart({
                 unit={yUnit}
                 decimals={yDecimals}
                 percent={percent}
+                locale={locale}
               />
             }
             cursor={{ stroke: COLORS.border, strokeWidth: 1 }}

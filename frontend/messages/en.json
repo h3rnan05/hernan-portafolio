@@ -103,19 +103,24 @@
   },
   "profiles": {
     "P1": {
-      "name": "Conservative"
+      "name": "Conservative",
+      "description": "Low-volatility bias adjusted by model confidence (R²)."
     },
     "P2": {
-      "name": "Mod Conservative"
+      "name": "Mod Conservative",
+      "description": "50/50 blend of P1 and P3."
     },
     "P3": {
-      "name": "Balanced"
+      "name": "Balanced",
+      "description": "Equal weight across all stocks."
     },
     "P4": {
-      "name": "Mod Aggressive"
+      "name": "Mod Aggressive",
+      "description": "50/50 blend of P3 and P5."
     },
     "P5": {
-      "name": "Aggressive"
+      "name": "Aggressive",
+      "description": "Return × Sharpe weighting; leans into higher-upside names."
     }
   },
   "growth": {

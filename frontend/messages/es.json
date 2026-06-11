@@ -103,19 +103,24 @@
   },
   "profiles": {
     "P1": {
-      "name": "Conservador"
+      "name": "Conservador",
+      "description": "Sesgo de baja volatilidad ajustado por la confianza del modelo (R²)."
     },
     "P2": {
-      "name": "Moderado Conservador"
+      "name": "Moderado Conservador",
+      "description": "Mezcla 50/50 entre P1 y P3."
     },
     "P3": {
-      "name": "Balanceado"
+      "name": "Balanceado",
+      "description": "Peso equitativo entre todas las acciones."
     },
     "P4": {
-      "name": "Moderado Agresivo"
+      "name": "Moderado Agresivo",
+      "description": "Mezcla 50/50 entre P3 y P5."
     },
     "P5": {
-      "name": "Agresivo"
+      "name": "Agresivo",
+      "description": "Ponderación por retorno × Sharpe; se inclina hacia nombres de mayor potencial."
     }
   },
   "growth": {

@@ -284,11 +284,16 @@ async function PortfolioModelView({
                     </Link>
                     <Badge tone="neutral">{code}</Badge>
                   </div>
-                  {p.description && (
-                    <p className="mt-1 text-[12px] text-[var(--color-text2)]">
-                      {p.description}
-                    </p>
-                  )}
+                  {(() => {
+                    const desc = tp.has(`${code}.description`)
+                      ? tp(`${code}.description`)
+                      : p.description;
+                    return desc ? (
+                      <p className="mt-1 text-[12px] text-[var(--color-text2)]">
+                        {desc}
+                      </p>
+                    ) : null;
+                  })()}
                 </div>
                 <div className="text-right">
                   <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">

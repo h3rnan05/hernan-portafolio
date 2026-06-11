@@ -23,7 +23,7 @@
  */
 
 import { useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 import { TimeSeriesChart } from "@/components/charts";
 import { Card, EmptyState, SectionHeader, Skeleton } from "@/components/primitives";
@@ -160,6 +160,7 @@ async function buildComparison(): Promise<ComparisonData> {
 
 export function PortfolioComparison() {
   const t = useTranslations("comparison");
+  const locale = useLocale();
   const [range, setRange] = useState<RangeKey>(30);
   // Series the user has toggled off via the legend.
   const [hidden, setHidden] = useState<string[]>([]);
@@ -275,6 +276,7 @@ export function PortfolioComparison() {
             hidden={hidden}
             onToggleSeries={toggleSeries}
             percent
+            locale={locale}
           />
           {pending.length > 0 && (
             <p className="mt-3 text-[11px] text-[var(--color-text3)]">

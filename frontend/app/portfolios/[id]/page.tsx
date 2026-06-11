@@ -6,6 +6,7 @@
  * lands here.
  */
 
+import { getLocale } from "next-intl/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -41,6 +42,7 @@ export default async function PortfolioDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const locale = await getLocale();
 
   let portfolio;
   try {
@@ -159,14 +161,15 @@ export default async function PortfolioDetail({
             yDecimals={1}
             yUnit="%"
             height={360}
+            locale={locale}
           />
         )}
       </Card>
 
       {history.length > 0 && (
         <div className="mt-4 text-[11px] text-[var(--color-text3)]">
-          First snapshot {fmtDate(history[0].snapshotted_at)} · latest{" "}
-          {fmtDate(history[history.length - 1].snapshotted_at)}
+          First snapshot {fmtDate(history[0].snapshotted_at, locale)} · latest{" "}
+          {fmtDate(history[history.length - 1].snapshotted_at, locale)}
         </div>
       )}
     </div>

@@ -120,11 +120,16 @@ function ProfilePanel({ detail }: { detail: ProfileDetail }) {
           <h2 className="text-xl font-semibold tracking-tight">
             {code} {tp(`${code}.name`)}
           </h2>
-          {portfolio.description && (
-            <p className="mt-1 max-w-2xl text-[13px] text-[var(--color-text2)]">
-              {portfolio.description}
-            </p>
-          )}
+          {(() => {
+            const desc = tp.has(`${code}.description`)
+              ? tp(`${code}.description`)
+              : portfolio.description;
+            return desc ? (
+              <p className="mt-1 max-w-2xl text-[13px] text-[var(--color-text2)]">
+                {desc}
+              </p>
+            ) : null;
+          })()}
         </div>
         <div className="flex items-center gap-4">
           <div className="text-right">
@@ -209,6 +214,7 @@ function ProfilePanel({ detail }: { detail: ProfileDetail }) {
             yDecimals={1}
             yUnit="%"
             height={340}
+            locale={locale}
           />
         )}
         {detail.firstSnapshot && detail.lastSnapshot && (
