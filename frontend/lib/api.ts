@@ -260,6 +260,24 @@ export type Portfolio = {
   mape_30d: number | null;
 };
 
+// ─── Growth of $10,000 (Portfolios page centerpiece) ─────────────────────────
+
+export type GrowthPoint = {
+  date: string;
+  value: number;
+};
+
+export type GrowthSeries = {
+  profile: string; // "P1".."P5" | "BENCH"
+  label: string;
+  points: GrowthPoint[];
+};
+
+export type GrowthResponse = {
+  window: number;
+  series: GrowthSeries[];
+};
+
 export type Position = {
   snapshot_at: string;
   account_id: string;
@@ -590,6 +608,11 @@ export const api = {
 
   listPortfolios: () =>
     request<Portfolio[]>("/portfolios", { revalidate: 3600 }),
+
+  getPortfolioGrowth: (window: 30 | 90 | 360 = 90) =>
+    request<GrowthResponse>(`/portfolios/growth?window=${window}`, {
+      revalidate: 3600,
+    }),
 
   getPortfolio: (id: string) =>
     request<Portfolio>(`/portfolios/${encodeURIComponent(id)}`, {

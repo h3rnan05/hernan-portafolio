@@ -29,6 +29,9 @@ from app.schemas.model import (
 )
 from app.schemas.observation import ObservationOut
 from app.schemas.portfolio import (
+    GrowthPoint,
+    GrowthResponse,
+    GrowthSeries,
     HoldingProjection,
     HoldingsProjectionOut,
     PortfolioOut,
@@ -52,6 +55,9 @@ __all__ = [
     "AccountHoldingOut",
     "ForecastPoint",
     "ForecastResult",
+    "GrowthPoint",
+    "GrowthResponse",
+    "GrowthSeries",
     "HoldingIn",
     "HoldingOut",
     "HoldingProjection",
