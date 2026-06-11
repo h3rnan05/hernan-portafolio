@@ -1,23 +1,26 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { AuthButton } from "@/components/auth-button";
+import { LanguageSwitcher } from "@/components/language-switcher";
 
-const ROUTES: { href: string; label: string; premium?: boolean }[] = [
-  { href: "/", label: "Overview" },
-  { href: "/accounts", label: "Accounts" },
-  { href: "/holdings", label: "Holdings" },
-  { href: "/models", label: "Models" },
-  { href: "/portfolios", label: "Portfolios" },
-  { href: "/simulator", label: "Simulator" },
-  { href: "/positions", label: "Positions" },
-  { href: "/variables", label: "Data", premium: true },
+const ROUTES: { href: string; key: string; premium?: boolean }[] = [
+  { href: "/", key: "overview" },
+  { href: "/accounts", key: "accounts" },
+  { href: "/holdings", key: "holdings" },
+  { href: "/models", key: "models" },
+  { href: "/portfolios", key: "portfolios" },
+  { href: "/simulator", key: "simulator" },
+  { href: "/positions", key: "positions" },
+  { href: "/variables", key: "data", premium: true },
 ];
 
 export function TopNav() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
@@ -35,7 +38,7 @@ export function TopNav() {
           />
           <span>Hernán</span>
           <span className="hidden text-[10px] uppercase tracking-widest text-[var(--color-text3)] sm:inline">
-            Portfolio Engine
+            {t("brand_tagline")}
           </span>
         </Link>
 
@@ -43,7 +46,7 @@ export function TopNav() {
           aria-label="Primary"
           className="ml-auto flex items-center gap-1 overflow-x-auto"
         >
-          {ROUTES.map(({ href, label, premium }) => {
+          {ROUTES.map(({ href, key, premium }) => {
             const active = isActive(href);
             return (
               <Link
@@ -56,14 +59,14 @@ export function TopNav() {
                     : "text-[var(--color-text2)] hover:text-[var(--color-text)]"
                 }`}
               >
-                {label}
+                {t(key)}
                 {premium && (
                   <svg
                     width="11"
                     height="11"
                     viewBox="0 0 16 16"
                     fill="none"
-                    aria-label="Premium"
+                    aria-label={t("premium")}
                     className="text-[var(--color-amber)]"
                   >
                     <path
@@ -103,11 +106,12 @@ export function TopNav() {
               <path d="M8 1.5l1.4 3.6L13 6.5 9.4 7.9 8 11.5 6.6 7.9 3 6.5l3.6-1.4L8 1.5z" fill="var(--color-green)" />
               <path d="M13 10.5l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6.6-1.6z" fill="var(--color-cyan)" />
             </svg>
-            Asistente AI
+            {t("assistant")}
           </Link>
         </div>
 
-        <div className="shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
+          <LanguageSwitcher />
           <AuthButton />
         </div>
       </div>

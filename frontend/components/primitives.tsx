@@ -233,7 +233,16 @@ export function fmtPct(
   return formatted;
 }
 
-export function fmtDate(d: string | number | null | undefined): string {
+// Maps our UI locale codes to BCP-47 tags. Default is Spanish (the app default):
+// "es" → "05 jun 2026", "en" → "Jun 05, 2026".
+function localeTag(locale?: string): string {
+  return locale === "en" ? "en-US" : "es-ES";
+}
+
+export function fmtDate(
+  d: string | number | null | undefined,
+  locale?: string,
+): string {
   // Triple-belt-and-suspenders: explicit nullish check, NaN check on the Date,
   // then try/catch around Intl.DateTimeFormat.format() which throws RangeError
   // on invalid Date. Even if Recharts passes a weird tick value we never throw.
@@ -248,7 +257,7 @@ export function fmtDate(d: string | number | null | undefined): string {
       return "—";
     }
     if (!date || Number.isNaN(date.getTime())) return "—";
-    return new Intl.DateTimeFormat("en-US", {
+    return new Intl.DateTimeFormat(localeTag(locale), {
       year: "numeric",
       month: "short",
       day: "2-digit",

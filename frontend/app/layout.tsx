@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth-provider";
 import { TopNav } from "@/components/top-nav";
@@ -15,13 +17,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Locale comes from the NEXT_LOCALE cookie (default 'es'); see i18n/request.ts.
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en" className="antialiased">
+    <html lang={locale} className="antialiased">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
@@ -31,12 +37,14 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <AuthProvider>
-          <div className="min-h-screen flex flex-col">
-            <TopNav />
-            <main className="flex-1">{children}</main>
-          </div>
-        </AuthProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <AuthProvider>
+            <div className="min-h-screen flex flex-col">
+              <TopNav />
+              <main className="flex-1">{children}</main>
+            </div>
+          </AuthProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
