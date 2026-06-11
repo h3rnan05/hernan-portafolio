@@ -24,14 +24,15 @@ from __future__ import annotations
 import os
 import tempfile
 import time
+from collections.abc import Awaitable, Callable
 from functools import wraps
 from pathlib import Path
-from typing import Any, Awaitable, Callable, TypeVar
+from typing import Any, TypeVar
 
 from fastapi import Request, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-__all__ = ["ttl_cache", "bust_cache", "cache_clear", "cache_stats"]
+__all__ = ["bust_cache", "cache_clear", "cache_stats", "ttl_cache"]
 
 # Default TTL and the Cache-Control advertised to shared caches / the CDN.
 DEFAULT_TTL_SECONDS = 3600
