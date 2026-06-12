@@ -25,6 +25,7 @@ from app.models import (
     Portfolio,
     PortfolioSnapshot,
     Prediction,
+    Scenario,
 )
 from app.portfolio.optimizer import PROFILE_DESCRIPTIONS, build_portfolios
 
@@ -288,25 +289,43 @@ async def rebuild_portfolios(
     metrics_df = pd.DataFrame(metrics_rows).set_index("ticker")
     profiles = build_portfolios(metrics_df)
 
-    rows = [
-        {
+    # These 5 algorithmic profiles belong to the default scenario (migration
+    # 0008). Tag every upserted row with its scenario_id + profile_code so a
+    # fresh insert stays grouped; when no default scenario exists yet we leave
+    # the columns untouched (never null an existing tag).
+    default_scenario = (
+        await session.execute(
+            select(Scenario).where(
+                Scenario.is_default.is_(True),
+                Scenario.build_mode == "algorithmic",
+            )
+        )
+    ).scalars().first()
+    scenario_id = default_scenario.id if default_scenario else None
+
+    rows = []
+    for pid, weights in profiles.items():
+        row = {
             "id": pid,
             "name": pid.replace("_", " ").title(),
             "description": PROFILE_DESCRIPTIONS.get(pid, ""),
             "weights": weights,
         }
-        for pid, weights in profiles.items()
-    ]
+        if scenario_id is not None:
+            row["scenario_id"] = scenario_id
+            row["profile_code"] = pid
+        rows.append(row)
 
     stmt = pg_insert(Portfolio).values(rows)
-    stmt = stmt.on_conflict_do_update(
-        index_elements=["id"],
-        set_={
-            "name": stmt.excluded.name,
-            "description": stmt.excluded.description,
-            "weights": stmt.excluded.weights,
-        },
-    )
+    update_cols = {
+        "name": stmt.excluded.name,
+        "description": stmt.excluded.description,
+        "weights": stmt.excluded.weights,
+    }
+    if scenario_id is not None:
+        update_cols["scenario_id"] = stmt.excluded.scenario_id
+        update_cols["profile_code"] = stmt.excluded.profile_code
+    stmt = stmt.on_conflict_do_update(index_elements=["id"], set_=update_cols)
     await session.execute(stmt)
 
     # Also append a snapshot per profile so we can chart weight evolution.

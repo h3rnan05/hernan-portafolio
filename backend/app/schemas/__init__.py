@@ -38,6 +38,7 @@ from app.schemas.portfolio import (
     PortfolioSnapshotOut,
     PositionOut,
     PositionsSyncOut,
+    ScenarioOut,
 )
 from app.schemas.prediction import (
     PortfolioPredictionPoint,
@@ -80,6 +81,7 @@ __all__ = [
     "ProfileMatch",
     "RefitOutcomeOut",
     "RefitRequest",
+    "ScenarioOut",
     "SimulateRequest",
     "SimulateResponse",
     "SimulatedTicker",
