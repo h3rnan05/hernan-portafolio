@@ -1,8 +1,10 @@
 "use client";
 
 /**
- * Simulator — push hypothetical predictor returns through every active
- * model, see the per-ticker + portfolio-level impact in real time.
+ * Simulator — shows the expected IMPACT of macro / external variables on each
+ * stock and, in aggregate, on the portfolio. Moving a variable pushes its
+ * change through every active model; the per-ticker + portfolio effect updates
+ * in real time. (Calculations are unchanged — this is a framing layer.)
  */
 
 import { useTranslations } from "next-intl";

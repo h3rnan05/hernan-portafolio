@@ -62,10 +62,9 @@ export default async function Overview() {
   const tc = await getTranslations("common");
   const locale = await getLocale();
 
-  const [healthR, varsR, modelsR, portfoliosR, projectionR] = await Promise.all([
+  const [healthR, varsR, portfoliosR, projectionR] = await Promise.all([
     safe(() => api.health()),
     safe(() => api.listVariables()),
-    safe(() => api.listModels(true)),
     safe(() => api.listPortfolios()),
     safe(() => api.getHoldingsProjection()),
   ]);
@@ -99,11 +98,15 @@ export default async function Overview() {
   }
 
   const variables = varsR.ok ? varsR.data : [];
-  const models = modelsR.ok ? modelsR.data : [];
   const portfolios = portfoliosR.ok ? portfoliosR.data : [];
 
   const stocks = variables.filter((v) => v.kind === "stock");
   const predictors = variables.filter((v) => v.kind === "predictor");
+  // Public-facing unit = published scenario portfolios. Data-driven: derives
+  // from the `is_public` flag (proposed backend migration 0008). Until that
+  // field + a flagged portfolio exist, this is 0; it updates automatically as
+  // portfolios are published.
+  const publicPortfolios = portfolios.filter((p) => p.is_public).length;
   const withData = variables.filter((v) => v.last_observed_on).length;
   const latestObs = variables
     .map((v) => v.last_observed_on)
@@ -164,14 +167,12 @@ export default async function Overview() {
           })}
         />
         <StatTile
-          label={t("stat_active_models")}
-          value={`${models.filter((m) => m.is_active && m.status === "PASS").length} / ${stocks.length}`}
+          label={t("stat_public_portfolios")}
+          value={publicPortfolios}
           hint={
-            models.length === 0
-              ? t("stat_active_models_none")
-              : t("stat_active_models_pass", {
-                  count: models.filter((m) => m.status === "PASS").length,
-                })
+            publicPortfolios === 0
+              ? t("stat_public_portfolios_none")
+              : t("stat_public_portfolios_hint")
           }
         />
         <StatTile

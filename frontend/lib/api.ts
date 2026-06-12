@@ -258,6 +258,10 @@ export type Portfolio = {
   weights: Record<string, number>;
   generated_at: string;
   mape_30d: number | null;
+  /** Whether this portfolio is published publicly. Optional until the backend
+   *  `is_public` column ships (see proposed migration 0008); absent → treated
+   *  as not public. */
+  is_public?: boolean;
 };
 
 // ─── Growth of $10,000 (Portfolios page centerpiece) ─────────────────────────
