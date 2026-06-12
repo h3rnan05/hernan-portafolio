@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict
@@ -17,23 +16,6 @@ class PortfolioOut(BaseModel):
     weights: dict[str, float]
     generated_at: datetime
     mape_30d: float | None = None  # filled when prediction history exists
-
-
-class ScenarioOut(BaseModel):
-    """A named scenario portfolio (groups one P1–P5 set)."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: uuid.UUID
-    slug: str
-    name: str
-    description: str | None = None
-    scenario_type: str
-    status: str  # public | draft
-    build_mode: str  # algorithmic | static
-    is_default: bool
-    display_order: int
-    created_at: datetime
 
 
 class GrowthPoint(BaseModel):

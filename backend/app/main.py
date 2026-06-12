@@ -22,7 +22,6 @@ from app.routers import (
     portfolios,
     positions,
     predictions,
-    scenarios,
     variables,
 )
 
@@ -63,7 +62,6 @@ def create_app() -> FastAPI:
     app.include_router(models.router)
     app.include_router(predictions.router)
     app.include_router(portfolios.router)
-    app.include_router(scenarios.router)
     app.include_router(positions.router)
     app.include_router(holdings.router)
     app.include_router(chat.router)
