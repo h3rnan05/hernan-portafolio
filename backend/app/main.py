@@ -47,9 +47,15 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Exact origins come from ALLOWED_ORIGINS (prod). The regex additionally
+    # allows this project's Vercel deployments — production AND every per-branch
+    # /per-commit preview URL (e.g. hernan-portafolio-git-main-<team>.vercel.app)
+    # — so client-side fetches from preview deploys aren't CORS-blocked. Scoped
+    # to the project slug, not all of *.vercel.app.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
+        allow_origin_regex=r"https://hernan-portafolio[a-z0-9-]*\.vercel\.app",
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
