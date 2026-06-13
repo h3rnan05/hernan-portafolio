@@ -14,6 +14,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 
 import { DiagnosticGauge, passes, StatusBadge } from "@/components/diagnostics";
+import { PredictorsPanel } from "@/components/predictors-panel";
+import { StocksGrid } from "@/components/stocks-grid";
 import {
   Badge,
   Card,
@@ -120,7 +122,25 @@ export default async function ModelsPage({
       ) : tab === "portfolio" ? (
         <PortfolioModelView portfolios={portfolios} activeModels={display} />
       ) : (
-        <StockModelsGrid models={display} />
+        <>
+          <StockModelsGrid models={display} />
+          <section className="mt-10">
+            <SectionHeader
+              eyebrow="Predicciones · precios"
+              title="Las 9 acciones del modelo"
+              description="Precio actual vs predicho para mañana, directo del modelo OLS."
+            />
+            <StocksGrid />
+          </section>
+          <section className="mt-10">
+            <SectionHeader
+              eyebrow="Variables · cobertura"
+              title="Predictores del modelo"
+              description="Variables macroeconómicas y de mercado que alimentan las predicciones."
+            />
+            <PredictorsPanel />
+          </section>
+        </>
       )}
     </div>
   );

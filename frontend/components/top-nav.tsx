@@ -10,11 +10,10 @@ import { LanguageSwitcher } from "@/components/language-switcher";
 const ROUTES: { href: string; key: string; premium?: boolean }[] = [
   { href: "/", key: "overview" },
   { href: "/accounts", key: "accounts" },
-  { href: "/holdings", key: "holdings" },
+  { href: "/positions", key: "positions" },
   { href: "/models", key: "models" },
   { href: "/portfolios", key: "portfolios" },
   { href: "/simulator", key: "simulator" },
-  { href: "/positions", key: "positions" },
   { href: "/variables", key: "data", premium: true },
 ];
 
