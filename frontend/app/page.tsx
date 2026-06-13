@@ -14,6 +14,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 import { AreaChartCmp } from "@/components/charts";
+import { BotComparisonChart } from "@/components/bot-comparison-chart";
 import { PortfolioComparison } from "@/components/portfolio-comparison";
 import {
   Badge,
@@ -200,6 +201,11 @@ export default async function Overview() {
           hint={tc("lower_is_better")}
         />
       </div>
+
+      {/* Bot comparison — equity of the 3 bots vs S&P 500 */}
+      <section className="mb-10">
+        <BotComparisonChart />
+      </section>
 
       {/* Portfolio rollup — chart for top-MAPE profile when data exists */}
       <section className="mb-10">
