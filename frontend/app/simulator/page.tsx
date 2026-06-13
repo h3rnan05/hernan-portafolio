@@ -125,10 +125,26 @@ export default function SimulatorPage() {
     return () => clearTimeout(handle);
   }, [inputs, horizon]);
 
-  const portfolioDeltaPct =
-    response && response.portfolio_value_baseline > 0
+  // Alpaca real values take priority over model values
+  const alpacaEquity = botData?.account ? parseFloat(botData.account.equity) : null;
+
+  const alpacaDollarImpact = (response?.per_ticker && botData?.positions?.length)
+    ? botData.positions.reduce((sum, pos) => {
+        const row = response!.per_ticker.find((r) => r.ticker === pos.symbol);
+        if (!row) return sum;
+        return sum + parseFloat(pos.market_value) * row.predicted_return * horizon;
+      }, 0)
+    : null;
+
+  const alpacaDeltaPct = (alpacaEquity && alpacaDollarImpact !== null && alpacaEquity > 0)
+    ? alpacaDollarImpact / alpacaEquity
+    : null;
+
+  // Fallback to model values if no Alpaca data
+  const portfolioDeltaPct = alpacaDeltaPct ??
+    (response && response.portfolio_value_baseline > 0
       ? response.delta / response.portfolio_value_baseline
-      : null;
+      : null);
 
   function applyScenario(sc: Scenario) {
     setActiveScenario(sc.key);
@@ -340,15 +356,20 @@ export default function SimulatorPage() {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             <StatTile
-              label={t("stat_portfolio_value")}
-              value={response ? `$${fmtNumber(response.portfolio_value, { decimals: 2 })}` : "—"}
-              hint={response
-                ? `${t("stat_portfolio_vs", { value: fmtNumber(response.portfolio_value_baseline, { decimals: 2 }) })} · ${t("stat_portfolio_hint")}`
-                : t("stat_portfolio_hint")}
+              label={locale === "es" ? "Portafolio OLS · Alpaca" : "OLS Portfolio · Alpaca"}
+              value={alpacaEquity !== null
+                ? `$${fmtNumber(alpacaEquity, { decimals: 2 })}`
+                : botLoading ? "…" : "—"}
+              hint={alpacaEquity !== null
+                ? (locale === "es" ? "Saldo real en Alpaca Paper Trading" : "Real Alpaca Paper Trading balance")
+                : (locale === "es" ? "Sin datos de Alpaca" : "No Alpaca data")}
             />
             <StatTile
               label={t("stat_delta")}
-              value={response ? `$${fmtNumber(response.delta, { decimals: 2 })}` : "—"}
+              value={alpacaDollarImpact !== null
+                ? `${alpacaDollarImpact >= 0 ? "+" : ""}$${fmtNumber(alpacaDollarImpact, { decimals: 2 })}`
+                : response ? `$${fmtNumber(response.delta, { decimals: 2 })}` : "—"}
+              hint={locale === "es" ? `Impacto estimado en ${horizon} días` : `Estimated impact over ${horizon} days`}
               delta={
                 portfolioDeltaPct !== null
                   ? { value: fmtPct(portfolioDeltaPct, { signed: true, decimals: 2 }), tone: portfolioDeltaPct >= 0 ? "green" : "red" }
@@ -436,15 +457,24 @@ export default function SimulatorPage() {
               {/* Impact summary bar */}
               {portfolioDeltaPct !== null && (
                 <div className={[
-                  "mt-4 rounded-[10px] border px-4 py-3 text-[13px] font-medium",
+                  "mt-4 rounded-[10px] border px-4 py-3",
                   portfolioDeltaPct >= 0
-                    ? "border-[var(--color-green)]/30 bg-[var(--color-green)]/8 text-[var(--color-green)]"
-                    : "border-[var(--color-red)]/30 bg-[var(--color-red)]/8 text-[var(--color-red)]",
+                    ? "border-[var(--color-green)]/30 bg-[var(--color-green)]/8"
+                    : "border-[var(--color-red)]/30 bg-[var(--color-red)]/8",
                 ].join(" ")}>
-                  {portfolioDeltaPct >= 0 ? "▲" : "▼"}{" "}
-                  {locale === "es"
-                    ? `Con este escenario, tu portafolio ${portfolioDeltaPct >= 0 ? "ganaría" : "perdería"} un ${fmtPct(Math.abs(portfolioDeltaPct), { decimals: 2 })} en ${horizon} días.`
-                    : `Under this scenario, your portfolio would ${portfolioDeltaPct >= 0 ? "gain" : "lose"} ${fmtPct(Math.abs(portfolioDeltaPct), { decimals: 2 })} over ${horizon} days.`}
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[13px] font-medium ${portfolioDeltaPct >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
+                      {portfolioDeltaPct >= 0 ? "▲" : "▼"}{" "}
+                      {locale === "es"
+                        ? `Tu bot OLS ${portfolioDeltaPct >= 0 ? "ganaría" : "perdería"} ${fmtPct(Math.abs(portfolioDeltaPct), { decimals: 2 })} en ${horizon} días`
+                        : `Your OLS bot would ${portfolioDeltaPct >= 0 ? "gain" : "lose"} ${fmtPct(Math.abs(portfolioDeltaPct), { decimals: 2 })} over ${horizon} days`}
+                    </span>
+                    {alpacaDollarImpact !== null && (
+                      <span className={`font-mono text-[15px] font-bold ${portfolioDeltaPct >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
+                        {alpacaDollarImpact >= 0 ? "+" : ""}${fmtNumber(alpacaDollarImpact, { decimals: 2 })}
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </Card>
