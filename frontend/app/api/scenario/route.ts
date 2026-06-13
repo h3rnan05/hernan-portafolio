@@ -4,7 +4,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+const OPENAI_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 function buildPrompt(lang: string): string {
   const today = new Date().toISOString().split("T")[0];
@@ -32,10 +32,10 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
 
 export async function GET(req: NextRequest) {
   const lang = req.nextUrl.searchParams.get("lang") ?? "es";
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
-    return NextResponse.json({ error: "OPENAI_API_KEY not set" }, { status: 500 });
+    return NextResponse.json({ error: "GROQ_API_KEY not set" }, { status: 500 });
   }
 
   try {
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "gpt-4o-mini",
+        model: "llama-3.1-8b-instant",
         temperature: 0.4,
         max_tokens: 1024,
         messages: [
@@ -61,8 +61,8 @@ export async function GET(req: NextRequest) {
 
     if (!res.ok) {
       const err = await res.text();
-      console.error("[scenario] OpenAI error:", res.status, err);
-      return NextResponse.json({ error: `OpenAI ${res.status}: ${err}` }, { status: 500 });
+      console.error("[scenario] Groq error:", res.status, err);
+      return NextResponse.json({ error: `Groq ${res.status}: ${err}` }, { status: 500 });
     }
 
     const raw = await res.json();
