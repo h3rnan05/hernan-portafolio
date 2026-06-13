@@ -12,7 +12,7 @@ import {
   SectionHeader,
   StatTile,
 } from "@/components/primitives";
-import { api, type SimulateResponse } from "@/lib/api";
+import { api, type SimulateResponse, type SimulatedTicker } from "@/lib/api";
 
 // ─── Slider definitions ──────────────────────────────────────────────────────
 
@@ -54,13 +54,28 @@ const SCENARIOS: Scenario[] = [
   },
 ];
 
-// ─── AI scenario response type ────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type ScenarioData = {
   values: Record<string, number>;
   scenario_name: string;
   explanation: string;
   variable_context: Record<string, string>;
+};
+
+type AlpacaPosition = {
+  symbol: string;
+  qty: string;
+  market_value: string;
+  current_price: string;
+  avg_entry_price: string;
+  unrealized_pl: string;
+};
+
+type BotData = {
+  account: { equity: string; cash: string };
+  positions: AlpacaPosition[];
+  error?: string;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -80,6 +95,17 @@ export default function SimulatorPage() {
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiData, setAiData] = useState<ScenarioData | null>(null);
   const [tooltip, setTooltip] = useState<string | null>(null);
+  const [botData, setBotData] = useState<BotData | null>(null);
+  const [botLoading, setBotLoading] = useState(true);
+
+  // Load OLS bot positions once on mount
+  useEffect(() => {
+    fetch("/api/bot?bot=ols")
+      .then((r) => r.json())
+      .then((d) => setBotData(d as BotData))
+      .catch(() => setBotData(null))
+      .finally(() => setBotLoading(false));
+  }, []);
 
   // Debounced simulate call
   useEffect(() => {
@@ -421,6 +447,15 @@ export default function SimulatorPage() {
               )}
             </Card>
           )}
+
+          {/* OLS P4 Alpaca bot impact */}
+          <OlsBotImpact
+            botData={botData}
+            botLoading={botLoading}
+            simulatedReturns={response?.per_ticker ?? []}
+            horizon={horizon}
+            locale={locale}
+          />
         </div>
       </div>
     </div>
@@ -447,4 +482,180 @@ const DRIVER_NAMES: Record<string, string> = {
 
 function friendlyDriverName(id: string): string {
   return DRIVER_NAMES[id] ?? id;
+}
+
+// ─── OLS Bot P4 Impact Component ─────────────────────────────────────────────
+
+function OlsBotImpact({
+  botData,
+  botLoading,
+  simulatedReturns,
+  horizon,
+  locale,
+}: {
+  botData: BotData | null;
+  botLoading: boolean;
+  simulatedReturns: SimulatedTicker[];
+  horizon: number;
+  locale: string;
+}) {
+  const es = locale === "es";
+
+  if (botLoading) {
+    return (
+      <Card>
+        <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
+          OLS MODEL BOT · P4
+        </div>
+        <p className="text-[12.5px] text-[var(--color-text3)]">
+          {es ? "Cargando portafolio real de Alpaca…" : "Loading Alpaca portfolio…"}
+        </p>
+      </Card>
+    );
+  }
+
+  if (!botData || botData.error || !botData.positions?.length) {
+    return (
+      <Card>
+        <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
+          OLS MODEL BOT · P4
+        </div>
+        <p className="text-[12.5px] text-[var(--color-text2)]">
+          {es
+            ? "El bot no tiene posiciones abiertas actualmente en Alpaca."
+            : "The bot has no open positions in Alpaca right now."}
+        </p>
+      </Card>
+    );
+  }
+
+  // Build a return map from simulated data: ticker → predicted_return
+  const returnMap: Record<string, number> = {};
+  for (const row of simulatedReturns) {
+    returnMap[row.ticker] = row.predicted_return;
+  }
+
+  // Calculate impact per position
+  const rows = botData.positions.map((pos) => {
+    const mv = parseFloat(pos.market_value);
+    const ret = returnMap[pos.symbol] ?? 0;
+    const dollarImpact = mv * ret * horizon;
+    return { symbol: pos.symbol, mv, ret, dollarImpact, qty: parseFloat(pos.qty) };
+  });
+
+  const totalMv = rows.reduce((s, r) => s + r.mv, 0);
+  const totalImpact = rows.reduce((s, r) => s + r.dollarImpact, 0);
+  const totalImpactPct = totalMv > 0 ? totalImpact / totalMv : 0;
+  const hasScenario = simulatedReturns.length > 0;
+
+  return (
+    <Card>
+      {/* Header */}
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <div className="mb-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-cyan)]">
+            OLS MODEL BOT · P4 · ALPACA PAPER
+          </div>
+          <h3 className="text-[14px] font-semibold">
+            {es ? "Impacto en el portafolio real" : "Impact on real portfolio"}
+          </h3>
+          <p className="mt-0.5 text-[11.5px] text-[var(--color-text2)]">
+            {es
+              ? "Posiciones reales en Alpaca Paper Trading, cruzadas con el escenario del simulador."
+              : "Actual Alpaca Paper Trading positions, crossed with the simulator scenario."}
+          </p>
+        </div>
+        <div className="text-right">
+          <div className="text-[10px] text-[var(--color-text3)]">
+            {es ? "Valor total" : "Total value"}
+          </div>
+          <div className="font-mono text-[15px] font-semibold">
+            ${fmtNumber(totalMv, { decimals: 2 })}
+          </div>
+          <div className="text-[10px] text-[var(--color-text3)]">
+            {es ? "Efectivo: " : "Cash: "}
+            <span className="text-[var(--color-text2)]">
+              ${fmtNumber(parseFloat(botData.account.cash ?? "0"), { decimals: 2 })}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Position rows */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-[12.5px]">
+          <thead>
+            <tr className="border-b border-[var(--color-border)] text-left text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
+              <th className="py-2 pr-3 font-medium">{es ? "Acción" : "Stock"}</th>
+              <th className="py-2 pr-3 text-right font-medium">{es ? "Cantidad" : "Qty"}</th>
+              <th className="py-2 pr-3 text-right font-medium">{es ? "Valor actual" : "Market value"}</th>
+              <th className="py-2 pr-3 text-right font-medium">{es ? "Retorno simulado" : "Simulated return"}</th>
+              <th className="py-2 pr-3 text-right font-medium">
+                {es ? `Ganancia/Pérdida (${horizon}d)` : `P&L (${horizon}d)`}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows
+              .slice()
+              .sort((a, b) => Math.abs(b.dollarImpact) - Math.abs(a.dollarImpact))
+              .map((row) => {
+                const isUp = row.dollarImpact >= 0;
+                return (
+                  <tr key={row.symbol} className="border-b border-[var(--color-border)] last:border-0">
+                    <td className="py-2.5 pr-3 font-mono font-semibold">{row.symbol}</td>
+                    <td className="py-2.5 pr-3 text-right font-mono tabular text-[var(--color-text2)]">
+                      {row.qty}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right font-mono tabular text-[var(--color-text2)]">
+                      ${fmtNumber(row.mv, { decimals: 2 })}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right">
+                      {hasScenario ? (
+                        <Badge tone={row.ret >= 0 ? "green" : "red"}>
+                          {fmtPct(row.ret, { signed: true, decimals: 2 })}
+                        </Badge>
+                      ) : (
+                        <span className="text-[var(--color-text3)]">—</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 pr-3 text-right">
+                      {hasScenario ? (
+                        <span className={`font-mono font-medium ${isUp ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
+                          {isUp ? "+" : ""}${fmtNumber(row.dollarImpact, { decimals: 2 })}
+                        </span>
+                      ) : (
+                        <span className="text-[var(--color-text3)]">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Total impact banner */}
+      {hasScenario && (
+        <div className={[
+          "mt-4 rounded-[10px] border px-4 py-3",
+          totalImpact >= 0
+            ? "border-[var(--color-green)]/30 bg-[var(--color-green)]/8"
+            : "border-[var(--color-red)]/30 bg-[var(--color-red)]/8",
+        ].join(" ")}>
+          <div className="flex items-center justify-between">
+            <span className={`text-[13px] font-medium ${totalImpact >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
+              {totalImpact >= 0 ? "▲" : "▼"}{" "}
+              {es
+                ? `El bot ${totalImpact >= 0 ? "ganaría" : "perdería"} ${fmtPct(Math.abs(totalImpactPct), { decimals: 2 })} en ${horizon} días`
+                : `Bot would ${totalImpact >= 0 ? "gain" : "lose"} ${fmtPct(Math.abs(totalImpactPct), { decimals: 2 })} over ${horizon} days`}
+            </span>
+            <span className={`font-mono text-[14px] font-bold ${totalImpact >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
+              {totalImpact >= 0 ? "+" : ""}${fmtNumber(totalImpact, { decimals: 2 })}
+            </span>
+          </div>
+        </div>
+      )}
+    </Card>
+  );
 }
