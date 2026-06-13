@@ -11,6 +11,31 @@ import {
   StatTile,
 } from "@/components/primitives";
 
+// ─── Bot definitions ──────────────────────────────────────────────────────────
+
+const BOTS = [
+  {
+    key:   "ols",
+    label: "OLS Model Bot",
+    desc:  "Predicciones de regresión OLS sobre 9 acciones",
+    color: "var(--color-green)",
+  },
+  {
+    key:   "capitol",
+    label: "Capitol Trades Bot",
+    desc:  "Copia los trades del Congreso de EE.UU.",
+    color: "var(--color-cyan)",
+  },
+  {
+    key:   "trailing",
+    label: "Trailing Stop Bot",
+    desc:  "Monitor con trailing stop dinámico",
+    color: "var(--color-violet)",
+  },
+] as const;
+
+type BotKey = (typeof BOTS)[number]["key"];
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Signal = {
@@ -29,7 +54,6 @@ type AlpacaPosition = {
   market_value: string;
   unrealized_pl: string;
   unrealized_plpc: string;
-  side: string;
 };
 
 type AlpacaOrder = {
@@ -41,7 +65,6 @@ type AlpacaOrder = {
   filled_avg_price: string | null;
   status: string;
   created_at: string;
-  type: string;
 };
 
 type AlpacaAccount = {
@@ -49,11 +72,12 @@ type AlpacaAccount = {
   cash: string;
   buying_power: string;
   portfolio_value: string;
-  daytrade_count: number;
   pattern_day_trader: boolean;
 };
 
 type BotData = {
+  bot: BotKey;
+  botLabel: string;
   account: AlpacaAccount;
   positions: AlpacaPosition[];
   orders: AlpacaOrder[];
@@ -63,43 +87,41 @@ type BotData = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function actionTone(a: string): "green" | "red" | "neutral" {
-  if (a === "BUY")  return "green";
-  if (a === "SELL") return "red";
-  return "neutral";
-}
-
-function pnlTone(n: number): "green" | "red" | "neutral" {
-  if (n > 0) return "green";
-  if (n < 0) return "red";
-  return "neutral";
-}
-
-function orderStatusTone(s: string): "green" | "amber" | "neutral" | "red" {
-  if (s === "filled")            return "green";
-  if (s === "partially_filled")  return "amber";
-  if (s === "canceled" || s === "expired") return "red";
-  return "neutral";
-}
-
 function fmt$(n: number | string) {
   return fmtNumber(typeof n === "string" ? parseFloat(n) : n, { decimals: 2 });
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+function pnlTone(n: number): "green" | "red" | "neutral" {
+  return n > 0 ? "green" : n < 0 ? "red" : "neutral";
+}
+
+function actionTone(a: string): "green" | "red" | "neutral" {
+  return a === "BUY" ? "green" : a === "SELL" ? "red" : "neutral";
+}
+
+function orderStatusTone(s: string): "green" | "amber" | "neutral" | "red" {
+  if (s === "filled")           return "green";
+  if (s === "partially_filled") return "amber";
+  if (s === "canceled" || s === "expired") return "red";
+  return "neutral";
+}
+
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 export default function PositionsPage() {
-  const [data, setData]       = useState<BotData | null>(null);
-  const [error, setError]     = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [activeBot, setActiveBot] = useState<BotKey>("ols");
+  const [data, setData]           = useState<BotData | null>(null);
+  const [error, setError]         = useState<string | null>(null);
+  const [loading, setLoading]     = useState(true);
 
-  async function load() {
+  async function load(bot: BotKey) {
+    setLoading(true);
+    setError(null);
     try {
-      const res = await fetch("/api/bot", { cache: "no-store" });
+      const res  = await fetch(`/api/bot?bot=${bot}`, { cache: "no-store" });
       const json = await res.json();
       if (json.error) throw new Error(json.error);
       setData(json as BotData);
-      setError(null);
     } catch (e) {
       setError(String(e));
     } finally {
@@ -107,77 +129,131 @@ export default function PositionsPage() {
     }
   }
 
+  useEffect(() => { load(activeBot); }, [activeBot]);
+
+  // Auto-refresh every 60 s
   useEffect(() => {
-    load();
-    const id = setInterval(load, 60_000);
+    const id = setInterval(() => load(activeBot), 60_000);
     return () => clearInterval(id);
-  }, []);
+  }, [activeBot]);
 
-  if (loading) return <PageSkeleton />;
+  const activeBotDef = BOTS.find((b) => b.key === activeBot)!;
 
-  if (error) {
-    return (
-      <div className="mx-auto max-w-5xl px-6 py-16">
+  return (
+    <div className="mx-auto max-w-5xl space-y-6 px-6 py-10">
+
+      {/* Bot selector */}
+      <div>
+        <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
+          Alpaca Paper Trading
+        </div>
+        <h1 className="mb-4 text-2xl font-semibold tracking-tight">Broker Dashboard</h1>
+
+        <div className="grid grid-cols-3 gap-3">
+          {BOTS.map((bot) => {
+            const active = bot.key === activeBot;
+            return (
+              <button
+                key={bot.key}
+                onClick={() => setActiveBot(bot.key)}
+                className={`rounded-[12px] p-4 text-left transition-all duration-150 ${
+                  active
+                    ? "bg-[var(--color-bg2)] shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_1px_3px_rgba(0,0,0,0.4)]"
+                    : "bg-[var(--color-bg3)] hover:bg-[var(--color-bg2)] opacity-60 hover:opacity-100"
+                }`}
+              >
+                <div className="mb-2 flex items-center gap-2">
+                  <span
+                    className="inline-block size-2 rounded-full"
+                    style={{ background: bot.color }}
+                  />
+                  <span className="text-[12px] font-semibold text-[var(--color-text)]">
+                    {bot.label}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--color-text3)]">{bot.desc}</p>
+                {active && (
+                  <div className="mt-2">
+                    <Badge tone="neutral">Viendo ahora</Badge>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Content */}
+      {loading ? (
+        <PageSkeleton />
+      ) : error ? (
         <Card>
-          <div className="flex flex-col items-center text-center gap-3">
+          <div className="flex flex-col items-center gap-3 text-center">
             <Badge tone="red">Error</Badge>
             <p className="text-[13px] text-[var(--color-text2)]">{error}</p>
             <button
-              onClick={load}
-              className="mt-2 inline-flex h-8 items-center rounded-[8px] bg-[var(--color-bg3)] px-4 text-[12.5px] font-medium hover:bg-[var(--color-bg4)]"
+              onClick={() => load(activeBot)}
+              className="inline-flex h-8 items-center rounded-[8px] bg-[var(--color-bg3)] px-4 text-[12.5px] font-medium hover:bg-[var(--color-bg4)]"
             >
               Reintentar
             </button>
           </div>
         </Card>
-      </div>
-    );
-  }
+      ) : data ? (
+        <BotDetail data={data} activeBotColor={activeBotDef.color} onRefresh={() => load(activeBot)} />
+      ) : null}
 
-  if (!data) return null;
+    </div>
+  );
+}
 
+// ─── Bot detail view ──────────────────────────────────────────────────────────
+
+function BotDetail({
+  data,
+  activeBotColor,
+  onRefresh,
+}: {
+  data: BotData;
+  activeBotColor: string;
+  onRefresh: () => void;
+}) {
   const { account, positions, orders, signals, fetchedAt } = data;
-  const equity   = parseFloat(account.equity);
-  const cash     = parseFloat(account.cash);
-  const pv       = parseFloat(account.portfolio_value);
-  const dayPnl   = equity - 25000;
+  const equity = parseFloat(account.equity);
+  const cash   = parseFloat(account.cash);
+  const pv     = parseFloat(account.portfolio_value);
+  const pnl    = equity - 25000;
 
   const buySignals  = signals.filter((s) => s.action === "BUY");
   const sellSignals = signals.filter((s) => s.action === "SELL");
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-6 py-10">
+    <div className="space-y-5">
 
-      {/* Header */}
+      {/* Header row */}
       <div className="flex items-center justify-between">
-        <div>
-          <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-            Alpaca Paper Trading
-          </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Bot Dashboard</h1>
-        </div>
         <div className="flex items-center gap-2">
-          <span className="inline-block size-1.5 rounded-full bg-[var(--color-green)] animate-pulse" />
+          <span className="size-1.5 rounded-full animate-pulse" style={{ background: activeBotColor }} />
           <span className="text-[11px] text-[var(--color-text3)]">
-            Live · actualizado {new Date(fetchedAt).toLocaleTimeString("es-MX")}
+            Actualizado {new Date(fetchedAt).toLocaleTimeString("es-MX")}
           </span>
-          <button
-            onClick={load}
-            className="ml-2 inline-flex h-7 items-center rounded-[6px] bg-[var(--color-bg3)] px-3 text-[11.5px] font-medium hover:bg-[var(--color-bg4)]"
-          >
-            ↻ Refresh
-          </button>
         </div>
+        <button
+          onClick={onRefresh}
+          className="inline-flex h-7 items-center rounded-[6px] bg-[var(--color-bg3)] px-3 text-[11.5px] font-medium hover:bg-[var(--color-bg4)]"
+        >
+          ↻ Refresh
+        </button>
       </div>
 
-      {/* Account Stats */}
+      {/* Account stats */}
       <Card>
         <SectionHeader eyebrow="Cuenta" title="Resumen del portafolio" />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           <StatTile
             label="Equity total"
             value={`$${fmt$(equity)}`}
-            delta={{ value: `${dayPnl >= 0 ? "+" : ""}$${fmt$(dayPnl)}`, tone: pnlTone(dayPnl) }}
+            delta={{ value: `${pnl >= 0 ? "+" : ""}$${fmt$(pnl)}`, tone: pnlTone(pnl) }}
             hint="vs capital inicial $25,000"
           />
           <StatTile label="Valor portafolio" value={`$${fmt$(pv)}`} />
@@ -190,56 +266,58 @@ export default function PositionsPage() {
         </div>
       </Card>
 
-      {/* Today's signals */}
-      <Card>
-        <SectionHeader
-          eyebrow="Modelo OLS · señales de hoy"
-          title="Predicciones del día siguiente"
-          description="BUY = delta > 0.30% · SELL = delta negativo · HOLD = entre 0% y 0.30%"
-        />
-        <div className="overflow-x-auto">
-          <table className="w-full text-[13px]">
-            <thead>
-              <tr className="border-b border-[var(--color-border)] text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-                <th className="py-2 text-left">Ticker</th>
-                <th className="py-2 text-right">Actual</th>
-                <th className="py-2 text-right">Predicción</th>
-                <th className="py-2 text-right">Delta</th>
-                <th className="py-2 text-right">Señal</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--color-border)]">
-              {signals.map((s) => (
-                <tr key={s.ticker} className="hover:bg-[var(--color-bg3)] transition-colors">
-                  <td className="py-2.5 font-mono font-semibold">{s.ticker}</td>
-                  <td className="py-2.5 text-right font-mono">${fmt$(s.currentPrice)}</td>
-                  <td className="py-2.5 text-right font-mono">${fmt$(s.predictedPrice)}</td>
-                  <td className={`py-2.5 text-right font-mono font-semibold ${
-                    s.deltaPct > 0 ? "text-[var(--color-green)]" : s.deltaPct < 0 ? "text-[var(--color-red)]" : "text-[var(--color-text2)]"
-                  }`}>
-                    {s.deltaPct >= 0 ? "+" : ""}{fmtPct(s.deltaPct / 100, { decimals: 2 })}
-                  </td>
-                  <td className="py-2.5 text-right">
-                    <Badge tone={actionTone(s.action)}>{s.action}</Badge>
-                  </td>
+      {/* Signals — only OLS bot */}
+      {signals.length > 0 && (
+        <Card>
+          <SectionHeader
+            eyebrow="Modelo OLS · señales de hoy"
+            title="Predicciones del día siguiente"
+            description="BUY = delta > 0.30% · SELL = delta negativo · HOLD = entre 0% y 0.30%"
+          />
+          <div className="overflow-x-auto">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="border-b border-[var(--color-border)] text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
+                  <th className="py-2 text-left">Ticker</th>
+                  <th className="py-2 text-right">Actual</th>
+                  <th className="py-2 text-right">Predicción</th>
+                  <th className="py-2 text-right">Delta</th>
+                  <th className="py-2 text-right">Señal</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="mt-3 flex gap-4 text-[11px] text-[var(--color-text3)]">
-          <span><span className="font-semibold text-[var(--color-green)]">{buySignals.length}</span> BUY</span>
-          <span><span className="font-semibold text-[var(--color-red)]">{sellSignals.length}</span> SELL</span>
-          <span><span className="font-semibold text-[var(--color-text2)]">{signals.length - buySignals.length - sellSignals.length}</span> HOLD</span>
-        </div>
-      </Card>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-border)]">
+                {signals.map((s) => (
+                  <tr key={s.ticker} className="hover:bg-[var(--color-bg3)] transition-colors">
+                    <td className="py-2.5 font-mono font-semibold">{s.ticker}</td>
+                    <td className="py-2.5 text-right font-mono">${fmt$(s.currentPrice)}</td>
+                    <td className="py-2.5 text-right font-mono">${fmt$(s.predictedPrice)}</td>
+                    <td className={`py-2.5 text-right font-mono font-semibold ${
+                      s.deltaPct > 0 ? "text-[var(--color-green)]" : s.deltaPct < 0 ? "text-[var(--color-red)]" : "text-[var(--color-text2)]"
+                    }`}>
+                      {s.deltaPct >= 0 ? "+" : ""}{fmtPct(s.deltaPct / 100, { decimals: 2 })}
+                    </td>
+                    <td className="py-2.5 text-right">
+                      <Badge tone={actionTone(s.action)}>{s.action}</Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="mt-3 flex gap-4 text-[11px] text-[var(--color-text3)]">
+            <span><span className="font-semibold text-[var(--color-green)]">{buySignals.length}</span> BUY</span>
+            <span><span className="font-semibold text-[var(--color-red)]">{sellSignals.length}</span> SELL</span>
+            <span><span className="font-semibold text-[var(--color-text2)]">{signals.length - buySignals.length - sellSignals.length}</span> HOLD</span>
+          </div>
+        </Card>
+      )}
 
-      {/* Open Positions */}
+      {/* Open positions */}
       <Card>
-        <SectionHeader eyebrow="Alpaca · posiciones abiertas" title="Cartera activa del bot" />
+        <SectionHeader eyebrow="Alpaca · posiciones abiertas" title="Cartera activa" />
         {positions.length === 0 ? (
           <div className="rounded-[10px] border border-dashed border-[var(--color-border2)] p-8 text-center text-[13px] text-[var(--color-text3)]">
-            Sin posiciones abiertas — el bot no ha ejecutado órdenes aún.
+            Sin posiciones abiertas.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -248,8 +326,8 @@ export default function PositionsPage() {
                 <tr className="border-b border-[var(--color-border)] text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
                   <th className="py-2 text-left">Ticker</th>
                   <th className="py-2 text-right">Qty</th>
-                  <th className="py-2 text-right">Precio entrada</th>
-                  <th className="py-2 text-right">Precio actual</th>
+                  <th className="py-2 text-right">Entrada</th>
+                  <th className="py-2 text-right">Actual</th>
                   <th className="py-2 text-right">Valor</th>
                   <th className="py-2 text-right">P&amp;L</th>
                   <th className="py-2 text-right">%</th>
@@ -266,9 +344,7 @@ export default function PositionsPage() {
                       <td className="py-2.5 text-right font-mono">${fmt$(p.avg_entry_price)}</td>
                       <td className="py-2.5 text-right font-mono">${fmt$(p.current_price)}</td>
                       <td className="py-2.5 text-right font-mono">${fmt$(p.market_value)}</td>
-                      <td className={`py-2.5 text-right font-mono font-semibold ${
-                        pl >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"
-                      }`}>
+                      <td className={`py-2.5 text-right font-mono font-semibold ${pl >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
                         {pl >= 0 ? "+" : ""}${fmt$(pl)}
                       </td>
                       <td className="py-2.5 text-right">
@@ -285,12 +361,12 @@ export default function PositionsPage() {
         )}
       </Card>
 
-      {/* Recent Orders */}
+      {/* Recent orders */}
       <Card>
-        <SectionHeader eyebrow="Alpaca · historial" title="Órdenes recientes del bot" />
+        <SectionHeader eyebrow="Alpaca · historial" title="Órdenes recientes" />
         {orders.length === 0 ? (
           <div className="rounded-[10px] border border-dashed border-[var(--color-border2)] p-8 text-center text-[13px] text-[var(--color-text3)]">
-            Sin órdenes registradas aún.
+            Sin órdenes registradas.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -301,7 +377,7 @@ export default function PositionsPage() {
                   <th className="py-2 text-left">Ticker</th>
                   <th className="py-2 text-left">Tipo</th>
                   <th className="py-2 text-right">Qty</th>
-                  <th className="py-2 text-right">Precio ejecutado</th>
+                  <th className="py-2 text-right">Precio</th>
                   <th className="py-2 text-right">Estado</th>
                 </tr>
               </thead>
@@ -342,8 +418,7 @@ export default function PositionsPage() {
 
 function PageSkeleton() {
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-6 py-10">
-      <Skeleton className="h-8 w-48" />
+    <div className="space-y-5">
       <Card>
         <Skeleton className="mb-4 h-4 w-32" />
         <div className="grid grid-cols-4 gap-3">
@@ -353,7 +428,7 @@ function PageSkeleton() {
       <Card>
         <Skeleton className="mb-4 h-4 w-40" />
         <div className="space-y-2">
-          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-10" />)}
+          {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10" />)}
         </div>
       </Card>
     </div>

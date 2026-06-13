@@ -1,76 +1,99 @@
 /**
  * Server-side proxy for Alpaca paper trading data.
- * Keys never reach the browser — only called from Next.js server.
+ * Accepts ?bot=ols|capitol|trailing to select which bot's account to query.
+ * Keys never reach the browser.
  */
 
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-const ALPACA_KEY    = process.env.ALPACA_API_KEY    ?? "";
-const ALPACA_SECRET = process.env.ALPACA_SECRET_KEY ?? "";
-const ALPACA_URL    = process.env.ALPACA_BASE_URL   ?? "https://paper-api.alpaca.markets";
-const BACKEND_URL   = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const ALPACA_BASE = "https://paper-api.alpaca.markets";
+const TICKERS     = ["AMZN", "BA", "CAT", "CRM", "GOOGL", "NVDA", "QCOM", "V", "XOM"];
 
-const TICKERS = ["AMZN", "BA", "CAT", "CRM", "GOOGL", "NVDA", "QCOM", "V", "XOM"];
+const BOTS = {
+  ols: {
+    key:    process.env.ALPACA_API_KEY    ?? "",
+    secret: process.env.ALPACA_SECRET_KEY ?? "",
+    label:  "OLS Model Bot",
+  },
+  capitol: {
+    key:    process.env.ALPACA_API_KEY_2    ?? "",
+    secret: process.env.ALPACA_SECRET_KEY_2 ?? "",
+    label:  "Capitol Trades Bot",
+  },
+  trailing: {
+    key:    process.env.ALPACA_API_KEY_2    ?? "",
+    secret: process.env.ALPACA_SECRET_KEY_2 ?? "",
+    label:  "Trailing Stop Bot",
+  },
+} as const;
 
-const alpacaHeaders = {
-  "APCA-API-KEY-ID":     ALPACA_KEY,
-  "APCA-API-SECRET-KEY": ALPACA_SECRET,
-  "Content-Type":        "application/json",
-};
+type BotKey = keyof typeof BOTS;
 
-async function alpacaFetch<T>(path: string): Promise<T> {
-  const res = await fetch(`${ALPACA_URL}/v2${path}`, {
-    headers: alpacaHeaders,
+function alpacaHeaders(key: string, secret: string) {
+  return {
+    "APCA-API-KEY-ID":     key,
+    "APCA-API-SECRET-KEY": secret,
+    "Content-Type":        "application/json",
+  };
+}
+
+async function alpacaFetch<T>(path: string, key: string, secret: string): Promise<T> {
+  const res = await fetch(`${ALPACA_BASE}/v2${path}`, {
+    headers: alpacaHeaders(key, secret),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`Alpaca ${path} → ${res.status}`);
   return res.json() as Promise<T>;
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const botParam = (req.nextUrl.searchParams.get("bot") ?? "ols") as BotKey;
+  const bot = BOTS[botParam] ?? BOTS.ols;
+
   try {
     const [account, positions, orders] = await Promise.all([
-      alpacaFetch<Record<string, unknown>>("/account"),
-      alpacaFetch<Record<string, unknown>[]>("/positions"),
-      alpacaFetch<Record<string, unknown>[]>("/orders?status=all&limit=20&direction=desc"),
+      alpacaFetch<Record<string, unknown>>("/account", bot.key, bot.secret),
+      alpacaFetch<Record<string, unknown>[]>("/positions", bot.key, bot.secret),
+      alpacaFetch<Record<string, unknown>[]>("/orders?status=all&limit=30&direction=desc", bot.key, bot.secret),
     ]);
 
-    // Fetch today's signals from the portfolio backend
-    const signals = await Promise.all(
-      TICKERS.map(async (ticker) => {
-        try {
-          const r = await fetch(`${BACKEND_URL}/predictions/${ticker}`, { cache: "no-store" });
-          if (!r.ok) return null;
-          const data = (await r.json()) as { points: { predicted_price: number; actual_price: number | null }[] };
-          const pts = data.points ?? [];
-          const future = pts.slice().reverse().find((p) => p.actual_price === null);
-          const lastActual = pts.slice().reverse().find((p) => p.actual_price !== null);
-          if (!future || !lastActual) return null;
-          const delta = (future.predicted_price - lastActual.actual_price!) / lastActual.actual_price! * 100;
-          return {
-            ticker,
-            currentPrice:   lastActual.actual_price,
-            predictedPrice: future.predicted_price,
-            deltaPct:       Math.round(delta * 10000) / 10000,
-            action:         delta > 0.3 ? "BUY" : delta < 0 ? "SELL" : "HOLD",
-          };
-        } catch {
-          return null;
-        }
-      }),
-    );
+    // Signals only apply to the OLS bot (driven by the model predictions)
+    let signals: unknown[] = [];
+    if (botParam === "ols") {
+      signals = (await Promise.all(
+        TICKERS.map(async (ticker) => {
+          try {
+            const r = await fetch(`${BACKEND_URL}/predictions/${ticker}`, { cache: "no-store" });
+            if (!r.ok) return null;
+            const data = (await r.json()) as { points: { predicted_price: number; actual_price: number | null }[] };
+            const pts    = data.points ?? [];
+            const future = pts.slice().reverse().find((p) => p.actual_price === null);
+            const last   = pts.slice().reverse().find((p) => p.actual_price !== null);
+            if (!future || !last) return null;
+            const delta = (future.predicted_price - last.actual_price!) / last.actual_price! * 100;
+            return {
+              ticker,
+              currentPrice:   last.actual_price,
+              predictedPrice: future.predicted_price,
+              deltaPct:       Math.round(delta * 10000) / 10000,
+              action:         delta > 0.3 ? "BUY" : delta < 0 ? "SELL" : "HOLD",
+            };
+          } catch { return null; }
+        }),
+      )).filter(Boolean);
+    }
 
     return NextResponse.json({
+      bot:       botParam,
+      botLabel:  bot.label,
       account,
       positions,
       orders,
-      signals: signals.filter(Boolean),
+      signals,
       fetchedAt: new Date().toISOString(),
     });
   } catch (err) {
-    return NextResponse.json(
-      { error: String(err) },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
