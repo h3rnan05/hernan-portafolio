@@ -44,6 +44,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    console.log("[scenario] calling Anthropic, key present:", !!apiKey);
     const res = await fetch(ANTHROPIC_API, {
       method: "POST",
       headers: {
@@ -61,7 +62,8 @@ export async function GET(req: NextRequest) {
 
     if (!res.ok) {
       const err = await res.text();
-      return NextResponse.json({ error: err }, { status: 500 });
+      console.error("[scenario] Anthropic error:", res.status, err);
+      return NextResponse.json({ error: `Anthropic ${res.status}: ${err}` }, { status: 500 });
     }
 
     const raw = await res.json();
