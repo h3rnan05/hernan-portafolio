@@ -1,12 +1,10 @@
 /**
- * Calls Google Gemini to generate current macro scenario values + plain-language explanation.
+ * Calls OpenAI GPT-4o-mini to generate current macro scenario values + plain-language explanation.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 
-const GEMINI_MODEL = "gemini-2.0-flash";
-const GEMINI_URL = (key: string) =>
-  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
 
 function buildPrompt(lang: string): string {
   const today = new Date().toISOString().split("T")[0];
@@ -34,30 +32,41 @@ Return ONLY valid JSON, no markdown, no code blocks.`;
 
 export async function GET(req: NextRequest) {
   const lang = req.nextUrl.searchParams.get("lang") ?? "es";
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
-    return NextResponse.json({ error: "GEMINI_API_KEY not set" }, { status: 500 });
+    return NextResponse.json({ error: "OPENAI_API_KEY not set" }, { status: 500 });
   }
 
   try {
-    const res = await fetch(GEMINI_URL(apiKey), {
+    const res = await fetch(OPENAI_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
       body: JSON.stringify({
-        contents: [{ parts: [{ text: buildPrompt(lang) }] }],
-        generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
+        model: "gpt-4o-mini",
+        temperature: 0.4,
+        max_tokens: 1024,
+        messages: [
+          {
+            role: "system",
+            content: "You are a financial educator. Always respond with valid JSON only, no markdown.",
+          },
+          { role: "user", content: buildPrompt(lang) },
+        ],
       }),
     });
 
     if (!res.ok) {
       const err = await res.text();
-      console.error("[scenario] Gemini error:", res.status, err);
-      return NextResponse.json({ error: `Gemini ${res.status}: ${err}` }, { status: 500 });
+      console.error("[scenario] OpenAI error:", res.status, err);
+      return NextResponse.json({ error: `OpenAI ${res.status}: ${err}` }, { status: 500 });
     }
 
     const raw = await res.json();
-    const text: string = raw.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+    const text: string = raw.choices?.[0]?.message?.content ?? "";
     const clean = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const data = JSON.parse(clean);
 
