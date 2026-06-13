@@ -312,11 +312,11 @@ export function AreaChartCmp({
           />
           <YAxis
             tickFormatter={(v) =>
-              fmtNumber(v, { decimals: yDecimals, compact: true })
+              fmtNumber(v, { decimals: 0, compact: true })
             }
             tickLine={false}
             axisLine={false}
-            width={56}
+            width={72}
           />
           <Tooltip
             content={<CustomTooltip unit={yUnit} decimals={yDecimals} />}
