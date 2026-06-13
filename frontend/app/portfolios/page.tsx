@@ -33,7 +33,7 @@ export default async function PortfoliosPage({
 }: {
   searchParams: Promise<{ profile?: string }>;
 }) {
-  const { profile: initialId } = await searchParams;
+  const { profile: initialId = "P4_MOD_AGGRESSIVE" } = await searchParams;
   const t = await getTranslations("portfolios");
 
   let portfolios: Portfolio[] = [];
