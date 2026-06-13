@@ -22,8 +22,8 @@ const BOTS = {
     label:  "Capitol Trades Bot",
   },
   trailing: {
-    key:    process.env.ALPACA_API_KEY_2    ?? "",
-    secret: process.env.ALPACA_SECRET_KEY_2 ?? "",
+    key:    process.env.ALPACA_API_KEY_3    ?? "",
+    secret: process.env.ALPACA_SECRET_KEY_3 ?? "",
     label:  "Trailing Stop Bot",
   },
 } as const;
