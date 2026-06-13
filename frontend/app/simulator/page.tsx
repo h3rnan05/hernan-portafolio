@@ -342,7 +342,9 @@ export default function SimulatorPage() {
             <StatTile
               label={t("stat_portfolio_value")}
               value={response ? `$${fmtNumber(response.portfolio_value, { decimals: 2 })}` : "—"}
-              hint={response ? t("stat_portfolio_vs", { value: fmtNumber(response.portfolio_value_baseline, { decimals: 2 }) }) : undefined}
+              hint={response
+                ? `${t("stat_portfolio_vs", { value: fmtNumber(response.portfolio_value_baseline, { decimals: 2 }) })} · ${t("stat_portfolio_hint")}`
+                : t("stat_portfolio_hint")}
             />
             <StatTile
               label={t("stat_delta")}
