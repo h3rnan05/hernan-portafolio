@@ -64,9 +64,9 @@ const BOTS = [
   },
   {
     key: "trailing",
-    label: "Trailing Stop Bot",
+    label: "P0 Ultra Conservador Bot",
     profile: "Monitor dinámico TSLA",
-    description: "Gestiona una posición en TSLA con trailing stop dinámico para proteger ganancias.",
+    description: "Invierte en acciones de bajo riesgo según los pesos del perfil P0 Ultra Conservador.",
     color: "var(--color-violet)",
     accent: "border-[var(--color-violet)]/40 bg-[var(--color-violet)]/5",
     dot: "bg-[var(--color-violet)]",

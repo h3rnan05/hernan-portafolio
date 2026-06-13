@@ -24,7 +24,7 @@ const BOTS = {
   trailing: {
     key:    process.env.ALPACA_API_KEY_3    ?? "",
     secret: process.env.ALPACA_SECRET_KEY_3 ?? "",
-    label:  "Trailing Stop Bot",
+    label:  "P0 Ultra Conservador Bot",
   },
 } as const;
 

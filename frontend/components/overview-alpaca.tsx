@@ -54,7 +54,7 @@ type BotData = {
 const BOT_CONFIGS = [
   { key: "ols",      label: "OLS Bot",           dot: "bg-[var(--color-green)]"  },
   { key: "capitol",  label: "Capitol Trades Bot", dot: "bg-[var(--color-cyan)]"   },
-  { key: "trailing", label: "Trailing Stop Bot",  dot: "bg-[var(--color-violet)]" },
+  { key: "trailing", label: "P0 Ultra Conservador Bot",  dot: "bg-[var(--color-violet)]" },
 ];
 
 function timeAgo(iso: string): string {

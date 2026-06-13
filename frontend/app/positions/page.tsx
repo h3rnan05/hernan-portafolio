@@ -30,8 +30,8 @@ const BOTS = [
   },
   {
     key:      "trailing",
-    label:    "Trailing Stop Bot",
-    desc:     "Monitor con trailing stop dinámico",
+    label:    "P0 Ultra Conservador Bot",
+    desc:     "Portafolio conservador · consumo básico baja volatilidad",
     color:    "var(--color-violet)",
     hasSignals: false,
   },

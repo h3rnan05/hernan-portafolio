@@ -13,7 +13,7 @@ const ALPACA_URL    = process.env.ALPACA_BASE_URL   ?? "https://paper-api.alpaca
 const BOT_NAMES: Record<string, string> = {
   capitol_trades: "Capitol Trades Bot",
   ols_model:      "OLS Model Bot",
-  trailing_stop:  "Trailing Stop Bot",
+  trailing_stop:  "P0 Ultra Conservador Bot",
 };
 
 async function getAlpacaHistory(period = "3M") {

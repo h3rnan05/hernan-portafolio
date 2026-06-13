@@ -61,7 +61,7 @@ const BOT_COLORS = {
 const BOTS = [
   { key: "ols",      label: "OLS Model Bot",       color: BOT_COLORS.ols,      desc: "Predicciones del modelo de regresión" },
   { key: "capitol",  label: "Capitol Trades Bot",   color: BOT_COLORS.capitol,  desc: "Copia trades del Congreso (Pelosi)" },
-  { key: "trailing", label: "Trailing Stop Bot",    color: BOT_COLORS.trailing, desc: "Monitor con trailing stop dinámico" },
+  { key: "trailing", label: "P0 Ultra Conservador Bot",    color: BOT_COLORS.trailing, desc: "Portafolio conservador · consumo básico baja volatilidad" },
 ];
 
 // ─── Fetch ───────────────────────────────────────────────────────────────────
