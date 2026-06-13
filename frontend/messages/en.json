@@ -105,6 +105,10 @@
     "mape_30d": "MAPE 30d"
   },
   "profiles": {
+    "P0": {
+      "name": "Ultra Conservative",
+      "description": "Minimum-variance across consumer staples and low-vol names (KMB, CLX, CL, KHC, MDLZ, HSY, FDX, AAL, BMGL). Most stable stocks get the largest allocation."
+    },
     "P1": {
       "name": "Conservative",
       "description": "Low-volatility bias adjusted by model confidence (R²)."

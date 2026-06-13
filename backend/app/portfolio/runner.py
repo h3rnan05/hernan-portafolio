@@ -26,7 +26,7 @@ from app.models import (
     PortfolioSnapshot,
     Prediction,
 )
-from app.portfolio.optimizer import PROFILE_DESCRIPTIONS, build_portfolios
+from app.portfolio.optimizer import PROFILE_DESCRIPTIONS, LOW_VOL_TICKERS, build_portfolios
 
 log = structlog.get_logger(__name__)
 
@@ -286,6 +286,10 @@ async def rebuild_portfolios(
         })
 
     metrics_df = pd.DataFrame(metrics_rows).set_index("ticker")
+
+    # P1–P5 are built from the full active-model set (original 9 stocks).
+    # P0 is built from the low-vol subset only — build_portfolios handles it
+    # internally but only emits P0 when LOW_VOL_TICKERS models are active.
     profiles = build_portfolios(metrics_df)
 
     rows = [

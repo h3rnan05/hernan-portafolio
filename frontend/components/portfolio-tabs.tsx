@@ -20,12 +20,13 @@ import type { Portfolio } from "@/lib/api";
 
 const ACTIVE_PROFILE = "P4_MOD_AGGRESSIVE";
 
-const PROFILE_TONES: Record<string, "blue" | "cyan" | "green" | "amber" | "red"> = {
-  P1_CONSERVATIVE:    "blue",
-  P2_MOD_CONSERVATIVE:"cyan",
-  P3_BALANCED:        "green",
-  P4_MOD_AGGRESSIVE:  "amber",
-  P5_AGGRESSIVE:      "red",
+const PROFILE_TONES: Record<string, "blue" | "cyan" | "green" | "amber" | "red" | "neutral"> = {
+  P0_ULTRA_CONSERVATIVE: "neutral",
+  P1_CONSERVATIVE:       "blue",
+  P2_MOD_CONSERVATIVE:   "cyan",
+  P3_BALANCED:           "green",
+  P4_MOD_AGGRESSIVE:     "amber",
+  P5_AGGRESSIVE:         "red",
 };
 
 const SERIES_COLORS = [

@@ -105,6 +105,10 @@
     "mape_30d": "MAPE 30d"
   },
   "profiles": {
+    "P0": {
+      "name": "Ultra Conservador",
+      "description": "Mínima varianza en acciones de consumo básico y baja volatilidad (KMB, CLX, CL, KHC, MDLZ, HSY, FDX, AAL, BMGL). Las acciones más estables reciben mayor peso."
+    },
     "P1": {
       "name": "Conservador",
       "description": "Sesgo de baja volatilidad ajustado por la confianza del modelo (R²)."

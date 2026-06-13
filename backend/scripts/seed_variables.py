@@ -447,6 +447,126 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
             {"name": "yfinance", "symbol": "RELIANCE.NS"},
         ],
     ),
+    # ─── Low-volatility / consumer-staples group (9) ────────────────────────
+    # These stocks feed the P0_ULTRA_CONSERVATIVE portfolio profile.
+    # All trade on NYSE/NASDAQ; BMGL is on SGX (Singapore Exchange).
+    (
+        "KMB",
+        "Kimberly-Clark",
+        "stock",
+        "US Equity",
+        "USD",
+        [
+            {"name": "eodhd", "symbol": "KMB.US"},
+            {"name": "polygon", "symbol": "KMB"},
+            {"name": "twelve_data", "symbol": "KMB"},
+            {"name": "yfinance", "symbol": "KMB"},
+        ],
+    ),
+    (
+        "CLX",
+        "Clorox",
+        "stock",
+        "US Equity",
+        "USD",
+        [
+            {"name": "eodhd", "symbol": "CLX.US"},
+            {"name": "polygon", "symbol": "CLX"},
+            {"name": "twelve_data", "symbol": "CLX"},
+            {"name": "yfinance", "symbol": "CLX"},
+        ],
+    ),
+    (
+        "CL",
+        "Colgate-Palmolive",
+        "stock",
+        "US Equity",
+        "USD",
+        [
+            {"name": "eodhd", "symbol": "CL.US"},
+            {"name": "polygon", "symbol": "CL"},
+            {"name": "twelve_data", "symbol": "CL"},
+            {"name": "yfinance", "symbol": "CL"},
+        ],
+    ),
+    (
+        "KHC",
+        "Kraft Heinz",
+        "stock",
+        "US Equity",
+        "USD",
+        [
+            {"name": "eodhd", "symbol": "KHC.US"},
+            {"name": "polygon", "symbol": "KHC"},
+            {"name": "twelve_data", "symbol": "KHC"},
+            {"name": "yfinance", "symbol": "KHC"},
+        ],
+    ),
+    (
+        "MDLZ",
+        "Mondelez International",
+        "stock",
+        "US Equity",
+        "USD",
+        [
+            {"name": "eodhd", "symbol": "MDLZ.US"},
+            {"name": "polygon", "symbol": "MDLZ"},
+            {"name": "twelve_data", "symbol": "MDLZ"},
+            {"name": "yfinance", "symbol": "MDLZ"},
+        ],
+    ),
+    (
+        "HSY",
+        "Hershey",
+        "stock",
+        "US Equity",
+        "USD",
+        [
+            {"name": "eodhd", "symbol": "HSY.US"},
+            {"name": "polygon", "symbol": "HSY"},
+            {"name": "twelve_data", "symbol": "HSY"},
+            {"name": "yfinance", "symbol": "HSY"},
+        ],
+    ),
+    (
+        "FDX",
+        "FedEx Corp",
+        "stock",
+        "US Equity",
+        "USD",
+        [
+            {"name": "eodhd", "symbol": "FDX.US"},
+            {"name": "polygon", "symbol": "FDX"},
+            {"name": "twelve_data", "symbol": "FDX"},
+            {"name": "yfinance", "symbol": "FDX"},
+        ],
+    ),
+    (
+        "AAL",
+        "American Airlines",
+        "stock",
+        "US Equity",
+        "USD",
+        [
+            {"name": "eodhd", "symbol": "AAL.US"},
+            {"name": "polygon", "symbol": "AAL"},
+            {"name": "twelve_data", "symbol": "AAL"},
+            {"name": "yfinance", "symbol": "AAL"},
+        ],
+    ),
+    (
+        "BMGL",
+        "Basel Medical Group",
+        "stock",
+        "SG Equity",
+        "SGD",
+        # Singapore Exchange (SGX). EODHD All-World covers SGX as .SG;
+        # yfinance uses the .SI suffix for SGX tickers.
+        [
+            {"name": "eodhd", "symbol": "BMGL.SG"},
+            {"name": "yfinance", "symbol": "BMGL.SI"},
+        ],
+    ),
     # ─── Portfolio stocks (9) — EODHD primary, Polygon + TD + yfinance fallbacks
     (
         "NVDA",

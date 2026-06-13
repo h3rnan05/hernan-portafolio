@@ -21,6 +21,7 @@ export const revalidate = 3600;
 
 // Canonical display order for the five profiles.
 const PROFILE_ORDER = [
+  "P0_ULTRA_CONSERVATIVE",
   "P1_CONSERVATIVE",
   "P2_MOD_CONSERVATIVE",
   "P3_BALANCED",
