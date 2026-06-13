@@ -1,14 +1,7 @@
 "use client";
 
-/**
- * Simulator — shows the expected IMPACT of macro / external variables on each
- * stock and, in aggregate, on the portfolio. Moving a variable pushes its
- * change through every active model; the per-ticker + portfolio effect updates
- * in real time. (Calculations are unchanged — this is a framing layer.)
- */
-
-import { useTranslations } from "next-intl";
-import { useEffect, useMemo, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
+import { useEffect, useState } from "react";
 
 import {
   Badge,
@@ -19,41 +12,76 @@ import {
   SectionHeader,
   StatTile,
 } from "@/components/primitives";
-import { api, type SimulateResponse, type Variable } from "@/lib/api";
+import { api, type SimulateResponse } from "@/lib/api";
 
-const PRESET_SLIDERS: Array<{
-  id: string;
-  tkey: string;
-  min: number;
-  max: number;
-  step: number;
-  unit: string;
-}> = [
-  { id: "CPI_YoY_US", tkey: "slider_cpi", min: -0.02, max: 0.02, step: 0.0005, unit: "log-ret" },
-  { id: "EUR_USD", tkey: "slider_eurusd", min: -0.03, max: 0.03, step: 0.001, unit: "log-ret" },
-  { id: "Brent_Crude", tkey: "slider_brent", min: -0.05, max: 0.05, step: 0.002, unit: "log-ret" },
-  { id: "Gold_Spot", tkey: "slider_gold", min: -0.04, max: 0.04, step: 0.001, unit: "log-ret" },
-  { id: "Unemployment_Rate_US", tkey: "slider_unemployment", min: -0.02, max: 0.02, step: 0.0005, unit: "log-ret" },
-  { id: "USD_CNY", tkey: "slider_usdcny", min: -0.02, max: 0.02, step: 0.001, unit: "log-ret" },
+// ─── Slider definitions ──────────────────────────────────────────────────────
+
+const SLIDERS = [
+  { id: "CPI_YoY_US",           tkey: "slider_cpi",          tipKey: "slider_cpi_tip",          min: -0.02, max: 0.02, step: 0.0005 },
+  { id: "EUR_USD",              tkey: "slider_eurusd",       tipKey: "slider_eurusd_tip",       min: -0.03, max: 0.03, step: 0.001  },
+  { id: "Brent_Crude",         tkey: "slider_brent",        tipKey: "slider_brent_tip",        min: -0.05, max: 0.05, step: 0.002  },
+  { id: "Gold_Spot",            tkey: "slider_gold",         tipKey: "slider_gold_tip",         min: -0.04, max: 0.04, step: 0.001  },
+  { id: "Unemployment_Rate_US", tkey: "slider_unemployment", tipKey: "slider_unemployment_tip", min: -0.02, max: 0.02, step: 0.0005 },
+  { id: "USD_CNY",              tkey: "slider_usdcny",       tipKey: "slider_usdcny_tip",       min: -0.02, max: 0.02, step: 0.001  },
 ];
+
+const ZERO_INPUTS = Object.fromEntries(SLIDERS.map((s) => [s.id, 0]));
+
+// ─── Preset scenarios ─────────────────────────────────────────────────────────
+
+type Scenario = { key: string; values: Record<string, number> };
+
+const SCENARIOS: Scenario[] = [
+  {
+    key: "scenario_recession",
+    values: { CPI_YoY_US: -0.005, EUR_USD: -0.015, Brent_Crude: -0.04, Gold_Spot: 0.02, Unemployment_Rate_US: 0.015, USD_CNY: 0.008 },
+  },
+  {
+    key: "scenario_trade_war",
+    values: { CPI_YoY_US: 0.008, EUR_USD: -0.01, Brent_Crude: 0.02, Gold_Spot: 0.015, Unemployment_Rate_US: 0.005, USD_CNY: 0.018 },
+  },
+  {
+    key: "scenario_oil_crisis",
+    values: { CPI_YoY_US: 0.012, EUR_USD: -0.02, Brent_Crude: 0.045, Gold_Spot: 0.01, Unemployment_Rate_US: 0.008, USD_CNY: 0.005 },
+  },
+  {
+    key: "scenario_fed_hike",
+    values: { CPI_YoY_US: 0.015, EUR_USD: -0.025, Brent_Crude: -0.01, Gold_Spot: -0.02, Unemployment_Rate_US: -0.004, USD_CNY: 0.012 },
+  },
+  {
+    key: "scenario_tech_rally",
+    values: { CPI_YoY_US: -0.003, EUR_USD: 0.008, Brent_Crude: -0.015, Gold_Spot: -0.01, Unemployment_Rate_US: -0.006, USD_CNY: -0.005 },
+  },
+];
+
+// ─── AI scenario response type ────────────────────────────────────────────────
+
+type ScenarioData = {
+  values: Record<string, number>;
+  scenario_name: string;
+  explanation: string;
+  variable_context: Record<string, string>;
+};
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function SimulatorPage() {
   const t = useTranslations("simulator");
   const tc = useTranslations("common");
-  const [variables, setVariables] = useState<Variable[]>([]);
-  const [inputs, setInputs] = useState<Record<string, number>>(
-    Object.fromEntries(PRESET_SLIDERS.map((s) => [s.id, 0])),
-  );
+  const locale = useLocale();
+
+  const [inputs, setInputs] = useState<Record<string, number>>(ZERO_INPUTS);
   const [response, setResponse] = useState<SimulateResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [horizon, setHorizon] = useState(7);
+  const [activeScenario, setActiveScenario] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiData, setAiData] = useState<ScenarioData | null>(null);
+  const [tooltip, setTooltip] = useState<string | null>(null);
 
-  useEffect(() => {
-    api.listVariables("predictor").then(setVariables).catch(() => {});
-  }, []);
-
-  // Debounce simulate call
+  // Debounced simulate call
   useEffect(() => {
     const handle = setTimeout(async () => {
       setLoading(true);
@@ -76,9 +104,40 @@ export default function SimulatorPage() {
       ? response.delta / response.portfolio_value_baseline
       : null;
 
+  function applyScenario(sc: Scenario) {
+    setActiveScenario(sc.key);
+    setAiData(null);
+    setInputs({ ...ZERO_INPUTS, ...sc.values });
+  }
+
+  function resetAll() {
+    setInputs(ZERO_INPUTS);
+    setActiveScenario(null);
+    setAiData(null);
+  }
+
+  async function loadAiScenario() {
+    setAiLoading(true);
+    setAiError(null);
+    setActiveScenario("ai");
+    try {
+      const res = await fetch(`/api/scenario?lang=${locale}`);
+      if (!res.ok) throw new Error(`${res.status}`);
+      const data: ScenarioData = await res.json();
+      setAiData(data);
+      setInputs({ ...ZERO_INPUTS, ...data.values });
+    } catch (e) {
+      setAiError(t("ai_error"));
+      setActiveScenario(null);
+    } finally {
+      setAiLoading(false);
+    }
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-6 py-8">
-      <div className="mb-8">
+      {/* Header */}
+      <div className="mb-6">
         <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
           {t("eyebrow")}
         </div>
@@ -88,8 +147,79 @@ export default function SimulatorPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[420px_1fr]">
-        {/* Inputs */}
+      {/* AI + Preset scenarios row */}
+      <div className="mb-6 space-y-3">
+        {/* AI button */}
+        <button
+          onClick={loadAiScenario}
+          disabled={aiLoading}
+          className={[
+            "flex w-full items-center gap-3 rounded-[12px] border px-4 py-3 text-left transition",
+            activeScenario === "ai"
+              ? "border-[var(--color-cyan)] bg-[var(--color-cyan)]/10 text-[var(--color-cyan)]"
+              : "border-[var(--color-border)] bg-[var(--color-bg2)] text-[var(--color-text)] hover:border-[var(--color-cyan)]/50",
+          ].join(" ")}
+        >
+          <span className="text-lg">✨</span>
+          <div className="flex-1">
+            <div className="text-[13px] font-semibold">
+              {aiLoading ? t("ai_loading") : t("ai_btn")}
+            </div>
+            {aiData && (
+              <div className="mt-0.5 text-[11.5px] opacity-80">{aiData.scenario_name}</div>
+            )}
+          </div>
+          {aiLoading && (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-[var(--color-cyan)] border-t-transparent" />
+          )}
+        </button>
+
+        {/* Preset scenario chips */}
+        <div className="flex flex-wrap gap-2">
+          {SCENARIOS.map((sc) => (
+            <button
+              key={sc.key}
+              onClick={() => applyScenario(sc)}
+              className={[
+                "rounded-full border px-3 py-1 text-[12px] font-medium transition active:scale-95",
+                activeScenario === sc.key
+                  ? "border-[var(--color-violet)] bg-[var(--color-violet)]/15 text-[var(--color-violet)]"
+                  : "border-[var(--color-border)] bg-[var(--color-bg2)] text-[var(--color-text2)] hover:border-[var(--color-border3)] hover:text-[var(--color-text)]",
+              ].join(" ")}
+            >
+              {t(sc.key as Parameters<typeof t>[0])}
+            </button>
+          ))}
+          <button
+            onClick={resetAll}
+            className="rounded-full border border-[var(--color-border)] bg-[var(--color-bg2)] px-3 py-1 text-[12px] font-medium text-[var(--color-text3)] transition hover:text-[var(--color-text)]"
+          >
+            ↺ {t("reset")}
+          </button>
+        </div>
+      </div>
+
+      {/* AI narrative */}
+      {aiData && (
+        <Card className="mb-6">
+          <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-cyan)]">
+            {t("ai_context_eyebrow")}
+          </div>
+          <h3 className="mb-2 text-[14px] font-semibold">{aiData.scenario_name}</h3>
+          <p className="text-[13px] leading-relaxed text-[var(--color-text2)]">
+            {aiData.explanation}
+          </p>
+        </Card>
+      )}
+      {aiError && (
+        <div className="mb-4 rounded-[10px] bg-[var(--color-red)]/10 px-4 py-3 text-[12.5px] text-[var(--color-red)]">
+          {aiError}
+        </div>
+      )}
+
+      {/* Main grid */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[380px_1fr]">
+        {/* Sliders */}
         <Card>
           <SectionHeader
             eyebrow={t("inputs_eyebrow")}
@@ -97,48 +227,73 @@ export default function SimulatorPage() {
             description={t("inputs_desc")}
           />
           <div className="space-y-5">
-            {PRESET_SLIDERS.map((s) => (
-              <div key={s.id}>
-                <div className="mb-1 flex items-center justify-between">
-                  <label
-                    htmlFor={`slider-${s.id}`}
-                    className="text-[12px] font-medium text-[var(--color-text)]"
-                  >
-                    {t(s.tkey)}
-                  </label>
-                  <span className="font-mono tabular text-[11.5px] text-[var(--color-text2)]">
-                    {fmtPct(inputs[s.id] ?? 0, { signed: true, decimals: 3 })}
-                  </span>
+            {SLIDERS.map((s) => {
+              const val = inputs[s.id] ?? 0;
+              const tip = aiData?.variable_context?.[s.id];
+              return (
+                <div key={s.id}>
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <label
+                        htmlFor={`sl-${s.id}`}
+                        className="text-[12px] font-medium text-[var(--color-text)] truncate"
+                      >
+                        {t(s.tkey as Parameters<typeof t>[0])}
+                      </label>
+                      {/* Tooltip trigger */}
+                      <button
+                        type="button"
+                        onMouseEnter={() => setTooltip(s.id)}
+                        onMouseLeave={() => setTooltip(null)}
+                        onFocus={() => setTooltip(s.id)}
+                        onBlur={() => setTooltip(null)}
+                        className="relative flex-shrink-0 text-[10px] text-[var(--color-text3)] hover:text-[var(--color-text2)]"
+                        aria-label="info"
+                      >
+                        ⓘ
+                        {tooltip === s.id && (
+                          <div className="absolute bottom-full left-0 z-50 mb-1.5 w-56 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] p-2.5 text-left text-[11.5px] leading-relaxed text-[var(--color-text2)] shadow-lg">
+                            {tip ?? t(s.tipKey as Parameters<typeof t>[0])}
+                          </div>
+                        )}
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {val !== 0 && (
+                        <span className={`text-[10px] font-medium ${val > 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
+                          {val > 0 ? "▲" : "▼"}
+                        </span>
+                      )}
+                      <span className="font-mono text-[11px] tabular text-[var(--color-text2)]">
+                        {fmtPct(val, { signed: true, decimals: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                  <input
+                    id={`sl-${s.id}`}
+                    type="range"
+                    min={s.min}
+                    max={s.max}
+                    step={s.step}
+                    value={val}
+                    onChange={(e) => {
+                      setActiveScenario(null);
+                      setAiData(null);
+                      setInputs((p) => ({ ...p, [s.id]: parseFloat(e.target.value) }));
+                    }}
+                    className="h-1.5 w-full cursor-ew-resize appearance-none rounded-full bg-[var(--color-bg4)] accent-[var(--color-cyan)]"
+                  />
                 </div>
-                <input
-                  id={`slider-${s.id}`}
-                  type="range"
-                  min={s.min}
-                  max={s.max}
-                  step={s.step}
-                  value={inputs[s.id] ?? 0}
-                  onChange={(e) =>
-                    setInputs((p) => ({
-                      ...p,
-                      [s.id]: parseFloat(e.target.value),
-                    }))
-                  }
-                  className="h-1.5 w-full cursor-ew-resize appearance-none rounded-full bg-[var(--color-bg4)] accent-[var(--color-cyan)]"
-                />
-              </div>
-            ))}
+              );
+            })}
 
+            {/* Horizon */}
             <div className="border-t border-[var(--color-border)] pt-4">
               <div className="mb-1 flex items-center justify-between">
-                <label
-                  htmlFor="horizon"
-                  className="text-[12px] font-medium text-[var(--color-text)]"
-                >
+                <label htmlFor="horizon" className="text-[12px] font-medium text-[var(--color-text)]">
                   {t("horizon")}
                 </label>
-                <span className="font-mono tabular text-[11.5px] text-[var(--color-text2)]">
-                  {horizon}d
-                </span>
+                <span className="font-mono text-[11px] tabular text-[var(--color-text2)]">{horizon}d</span>
               </div>
               <input
                 id="horizon"
@@ -151,53 +306,24 @@ export default function SimulatorPage() {
                 className="h-1.5 w-full cursor-ew-resize appearance-none rounded-full bg-[var(--color-bg4)] accent-[var(--color-cyan)]"
               />
             </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                setInputs(
-                  Object.fromEntries(PRESET_SLIDERS.map((s) => [s.id, 0])),
-                )
-              }
-              className="w-full rounded-[10px] bg-[var(--color-bg4)] py-2 text-[12px] font-medium text-[var(--color-text2)] transition active:scale-[0.97] hover:bg-[var(--color-border3)] hover:text-[var(--color-text)]"
-            >
-              {t("reset")}
-            </button>
           </div>
         </Card>
 
-        {/* Outputs */}
+        {/* Results */}
         <div className="space-y-4">
+          {/* Stats */}
           <div className="grid grid-cols-3 gap-3">
             <StatTile
               label={t("stat_portfolio_value")}
-              value={
-                response
-                  ? `$${fmtNumber(response.portfolio_value, { decimals: 2 })}`
-                  : "—"
-              }
-              hint={
-                response
-                  ? t("stat_portfolio_vs", { value: fmtNumber(response.portfolio_value_baseline, { decimals: 2 }) })
-                  : undefined
-              }
+              value={response ? `$${fmtNumber(response.portfolio_value, { decimals: 2 })}` : "—"}
+              hint={response ? t("stat_portfolio_vs", { value: fmtNumber(response.portfolio_value_baseline, { decimals: 2 }) }) : undefined}
             />
             <StatTile
               label={t("stat_delta")}
-              value={
-                response
-                  ? `$${fmtNumber(response.delta, { decimals: 2 })}`
-                  : "—"
-              }
+              value={response ? `$${fmtNumber(response.delta, { decimals: 2 })}` : "—"}
               delta={
                 portfolioDeltaPct !== null
-                  ? {
-                      value: fmtPct(portfolioDeltaPct, {
-                        signed: true,
-                        decimals: 2,
-                      }),
-                      tone: portfolioDeltaPct >= 0 ? "green" : "red",
-                    }
+                  ? { value: fmtPct(portfolioDeltaPct, { signed: true, decimals: 2 }), tone: portfolioDeltaPct >= 0 ? "green" : "red" }
                   : undefined
               }
             />
@@ -210,21 +336,17 @@ export default function SimulatorPage() {
           </div>
 
           {loading && (
-            <div className="text-[11.5px] text-[var(--color-text3)]">
-              {t("recomputing")}
-            </div>
+            <p className="text-[11.5px] text-[var(--color-text3)]">{t("recomputing")}</p>
           )}
           {error && (
             <Card>
-              <div className="text-[12.5px] text-[var(--color-red)]">{error}</div>
+              <p className="text-[12.5px] text-[var(--color-red)]">{error}</p>
             </Card>
           )}
 
+          {/* Per-ticker table */}
           {!response || response.per_ticker.length === 0 ? (
-            <EmptyState
-              title={t("empty_title")}
-              description={t("empty_desc")}
-            />
+            <EmptyState title={t("empty_title")} description={t("empty_desc")} />
           ) : (
             <Card>
               <SectionHeader
@@ -238,62 +360,65 @@ export default function SimulatorPage() {
                     <tr className="border-b border-[var(--color-border)] text-left text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
                       <th className="py-2 pr-3 font-medium">{tc("ticker")}</th>
                       <th className="py-2 pr-3 text-right font-medium">{tc("last")}</th>
-                      <th className="py-2 pr-3 text-right font-medium">
-                        {tc("predicted")}
-                      </th>
-                      <th className="py-2 pr-3 text-right font-medium">
-                        {t("th_delta_return")}
-                      </th>
-                      <th className="py-2 pr-3 text-left font-medium">
-                        {t("th_top_driver")}
-                      </th>
+                      <th className="py-2 pr-3 text-right font-medium">{tc("predicted")}</th>
+                      <th className="py-2 pr-3 text-right font-medium">{t("th_delta_return")}</th>
+                      <th className="py-2 pr-3 text-left font-medium">{t("th_top_driver")}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {response.per_ticker.map((t) => {
-                      const driver = topDriver(t.contributions);
-                      return (
-                        <tr
-                          key={t.ticker}
-                          className="border-b border-[var(--color-border)] last:border-0"
-                        >
-                          <td className="py-2 pr-3 font-mono font-medium">
-                            {t.ticker}
-                          </td>
-                          <td className="py-2 pr-3 text-right font-mono tabular text-[var(--color-text2)]">
-                            ${fmtNumber(t.last_price, { decimals: 2 })}
-                          </td>
-                          <td className="py-2 pr-3 text-right font-mono tabular">
-                            ${fmtNumber(t.predicted_price, { decimals: 2 })}
-                          </td>
-                          <td className="py-2 pr-3 text-right">
-                            <Badge
-                              tone={t.predicted_return >= 0 ? "green" : "red"}
-                            >
-                              {fmtPct(t.predicted_return, {
-                                signed: true,
-                                decimals: 3,
-                              })}
-                            </Badge>
-                          </td>
-                          <td className="py-2 pr-3 text-[var(--color-text2)]">
-                            {driver ? (
-                              <span className="font-mono">
-                                {driver.name}{" "}
-                                <span className="text-[var(--color-text3)]">
-                                  ({fmtPct(driver.value, { signed: true, decimals: 3 })})
+                    {response.per_ticker
+                      .slice()
+                      .sort((a, b) => Math.abs(b.predicted_return) - Math.abs(a.predicted_return))
+                      .map((row) => {
+                        const driver = topDriver(row.contributions);
+                        const isUp = row.predicted_return >= 0;
+                        return (
+                          <tr key={row.ticker} className="border-b border-[var(--color-border)] last:border-0">
+                            <td className="py-2.5 pr-3">
+                              <span className="font-mono font-semibold">{row.ticker}</span>
+                            </td>
+                            <td className="py-2.5 pr-3 text-right font-mono tabular text-[var(--color-text2)]">
+                              ${fmtNumber(row.last_price, { decimals: 2 })}
+                            </td>
+                            <td className="py-2.5 pr-3 text-right font-mono tabular">
+                              ${fmtNumber(row.predicted_price, { decimals: 2 })}
+                            </td>
+                            <td className="py-2.5 pr-3 text-right">
+                              <Badge tone={isUp ? "green" : "red"}>
+                                {fmtPct(row.predicted_return, { signed: true, decimals: 2 })}
+                              </Badge>
+                            </td>
+                            <td className="py-2.5 pr-3 text-[var(--color-text2)]">
+                              {driver ? (
+                                <span className="font-mono text-[11.5px]">
+                                  {friendlyDriverName(driver.name)}{" "}
+                                  <span className="text-[var(--color-text3)]">
+                                    ({fmtPct(driver.value, { signed: true, decimals: 2 })})
+                                  </span>
                                 </span>
-                              </span>
-                            ) : (
-                              "—"
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
+                              ) : "—"}
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
+
+              {/* Impact summary bar */}
+              {portfolioDeltaPct !== null && (
+                <div className={[
+                  "mt-4 rounded-[10px] border px-4 py-3 text-[13px] font-medium",
+                  portfolioDeltaPct >= 0
+                    ? "border-[var(--color-green)]/30 bg-[var(--color-green)]/8 text-[var(--color-green)]"
+                    : "border-[var(--color-red)]/30 bg-[var(--color-red)]/8 text-[var(--color-red)]",
+                ].join(" ")}>
+                  {portfolioDeltaPct >= 0 ? "▲" : "▼"}{" "}
+                  {locale === "es"
+                    ? `Con este escenario, tu portafolio ${portfolioDeltaPct >= 0 ? "ganaría" : "perdería"} un ${fmtPct(Math.abs(portfolioDeltaPct), { decimals: 2 })} en ${horizon} días.`
+                    : `Under this scenario, your portfolio would ${portfolioDeltaPct >= 0 ? "gain" : "lose"} ${fmtPct(Math.abs(portfolioDeltaPct), { decimals: 2 })} over ${horizon} days.`}
+                </div>
+              )}
             </Card>
           )}
         </div>
@@ -304,11 +429,22 @@ export default function SimulatorPage() {
 
 function topDriver(contribs: Record<string, number>): { name: string; value: number } | null {
   const entries = Object.entries(contribs);
-  if (entries.length === 0) return null;
-  const max = entries.reduce(
-    (acc, [name, value]) =>
-      Math.abs(value) > Math.abs(acc.value) ? { name, value } : acc,
+  if (!entries.length) return null;
+  return entries.reduce(
+    (acc, [name, value]) => (Math.abs(value) > Math.abs(acc.value) ? { name, value } : acc),
     { name: entries[0][0], value: entries[0][1] },
   );
-  return max;
+}
+
+const DRIVER_NAMES: Record<string, string> = {
+  CPI_YoY_US: "Inflación",
+  EUR_USD: "EUR/USD",
+  Brent_Crude: "Petróleo",
+  Gold_Spot: "Oro",
+  Unemployment_Rate_US: "Desempleo",
+  USD_CNY: "USD/CNY",
+};
+
+function friendlyDriverName(id: string): string {
+  return DRIVER_NAMES[id] ?? id;
 }
