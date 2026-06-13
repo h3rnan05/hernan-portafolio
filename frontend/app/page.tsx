@@ -13,7 +13,6 @@
 import { getLocale, getTranslations } from "next-intl/server";
 import Link from "next/link";
 
-import { AreaChartCmp } from "@/components/charts";
 import { BotComparisonChart } from "@/components/bot-comparison-chart";
 import { PortfolioComparison } from "@/components/portfolio-comparison";
 import {
@@ -415,17 +414,8 @@ async function PortfolioRollupCard({
   const t = await getTranslations("overview");
   const tp = await getTranslations("profiles");
   const tc = await getTranslations("common");
-  const headline = portfolios[2] ?? portfolios[0];
   return (
-    <div className="grid grid-cols-1 gap-3 lg:grid-cols-[2fr_1fr]">
-      <Card>
-        <SectionHeader
-          eyebrow={t("rollup_eyebrow")}
-          title={headline ? profileName(headline.id, tp) : "—"}
-          description={t("rollup_chart_desc")}
-        />
-        <PortfolioMiniChart portfolioId={headline?.id} />
-      </Card>
+    <div className="grid grid-cols-1 gap-3">
       <Card>
         <SectionHeader
           eyebrow={t("ranked_eyebrow")}
@@ -463,35 +453,3 @@ async function PortfolioRollupCard({
   );
 }
 
-async function PortfolioMiniChart({ portfolioId }: { portfolioId?: string }) {
-  const t = await getTranslations("overview");
-  const tc = await getTranslations("common");
-  if (!portfolioId)
-    return (
-      <div className="py-12 text-center text-[12px] text-[var(--color-text3)]">
-        {t("no_portfolio_selected")}
-      </div>
-    );
-  const data = await safe(() => api.getPortfolioPredictions(portfolioId, 60));
-  if (!data.ok || data.data.points.length === 0)
-    return (
-      <div className="py-12 text-center text-[12px] text-[var(--color-text3)]">
-        {t("no_prediction_history")}
-      </div>
-    );
-  const chartData = data.data.points.map((p) => ({
-    date: p.predicted_for,
-    predicted: p.predicted_value,
-    actual: p.actual_value,
-  }));
-  return (
-    <AreaChartCmp
-      data={chartData}
-      dataKey="predicted"
-      label={tc("predicted")}
-      yUnit=""
-      yDecimals={2}
-      height={200}
-    />
-  );
-}
