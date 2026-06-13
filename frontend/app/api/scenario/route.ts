@@ -1,17 +1,14 @@
 /**
- * Calls Claude to generate current macro scenario values + plain-language explanation.
+ * Calls Google Gemini to generate current macro scenario values + plain-language explanation.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 
-const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
+const GEMINI_MODEL = "gemini-1.5-flash";
+const GEMINI_URL = (key: string) =>
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`;
 
-const SYSTEM = `You are a financial educator. Given the current world economic situation,
-you generate realistic macro variable shock values (as log-returns, small decimals) and
-explain them in plain language for someone learning about finance.
-Always respond with valid JSON only, no markdown code blocks.`;
-
-function userPrompt(lang: string) {
+function buildPrompt(lang: string): string {
   const today = new Date().toISOString().split("T")[0];
   const inLang = lang === "es" ? "en español" : "in English";
   return `Today is ${today}.
@@ -32,42 +29,35 @@ Analyze the CURRENT global economic situation and return a JSON object with thes
 "variable_context": object mapping each variable ID to one plain sentence ${inLang}
   describing what that variable means and its current direction.
 
-Return ONLY valid JSON, no markdown.`;
+Return ONLY valid JSON, no markdown, no code blocks.`;
 }
 
 export async function GET(req: NextRequest) {
   const lang = req.nextUrl.searchParams.get("lang") ?? "es";
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
 
   if (!apiKey) {
-    return NextResponse.json({ error: "ANTHROPIC_API_KEY not set" }, { status: 500 });
+    return NextResponse.json({ error: "GEMINI_API_KEY not set" }, { status: 500 });
   }
 
   try {
-    console.log("[scenario] calling Anthropic, key present:", !!apiKey);
-    const res = await fetch(ANTHROPIC_API, {
+    const res = await fetch(GEMINI_URL(apiKey), {
       method: "POST",
-      headers: {
-        "x-api-key": apiKey,
-        "anthropic-version": "2023-06-01",
-        "content-type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-haiku-4-5-20251001",
-        max_tokens: 1024,
-        system: SYSTEM,
-        messages: [{ role: "user", content: userPrompt(lang) }],
+        contents: [{ parts: [{ text: buildPrompt(lang) }] }],
+        generationConfig: { temperature: 0.4, maxOutputTokens: 1024 },
       }),
     });
 
     if (!res.ok) {
       const err = await res.text();
-      console.error("[scenario] Anthropic error:", res.status, err);
-      return NextResponse.json({ error: `Anthropic ${res.status}: ${err}` }, { status: 500 });
+      console.error("[scenario] Gemini error:", res.status, err);
+      return NextResponse.json({ error: `Gemini ${res.status}: ${err}` }, { status: 500 });
     }
 
     const raw = await res.json();
-    const text: string = raw.content?.[0]?.text ?? "";
+    const text: string = raw.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
     const clean = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const data = JSON.parse(clean);
 
