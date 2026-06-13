@@ -148,12 +148,12 @@ export default function SimulatorPage() {
     setActiveScenario("ai");
     try {
       const res = await fetch(`/api/scenario?lang=${locale}`);
-      if (!res.ok) throw new Error(`${res.status}`);
-      const data: ScenarioData = await res.json();
-      setAiData(data);
-      setInputs({ ...ZERO_INPUTS, ...data.values });
+      const json = await res.json();
+      if (!res.ok || json.error) throw new Error(json.error ?? `HTTP ${res.status}`);
+      setAiData(json as ScenarioData);
+      setInputs({ ...ZERO_INPUTS, ...(json as ScenarioData).values });
     } catch (e) {
-      setAiError(t("ai_error"));
+      setAiError(`Error: ${e instanceof Error ? e.message : String(e)}`);
       setActiveScenario(null);
     } finally {
       setAiLoading(false);
