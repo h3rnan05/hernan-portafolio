@@ -7,7 +7,7 @@ import Link from "next/link";
 
 import { BotComparisonChart } from "@/components/bot-comparison-chart";
 import { PortfolioComparison } from "@/components/portfolio-comparison";
-import { AlpacaStatsBar, OlsBotStatus, RecentActivity } from "@/components/overview-alpaca";
+import { AlpacaStatsBar, OlsBotStatus, CapitolBotStatus, P0BotStatus, RecentActivity } from "@/components/overview-alpaca";
 import {
   Badge,
   Card,
@@ -113,9 +113,15 @@ export default async function Overview() {
       {/* Stats bar — live Alpaca data */}
       <AlpacaStatsBar />
 
-      {/* Main grid: OLS bot status + recent activity */}
-      <div className="mb-10 grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1fr]">
+      {/* 3 bot cards */}
+      <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <OlsBotStatus />
+        <CapitolBotStatus />
+        <P0BotStatus />
+      </div>
+
+      {/* Recent activity — tabbed by bot */}
+      <div className="mb-10">
         <RecentActivity />
       </div>
 
