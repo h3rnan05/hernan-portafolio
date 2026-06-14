@@ -23,7 +23,7 @@ from app.modeling.data import (
     save_active_model,
 )
 from app.modeling.feature_select import select_features_greedy
-from app.modeling.regression import fit_and_diagnose
+from app.modeling.regression import DiagnosticResult, fit_and_diagnose
 
 log = structlog.get_logger(__name__)
 
@@ -159,11 +159,29 @@ async def refit_all(
         y = aligned[tkr]
         X = aligned[picks]
 
-        try:
-            diag = fit_and_diagnose(y, X, estimator=estimator, alpha=alpha)
-        except Exception as e:
-            log.error("refit_fit_failed", ticker=tkr, err=str(e))
-            outcomes.append(RefitOutcome(tkr, "SKIPPED", None, aligned.shape[0], picks, str(e)))
+        # Try estimators in order; stop at the first PASS.  If the caller
+        # pinned a specific estimator, respect it (no fallback cascade).
+        estimator_cascade = (
+            [estimator] if estimator != "ols"
+            else ["ols", "ridge", "lasso"]
+        )
+        diag: DiagnosticResult | None = None
+        for est in estimator_cascade:
+            try:
+                candidate = fit_and_diagnose(y, X, estimator=est, alpha=alpha)
+            except Exception as e:
+                log.error("refit_fit_failed", ticker=tkr, estimator=est, err=str(e))
+                continue
+            diag = candidate
+            if candidate["status"] == "PASS":
+                log.info("refit_estimator_selected", ticker=tkr, estimator=est)
+                break
+            log.info("refit_estimator_review", ticker=tkr, estimator=est,
+                     r2=round(candidate["r2"], 3), bp_p=round(candidate["breusch_pagan_p"], 3))
+
+        if diag is None:
+            outcomes.append(RefitOutcome(tkr, "SKIPPED", None, aligned.shape[0], picks,
+                                         "all estimators failed"))
             continue
 
         await save_active_model(

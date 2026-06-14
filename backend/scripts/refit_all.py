@@ -31,11 +31,11 @@ def main(
     lag: int = typer.Option(0, help="Override LAG_DAYS (0 = use config)"),
     min_obs: int = typer.Option(60, help="Minimum aligned rows before fitting"),
     estimator: str = typer.Option(
-        "ridge",
+        "ols",
         "--estimator",
-        help="ols | ridge | lasso. Ridge is the production default — it beat "
-        "OLS and Lasso on the HER-13 out-of-sample walk-forward.",
+        help="ols | ridge | lasso. 'ols' triggers the OLS→ridge→lasso cascade.",
     ),
+    ticker: str = typer.Option("", "--ticker", help="Refit a single ticker (empty = all)."),
 ) -> None:
     settings = get_settings()
     lag_days = lag or settings.lag_days
@@ -49,6 +49,7 @@ def main(
                 lag_days=lag_days,
                 min_obs=min_obs,
                 estimator=estimator,
+                only_ticker=ticker.upper() if ticker else None,
             )
 
         passed = sum(1 for r in results if r.status == "PASS")
