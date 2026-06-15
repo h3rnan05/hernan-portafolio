@@ -37,6 +37,15 @@ type BotData = {
   error?: string;
 };
 
+type TradingRun = {
+  id: string;
+  ran_at: string;
+  bot: string;
+  status: "ok" | "error";
+  trades: number;
+  error: string | null;
+};
+
 // ─── Bot config ───────────────────────────────────────────────────────────────
 
 const BOTS = [
@@ -82,6 +91,7 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState<Record<string, boolean>>({
     ols: true, capitol: true, trailing: true,
   });
+  const [runs, setRuns] = useState<TradingRun[]>([]);
 
   useEffect(() => {
     BOTS.forEach(({ key }) => {
@@ -91,6 +101,10 @@ export default function AccountsPage() {
         .catch(() => setData((prev) => ({ ...prev, [key]: null })))
         .finally(() => setLoading((prev) => ({ ...prev, [key]: false })));
     });
+    fetch("/api/trading-runs")
+      .then((r) => r.json())
+      .then((d) => Array.isArray(d) && setRuns(d))
+      .catch(() => {});
   }, []);
 
   // Resumen global
@@ -152,6 +166,56 @@ export default function AccountsPage() {
           </div>
         </div>
       )}
+
+      {/* Última ejecución de los bots */}
+      {runs.length > 0 && (() => {
+        const botRunMap: Record<string, string> = { ols: "OLS Model Bot", p0: "P0 Ultra Conservador Bot", p1: "P1 Conservative Bot" };
+        const latest: Record<string, TradingRun> = {};
+        for (const r of runs) {
+          if (!latest[r.bot]) latest[r.bot] = r;
+        }
+        const keys = ["ols", "p0", "p1"];
+        return (
+          <div className="mb-8 rounded-none border border-[var(--color-border)] bg-[var(--color-bg2)] p-4">
+            <div className="mb-3 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
+              ÚLTIMA EJECUCIÓN · BOTS
+            </div>
+            <div className="flex flex-wrap gap-5">
+              {keys.map((k) => {
+                const r = latest[k];
+                if (!r) return (
+                  <div key={k} className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[var(--color-border3)]" />
+                    <span className="text-[12px] text-[var(--color-text3)]">{botRunMap[k]} — sin datos</span>
+                  </div>
+                );
+                const ago = (() => {
+                  const diff = Date.now() - new Date(r.ran_at).getTime();
+                  const h = Math.floor(diff / 3600000);
+                  const m = Math.floor((diff % 3600000) / 60000);
+                  if (h >= 24) return `hace ${Math.floor(h / 24)}d`;
+                  if (h > 0) return `hace ${h}h ${m}m`;
+                  return `hace ${m}m`;
+                })();
+                return (
+                  <div key={k} className="flex items-center gap-2">
+                    <span className={`h-2 w-2 rounded-full ${r.status === "ok" ? "bg-[var(--color-green)]" : "bg-[var(--color-red)]"}`} />
+                    <div>
+                      <div className="text-[12px] font-medium">{botRunMap[k]}</div>
+                      <div className="text-[11px] text-[var(--color-text3)]">
+                        {ago} · {r.trades} trade{r.trades !== 1 ? "s" : ""}
+                        {r.status === "error" && r.error && (
+                          <span className="ml-1 text-[var(--color-red)]">· {r.error.slice(0, 40)}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Cards por bot */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-1">

@@ -60,8 +60,8 @@ const BOT_CONFIGS = [
   },
   {
     key:        "capitol",
-    label:      "Capitol Trades Bot",
-    desc:       "Copia los trades del Congreso de EE.UU.",
+    label:      "P1 Conservative Bot",
+    desc:       "Predicciones OLS · Perfil P1 conservador",
     accentVar:  "--color-cyan",
     href:       "/positions?bot=capitol",
     schedule:   "Actualización semanal",
@@ -278,7 +278,7 @@ export function OlsBotStatus() {
   );
 }
 
-// ─── Capitol Trades Bot card ──────────────────────────────────────────────────
+// ─── P1 Conservative Bot card ──────────────────────────────────────────────────
 
 export function CapitolBotStatus() {
   const { data, loading } = useBotData("capitol");
@@ -288,7 +288,7 @@ export function CapitolBotStatus() {
 
   return (
     <div className="flex flex-col rounded-none border border-[var(--color-cyan)]/30 bg-[var(--color-cyan)]/5 p-5">
-      <BotHeader label="Capitol Trades Bot" desc="Copia los trades del Congreso de EE.UU."
+      <BotHeader label="P1 Conservative Bot" desc="Predicciones OLS · Perfil P1 conservador"
         accentVar="--color-cyan" fetchedAt={data?.fetchedAt} />
 
       {loading ? <LoadingMsg /> : (
