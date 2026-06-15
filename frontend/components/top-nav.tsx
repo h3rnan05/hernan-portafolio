@@ -7,6 +7,7 @@ import { useState } from "react";
 
 import { AuthButton } from "@/components/auth-button";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { TickerTape } from "@/components/ticker-tape";
 
 const ROUTES: { href: string; key: string; premium?: boolean }[] = [
   { href: "/", key: "overview" },
@@ -29,10 +30,12 @@ export function TopNav() {
 
   return (
     <>
-      {/* Bloomberg orange top bar */}
-      <div className="bg-[var(--color-amber)] px-4 py-0.5 text-[10px] font-semibold tracking-widest text-black uppercase hidden md:flex items-center justify-between">
-        <span>HERNAN TERMINAL · PAPER TRADING</span>
-        <span className="font-normal opacity-80">ALPACA · SUPABASE · RENDER</span>
+      {/* Bloomberg orange top bar — scrolling ticker tape */}
+      <div className="bg-[var(--color-amber)] px-4 py-0.5 hidden md:flex items-center overflow-hidden">
+        <span className="shrink-0 text-[10px] font-bold tracking-widest text-black uppercase mr-4">
+          HERNAN TERMINAL ·
+        </span>
+        <TickerTape />
       </div>
 
       <header className="sticky top-0 z-40 border-b-2 border-[var(--color-amber)] bg-[var(--color-bg)]">
