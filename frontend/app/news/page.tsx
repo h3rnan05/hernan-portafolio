@@ -20,11 +20,13 @@ type NewsArticle = {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const OLS_TICKERS = ["AMZN", "BA", "CAT", "CRM", "GOOGL", "NVDA", "QCOM", "V", "XOM"];
+const P1_TICKERS  = OLS_TICKERS; // P1 trades the same OLS universe
 const P0_TICKERS  = ["MDLZ", "CL", "KHC", "KMB", "HSY", "AAL"];
 
 const FILTERS = [
-  { key: "all",    label: "TODAS",              tickers: [...OLS_TICKERS, ...P0_TICKERS] },
+  { key: "all",    label: "TODAS",              tickers: [...new Set([...OLS_TICKERS, ...P0_TICKERS])] },
   { key: "ols",    label: "OLS BOT",            tickers: OLS_TICKERS },
+  { key: "p1",     label: "P1 CONSERVADOR",     tickers: P1_TICKERS },
   { key: "p0",     label: "P0 ULTRA CONS.",     tickers: P0_TICKERS },
 ];
 
@@ -73,9 +75,10 @@ function timeAgo(iso: string): string {
 }
 
 function portfolioForTicker(symbol: string): string {
-  if (OLS_TICKERS.includes(symbol)) return "OLS";
-  if (P0_TICKERS.includes(symbol))  return "P0";
-  return "";
+  const parts: string[] = [];
+  if (OLS_TICKERS.includes(symbol)) parts.push("OLS", "P1");
+  if (P0_TICKERS.includes(symbol))  parts.push("P0");
+  return parts.join(" · ");
 }
 
 // ─── Article card ─────────────────────────────────────────────────────────────

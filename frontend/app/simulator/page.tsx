@@ -99,8 +99,10 @@ export default function SimulatorPage() {
   const [botLoading, setBotLoading] = useState(true);
   const [p0Data, setP0Data]     = useState<BotData | null>(null);
   const [p0Loading, setP0Loading] = useState(true);
+  const [p1Data, setP1Data]     = useState<BotData | null>(null);
+  const [p1Loading, setP1Loading] = useState(true);
 
-  // Load both bots once on mount
+  // Load all 3 bots once on mount
   useEffect(() => {
     fetch("/api/bot?bot=ols")
       .then((r) => r.json())
@@ -112,6 +114,11 @@ export default function SimulatorPage() {
       .then((d) => setP0Data(d as BotData))
       .catch(() => setP0Data(null))
       .finally(() => setP0Loading(false));
+    fetch("/api/bot?bot=capitol")
+      .then((r) => r.json())
+      .then((d) => setP1Data(d as BotData))
+      .catch(() => setP1Data(null))
+      .finally(() => setP1Loading(false));
   }, []);
 
   // Debounced simulate call
@@ -488,9 +495,33 @@ export default function SimulatorPage() {
           )}
 
           {/* OLS P4 Alpaca bot impact */}
-          <OlsBotImpact
+          <BotImpactCard
+            label="OLS MODEL BOT · P4 · ALPACA PAPER"
+            accentColor="var(--color-green)"
             botData={botData}
             botLoading={botLoading}
+            simulatedReturns={response?.per_ticker ?? []}
+            horizon={horizon}
+            locale={locale}
+          />
+
+          {/* P1 Conservative bot impact */}
+          <BotImpactCard
+            label="P1 CONSERVATIVE BOT · ALPACA PAPER"
+            accentColor="var(--color-cyan)"
+            botData={p1Data}
+            botLoading={p1Loading}
+            simulatedReturns={response?.per_ticker ?? []}
+            horizon={horizon}
+            locale={locale}
+          />
+
+          {/* P0 Ultra Conservative bot impact */}
+          <BotImpactCard
+            label="P0 ULTRA CONSERVADOR · ALPACA PAPER"
+            accentColor="var(--color-violet)"
+            botData={p0Data}
+            botLoading={p0Loading}
             simulatedReturns={response?.per_ticker ?? []}
             horizon={horizon}
             locale={locale}
@@ -523,15 +554,19 @@ function friendlyDriverName(id: string): string {
   return DRIVER_NAMES[id] ?? id;
 }
 
-// ─── OLS Bot P4 Impact Component ─────────────────────────────────────────────
+// ─── Generic Bot Impact Component ────────────────────────────────────────────
 
-function OlsBotImpact({
+function BotImpactCard({
+  label,
+  accentColor,
   botData,
   botLoading,
   simulatedReturns,
   horizon,
   locale,
 }: {
+  label: string;
+  accentColor: string;
   botData: BotData | null;
   botLoading: boolean;
   simulatedReturns: SimulatedTicker[];
@@ -544,7 +579,7 @@ function OlsBotImpact({
     return (
       <Card>
         <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-          OLS MODEL BOT · P4
+          {label}
         </div>
         <p className="text-[12.5px] text-[var(--color-text3)]">
           {es ? "Cargando portafolio real de Alpaca…" : "Loading Alpaca portfolio…"}
@@ -557,7 +592,7 @@ function OlsBotImpact({
     return (
       <Card>
         <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-          OLS MODEL BOT · P4
+          {label}
         </div>
         <p className="text-[12.5px] text-[var(--color-text2)]">
           {es
@@ -592,8 +627,8 @@ function OlsBotImpact({
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
-          <div className="mb-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-cyan)]">
-            OLS MODEL BOT · P4 · ALPACA PAPER
+          <div className="mb-0.5 text-[10px] font-medium uppercase tracking-widest" style={{ color: accentColor }}>
+            {label}
           </div>
           <h3 className="text-[14px] font-semibold">
             {es ? "Impacto en el portafolio real" : "Impact on real portfolio"}

@@ -8,6 +8,7 @@ import Link from "next/link";
 import { BotComparisonChart } from "@/components/bot-comparison-chart";
 import { PortfolioComparison } from "@/components/portfolio-comparison";
 import { AlpacaStatsBar, OlsBotStatus, CapitolBotStatus, P0BotStatus, RecentActivity } from "@/components/overview-alpaca";
+import { AlpacaBotProjection } from "@/components/alpaca-bot-projection";
 import {
   Badge,
   Card,
@@ -152,25 +153,15 @@ export default async function Overview() {
         )}
       </section>
 
-      {/* Your portfolio vs predictions */}
-      {projectionR.ok && projectionR.data.rows.length > 0 && (
-        <section className="mb-10">
-          <SectionHeader
-            eyebrow={t("your_portfolio_eyebrow")}
-            title={t("your_portfolio_title")}
-            description={t("your_portfolio_desc")}
-            right={
-              <Link
-                href="/holdings"
-                className="rounded-none bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
-              >
-                {tc("edit_holdings")}
-              </Link>
-            }
-          />
-          <YourPortfolioCard projection={projectionR.data} />
-        </section>
-      )}
+      {/* Your portfolio vs predictions — live Alpaca positions */}
+      <section className="mb-10">
+        <SectionHeader
+          eyebrow="TU PORTAFOLIO"
+          title="Posición de hoy vs. predicción de mañana"
+          description="Tus posiciones reales en Alpaca Paper Trading vs. la predicción OLS del próximo día hábil."
+        />
+        <AlpacaBotProjection />
+      </section>
 
       {/* Comparative chart */}
       <section className="mb-10">
