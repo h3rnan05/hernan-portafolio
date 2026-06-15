@@ -22,7 +22,7 @@
  * only on a true cold load.
  */
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 
 import { TimeSeriesChart } from "@/components/charts";
@@ -42,10 +42,17 @@ const BENCHMARKS: { id: string; label: string; color: string }[] = [
   { id: "FTSE_100", label: "FTSE 100", color: "var(--color-red)" },
 ];
 
+const PROFILES: { id: string; label: string }[] = [
+  { id: "P0_ULTRA_CONSERVATIVE", label: "P0" },
+  { id: "P1_CONSERVATIVE",       label: "P1" },
+  { id: "P2_MOD_CONSERVATIVE",   label: "P2" },
+  { id: "P3_BALANCED",           label: "P3" },
+  { id: "P4_MOD_AGGRESSIVE",     label: "P4" },
+  { id: "P5_AGGRESSIVE",         label: "P5" },
+];
+
 const PORTFOLIO_KEY = "portfolio";
 const PORTFOLIO_COLOR = "var(--color-green)";
-// The spec's default "Mi portafolio" series is the P3 Balanced risk profile.
-const PORTFOLIO_PROFILE_ID = "P3_BALANCED";
 
 function daysAgoISO(d: number): string {
   const dt = new Date();
@@ -66,12 +73,10 @@ type ComparisonData = {
  * the component so SWR can cache the result across mounts and revalidate it in
  * the background.
  */
-async function buildComparison(): Promise<ComparisonData> {
-  // The portfolio line follows the P3 Balanced profile. Fetch its weights
-  // and the variable registry together.
+async function buildComparison(profileId: string): Promise<ComparisonData> {
   const [variables, profile] = await Promise.all([
     api.listVariables(),
-    api.getPortfolio(PORTFOLIO_PROFILE_ID).catch(() => null),
+    api.getPortfolio(profileId).catch(() => null),
   ]);
   const byId = new Map(variables.map((v) => [v.id, v]));
   const stockIds = variables
@@ -162,11 +167,17 @@ export function PortfolioComparison() {
   const t = useTranslations("comparison");
   const locale = useLocale();
   const [range, setRange] = useState<RangeKey>(30);
-  // Series the user has toggled off via the legend.
+  const [selectedProfileId, setSelectedProfileId] = useState("P3_BALANCED");
   const [hidden, setHidden] = useState<string[]>([]);
 
-  // SWR cache → instant on revisits, background refresh, skeleton only on cold.
-  const { data, isCold } = useCached("portfolio-comparison", buildComparison);
+  const fetcher = useCallback(
+    () => buildComparison(selectedProfileId),
+    [selectedProfileId],
+  );
+  const { data, isCold } = useCached(
+    `portfolio-comparison-${selectedProfileId}`,
+    fetcher,
+  );
   const rows = data?.rows ?? null;
   const available = useMemo(() => data?.available ?? [], [data]);
   const pending = data?.pending ?? [];
@@ -215,13 +226,16 @@ export function PortfolioComparison() {
     });
   }, [rows, range, available]);
 
+  const selectedProfileLabel =
+    PROFILES.find((p) => p.id === selectedProfileId)?.label ?? "P3";
+
   const series = useMemo(
     () => [
       {
         key: PORTFOLIO_KEY,
-        label: t("your_portfolio"),
+        label: `${t("your_portfolio")} (${selectedProfileLabel})`,
         color: PORTFOLIO_COLOR,
-        width: 2.75, // thickest line — the focal series
+        width: 2.75,
       },
       ...BENCHMARKS.filter((b) => available.includes(b.id)).map((b) => ({
         key: b.id,
@@ -250,7 +264,7 @@ export function PortfolioComparison() {
                 aria-pressed={range === r}
                 className={`rounded-[6px] px-2.5 py-1 text-[11px] font-medium transition-colors ${
                   range === r
-                    ? "bg-[var(--color-bg)] text-[var(--color-text)] shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
+                    ? "bg-[var(--color-bg)] text-[var(--color-text)] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
                     : "text-[var(--color-text3)] hover:text-[var(--color-text2)]"
                 }`}
               >
@@ -260,6 +274,33 @@ export function PortfolioComparison() {
           </div>
         }
       />
+
+      {/* Portfolio selector */}
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text3)]">
+          Portafolio:
+        </span>
+        <div className="flex flex-wrap gap-1">
+          {PROFILES.map((p) => {
+            const active = selectedProfileId === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setSelectedProfileId(p.id)}
+                aria-pressed={active}
+                className={`rounded-none px-3 py-1 text-[11px] font-semibold uppercase tracking-wide transition-colors border ${
+                  active
+                    ? "bg-[var(--color-amber)] border-[var(--color-amber)] text-black"
+                    : "border-[var(--color-border2)] text-[var(--color-text2)] hover:border-[var(--color-amber)] hover:text-[var(--color-amber)]"
+                }`}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
       {isCold || rows === null ? (
         <Skeleton className="h-[280px]" />
