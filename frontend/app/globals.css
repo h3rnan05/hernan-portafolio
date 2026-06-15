@@ -1,34 +1,34 @@
 @import "tailwindcss";
 
-/* Design tokens — extracted from a typical quant-terminal palette. Dark by
-   default; the algorithm is the hero so chrome stays out of its way. */
+/* Design tokens — Bloomberg Terminal palette.
+   Warm blacks, phosphor orange accent, terminal green/red for P&L. */
 @theme {
-  --color-bg: #08090d;
-  --color-bg2: #0d0f17;
-  --color-bg3: #131520;
-  --color-bg4: #181b26;
+  --color-bg: #0a0800;
+  --color-bg2: #0f0b00;
+  --color-bg3: #161000;
+  --color-bg4: #1e1600;
 
-  --color-border: #1c1f2e;
-  --color-border2: #242838;
-  --color-border3: #2e334a;
+  --color-border: #2a1f00;
+  --color-border2: #3d2e00;
+  --color-border3: #ff6600;
 
-  --color-green: #00e676;
-  --color-green-dim: #00b85e;
-  --color-red: #ff3d5a;
-  --color-red-dim: #cc2f48;
-  --color-amber: #ffb300;
-  --color-amber-dim: #cc8f00;
-  --color-blue: #448aff;
-  --color-cyan: #00e5ff;
-  --color-violet: #a78bfa;
+  --color-green: #00ff41;
+  --color-green-dim: #00cc33;
+  --color-red: #ff3333;
+  --color-red-dim: #cc2222;
+  --color-amber: #ff6600;
+  --color-amber-dim: #cc5200;
+  --color-blue: #ffd060;
+  --color-cyan: #ff6600;
+  --color-violet: #ffaa44;
 
-  --color-text: #e8eaf6;
-  --color-text2: #9fa8c7;
-  --color-text3: #4a5068;
-  --color-text4: #2d3142;
+  --color-text: #e8d5a0;
+  --color-text2: #a08040;
+  --color-text3: #503a18;
+  --color-text4: #2a1f08;
 
-  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+  --font-sans: "IBM Plex Mono", ui-monospace, monospace;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
   /* Concentric border-radius scale (per UI-polish memo) */
   --radius-sm: 6px;
