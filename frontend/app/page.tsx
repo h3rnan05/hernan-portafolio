@@ -320,17 +320,17 @@ async function PortfolioRollupCard({ portfolios }: {
       />
       <ul className="space-y-3">
         {sorted.map((p, i) => {
-          const isP4 = p.id.includes("P4");
+          const isActive = p.id.includes("P4") || p.id.includes("P1") || p.id.includes("P0");
           const barPct = p.mape_30d !== null && maxMape > 0 ? (p.mape_30d / maxMape) * 100 : 0;
           return (
             <li key={p.id}>
               <div className="mb-1 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-[11px] tabular text-[var(--color-text3)]">#{i + 1}</span>
-                  <span className={`text-[12.5px] font-medium ${isP4 ? "text-[var(--color-green)]" : "text-[var(--color-text)]"}`}>
+                  <span className={`text-[12.5px] font-medium ${isActive ? "text-[var(--color-green)]" : "text-[var(--color-text)]"}`}>
                     {p.id.split("_")[0]} {profileName(p.id, tp)}
                   </span>
-                  {isP4 && (
+                  {isActive && (
                     <span className="rounded-full bg-[var(--color-green)]/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-[var(--color-green)]">
                       activo
                     </span>
@@ -343,7 +343,7 @@ async function PortfolioRollupCard({ portfolios }: {
               {/* Visual bar */}
               <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--color-bg4)]">
                 <div
-                  className={`h-full rounded-full transition-all ${isP4 ? "bg-[var(--color-green)]" : "bg-[var(--color-border3)]"}`}
+                  className={`h-full rounded-full transition-all ${isActive ? "bg-[var(--color-green)]" : "bg-[var(--color-border3)]"}`}
                   style={{ width: `${barPct}%` }}
                 />
               </div>

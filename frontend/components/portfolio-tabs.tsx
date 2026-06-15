@@ -18,7 +18,7 @@ import type { Portfolio } from "@/lib/api";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const ACTIVE_PROFILE = "P4_MOD_AGGRESSIVE";
+const ACTIVE_PROFILES = new Set(["P4_MOD_AGGRESSIVE", "P1_CONSERVATIVE", "P0_ULTRA_CONSERVATIVE"]);
 
 const PROFILE_TONES: Record<string, "blue" | "cyan" | "green" | "amber" | "red" | "neutral"> = {
   P0_ULTRA_CONSERVATIVE: "neutral",
@@ -93,7 +93,7 @@ export function PortfolioTabs({
   const [activeId, setActiveId] = useState(
     initialId && profiles.some((p) => p.portfolio.id === initialId)
       ? initialId
-      : ACTIVE_PROFILE,   // default to the bot's active profile
+      : "P4_MOD_AGGRESSIVE",   // default to the bot's active profile
   );
   const active = profiles.find((p) => p.portfolio.id === activeId) ?? profiles[0];
   const tp = useTranslations("profiles");
@@ -108,7 +108,7 @@ export function PortfolioTabs({
       >
         {profiles.map((p) => {
           const isActive  = p.portfolio.id === active.portfolio.id;
-          const isBot     = p.portfolio.id === ACTIVE_PROFILE;
+          const isBot     = ACTIVE_PROFILES.has(p.portfolio.id);
           const tone      = PROFILE_TONES[p.portfolio.id] ?? "blue";
           const code      = p.portfolio.id.split("_")[0];
           return (
@@ -140,7 +140,7 @@ export function PortfolioTabs({
         })}
       </div>
 
-      <ProfilePanel detail={active} alpaca={active.portfolio.id === ACTIVE_PROFILE ? alpaca : null} />
+      <ProfilePanel detail={active} alpaca={active.portfolio.id === "P4_MOD_AGGRESSIVE" ? alpaca : null} />
     </div>
   );
 }
@@ -161,7 +161,7 @@ function ProfilePanel({
   const { portfolio, tickers, chartData } = detail;
   const sorted = Object.entries(portfolio.weights).sort((a, b) => b[1] - a[1]);
   const code   = portfolio.id.split("_")[0];
-  const isBot  = portfolio.id === ACTIVE_PROFILE;
+  const isBot  = ACTIVE_PROFILES.has(portfolio.id);
 
   // Alpaca-enriched equity
   const equity  = alpaca ? parseFloat(alpaca.equity) : null;
