@@ -43,9 +43,16 @@ async def accuracy_summary(
     the bot only trades high-conviction days.
     """
     cutoff = date.today() - timedelta(days=days)
+    # Join to ModelFit so only predictions from the currently active model per
+    # ticker are included. Without this, multiple refits create duplicate rows
+    # for the same (ticker, date) which corrupts the directional hit-rate.
     stmt = (
         select(Prediction)
-        .where(Prediction.predicted_for >= cutoff)
+        .join(ModelFit, Prediction.model_id == ModelFit.id)
+        .where(
+            Prediction.predicted_for >= cutoff,
+            ModelFit.is_active.is_(True),
+        )
         .order_by(Prediction.ticker.asc(), Prediction.predicted_for.asc())
     )
     rows = (await session.execute(stmt)).scalars().all()
@@ -206,7 +213,12 @@ async def get_predictions(
     cutoff = date.today() - timedelta(days=days)
     stmt = (
         select(Prediction)
-        .where(Prediction.ticker == ticker, Prediction.predicted_for >= cutoff)
+        .join(ModelFit, Prediction.model_id == ModelFit.id)
+        .where(
+            Prediction.ticker == ticker,
+            Prediction.predicted_for >= cutoff,
+            ModelFit.is_active.is_(True),
+        )
         .order_by(Prediction.predicted_for.asc())
     )
     rows = (await session.execute(stmt)).scalars().all()
