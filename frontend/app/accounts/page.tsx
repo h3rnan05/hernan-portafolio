@@ -53,9 +53,9 @@ const BOTS = [
   },
   {
     key: "capitol",
-    label: "Capitol Trades Bot",
-    profile: "Seguidor de congresistas",
-    description: "Copia las operaciones de Nancy Pelosi y otros congresistas de EE.UU.",
+    label: "P1 Conservative Bot",
+    profile: "Perfil P1 · Conservador",
+    description: "Predicciones de regresión OLS con el perfil P1 conservador de baja volatilidad.",
     color: "var(--color-cyan)",
     accent: "border-[var(--color-cyan)]/40 bg-[var(--color-cyan)]/5",
     dot: "bg-[var(--color-cyan)]",

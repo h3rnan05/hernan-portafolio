@@ -11,7 +11,7 @@ const ALPACA_SECRET = process.env.ALPACA_SECRET_KEY ?? "";
 const ALPACA_URL    = process.env.ALPACA_BASE_URL   ?? "https://paper-api.alpaca.markets";
 
 const BOT_NAMES: Record<string, string> = {
-  capitol_trades: "Capitol Trades Bot",
+  capitol_trades: "P1 Conservative Bot",
   ols_model:      "OLS Model Bot",
   trailing_stop:  "P0 Ultra Conservador Bot",
 };
