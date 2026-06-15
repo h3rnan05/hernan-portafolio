@@ -364,14 +364,10 @@ export function CapitolBotStatus() {
 
 // ─── P0 Ultra Conservador Bot card ────────────────────────────────────────────
 
-const P0_WEIGHTS: Record<string, number> = {
-  AAL: 0.0435, CL: 0.1865, HSY: 0.1437, KHC: 0.1773, KMB: 0.1674, MDLZ: 0.2816,
-};
-
 export function P0BotStatus() {
   const { data, loading } = useBotData("trailing");
   const positions = data?.positions ?? [];
-  const equity    = data?.account ? parseFloat(data.account.equity) : 0;
+  const orders    = (data?.orders ?? []).filter((o) => o.status === "filled").slice(0, 4);
 
   return (
     <div className="flex flex-col rounded-none border border-[var(--color-violet)]/30 bg-[var(--color-violet)]/5 p-5">
@@ -391,33 +387,33 @@ export function P0BotStatus() {
 
           <div className="border-t border-[var(--color-border)] pt-3">
             <div className="mb-2 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-              Asignación objetivo
+              Últimos trades
             </div>
-            <div className="space-y-1.5">
-              {Object.entries(P0_WEIGHTS).sort((a, b) => b[1] - a[1]).map(([sym, w]) => {
-                const pos       = positions.find((p) => p.symbol === sym);
-                const actualVal = pos ? parseFloat(pos.market_value) : 0;
-                const targetVal = equity * w;
-                const diff      = actualVal - targetVal;
-                return (
-                  <div key={sym}>
-                    <div className="mb-0.5 flex items-center justify-between">
+            {orders.length > 0 ? (
+              <div className="space-y-1.5">
+                {orders.map((o) => {
+                  const isBuy = o.side === "buy";
+                  const price = o.filled_avg_price ? parseFloat(o.filled_avg_price) : null;
+                  const qty   = parseFloat(o.filled_qty || o.qty);
+                  return (
+                    <div key={o.id} className="flex items-center justify-between rounded-none bg-[var(--color-bg2)] px-3 py-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono text-[12px] font-semibold">{sym}</span>
-                        <span className="text-[10px] text-[var(--color-text3)]">{(w * 100).toFixed(1)}%</span>
+                        <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${isBuy ? "bg-[var(--color-green)]/15 text-[var(--color-green)]" : "bg-[var(--color-red)]/15 text-[var(--color-red)]"}`}>
+                          {isBuy ? "C" : "V"}
+                        </span>
+                        <span className="font-mono text-[12px] font-medium">{o.symbol}</span>
+                        <span className="text-[11px] text-[var(--color-text3)]">×{qty}</span>
                       </div>
-                      <span className={`text-[10px] font-mono ${Math.abs(diff) < 50 ? "text-[var(--color-text3)]" : diff > 0 ? "text-[var(--color-green)]" : "text-[var(--color-amber)]"}`}>
-                        {Math.abs(diff) < 50 ? "✓" : diff > 0 ? `+$${fmtNumber(diff, { decimals: 0 })}` : `-$${fmtNumber(Math.abs(diff), { decimals: 0 })}`}
-                      </span>
+                      {price && <span className="font-mono text-[11px] text-[var(--color-text2)]">${fmtNumber(price, { decimals: 2 })}</span>}
                     </div>
-                    <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--color-bg3)]">
-                      <div className="h-full rounded-full bg-[var(--color-violet)]"
-                        style={{ width: `${(w / 0.2816) * 100}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2 text-[12px] text-[var(--color-text3)]">
+                Sin trades ejecutados aún.
+              </div>
+            )}
           </div>
         </>
       )}
