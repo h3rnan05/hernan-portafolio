@@ -60,17 +60,54 @@ class AlpacaClient:
 
     # ── Orders ────────────────────────────────────────────────────────────────
 
+    async def is_fractionable(self, ticker: str) -> bool:
+        async with httpx.AsyncClient() as c:
+            r = await c.get(f"{self.base}/assets/{ticker}", headers=self._headers, timeout=15)
+            if r.status_code != 200:
+                return False
+            return bool(r.json().get("fractionable", False))
+
+    async def get_latest_price(self, ticker: str) -> float | None:
+        """Get latest trade price from Alpaca data API."""
+        headers = {k: v for k, v in self._headers.items() if k != "Content-Type"}
+        async with httpx.AsyncClient() as c:
+            r = await c.get(
+                f"{DATA_BASE}/v2/stocks/{ticker}/trades/latest",
+                headers=headers,
+                timeout=15,
+            )
+            if r.status_code != 200:
+                return None
+            return float(r.json().get("trade", {}).get("p", 0) or 0) or None
+
     async def market_buy(self, ticker: str, notional: float) -> dict[str, Any]:
-        """Buy $notional worth of ticker at market (fractional)."""
+        """Buy $notional worth of ticker at market. Uses qty for non-fractionable assets."""
         if notional < 1.0:
             raise ValueError(f"notional ${notional:.2f} too small (min $1)")
-        payload = {
-            "symbol":        ticker,
-            "notional":      f"{notional:.2f}",
-            "side":          "buy",
-            "type":          "market",
-            "time_in_force": "day",
-        }
+        fractionable = await self.is_fractionable(ticker)
+        if fractionable:
+            payload = {
+                "symbol":        ticker,
+                "notional":      f"{notional:.2f}",
+                "side":          "buy",
+                "type":          "market",
+                "time_in_force": "day",
+            }
+        else:
+            # Non-fractionable: calculate whole shares
+            price = await self.get_latest_price(ticker)
+            if not price:
+                raise ValueError(f"Could not get price for {ticker}")
+            qty = int(notional // price)
+            if qty < 1:
+                raise ValueError(f"${notional:.2f} not enough for 1 share of {ticker} @ ${price:.2f}")
+            payload = {
+                "symbol":        ticker,
+                "qty":           str(qty),
+                "side":          "buy",
+                "type":          "market",
+                "time_in_force": "day",
+            }
         async with httpx.AsyncClient() as c:
             r = await c.post(
                 f"{self.base}/orders",
