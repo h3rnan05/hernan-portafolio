@@ -172,13 +172,14 @@ async def backfill_actuals(
     *,
     target_date: date | None = None,
 ) -> int:
-    """Fill ``actual_price`` + ``abs_error_pct`` on yesterday's predictions.
+    """Fill ``actual_price`` + ``abs_error_pct`` on past predictions.
 
+    Uses a weekend/holiday fallback: if no observation exists for the exact
+    predicted_for date (e.g. Saturday), looks up to 3 prior calendar days.
     Returns the number of rows updated.
     """
-    target_date = target_date or (date.today() - timedelta(days=1))
+    target_date = target_date or date.today()
 
-    # Predictions awaiting actuals on or before target_date
     pending = (
         await session.execute(
             select(Prediction).where(
@@ -193,16 +194,21 @@ async def backfill_actuals(
 
     n_updated = 0
     for p in pending:
-        obs = (
-            await session.execute(
-                select(Observation.value)
-                .where(
-                    Observation.variable_id == p.ticker,
-                    Observation.observed_on == p.predicted_for,
+        obs = None
+        for offset in range(4):  # exact date, then up to 3 prior days
+            candidate = p.predicted_for - timedelta(days=offset)
+            obs = (
+                await session.execute(
+                    select(Observation.value)
+                    .where(
+                        Observation.variable_id == p.ticker,
+                        Observation.observed_on == candidate,
+                    )
+                    .limit(1)
                 )
-                .limit(1)
-            )
-        ).scalar_one_or_none()
+            ).scalar_one_or_none()
+            if obs is not None:
+                break
         if obs is None:
             continue
 

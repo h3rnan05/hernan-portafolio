@@ -27,14 +27,19 @@ if [ -f ".env" ]; then
   set +a
 fi
 
-# Step 1: Run daily predictions + model refit check
+# Step 1: Ingest latest price observations (must run before predictions)
 echo ""
-echo "[1/2] Running daily predictions..."
+echo "[1/3] Running ingestion (last 5 days)..."
+uv run python scripts/run_ingestion.py --days 5
+
+# Step 2: Run daily predictions + backfill actuals
+echo ""
+echo "[2/3] Running daily predictions..."
 uv run python scripts/run_predictions.py
 
-# Step 2: Execute all trading bots
+# Step 3: Execute all trading bots
 echo ""
-echo "[2/2] Executing trading bots..."
+echo "[3/3] Executing trading bots..."
 uv run python scripts/run_trading.py
 
 echo ""
