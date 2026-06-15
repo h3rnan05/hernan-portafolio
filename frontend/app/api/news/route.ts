@@ -13,7 +13,7 @@ const OLS_TICKERS = ["AMZN", "BA", "CAT", "CRM", "GOOGL", "NVDA", "QCOM", "V", "
 // P0 Ultra Conservador stocks
 const P0_TICKERS  = ["MDLZ", "CL", "KHC", "KMB", "HSY", "AAL"];
 
-export const ALL_TICKERS = [...new Set([...OLS_TICKERS, ...P0_TICKERS])];
+const ALL_TICKERS = [...new Set([...OLS_TICKERS, ...P0_TICKERS])];
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
