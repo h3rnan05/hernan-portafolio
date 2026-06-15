@@ -48,7 +48,7 @@ async def refit_all(
     min_obs: int = 60,
     only_ticker: str | None = None,
     allow_reuse: bool = True,
-    estimator: str = "ols",
+    estimator: str = "ridge",
     alpha: float | None = None,
 ) -> list[RefitOutcome]:
     """Refit every active stock against every active predictor.
