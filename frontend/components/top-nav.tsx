@@ -31,7 +31,7 @@ export function TopNav() {
   return (
     <>
       {/* Bloomberg orange top bar — scrolling ticker tape */}
-      <div className="bg-[var(--color-amber)] px-4 py-0.5 hidden md:flex items-center overflow-hidden">
+      <div className="bg-[var(--color-amber)] px-4 py-2 hidden md:flex items-center overflow-hidden">
         <span className="shrink-0 text-[10px] font-bold tracking-widest text-black uppercase mr-4">
           HERNAN TERMINAL ·
         </span>

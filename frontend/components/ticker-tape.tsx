@@ -46,13 +46,19 @@ export function TickerTape() {
         {items.map((q, i) => {
           const up = q.change >= 0;
           return (
-            <span key={i} className="inline-flex items-center gap-1.5 text-[10px] font-semibold tracking-wide">
+            <span key={i} className="inline-flex items-center gap-2 text-[11px] font-semibold tracking-wide">
               <span className="text-black font-bold">{q.symbol}</span>
-              <span className="text-black opacity-80">${fmt(q.price)}</span>
-              <span style={{ color: up ? "#003d00" : "#5a0000" }}>
-                {up ? "▲" : "▼"}{fmt(Math.abs(q.change), 2)}%
+              <span className="text-black opacity-75">${fmt(q.price)}</span>
+              <span
+                className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-bold"
+                style={{
+                  background: up ? "#006400" : "#8b0000",
+                  color: "#ffffff",
+                }}
+              >
+                {up ? "▲" : "▼"} {fmt(Math.abs(q.change), 2)}%
               </span>
-              <span className="text-black opacity-30 ml-1">·</span>
+              <span className="text-black opacity-25 ml-1">|</span>
             </span>
           );
         })}
