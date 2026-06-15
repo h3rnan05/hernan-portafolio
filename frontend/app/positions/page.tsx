@@ -23,10 +23,10 @@ const BOTS = [
   },
   {
     key:      "capitol",
-    label:    "Capitol Trades Bot",
-    desc:     "Copia los trades del Congreso de EE.UU.",
+    label:    "P1 Conservative Bot",
+    desc:     "Predicciones de regresión OLS · Perfil P1 conservador",
     color:    "var(--color-cyan)",
-    hasSignals: false,
+    hasSignals: true,
   },
   {
     key:      "trailing",

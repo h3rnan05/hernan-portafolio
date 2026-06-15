@@ -84,12 +84,26 @@ async def _fetch_quiverquant(lookback: int) -> list[dict[str, Any]]:
     ]
 
 
+def _parse_date(raw: str) -> str:
+    """Normalize transaction_date to YYYY-MM-DD regardless of source format."""
+    raw = raw.strip()
+    for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+        try:
+            from datetime import datetime as dt
+            return dt.strptime(raw, fmt).date().isoformat()
+        except ValueError:
+            continue
+    return raw  # return as-is if unrecognized
+
+
 async def _fetch_house_stock_watcher(lookback: int) -> list[dict[str, Any]]:
-    """House Stock Watcher — tries main S3 and fallback GitHub release."""
+    """House Stock Watcher — tries actively-maintained GitHub mirror first."""
     cutoff = (date.today() - timedelta(days=lookback)).isoformat()
     urls = [
+        # Actively maintained mirror (updated daily via GitHub Actions)
+        "https://raw.githubusercontent.com/TattooedHead/house-stock-watcher-data/main/data/all_transactions.json",
+        # Original S3 (may redirect or be offline)
         "https://house-stock-watcher-data.s3-us-east-2.amazonaws.com/data/all_transactions.json",
-        "https://raw.githubusercontent.com/jkaufman5/house-stock-watcher/main/data/all_transactions.json",
     ]
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as c:
         for url in urls:
@@ -98,24 +112,27 @@ async def _fetch_house_stock_watcher(lookback: int) -> list[dict[str, Any]]:
                 if r.status_code != 200 or len(r.content) < 1000:
                     continue
                 data = r.json()
-                trades = [
-                    t for t in data
-                    if "pelosi" in t.get("representative", "").lower()
-                    and t.get("transaction_date", "") >= cutoff
-                    and t.get("ticker", "").replace("$", "").isalpha()
-                ]
+                trades = []
+                for t in data:
+                    if "pelosi" not in t.get("representative", "").lower():
+                        continue
+                    ticker = t.get("ticker", "").replace("$", "").strip()
+                    if not ticker.isalpha():
+                        continue
+                    tx_date = _parse_date(t.get("transaction_date", ""))
+                    if tx_date < cutoff:
+                        continue
+                    trades.append({
+                        "ticker":           ticker.upper(),
+                        "transaction_date": tx_date,
+                        "type":             t["type"],
+                        "amount":           t.get("amount", ""),
+                        "disclosure_date":  _parse_date(t.get("disclosure_date", "")),
+                        "source":           "housestockwatcher",
+                    })
                 if trades:
-                    return [
-                        {
-                            "ticker":           t["ticker"].replace("$", "").upper(),
-                            "transaction_date": t["transaction_date"],
-                            "type":             t["type"],
-                            "amount":           t.get("amount", ""),
-                            "disclosure_date":  t.get("disclosure_date", ""),
-                            "source":           "housestockwatcher",
-                        }
-                        for t in trades
-                    ]
+                    log.info("HSW: %d Pelosi trades from %s", len(trades), url.split("/")[2])
+                    return trades
             except Exception as e:
                 log.debug("HSW fetch failed (%s): %s", url, e)
     return []

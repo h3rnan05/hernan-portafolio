@@ -19,7 +19,7 @@ const BOTS = {
   capitol: {
     key:    process.env.ALPACA_PELOSI_API_KEY    ?? "",
     secret: process.env.ALPACA_PELOSI_SECRET_KEY ?? "",
-    label:  "Capitol Trades Bot",
+    label:  "P1 Conservative Bot",
   },
   trailing: {
     key:    process.env.ALPACA_P0_API_KEY        ?? "",
@@ -58,9 +58,9 @@ export async function GET(req: NextRequest) {
       alpacaFetch<Record<string, unknown>[]>("/orders?status=all&limit=30&direction=desc", bot.key, bot.secret),
     ]);
 
-    // Signals only apply to the OLS bot (driven by the model predictions)
+    // Signals apply to OLS (P4) and Capitol (P1) bots — both use the model
     let signals: unknown[] = [];
-    if (botParam === "ols") {
+    if (botParam === "ols" || botParam === "capitol") {
       signals = (await Promise.all(
         TICKERS.map(async (ticker) => {
           try {

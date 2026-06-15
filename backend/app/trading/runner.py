@@ -90,25 +90,27 @@ async def run_all(
             error="ALPACA_P0_API_KEY not set — add it to .env to enable",
         ))
 
-    # ── Bot 3: Pelosi Mirror Bot ──────────────────────────────────────────────
-    log.info("--- Bot 3: Nancy Pelosi Mirror Bot ---")
-    pelosi_key    = _key("PELOSI", "API_KEY")
-    pelosi_secret = _key("PELOSI", "SECRET_KEY")
+    # ── Bot 3: P1 Conservative Model Bot ─────────────────────────────────────
+    log.info("--- Bot 3: P1 Conservative Model Bot ---")
+    p1_key    = _key("PELOSI", "API_KEY")
+    p1_secret = _key("PELOSI", "SECRET_KEY")
 
     if os.environ.get("ALPACA_PELOSI_API_KEY"):
         try:
-            actions = await pelosi_bot.run(
+            actions = await model_bot.run(
+                session=session,
+                profile_id="P1_CONSERVATIVE",
                 dry_run=dry_run,
-                api_key=pelosi_key,
-                secret_key=pelosi_secret,
+                api_key=p1_key,
+                secret_key=p1_secret,
             )
-            results.append(BotResult("Pelosi Mirror Bot", success=True, actions=actions))
+            results.append(BotResult("P1 Conservative Bot", success=True, actions=actions))
             log.info("Bot 3 complete: %d actions", len(actions))
             for a in actions:
-                log.info("  [PELOSI] %s %s $%.2f", a.get("type","?").upper(), a.get("ticker","?"), a.get("amount", 0))
+                log.info("  [P1] %s %s $%.2f — %s", a.side.upper(), a.ticker, a.amount, a.reason)
         except Exception as e:
             log.error("Bot 3 failed: %s", e)
-            results.append(BotResult("Pelosi Mirror Bot", success=False, error=str(e)))
+            results.append(BotResult("P1 Conservative Bot", success=False, error=str(e)))
 
     elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
     log.info("=== TRADING SESSION END (%.1fs) ===", elapsed)
