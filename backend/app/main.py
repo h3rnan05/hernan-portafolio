@@ -14,6 +14,7 @@ from app.config import get_settings
 from app.logging import get_logger, setup_logging
 from app.routers import (
     accounts,
+    admin,
     chat,
     health,
     holdings,
@@ -62,6 +63,7 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(health.router)
+    app.include_router(admin.router)
     app.include_router(accounts.router)
     app.include_router(variables.router)
     app.include_router(observations.router)
