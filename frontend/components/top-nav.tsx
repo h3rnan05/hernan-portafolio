@@ -12,6 +12,7 @@ const ROUTES: { href: string; key: string; premium?: boolean }[] = [
   { href: "/", key: "overview" },
   { href: "/accounts", key: "accounts" },
   { href: "/positions", key: "positions" },
+  { href: "/news", key: "news" },
   { href: "/models", key: "models" },
   { href: "/portfolios", key: "portfolios" },
   { href: "/simulator", key: "simulator" },
