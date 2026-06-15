@@ -206,14 +206,37 @@ function PositionChips({ positions }: { positions: Position[] }) {
   );
 }
 
+// ─── Shared stats row (Posiciones + P&L) — used by all 3 cards ───────────────
+
+function BotStatsRow({ positions, accentVar }: { positions: Position[]; accentVar: string }) {
+  const totalPnl = positions.reduce((s, p) => s + parseFloat(p.unrealized_pl), 0);
+  return (
+    <div className="mb-4 grid grid-cols-2 gap-2">
+      <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2">
+        <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">Posiciones</div>
+        <div className="font-mono text-[18px] font-bold" style={{ color: `var(${accentVar})` }}>
+          {positions.length}
+        </div>
+      </div>
+      <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2">
+        <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">P&L abierto</div>
+        <div className={`font-mono text-[18px] font-bold ${totalPnl >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
+          {totalPnl >= 0 ? "+" : ""}${fmtNumber(Math.abs(totalPnl), { decimals: 0 })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── OLS Bot card ─────────────────────────────────────────────────────────────
 
 export function OlsBotStatus() {
   const { data, loading } = useBotData("ols");
-  const signals = data?.signals ?? [];
-  const buys    = signals.filter((s) => s.action === "BUY");
-  const sells   = signals.filter((s) => s.action === "SELL");
-  const holds   = signals.filter((s) => s.action === "HOLD");
+  const positions = data?.positions ?? [];
+  const signals   = data?.signals ?? [];
+  const buys      = signals.filter((s) => s.action === "BUY");
+  const sells     = signals.filter((s) => s.action === "SELL");
+  const holds     = signals.filter((s) => s.action === "HOLD");
 
   return (
     <div className="flex flex-col rounded-none border border-[var(--color-green)]/30 bg-[var(--color-green)]/5 p-5">
@@ -222,53 +245,52 @@ export function OlsBotStatus() {
 
       {loading ? <LoadingMsg /> : (
         <>
-          <div className="mb-4 grid grid-cols-3 gap-2">
-            {[
-              { label: "Comprar", count: buys.length,  color: "text-[var(--color-green)]",  bg: "bg-[var(--color-green)]/10" },
-              { label: "Vender",  count: sells.length, color: "text-[var(--color-red)]",    bg: "bg-[var(--color-red)]/10"   },
-              { label: "Esperar", count: holds.length, color: "text-[var(--color-text2)]",  bg: "bg-[var(--color-bg3)]"      },
-            ].map((item) => (
-              <div key={item.label} className={`rounded-none ${item.bg} px-3 py-2 text-center`}>
-                <div className={`font-mono text-[20px] font-bold ${item.color}`}>{item.count}</div>
-                <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">{item.label}</div>
-              </div>
-            ))}
+          <BotStatsRow positions={positions} accentVar="--color-green" />
+
+          <div className="mb-4">
+            <div className="mb-1.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
+              Cartera actual
+            </div>
+            <PositionChips positions={positions} />
           </div>
 
-          {signals.filter((s) => s.action !== "HOLD").length > 0 ? (
-            <div className="mb-4 space-y-1.5">
-              {signals
-                .filter((s) => s.action !== "HOLD")
-                .sort((a, b) => Math.abs(b.deltaPct) - Math.abs(a.deltaPct))
-                .slice(0, 5)
-                .map((s) => (
-                  <div key={s.ticker} className="flex items-center justify-between rounded-none bg-[var(--color-bg2)] px-3 py-1.5">
-                    <span className="font-mono text-[12px] font-medium">{s.ticker}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-[var(--color-text3)]">
-                        ${fmtNumber(s.currentPrice, { decimals: 2 })} → ${fmtNumber(s.predictedPrice, { decimals: 2 })}
-                      </span>
-                      <Badge tone={s.action === "BUY" ? "green" : "red"}>
-                        {s.action === "BUY" ? "Comprar" : "Vender"} {s.deltaPct > 0 ? "+" : ""}{s.deltaPct.toFixed(2)}%
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <div className="mb-4 rounded-none bg-[var(--color-bg3)] px-3 py-2 text-[12px] text-[var(--color-text3)]">
-              Sin señales activas — el modelo no ve movimientos significativos hoy.
-            </div>
-          )}
-
-          {data?.positions && data.positions.length > 0 && (
-            <div className="border-t border-[var(--color-border)] pt-3">
-              <div className="mb-1.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-                Posiciones abiertas
+          <div className="border-t border-[var(--color-border)] pt-3">
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
+                Señales del modelo hoy
               </div>
-              <PositionChips positions={data.positions} />
+              <div className="flex gap-2 text-[10px]">
+                <span className="text-[var(--color-green)]">{buys.length} comprar</span>
+                <span className="text-[var(--color-red)]">{sells.length} vender</span>
+                <span className="text-[var(--color-text3)]">{holds.length} esperar</span>
+              </div>
             </div>
-          )}
+            {signals.filter((s) => s.action !== "HOLD").length > 0 ? (
+              <div className="space-y-1.5">
+                {signals
+                  .filter((s) => s.action !== "HOLD")
+                  .sort((a, b) => Math.abs(b.deltaPct) - Math.abs(a.deltaPct))
+                  .slice(0, 4)
+                  .map((s) => (
+                    <div key={s.ticker} className="flex items-center justify-between rounded-none bg-[var(--color-bg2)] px-3 py-1.5">
+                      <span className="font-mono text-[12px] font-medium">{s.ticker}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-[var(--color-text3)]">
+                          ${fmtNumber(s.currentPrice, { decimals: 2 })} → ${fmtNumber(s.predictedPrice, { decimals: 2 })}
+                        </span>
+                        <Badge tone={s.action === "BUY" ? "green" : "red"}>
+                          {s.action === "BUY" ? "Comprar" : "Vender"} {s.deltaPct > 0 ? "+" : ""}{s.deltaPct.toFixed(2)}%
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            ) : (
+              <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2 text-[12px] text-[var(--color-text3)]">
+                Sin señales activas — el modelo no ve movimientos significativos hoy.
+              </div>
+            )}
+          </div>
         </>
       )}
 
@@ -284,7 +306,6 @@ export function CapitolBotStatus() {
   const { data, loading } = useBotData("capitol");
   const positions = data?.positions ?? [];
   const orders    = (data?.orders ?? []).filter((o) => o.status === "filled").slice(0, 4);
-  const totalPnl  = positions.reduce((s, p) => s + parseFloat(p.unrealized_pl), 0);
 
   return (
     <div className="flex flex-col rounded-none border border-[var(--color-cyan)]/30 bg-[var(--color-cyan)]/5 p-5">
@@ -293,21 +314,8 @@ export function CapitolBotStatus() {
 
       {loading ? <LoadingMsg /> : (
         <>
-          {/* Mini account stats */}
-          <div className="mb-4 grid grid-cols-2 gap-2">
-            <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2">
-              <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">Posiciones</div>
-              <div className="font-mono text-[18px] font-bold text-[var(--color-cyan)]">{positions.length}</div>
-            </div>
-            <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2">
-              <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">P&L abierto</div>
-              <div className={`font-mono text-[18px] font-bold ${totalPnl >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
-                {totalPnl >= 0 ? "+" : ""}${fmtNumber(Math.abs(totalPnl), { decimals: 0 })}
-              </div>
-            </div>
-          </div>
+          <BotStatsRow positions={positions} accentVar="--color-cyan" />
 
-          {/* Positions */}
           <div className="mb-4">
             <div className="mb-1.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
               Cartera actual
@@ -315,12 +323,11 @@ export function CapitolBotStatus() {
             <PositionChips positions={positions} />
           </div>
 
-          {/* Recent fills */}
-          {orders.length > 0 && (
-            <div className="border-t border-[var(--color-border)] pt-3">
-              <div className="mb-1.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
-                Últimos trades
-              </div>
+          <div className="border-t border-[var(--color-border)] pt-3">
+            <div className="mb-2 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
+              Últimos trades
+            </div>
+            {orders.length > 0 ? (
               <div className="space-y-1.5">
                 {orders.map((o) => {
                   const isBuy = o.side === "buy";
@@ -340,12 +347,16 @@ export function CapitolBotStatus() {
                   );
                 })}
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2 text-[12px] text-[var(--color-text3)]">
+                Sin trades ejecutados aún.
+              </div>
+            )}
+          </div>
         </>
       )}
 
-      <BotFooter schedule="Actualización semanal" href="/positions?bot=capitol"
+      <BotFooter schedule="lunes–viernes 9:35 AM ET" href="/positions?bot=capitol"
         accentVar="--color-cyan" equity={data?.account?.equity} />
     </div>
   );
@@ -359,9 +370,8 @@ const P0_WEIGHTS: Record<string, number> = {
 
 export function P0BotStatus() {
   const { data, loading } = useBotData("trailing");
-  const positions  = data?.positions ?? [];
-  const totalPnl   = positions.reduce((s, p) => s + parseFloat(p.unrealized_pl), 0);
-  const equity     = data?.account ? parseFloat(data.account.equity) : 0;
+  const positions = data?.positions ?? [];
+  const equity    = data?.account ? parseFloat(data.account.equity) : 0;
 
   return (
     <div className="flex flex-col rounded-none border border-[var(--color-violet)]/30 bg-[var(--color-violet)]/5 p-5">
@@ -370,23 +380,17 @@ export function P0BotStatus() {
 
       {loading ? <LoadingMsg /> : (
         <>
-          {/* Mini account stats */}
-          <div className="mb-4 grid grid-cols-2 gap-2">
-            <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2">
-              <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">Posiciones</div>
-              <div className="font-mono text-[18px] font-bold text-[var(--color-violet)]">{positions.length}</div>
-            </div>
-            <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2">
-              <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">P&L abierto</div>
-              <div className={`font-mono text-[18px] font-bold ${totalPnl >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
-                {totalPnl >= 0 ? "+" : ""}${fmtNumber(Math.abs(totalPnl), { decimals: 0 })}
-              </div>
-            </div>
-          </div>
+          <BotStatsRow positions={positions} accentVar="--color-violet" />
 
-          {/* Portfolio allocation bars */}
           <div className="mb-4">
             <div className="mb-1.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
+              Cartera actual
+            </div>
+            <PositionChips positions={positions} />
+          </div>
+
+          <div className="border-t border-[var(--color-border)] pt-3">
+            <div className="mb-2 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
               Asignación objetivo
             </div>
             <div className="space-y-1.5">
@@ -407,10 +411,8 @@ export function P0BotStatus() {
                       </span>
                     </div>
                     <div className="h-1 w-full overflow-hidden rounded-full bg-[var(--color-bg3)]">
-                      <div
-                        className="h-full rounded-full bg-[var(--color-violet)]"
-                        style={{ width: `${w * 100 / 0.2816 * 100}%` }}
-                      />
+                      <div className="h-full rounded-full bg-[var(--color-violet)]"
+                        style={{ width: `${(w / 0.2816) * 100}%` }} />
                     </div>
                   </div>
                 );
