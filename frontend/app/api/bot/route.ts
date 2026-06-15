@@ -12,18 +12,18 @@ const TICKERS     = ["AMZN", "BA", "CAT", "CRM", "GOOGL", "NVDA", "QCOM", "V", "
 
 const BOTS = {
   ols: {
-    key:    process.env.ALPACA_API_KEY    ?? "",
-    secret: process.env.ALPACA_SECRET_KEY ?? "",
+    key:    process.env.ALPACA_API_KEY          ?? "",
+    secret: process.env.ALPACA_SECRET_KEY       ?? "",
     label:  "OLS Model Bot",
   },
   capitol: {
-    key:    process.env.ALPACA_API_KEY_2    ?? "",
-    secret: process.env.ALPACA_SECRET_KEY_2 ?? "",
+    key:    process.env.ALPACA_PELOSI_API_KEY    ?? "",
+    secret: process.env.ALPACA_PELOSI_SECRET_KEY ?? "",
     label:  "Capitol Trades Bot",
   },
   trailing: {
-    key:    process.env.ALPACA_API_KEY_3    ?? "",
-    secret: process.env.ALPACA_SECRET_KEY_3 ?? "",
+    key:    process.env.ALPACA_P0_API_KEY        ?? "",
+    secret: process.env.ALPACA_P0_SECRET_KEY     ?? "",
     label:  "P0 Ultra Conservador Bot",
   },
 } as const;
