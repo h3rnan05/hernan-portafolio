@@ -685,6 +685,54 @@ VARIABLES: list[tuple[str, str, str, str, str, list[dict]]] = [
             {"name": "yfinance", "symbol": "GOOGL"},
         ],
     ),
+    # ─── Sector ETFs + VIX — causal predictors for US equities ─────────────
+    (
+        "VIX",
+        "CBOE Volatility Index (VIX)",
+        "predictor",
+        "Volatility",
+        "Index",
+        [
+            {"name": "yfinance", "symbol": "^VIX"},
+            {"name": "eodhd", "symbol": "VIX.INDX"},
+        ],
+    ),
+    (
+        "XLK",
+        "Technology Select Sector SPDR (XLK)",
+        "predictor",
+        "Sector ETF",
+        "USD",
+        [
+            {"name": "yfinance", "symbol": "XLK"},
+            {"name": "eodhd", "symbol": "XLK.US"},
+            {"name": "polygon", "symbol": "XLK"},
+        ],
+    ),
+    (
+        "XLE",
+        "Energy Select Sector SPDR (XLE)",
+        "predictor",
+        "Sector ETF",
+        "USD",
+        [
+            {"name": "yfinance", "symbol": "XLE"},
+            {"name": "eodhd", "symbol": "XLE.US"},
+            {"name": "polygon", "symbol": "XLE"},
+        ],
+    ),
+    (
+        "XLI",
+        "Industrial Select Sector SPDR (XLI)",
+        "predictor",
+        "Sector ETF",
+        "USD",
+        [
+            {"name": "yfinance", "symbol": "XLI"},
+            {"name": "eodhd", "symbol": "XLI.US"},
+            {"name": "polygon", "symbol": "XLI"},
+        ],
+    ),
 ]
 
 
