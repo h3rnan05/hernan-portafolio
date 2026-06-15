@@ -486,7 +486,7 @@ export function RecentActivity() {
 
   const tabs = [
     { key: "ols",      label: "OLS",     color: "var(--color-green)"  },
-    { key: "capitol",  label: "Capitol", color: "var(--color-cyan)"   },
+    { key: "capitol",  label: "P1",      color: "var(--color-cyan)"   },
     { key: "trailing", label: "P0",      color: "var(--color-violet)" },
   ] as const;
 
