@@ -43,7 +43,7 @@ export default async function VariableDetail({
   }));
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-2">
         <Link
           href="/variables"
@@ -57,7 +57,7 @@ export default async function VariableDetail({
           <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
             {variable.kind} · {variable.category ?? "—"}
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
             {variable.display_name}
           </h1>
           <p className="mt-1.5 font-mono text-[12px] text-[var(--color-text3)]">

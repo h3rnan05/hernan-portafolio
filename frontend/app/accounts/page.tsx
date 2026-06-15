@@ -108,14 +108,14 @@ export default function AccountsPage() {
   const allLoaded = Object.values(loading).every((v) => !v);
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-8">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
 
       {/* Header */}
       <div className="mb-8">
         <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
           ALPACA PAPER TRADING
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">Mis Portafolios</h1>
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Mis Portafolios</h1>
         <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
           Los 3 bots activos en Alpaca Paper Trading. Cada uno sigue una estrategia distinta.
           Los datos se actualizan en tiempo real desde Alpaca.

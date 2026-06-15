@@ -44,13 +44,13 @@ export default async function VariablesPage() {
   const predictors = variables.filter((v) => v.kind === "predictor");
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-8">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
       <div className="mb-8">
         <div className="mb-1 flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
           {t("eyebrow")}
           <PremiumBadge />
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{t("title")}</h1>
         <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
           {t("subtitle")}{" "}
           <span className="text-[var(--color-text3)]">{t("premium_note")}</span>

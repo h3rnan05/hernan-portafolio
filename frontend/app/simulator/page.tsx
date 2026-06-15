@@ -97,14 +97,21 @@ export default function SimulatorPage() {
   const [tooltip, setTooltip] = useState<string | null>(null);
   const [botData, setBotData] = useState<BotData | null>(null);
   const [botLoading, setBotLoading] = useState(true);
+  const [p0Data, setP0Data]     = useState<BotData | null>(null);
+  const [p0Loading, setP0Loading] = useState(true);
 
-  // Load OLS bot positions once on mount
+  // Load both bots once on mount
   useEffect(() => {
     fetch("/api/bot?bot=ols")
       .then((r) => r.json())
       .then((d) => setBotData(d as BotData))
       .catch(() => setBotData(null))
       .finally(() => setBotLoading(false));
+    fetch("/api/bot?bot=trailing")
+      .then((r) => r.json())
+      .then((d) => setP0Data(d as BotData))
+      .catch(() => setP0Data(null))
+      .finally(() => setP0Loading(false));
   }, []);
 
   // Debounced simulate call
@@ -177,13 +184,13 @@ export default function SimulatorPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-8">
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8">
       {/* Header */}
       <div className="mb-6">
         <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
           {t("eyebrow")}
         </div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
+        <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">{t("title")}</h1>
         <p className="mt-1.5 max-w-2xl text-[13px] text-[var(--color-text2)]">
           {t("subtitle")}
         </p>

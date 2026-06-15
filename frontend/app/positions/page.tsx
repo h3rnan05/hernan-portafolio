@@ -162,16 +162,16 @@ export default function PositionsPage() {
   const activeBotDef = BOTS.find((b) => b.key === activeBot)!;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-6 py-10">
+    <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-10">
 
       {/* Header */}
       <div>
         <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
           Alpaca Paper Trading · en vivo
         </div>
-        <h1 className="mb-4 text-2xl font-semibold tracking-tight">Broker Dashboard</h1>
+        <h1 className="mb-4 text-xl font-semibold tracking-tight sm:text-2xl">Broker Dashboard</h1>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {BOTS.map((bot) => {
             const active = bot.key === activeBot;
             return (
