@@ -46,11 +46,13 @@ async def accuracy_summary(
     # Deduplicate: when multiple model versions made predictions for the same
     # (ticker, date), keep only the row from the highest model_id (latest refit).
     # This avoids double-counting without discarding historical predictions.
-    latest_model = (
+    # Deduplicate: multiple refits produce multiple rows per (ticker, date).
+    # Keep the most recently written prediction (max predicted_at) per pair.
+    latest = (
         select(
             Prediction.ticker,
             Prediction.predicted_for,
-            func.max(Prediction.model_id).label("max_model_id"),
+            func.max(Prediction.predicted_at).label("max_at"),
         )
         .where(Prediction.predicted_for >= cutoff)
         .group_by(Prediction.ticker, Prediction.predicted_for)
@@ -59,10 +61,10 @@ async def accuracy_summary(
     stmt = (
         select(Prediction)
         .join(
-            latest_model,
-            (Prediction.ticker == latest_model.c.ticker)
-            & (Prediction.predicted_for == latest_model.c.predicted_for)
-            & (Prediction.model_id == latest_model.c.max_model_id),
+            latest,
+            (Prediction.ticker == latest.c.ticker)
+            & (Prediction.predicted_for == latest.c.predicted_for)
+            & (Prediction.predicted_at == latest.c.max_at),
         )
         .order_by(Prediction.ticker.asc(), Prediction.predicted_for.asc())
     )
@@ -222,10 +224,10 @@ async def get_predictions(
 ) -> TickerPredictions:
     """Last N predictions for a ticker, with backfilled actuals where present."""
     cutoff = date.today() - timedelta(days=days)
-    latest_model_t = (
+    latest_t = (
         select(
             Prediction.predicted_for,
-            func.max(Prediction.model_id).label("max_model_id"),
+            func.max(Prediction.predicted_at).label("max_at"),
         )
         .where(Prediction.ticker == ticker, Prediction.predicted_for >= cutoff)
         .group_by(Prediction.predicted_for)
@@ -234,9 +236,9 @@ async def get_predictions(
     stmt = (
         select(Prediction)
         .join(
-            latest_model_t,
-            (Prediction.predicted_for == latest_model_t.c.predicted_for)
-            & (Prediction.model_id == latest_model_t.c.max_model_id),
+            latest_t,
+            (Prediction.predicted_for == latest_t.c.predicted_for)
+            & (Prediction.predicted_at == latest_t.c.max_at),
         )
         .where(Prediction.ticker == ticker)
         .order_by(Prediction.predicted_for.asc())
