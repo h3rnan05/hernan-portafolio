@@ -12,6 +12,58 @@
 #   - 750 hours/month included
 #   - Auto-deploys on every push to main
 services:
+  - type: cron
+    name: hernan-trading-bot
+    runtime: docker
+    region: ohio
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # 9:25 AM ET (UTC-5 winter / UTC-4 summer) — antes de que abra el mercado
+    # Ajustado a 14:25 UTC para cubrir horario de verano (EDT)
+    schedule: "25 13 * * 1-5"
+    startCommand: bash scripts/morning_run.sh
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: DATABASE_URL_SYNC
+        sync: false
+      - key: FRED_API_KEY
+        sync: false
+      - key: EODHD_API_KEY
+        sync: false
+      - key: POLYGON_API_KEY
+        sync: false
+      - key: TWELVE_DATA_API_KEY
+        sync: false
+      - key: ADMIN_BEARER_TOKEN
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      # ── Bot 1: OLS Model Bot (P4) ──────────────────────────────────────────
+      - key: ALPACA_API_KEY
+        sync: false
+      - key: ALPACA_SECRET_KEY
+        sync: false
+      # ── Bot 2: P0 Ultra Conservative ───────────────────────────────────────
+      - key: ALPACA_P0_API_KEY
+        sync: false
+      - key: ALPACA_P0_SECRET_KEY
+        sync: false
+      # ── Bot 3: Nancy Pelosi Mirror ─────────────────────────────────────────
+      - key: ALPACA_PELOSI_API_KEY
+        sync: false
+      - key: ALPACA_PELOSI_SECRET_KEY
+        sync: false
+      # ── Optional: QuiverQuant (datos de Pelosi) ────────────────────────────
+      - key: QUIVERQUANT_API_KEY
+        sync: false
+      - key: LOG_LEVEL
+        value: INFO
+      - key: HTTP_USER_AGENT
+        value: "Mozilla/5.0 (compatible; hernan-portafolio/0.1; +render)"
+
   - type: web
     name: hernan-backend
     runtime: docker

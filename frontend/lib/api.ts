@@ -236,6 +236,7 @@ export type TickerPredictions = {
   ticker: string;
   points: PredictionPoint[];
   mape: number | null;
+  directional_accuracy: number | null;
 };
 
 export type PortfolioPredictionPoint = {

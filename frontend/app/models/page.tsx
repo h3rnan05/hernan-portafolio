@@ -82,6 +82,19 @@ export default async function ModelsPage({
   const display = Array.from(byTicker.values()).sort((a, b) =>
     a.ticker.localeCompare(b.ticker),
   );
+
+  // Fetch directional accuracy for all displayed tickers in parallel
+  const accuracyMap: Record<string, number | null> = {};
+  await Promise.all(
+    display.map(async (m) => {
+      try {
+        const pred = await api.getPredictions(m.ticker, 90);
+        accuracyMap[m.ticker] = pred.directional_accuracy ?? null;
+      } catch {
+        accuracyMap[m.ticker] = null;
+      }
+    }),
+  );
   const counts = {
     pass: display.filter((m) => m.status === "PASS").length,
     review: display.filter((m) => m.status === "REVIEW").length,
@@ -123,7 +136,7 @@ export default async function ModelsPage({
         <PortfolioModelView portfolios={portfolios} activeModels={display} />
       ) : (
         <>
-          <StockModelsGrid models={display} />
+          <StockModelsGrid models={display} accuracyMap={accuracyMap} />
           <section className="mt-10">
             <SectionHeader
               eyebrow="Predicciones · precios"
@@ -148,7 +161,7 @@ export default async function ModelsPage({
 
 // ─── Tab 1: per-stock models ──────────────────────────────────────────────────
 
-async function StockModelsGrid({ models }: { models: ModelSummary[] }) {
+async function StockModelsGrid({ models, accuracyMap }: { models: ModelSummary[]; accuracyMap: Record<string, number | null> }) {
   const t = await getTranslations("models");
   const locale = await getLocale();
   if (models.length === 0) {
@@ -202,6 +215,23 @@ async function StockModelsGrid({ models }: { models: ModelSummary[] }) {
                 detail="< 10"
               />
             </div>
+            {/* Directional accuracy metric */}
+            {(() => {
+              const da = accuracyMap[m.ticker];
+              if (da === null || da === undefined) return null;
+              const pct = Math.round(da * 100);
+              const color = pct >= 60 ? "var(--color-green)" : pct >= 50 ? "var(--color-amber)" : "var(--color-red)";
+              return (
+                <div className="mt-3 flex items-center justify-between border border-[var(--color-border)] bg-[var(--color-bg3)] px-3 py-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text3)]">
+                    Acierto de dirección · 90d
+                  </span>
+                  <span className="font-mono text-sm font-bold tabular" style={{ color }}>
+                    {pct}%
+                  </span>
+                </div>
+              );
+            })()}
             <div className="mt-4">
               <div className="mb-1.5 text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
                 {t("predictors_label")}

@@ -24,6 +24,7 @@ class TickerPredictions(BaseModel):
     ticker: str
     points: list[PredictionPoint]
     mape: float | None = None  # mean abs % error over the returned points
+    directional_accuracy: float | None = None  # % of days model predicted direction correctly
 
 
 class PortfolioPredictionPoint(BaseModel):

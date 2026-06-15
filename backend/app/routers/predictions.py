@@ -38,6 +38,24 @@ def _mape(points: list[PredictionPoint]) -> float | None:
     return sum(abs(pred - act) / abs(act) for pred, act in pairs) / len(pairs)
 
 
+def _directional_accuracy(points: list[PredictionPoint]) -> float | None:
+    """% of days where predicted direction (sign of predicted_return) matches actual direction."""
+    filled = [p for p in points if p.actual_price is not None and p.predicted_return is not None]
+    if len(filled) < 2:
+        return None
+    correct = 0
+    total = 0
+    for i in range(1, len(filled)):
+        actual_dir = filled[i].actual_price - filled[i - 1].actual_price  # type: ignore[operator]
+        pred_dir = filled[i].predicted_return
+        if actual_dir == 0 or pred_dir == 0:
+            continue
+        if (actual_dir > 0) == (pred_dir > 0):
+            correct += 1
+        total += 1
+    return correct / total if total > 0 else None
+
+
 @router.get("/portfolio/{portfolio_id}", response_model=PortfolioPredictions)
 @ttl_cache(seconds=3600)
 async def portfolio_predictions(
@@ -133,7 +151,7 @@ async def get_predictions(
         )
         for p in rows
     ]
-    return TickerPredictions(ticker=ticker, points=points, mape=_mape(points))
+    return TickerPredictions(ticker=ticker, points=points, mape=_mape(points), directional_accuracy=_directional_accuracy(points))
 
 
 @router.post("/simulate", response_model=SimulateResponse)
