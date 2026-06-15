@@ -17,6 +17,7 @@ const ROUTES: { href: string; key: string; premium?: boolean }[] = [
   { href: "/models", key: "models" },
   { href: "/portfolios", key: "portfolios" },
   { href: "/simulator", key: "simulator" },
+  { href: "/accuracy", key: "accuracy" },
   { href: "/variables", key: "data", premium: true },
 ];
 

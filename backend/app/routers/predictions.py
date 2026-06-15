@@ -27,6 +27,76 @@ from app.schemas import (
 router = APIRouter(prefix="/predictions", tags=["predictions"])
 
 
+@router.get("/accuracy")
+@ttl_cache(seconds=3600)
+async def accuracy_summary(
+    response: Response,
+    days: int = Query(90, ge=7, le=365),
+    min_signal: float = Query(0.0, ge=0.0, le=0.05, description="Min |predicted_return| to count in hit-rate (0 = no filter)"),
+    session: AsyncSession = Depends(get_session),
+) -> list[dict]:
+    """Hit rate + MAPE per ticker for the last N days.
+
+    ``min_signal`` is a confidence threshold: predictions where
+    ``|predicted_return| < min_signal`` are excluded from the directional
+    hit-rate calculation. This lets callers see how accuracy changes when
+    the bot only trades high-conviction days.
+    """
+    cutoff = date.today() - timedelta(days=days)
+    stmt = (
+        select(Prediction)
+        .where(Prediction.predicted_for >= cutoff)
+        .order_by(Prediction.ticker.asc(), Prediction.predicted_for.asc())
+    )
+    rows = (await session.execute(stmt)).scalars().all()
+
+    by_ticker: dict[str, list[Prediction]] = {}
+    for p in rows:
+        by_ticker.setdefault(p.ticker, []).append(p)
+
+    results = []
+    for ticker, preds in sorted(by_ticker.items()):
+        with_actual = [p for p in preds if p.actual_price is not None]
+        n_total = len(preds)
+        n_actual = len(with_actual)
+
+        mape = None
+        if n_actual:
+            mape = sum(float(p.abs_error_pct) for p in with_actual if p.abs_error_pct) / n_actual
+
+        # Directional hit rate with optional confidence filter
+        hit, total_dir, filtered_out = 0, 0, 0
+        for i in range(1, len(with_actual)):
+            prev_price = float(with_actual[i - 1].actual_price)
+            curr_price = float(with_actual[i].actual_price)
+            pred_ret   = float(with_actual[i].predicted_return) if with_actual[i].predicted_return else 0
+            actual_dir = curr_price - prev_price
+            if actual_dir == 0 or pred_ret == 0:
+                continue
+            # Skip low-conviction days when threshold is active
+            if min_signal > 0 and abs(pred_ret) < min_signal:
+                filtered_out += 1
+                continue
+            if (actual_dir > 0) == (pred_ret > 0):
+                hit += 1
+            total_dir += 1
+
+        hit_rate = hit / total_dir if total_dir > 0 else None
+
+        results.append({
+            "ticker":        ticker,
+            "n_total":       n_total,
+            "n_actual":      n_actual,
+            "n_filtered":    filtered_out,
+            "hit_rate":      round(hit_rate, 4) if hit_rate is not None else None,
+            "mape":          round(mape, 6) if mape is not None else None,
+            "days":          days,
+            "min_signal":    min_signal,
+        })
+
+    return results
+
+
 def _mape(points: list[PredictionPoint]) -> float | None:
     pairs = [
         (p.predicted_price, p.actual_price)
