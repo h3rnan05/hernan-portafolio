@@ -28,7 +28,7 @@ router = APIRouter(prefix="/predictions", tags=["predictions"])
 
 
 @router.get("/accuracy")
-@ttl_cache(seconds=3600)
+@ttl_cache(seconds=60)
 async def accuracy_summary(
     response: Response,
     days: int = Query(90, ge=7, le=365),
