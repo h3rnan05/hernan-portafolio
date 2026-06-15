@@ -38,6 +38,26 @@ class RefitOutcome:
     error: str | None = None
 
 
+# Sector ETF pins: these predictors are always included first for each ticker
+# so the model has at least one causally-relevant feature before greedy
+# fills remaining slots with correlated macro/index data.
+SECTOR_PINS: dict[str, list[str]] = {
+    # Tech — semiconductor/software/cloud
+    "NVDA":  ["XLK", "VIX"],
+    "AMZN":  ["XLK"],
+    "CRM":   ["XLK"],
+    "GOOGL": ["XLK", "VIX"],
+    "QCOM":  ["XLK"],
+    # Energy
+    "XOM":   ["XLE", "Brent_Crude"],
+    # Industrials / aerospace
+    "BA":    ["XLI"],
+    "CAT":   ["XLI"],
+    # Airlines
+    "AAL":   ["XLI", "Brent_Crude"],
+}
+
+
 async def refit_all(
     session: AsyncSession,
     *,
@@ -50,6 +70,7 @@ async def refit_all(
     allow_reuse: bool = True,
     estimator: str = "ridge",
     alpha: float | None = None,
+    use_sector_pins: bool = True,
 ) -> list[RefitOutcome]:
     """Refit every active stock against every active predictor.
 
@@ -125,6 +146,10 @@ async def refit_all(
 
     lag_overrides = await load_variable_lags(session, available_predictors)
 
+    pins = SECTOR_PINS if use_sector_pins else {}
+    # Only pass pins for tickers that are being refit in this run
+    active_pins = {t: v for t, v in pins.items() if t in available_tickers}
+
     chosen = select_features_greedy(
         returns,
         tickers=available_tickers,
@@ -133,6 +158,7 @@ async def refit_all(
         lag_overrides=lag_overrides,
         k_per_stock=k_per_stock,
         allow_reuse=allow_reuse,
+        pinned_predictors=active_pins,
     )
 
     for tkr in tickers:

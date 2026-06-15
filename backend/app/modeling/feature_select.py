@@ -43,6 +43,7 @@ def select_features_greedy(
     k_max: int = DEFAULT_K_MAX,
     allow_reuse: bool = True,
     lag_overrides: dict[str, int] | None = None,
+    pinned_predictors: dict[str, list[str]] | None = None,
 ) -> dict[str, list[str]]:
     """Pick the top-k predictors per ticker by |lagged correlation|.
 
@@ -62,6 +63,10 @@ def select_features_greedy(
         lag_overrides: optional ``{predictor_id: lag_days}`` map (HER-15) so
             monthly macro can use a different lag than daily market series.
             Predictors absent from the map use ``lag_days``.
+        pinned_predictors: optional ``{ticker: [predictor_id, …]}`` map of
+            predictors that are always included first before greedy selection
+            fills the remaining k slots. Use for sector ETFs with known causal
+            relationships (e.g. XLK for tech stocks, XLE for energy).
 
     Returns:
         ``{ticker: [predictor_id, …]}``. With ``allow_reuse=True`` the same
@@ -86,31 +91,55 @@ def select_features_greedy(
         lagged[p] = returns_df[p].shift(overrides.get(p, lag_days))
     aligned = pd.concat([returns_df[tickers], lagged], axis=1)
 
+    pins = pinned_predictors or {}
     used: set[str] = set()
     chosen: dict[str, list[str]] = {}
 
     for tkr in tickers:
+        # Pinned predictors for this ticker — always included first
+        forced = [p for p in pins.get(tkr, []) if p in predictors and p in returns_df.columns]
+
         # |corr| of each candidate predictor vs. this stock's contemporaneous
         # returns. Under no-reuse, predictors already claimed are excluded.
-        candidate_cols = predictors if allow_reuse else [p for p in predictors if p not in used]
-        if not candidate_cols:
+        candidate_cols = [p for p in (predictors if allow_reuse else [p for p in predictors if p not in used])
+                          if p not in forced]
+        if not candidate_cols and not forced:
             chosen[tkr] = []
             continue
 
-        corrs = (
-            aligned[candidate_cols]
-            .corrwith(aligned[tkr])
-            .abs()
-            .sort_values(ascending=False)
-        )
-        # Drop NaN correlations (constant series, all-NaN windows)
-        corrs = corrs.dropna()
+        remaining_slots = max(0, k_per_stock - len(forced))
 
-        target = min(k_per_stock, len(corrs))
-        target = max(k_min if len(corrs) >= k_min else len(corrs), target)
-        target = min(target, k_max)
+        if remaining_slots > 0 and candidate_cols:
+            corrs = (
+                aligned[candidate_cols]
+                .corrwith(aligned[tkr])
+                .abs()
+                .sort_values(ascending=False)
+                .dropna()
+            )
+            target = min(remaining_slots, len(corrs))
+            greedy_picks = list(corrs.head(target).index)
+        else:
+            greedy_picks = []
 
-        picks = list(corrs.head(target).index)
+        picks = forced + greedy_picks
+
+        # Enforce k_min: if total picks below floor, add more from corrs
+        if len(picks) < k_min and candidate_cols:
+            if remaining_slots == 0:
+                corrs = (
+                    aligned[candidate_cols]
+                    .corrwith(aligned[tkr])
+                    .abs()
+                    .sort_values(ascending=False)
+                    .dropna()
+                )
+            extra_needed = k_min - len(picks)
+            already = set(picks)
+            extra = [p for p in corrs.index if p not in already][:extra_needed]
+            picks = picks + extra
+
+        picks = picks[:k_max]
         chosen[tkr] = picks
         if not allow_reuse:
             used.update(picks)
