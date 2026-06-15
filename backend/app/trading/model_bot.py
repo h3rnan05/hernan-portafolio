@@ -30,6 +30,7 @@ log = logging.getLogger(__name__)
 
 MIN_TRADE_USD   = 5.0    # skip rebalance legs smaller than this
 MAX_WEIGHT_PCT  = 0.30   # never put more than 30% in one stock
+MIN_SIGNAL      = 0.003  # min |predicted_return| to enter a position (0.3%)
 DEFAULT_PROFILE = "P4_MOD_AGGRESSIVE"
 
 
@@ -92,10 +93,10 @@ async def run(
             log.warning("No prediction for %s — skipping", ticker)
             continue
         ret = float(pred.predicted_return or 0.0)
-        if ret > 0:
+        if ret >= MIN_SIGNAL:
             effective_weights[ticker] = w
         else:
-            log.info("Signal FLAT/DOWN for %s (ret=%.4f) → 0 weight", ticker, ret)
+            log.info("Signal below threshold for %s (ret=%.4f < %.4f) → 0 weight", ticker, ret, MIN_SIGNAL)
 
     # Re-normalize so weights still sum to 1.0
     total_w = sum(effective_weights.values())
