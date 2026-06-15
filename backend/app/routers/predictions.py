@@ -6,7 +6,7 @@ import math
 from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.cache import ttl_cache
@@ -43,15 +43,26 @@ async def accuracy_summary(
     the bot only trades high-conviction days.
     """
     cutoff = date.today() - timedelta(days=days)
-    # Join to ModelFit so only predictions from the currently active model per
-    # ticker are included. Without this, multiple refits create duplicate rows
-    # for the same (ticker, date) which corrupts the directional hit-rate.
+    # Deduplicate: when multiple model versions made predictions for the same
+    # (ticker, date), keep only the row from the highest model_id (latest refit).
+    # This avoids double-counting without discarding historical predictions.
+    latest_model = (
+        select(
+            Prediction.ticker,
+            Prediction.predicted_for,
+            func.max(Prediction.model_id).label("max_model_id"),
+        )
+        .where(Prediction.predicted_for >= cutoff)
+        .group_by(Prediction.ticker, Prediction.predicted_for)
+        .subquery()
+    )
     stmt = (
         select(Prediction)
-        .join(ModelFit, Prediction.model_id == ModelFit.id)
-        .where(
-            Prediction.predicted_for >= cutoff,
-            ModelFit.is_active.is_(True),
+        .join(
+            latest_model,
+            (Prediction.ticker == latest_model.c.ticker)
+            & (Prediction.predicted_for == latest_model.c.predicted_for)
+            & (Prediction.model_id == latest_model.c.max_model_id),
         )
         .order_by(Prediction.ticker.asc(), Prediction.predicted_for.asc())
     )
@@ -211,14 +222,23 @@ async def get_predictions(
 ) -> TickerPredictions:
     """Last N predictions for a ticker, with backfilled actuals where present."""
     cutoff = date.today() - timedelta(days=days)
+    latest_model_t = (
+        select(
+            Prediction.predicted_for,
+            func.max(Prediction.model_id).label("max_model_id"),
+        )
+        .where(Prediction.ticker == ticker, Prediction.predicted_for >= cutoff)
+        .group_by(Prediction.predicted_for)
+        .subquery()
+    )
     stmt = (
         select(Prediction)
-        .join(ModelFit, Prediction.model_id == ModelFit.id)
-        .where(
-            Prediction.ticker == ticker,
-            Prediction.predicted_for >= cutoff,
-            ModelFit.is_active.is_(True),
+        .join(
+            latest_model_t,
+            (Prediction.predicted_for == latest_model_t.c.predicted_for)
+            & (Prediction.model_id == latest_model_t.c.max_model_id),
         )
+        .where(Prediction.ticker == ticker)
         .order_by(Prediction.predicted_for.asc())
     )
     rows = (await session.execute(stmt)).scalars().all()
