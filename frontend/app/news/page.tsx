@@ -28,12 +28,46 @@ const FILTERS = [
   { key: "p0",     label: "P0 ULTRA CONS.",     tickers: P0_TICKERS },
 ];
 
+// ─── Impact detection ─────────────────────────────────────────────────────────
+
+const HIGH_IMPACT_KEYWORDS = [
+  "earnings", "resultados", "guidance", "merger", "adquisición", "acquisition",
+  "lawsuit", "demanda", "sec", "fda", "bankruptcy", "quiebra",
+  "downgrade", "upgrade", "layoffs", "despidos", "ceo", "recall",
+  "retirada", "investigation", "investigación", "fraud", "fraude",
+  "beats", "misses", "revenue beat", "revenue miss", "profit warning",
+  "dividend", "dividendo", "buyback", "recompra", "split",
+];
+
+const MED_IMPACT_KEYWORDS = [
+  "analyst", "analista", "forecast", "outlook", "perspectivas",
+  "quarter", "trimestre", "annual", "anual", "report", "reporte",
+  "partnership", "alianza", "contract", "contrato", "deal", "acuerdo",
+  "expansion", "expansión", "growth", "crecimiento", "target", "price target",
+  "raises", "cuts", "initiate", "reiterate",
+];
+
+type Impact = "high" | "medium" | "normal";
+
+function getImpact(headline: string, summary: string): Impact {
+  const text = `${headline} ${summary}`.toLowerCase();
+  if (HIGH_IMPACT_KEYWORDS.some((kw) => text.includes(kw))) return "high";
+  if (MED_IMPACT_KEYWORDS.some((kw) => text.includes(kw)))  return "medium";
+  return "normal";
+}
+
+const IMPACT_CONFIG: Record<Impact, { label: string; bar: string; badge: string; text: string }> = {
+  high:   { label: "ALTO IMPACTO", bar: "border-l-[var(--color-red)]",   badge: "bg-[var(--color-red)] text-white",   text: "text-[var(--color-red)]" },
+  medium: { label: "MED. IMPACTO", bar: "border-l-[var(--color-amber)]", badge: "bg-[var(--color-amber)] text-black", text: "text-[var(--color-amber)]" },
+  normal: { label: "",             bar: "border-l-[var(--color-border)]", badge: "",                                   text: "" },
+};
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function timeAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60)   return `hace ${diff}s`;
-  if (diff < 3600) return `hace ${Math.floor(diff / 60)}min`;
+  if (diff < 60)    return `hace ${diff}s`;
+  if (diff < 3600)  return `hace ${Math.floor(diff / 60)}min`;
   if (diff < 86400) return `hace ${Math.floor(diff / 3600)}h`;
   return `hace ${Math.floor(diff / 86400)}d`;
 }
@@ -50,11 +84,20 @@ function ArticleCard({ article }: { article: NewsArticle }) {
   const portfolioSymbols = article.symbols.filter(
     (s) => OLS_TICKERS.includes(s) || P0_TICKERS.includes(s),
   );
+  const impact = getImpact(article.headline, article.summary ?? "");
+  const cfg    = IMPACT_CONFIG[impact];
 
   return (
-    <div className="border border-[var(--color-border)] bg-[var(--color-bg2)] p-4 border-l-2 border-l-[var(--color-amber)] transition-colors hover:bg-[var(--color-bg3)]">
+    <div className={`border border-[var(--color-border)] bg-[var(--color-bg2)] p-4 border-l-2 ${cfg.bar} transition-colors hover:bg-[var(--color-bg3)]`}>
       {/* Meta row */}
       <div className="mb-2 flex flex-wrap items-center gap-2">
+        {/* Impact badge */}
+        {impact !== "normal" && (
+          <span className={`px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest ${cfg.badge}`}>
+            {cfg.label}
+          </span>
+        )}
+
         {/* Ticker badges */}
         {portfolioSymbols.slice(0, 4).map((sym) => (
           <span
@@ -69,6 +112,7 @@ function ArticleCard({ article }: { article: NewsArticle }) {
             +{portfolioSymbols.length - 4} más
           </span>
         )}
+
         {/* Portfolio label */}
         {portfolioSymbols.length > 0 && (
           <span className="ml-auto text-[9px] font-semibold uppercase tracking-widest text-[var(--color-text3)]">
@@ -78,7 +122,7 @@ function ArticleCard({ article }: { article: NewsArticle }) {
       </div>
 
       {/* Headline */}
-      <p className="mb-1.5 text-[13px] font-semibold leading-snug text-[var(--color-text)]">
+      <p className={`mb-1.5 text-[13px] font-semibold leading-snug ${impact === "high" ? cfg.text : "text-[var(--color-text)]"}`}>
         {article.headline}
       </p>
 
@@ -238,13 +282,33 @@ export default function NewsPage() {
         </div>
       ) : (
         <>
-          <div className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-[var(--color-text3)]">
-            {articles.length} ARTÍCULOS · {activeFilter.label}
+          {/* Summary counts */}
+          <div className="mb-4 flex flex-wrap items-center gap-4 text-[10px] font-semibold uppercase tracking-widest">
+            <span className="text-[var(--color-text3)]">{articles.length} ARTÍCULOS · {activeFilter.label}</span>
+            {(() => {
+              const high = articles.filter(a => getImpact(a.headline, a.summary ?? "") === "high").length;
+              const med  = articles.filter(a => getImpact(a.headline, a.summary ?? "") === "medium").length;
+              return (
+                <>
+                  {high > 0 && <span className="text-[var(--color-red)]">{high} ALTO IMPACTO</span>}
+                  {med  > 0 && <span className="text-[var(--color-amber)]">{med} MED. IMPACTO</span>}
+                </>
+              );
+            })()}
           </div>
+
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            {articles.map((article) => (
-              <ArticleCard key={article.id} article={article} />
-            ))}
+            {[...articles]
+              .sort((a, b) => {
+                const order: Record<Impact, number> = { high: 0, medium: 1, normal: 2 };
+                const ia = getImpact(a.headline, a.summary ?? "");
+                const ib = getImpact(b.headline, b.summary ?? "");
+                if (order[ia] !== order[ib]) return order[ia] - order[ib];
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+              })
+              .map((article) => (
+                <ArticleCard key={article.id} article={article} />
+              ))}
           </div>
         </>
       )}
