@@ -178,7 +178,7 @@ export default function PositionsPage() {
               <button
                 key={bot.key}
                 onClick={() => setActiveBot(bot.key)}
-                className={`rounded-[12px] p-4 text-left transition-all duration-150 ${
+                className={`rounded-none p-4 text-left transition-all duration-150 ${
                   active
                     ? "bg-[var(--color-bg2)] shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_1px_3px_rgba(0,0,0,0.4)]"
                     : "bg-[var(--color-bg3)] opacity-60 hover:bg-[var(--color-bg2)] hover:opacity-100"
@@ -213,7 +213,7 @@ export default function PositionsPage() {
             <p className="text-[13px] text-[var(--color-text2)]">{error}</p>
             <button
               onClick={() => load(activeBot)}
-              className="inline-flex h-8 items-center rounded-[8px] bg-[var(--color-bg3)] px-4 text-[12.5px] font-medium hover:bg-[var(--color-bg4)]"
+              className="inline-flex h-8 items-center rounded-none bg-[var(--color-bg3)] px-4 text-[12.5px] font-medium hover:bg-[var(--color-bg4)]"
             >
               ↻ Reintentar
             </button>
@@ -269,7 +269,7 @@ function BotDetail({
         </div>
         <button
           onClick={onRefresh}
-          className="inline-flex h-7 items-center rounded-[6px] bg-[var(--color-bg3)] px-3 text-[11.5px] font-medium hover:bg-[var(--color-bg4)]"
+          className="inline-flex h-7 items-center rounded-none bg-[var(--color-bg3)] px-3 text-[11.5px] font-medium hover:bg-[var(--color-bg4)]"
         >
           ↻ Actualizar
         </button>
@@ -279,24 +279,24 @@ function BotDetail({
       <Card>
         <SectionHeader eyebrow="Cuenta Alpaca" title="Balance de la cuenta" />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-[10px] bg-[var(--color-bg3)] px-3 py-3">
+          <div className="rounded-none bg-[var(--color-bg3)] px-3 py-3">
             <div className="mb-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">Equity total</div>
             <div className="font-mono text-[16px] font-semibold">${fmt$(equity)}</div>
             <div className="mt-0.5 text-[11px] text-[var(--color-text3)]">Capital + posiciones</div>
           </div>
-          <div className="rounded-[10px] bg-[var(--color-bg3)] px-3 py-3">
+          <div className="rounded-none bg-[var(--color-bg3)] px-3 py-3">
             <div className="mb-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">P&amp;L abierto</div>
             <div className={`font-mono text-[16px] font-semibold ${totalPnl >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
               {totalPnl >= 0 ? "+" : ""}${fmt$(totalPnl)}
             </div>
             <div className="mt-0.5 text-[11px] text-[var(--color-text3)]">Ganancia/pérdida no realizada</div>
           </div>
-          <div className="rounded-[10px] bg-[var(--color-bg3)] px-3 py-3">
+          <div className="rounded-none bg-[var(--color-bg3)] px-3 py-3">
             <div className="mb-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">Invertido</div>
             <div className="font-mono text-[16px] font-semibold">${fmt$(invested)}</div>
             <div className="mt-0.5 text-[11px] text-[var(--color-text3)]">{positions.length} posiciones abiertas</div>
           </div>
-          <div className="rounded-[10px] bg-[var(--color-bg3)] px-3 py-3">
+          <div className="rounded-none bg-[var(--color-bg3)] px-3 py-3">
             <div className="mb-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">Efectivo libre</div>
             <div className="font-mono text-[16px] font-semibold">${fmt$(cash)}</div>
             <div className="mt-0.5 text-[11px] text-[var(--color-text3)]">Listo para invertir</div>
@@ -355,7 +355,7 @@ function BotDetail({
       )}
 
       {!botDef.hasSignals && (
-        <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg2)] px-5 py-4 text-[12.5px] text-[var(--color-text3)]">
+        <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-bg2)] px-5 py-4 text-[12.5px] text-[var(--color-text3)]">
           Las señales de predicción solo están disponibles para el <strong className="text-[var(--color-text2)]">OLS Model Bot</strong>. Los demás bots operan con su propia lógica integrada.
         </div>
       )}
@@ -368,7 +368,7 @@ function BotDetail({
           description={positions.length > 0 ? `${positions.length} posiciones · valor total $${fmt$(invested)}` : undefined}
         />
         {positions.length === 0 ? (
-          <div className="rounded-[10px] border border-dashed border-[var(--color-border2)] p-8 text-center text-[13px] text-[var(--color-text3)]">
+          <div className="rounded-none border border-dashed border-[var(--color-border2)] p-8 text-center text-[13px] text-[var(--color-text3)]">
             Sin posiciones abiertas. El bot ejecutará órdenes a las 9:35 AM ET en el próximo día hábil.
           </div>
         ) : (
@@ -448,7 +448,7 @@ function BotDetail({
           description="Órdenes enviadas por el bot a Alpaca, ordenadas por fecha de ejecución."
         />
         {orders.length === 0 ? (
-          <div className="rounded-[10px] border border-dashed border-[var(--color-border2)] p-8 text-center text-[13px] text-[var(--color-text3)]">
+          <div className="rounded-none border border-dashed border-[var(--color-border2)] p-8 text-center text-[13px] text-[var(--color-text3)]">
             Sin órdenes registradas aún.
           </div>
         ) : (

@@ -80,7 +80,7 @@ function CustomTooltip({ active, payload, label }: {
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-[10px] border border-[var(--color-border)] bg-[var(--color-bg2)] p-3 text-[12px] shadow-lg">
+    <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-bg2)] p-3 text-[12px] shadow-lg">
       <div className="mb-2 font-medium text-[var(--color-text3)]">{label}</div>
       {payload.map((p) => (
         <div key={p.name} className="flex items-center gap-2">
@@ -142,13 +142,13 @@ export function BotComparisonChart() {
         title="Bots vs S&P 500"
         description="Los 3 bots comparten una cuenta de paper trading. La línea verde refleja el equity combinado normalizado a 100."
         right={
-          <div className="inline-flex items-center gap-1 rounded-[8px] bg-[var(--color-bg3)] p-1">
+          <div className="inline-flex items-center gap-1 rounded-none bg-[var(--color-bg3)] p-1">
             {RANGE_OPTIONS.map((opt) => (
               <button
                 key={opt.days}
                 type="button"
                 onClick={() => setRangeDays(opt.days)}
-                className={`rounded-[6px] px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                className={`rounded-none px-2.5 py-1 text-[11px] font-medium transition-colors ${
                   rangeDays === opt.days
                     ? "bg-[var(--color-bg)] text-[var(--color-text)] shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
                     : "text-[var(--color-text3)] hover:text-[var(--color-text2)]"
@@ -194,7 +194,7 @@ export function BotComparisonChart() {
       {isCold || !data ? (
         <Skeleton className="h-[260px]" />
       ) : !hasRealData && chartData.every((r) => r.account === null) ? (
-        <div className="flex h-[260px] flex-col items-center justify-center gap-3 rounded-[10px] border border-dashed border-[var(--color-border2)] bg-[var(--color-bg3)]">
+        <div className="flex h-[260px] flex-col items-center justify-center gap-3 rounded-none border border-dashed border-[var(--color-border2)] bg-[var(--color-bg3)]">
           <Badge tone="amber">En espera</Badge>
           <p className="max-w-xs text-center text-[12px] text-[var(--color-text2)]">
             La gráfica se poblará en cuanto los bots empiecen a ejecutar órdenes. El S&P 500 ya está cargando.
@@ -257,7 +257,7 @@ export function BotComparisonChart() {
         {BOTS.map((bot) => (
           <div
             key={bot.key}
-            className="rounded-[10px] bg-[var(--color-bg3)] p-3"
+            className="rounded-none bg-[var(--color-bg3)] p-3"
           >
             <div className="mb-1 flex items-center gap-1.5">
               <span

@@ -32,7 +32,7 @@ export function TabNav({
 
   return (
     <div
-      className={`inline-flex items-center gap-1 rounded-[10px] bg-[var(--color-bg3)] p-1 ${className}`}
+      className={`inline-flex items-center gap-1 rounded-none bg-[var(--color-bg3)] p-1 ${className}`}
       role="tablist"
     >
       {tabs.map((t) => {

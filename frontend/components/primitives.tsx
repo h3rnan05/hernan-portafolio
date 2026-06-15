@@ -106,7 +106,7 @@ export function Badge({
   return (
     <span
       className={
-        "inline-flex items-center rounded-[6px] px-2 py-0.5 text-[10.5px] " +
+        "inline-flex items-center rounded-none px-2 py-0.5 text-[10.5px] " +
         "font-medium uppercase tracking-[0.06em] " +
         BADGE_TONES[tone] +
         " " +
@@ -137,7 +137,7 @@ export function StatTile({
 }) {
   return (
     <div
-      className={`rounded-[10px] p-4 ${
+      className={`rounded-none p-4 ${
         tone === "muted" ? "bg-[var(--color-bg3)]" : "bg-[var(--color-bg3)]"
       }`}
     >
@@ -173,7 +173,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-[14px] border border-dashed border-[var(--color-border2)] bg-[var(--color-bg2)] p-12 text-center">
+    <div className="flex flex-col items-center justify-center rounded-none border border-dashed border-[var(--color-border2)] bg-[var(--color-bg2)] p-12 text-center">
       <div className="text-sm font-medium text-[var(--color-text)]">
         {title}
       </div>
@@ -197,7 +197,7 @@ export function Skeleton({
   return (
     <div
       className={
-        "animate-pulse rounded-[10px] bg-[var(--color-bg3)] " + className
+        "animate-pulse rounded-none bg-[var(--color-bg3)] " + className
       }
       aria-hidden
     />

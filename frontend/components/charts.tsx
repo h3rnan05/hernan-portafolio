@@ -83,7 +83,7 @@ function CustomTooltip({
   const dayLabel = locale === "en" ? "day" : "día";
   const signed = (x: number, d = 1) => `${x >= 0 ? "+" : ""}${x.toFixed(d)}%`;
   return (
-    <div className="rounded-[10px] border border-[var(--color-border2)] bg-[var(--color-bg)] p-3 text-[12px] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+    <div className="rounded-none border border-[var(--color-border2)] bg-[var(--color-bg)] p-3 text-[12px] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
       <div className="mb-1.5 text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
         {dateLabel}
       </div>
@@ -245,7 +245,7 @@ export function TimeSeriesChart({
                   type="button"
                   onClick={() => onToggleSeries(s.key)}
                   aria-pressed={!off}
-                  className={`inline-flex items-center gap-1.5 rounded-[6px] px-1 py-0.5 transition-colors hover:text-[var(--color-text)] focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--color-border2)] ${
+                  className={`inline-flex items-center gap-1.5 rounded-none px-1 py-0.5 transition-colors hover:text-[var(--color-text)] focus-visible:outline focus-visible:outline-1 focus-visible:outline-[var(--color-border2)] ${
                     off ? "text-[var(--color-text3)] line-through" : ""
                   }`}
                   title={off ? `Mostrar ${s.label}` : `Ocultar ${s.label}`}
@@ -423,7 +423,7 @@ function ForecastTooltip({
   const fmt = (v: number | null | undefined) =>
     v == null ? "—" : fmtNumber(v, { decimals: 2 });
   return (
-    <div className="rounded-[10px] border border-[var(--color-border2)] bg-[var(--color-bg)] p-3 text-[12px] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+    <div className="rounded-none border border-[var(--color-border2)] bg-[var(--color-bg)] p-3 text-[12px] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
       <div className="mb-1.5 font-medium text-[var(--color-text2)]">
         {fmtDate(String(label))}
       </div>

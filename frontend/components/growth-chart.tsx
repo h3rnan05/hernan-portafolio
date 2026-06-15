@@ -98,14 +98,14 @@ export function GrowthChart() {
         title={t("title")}
         description={t("subtitle")}
         right={
-          <div className="inline-flex items-center gap-1 rounded-[8px] bg-[var(--color-bg3)] p-1">
+          <div className="inline-flex items-center gap-1 rounded-none bg-[var(--color-bg3)] p-1">
             {WINDOW_KEYS.map((w) => (
               <button
                 key={w}
                 type="button"
                 onClick={() => setWindow(w)}
                 aria-pressed={window === w}
-                className={`rounded-[6px] px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                className={`rounded-none px-2.5 py-1 text-[11px] font-medium transition-colors ${
                   window === w
                     ? "bg-[var(--color-bg)] text-[var(--color-text)] shadow-[0_0_0_1px_rgba(255,255,255,0.06)]"
                     : "text-[var(--color-text3)] hover:text-[var(--color-text2)]"
@@ -120,7 +120,7 @@ export function GrowthChart() {
 
       {isCold ? (
         <div
-          className="h-[320px] w-full animate-pulse rounded-[10px] bg-[var(--color-bg3)]"
+          className="h-[320px] w-full animate-pulse rounded-none bg-[var(--color-bg3)]"
           aria-hidden
         />
       ) : series.length === 0 ? (
@@ -231,7 +231,7 @@ function LegendItem({
       onClick={onToggle}
       aria-pressed={!hidden}
       title={showHideTitle}
-      className={`inline-flex items-center gap-2 rounded-[8px] bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11.5px] transition-opacity ${
+      className={`inline-flex items-center gap-2 rounded-none bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11.5px] transition-opacity ${
         hidden ? "opacity-40" : "hover:bg-[var(--color-bg4)]"
       }`}
     >
@@ -280,7 +280,7 @@ function GrowthTooltip({
     .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
 
   return (
-    <div className="rounded-[10px] border border-[var(--color-border2)] bg-[var(--color-bg)] p-3 text-[12px] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
+    <div className="rounded-none border border-[var(--color-border2)] bg-[var(--color-bg)] p-3 text-[12px] shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)]">
       <div className="mb-1.5 text-[10px] uppercase tracking-widest text-[var(--color-text3)]">
         {fmtDate(String(label), locale)}
       </div>

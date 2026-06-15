@@ -255,14 +255,14 @@ export function PortfolioComparison() {
         title={t("title")}
         description={t("subtitle")}
         right={
-          <div className="inline-flex items-center gap-1 rounded-[8px] bg-[var(--color-bg3)] p-1">
+          <div className="inline-flex items-center gap-1 rounded-none bg-[var(--color-bg3)] p-1">
             {RANGE_KEYS.map((r) => (
               <button
                 key={r}
                 type="button"
                 onClick={() => setRange(r)}
                 aria-pressed={range === r}
-                className={`rounded-[6px] px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                className={`rounded-none px-2.5 py-1 text-[11px] font-medium transition-colors ${
                   range === r
                     ? "bg-[var(--color-bg)] text-[var(--color-text)] shadow-[0_0_0_1px_rgba(0,0,0,0.08)]"
                     : "text-[var(--color-text3)] hover:text-[var(--color-text2)]"

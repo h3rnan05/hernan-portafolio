@@ -103,7 +103,7 @@ export function PortfolioTabs({
   return (
     <div>
       <div
-        className="mb-6 flex items-center gap-1 overflow-x-auto rounded-[10px] bg-[var(--color-bg3)] p-1"
+        className="mb-6 flex items-center gap-1 overflow-x-auto rounded-none bg-[var(--color-bg3)] p-1"
         role="tablist"
       >
         {profiles.map((p) => {
@@ -207,7 +207,7 @@ function ProfilePanel({
         </div>
         <Link
           href={`/portfolios/${portfolio.id}`}
-          className="rounded-[6px] bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
+          className="rounded-none bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
         >
           {tc("full_history")}
         </Link>
@@ -216,14 +216,14 @@ function ProfilePanel({
       {/* P4: live Alpaca equity banner */}
       {isBot && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-[12px] border border-[var(--color-green)]/25 bg-[var(--color-green)]/5 px-4 py-3">
+          <div className="rounded-none border border-[var(--color-green)]/25 bg-[var(--color-green)]/5 px-4 py-3">
             <div className="mb-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">Equity en Alpaca</div>
             <div className="font-mono text-[18px] font-bold text-[var(--color-text)]">
               {equity !== null ? `$${fmtNumber(equity, { decimals: 2 })}` : <span className="text-[var(--color-text3)]">…</span>}
             </div>
             <div className="mt-0.5 text-[11px] text-[var(--color-text3)]">Cuenta real Paper Trading</div>
           </div>
-          <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg2)] px-4 py-3">
+          <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-bg2)] px-4 py-3">
             <div className="mb-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">P&L abierto</div>
             <div className={`font-mono text-[18px] font-bold ${totalPnl === null ? "text-[var(--color-text3)]" : totalPnl >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
               {totalPnl !== null
@@ -232,14 +232,14 @@ function ProfilePanel({
             </div>
             <div className="mt-0.5 text-[11px] text-[var(--color-text3)]">Ganancia no realizada</div>
           </div>
-          <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg2)] px-4 py-3">
+          <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-bg2)] px-4 py-3">
             <div className="mb-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">Error del modelo</div>
             <div className="font-mono text-[18px] font-bold">
               {mape !== null ? fmtPct(mape, { decimals: 2 }) : "—"}
             </div>
             <div className="mt-0.5 text-[11px] text-[var(--color-text3)]">MAPE 30 días</div>
           </div>
-          <div className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg2)] px-4 py-3">
+          <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-bg2)] px-4 py-3">
             <div className="mb-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">Posiciones abiertas</div>
             <div className="font-mono text-[18px] font-bold">
               {alpaca !== null ? alpaca.positions.length : <span className="text-[var(--color-text3)]">…</span>}
@@ -251,7 +251,7 @@ function ProfilePanel({
 
       {/* Non-P4: MAPE quality tile */}
       {!isBot && mape !== null && (
-        <div className="flex items-center gap-4 rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg2)] px-5 py-4">
+        <div className="flex items-center gap-4 rounded-none border border-[var(--color-border)] bg-[var(--color-bg2)] px-5 py-4">
           <div>
             <div className="text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">Precisión del modelo · MAPE 30 días</div>
             <div className="mt-1 flex items-baseline gap-3">
@@ -270,7 +270,7 @@ function ProfilePanel({
           description={t("current_desc")}
         />
         {/* Weight bar */}
-        <div className="flex h-3 overflow-hidden rounded-[6px] bg-[var(--color-bg3)]">
+        <div className="flex h-3 overflow-hidden rounded-none bg-[var(--color-bg3)]">
           {sorted.map(([ticker, w], i) => (
             <div
               key={ticker}
@@ -290,7 +290,7 @@ function ProfilePanel({
             return (
               <div
                 key={ticker}
-                className="flex items-center justify-between gap-3 rounded-[8px] bg-[var(--color-bg3)] px-3 py-2"
+                className="flex items-center justify-between gap-3 rounded-none bg-[var(--color-bg3)] px-3 py-2"
               >
                 <div className="flex items-center gap-2">
                   <span

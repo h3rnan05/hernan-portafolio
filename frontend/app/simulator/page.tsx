@@ -203,7 +203,7 @@ export default function SimulatorPage() {
           onClick={loadAiScenario}
           disabled={aiLoading}
           className={[
-            "flex w-full items-center gap-3 rounded-[12px] border px-4 py-3 text-left transition",
+            "flex w-full items-center gap-3 rounded-none border px-4 py-3 text-left transition",
             activeScenario === "ai"
               ? "border-[var(--color-cyan)] bg-[var(--color-cyan)]/10 text-[var(--color-cyan)]"
               : "border-[var(--color-border)] bg-[var(--color-bg2)] text-[var(--color-text)] hover:border-[var(--color-cyan)]/50",
@@ -261,7 +261,7 @@ export default function SimulatorPage() {
         </Card>
       )}
       {aiError && (
-        <div className="mb-4 rounded-[10px] bg-[var(--color-red)]/10 px-4 py-3 text-[12.5px] text-[var(--color-red)]">
+        <div className="mb-4 rounded-none bg-[var(--color-red)]/10 px-4 py-3 text-[12.5px] text-[var(--color-red)]">
           {aiError}
         </div>
       )}
@@ -301,7 +301,7 @@ export default function SimulatorPage() {
                       >
                         ⓘ
                         {tooltip === s.id && (
-                          <div className="absolute bottom-full left-0 z-50 mb-1.5 w-56 rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] p-2.5 text-left text-[11.5px] leading-relaxed text-[var(--color-text2)] shadow-lg">
+                          <div className="absolute bottom-full left-0 z-50 mb-1.5 w-56 rounded-none border border-[var(--color-border)] bg-[var(--color-bg)] p-2.5 text-left text-[11.5px] leading-relaxed text-[var(--color-text2)] shadow-lg">
                             {tip ?? t(s.tipKey as Parameters<typeof t>[0])}
                           </div>
                         )}
@@ -464,7 +464,7 @@ export default function SimulatorPage() {
               {/* Impact summary bar */}
               {portfolioDeltaPct !== null && (
                 <div className={[
-                  "mt-4 rounded-[10px] border px-4 py-3",
+                  "mt-4 rounded-none border px-4 py-3",
                   portfolioDeltaPct >= 0
                     ? "border-[var(--color-green)]/30 bg-[var(--color-green)]/8"
                     : "border-[var(--color-red)]/30 bg-[var(--color-red)]/8",
@@ -677,7 +677,7 @@ function OlsBotImpact({
       {/* Total impact banner */}
       {hasScenario && (
         <div className={[
-          "mt-4 rounded-[10px] border px-4 py-3",
+          "mt-4 rounded-none border px-4 py-3",
           totalImpact >= 0
             ? "border-[var(--color-green)]/30 bg-[var(--color-green)]/8"
             : "border-[var(--color-red)]/30 bg-[var(--color-red)]/8",

@@ -98,7 +98,7 @@ export default async function Overview() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-[6px] bg-[var(--color-bg3)] px-2.5 py-1 text-[11px] text-[var(--color-text2)]">
+          <span className="inline-flex items-center gap-2 rounded-none bg-[var(--color-bg3)] px-2.5 py-1 text-[11px] text-[var(--color-text2)]">
             <span className={`size-1.5 rounded-full ${latestObs ? "bg-[var(--color-green)]" : "bg-[var(--color-amber)]"}`} />
             <span className="font-medium">
               {latestObs ? t("data_thru", { date: fmtDate(latestObs, locale) }) : t("no_data_yet")}
@@ -139,7 +139,7 @@ export default async function Overview() {
           right={
             <Link
               href="/portfolios"
-              className="rounded-[6px] bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
+              className="rounded-none bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
             >
               {tc("all_profiles")}
             </Link>
@@ -162,7 +162,7 @@ export default async function Overview() {
             right={
               <Link
                 href="/holdings"
-                className="rounded-[6px] bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
+                className="rounded-none bg-[var(--color-bg3)] px-2.5 py-1.5 text-[11px] font-medium text-[var(--color-text2)] hover:text-[var(--color-text)]"
               >
                 {tc("edit_holdings")}
               </Link>

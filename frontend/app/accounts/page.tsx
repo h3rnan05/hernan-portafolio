@@ -124,7 +124,7 @@ export default function AccountsPage() {
 
       {/* Tarjeta resumen global */}
       {allLoaded && totalEquity > 0 && (
-        <div className="mb-8 rounded-[16px] border border-[var(--color-border)] bg-[var(--color-bg2)] p-5">
+        <div className="mb-8 rounded-none border border-[var(--color-border)] bg-[var(--color-bg2)] p-5">
           <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
             CONSOLIDADO · 3 BOTS
           </div>
@@ -144,7 +144,7 @@ export default function AccountsPage() {
             <div className="ml-auto">
               <Link
                 href="/simulator"
-                className="rounded-[10px] bg-[var(--color-bg4)] px-4 py-2 text-[12px] font-medium text-[var(--color-text2)] transition hover:bg-[var(--color-border3)] hover:text-[var(--color-text)]"
+                className="rounded-none bg-[var(--color-bg4)] px-4 py-2 text-[12px] font-medium text-[var(--color-text2)] transition hover:bg-[var(--color-border3)] hover:text-[var(--color-text)]"
               >
                 ✨ Simular escenario
               </Link>
@@ -167,7 +167,7 @@ export default function AccountsPage() {
           return (
             <div
               key={bot.key}
-              className={`rounded-[16px] border p-5 transition ${bot.accent}`}
+              className={`rounded-none border p-5 transition ${bot.accent}`}
             >
               {/* Bot header */}
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
@@ -209,7 +209,7 @@ export default function AccountsPage() {
 
               {/* Error */}
               {!isLoading && hasError && (
-                <div className="mb-3 rounded-[8px] bg-[var(--color-red)]/10 px-3 py-2 text-[12px] text-[var(--color-red)]">
+                <div className="mb-3 rounded-none bg-[var(--color-red)]/10 px-3 py-2 text-[12px] text-[var(--color-red)]">
                   Error al conectar con Alpaca. Verifica las claves de API.
                 </div>
               )}
@@ -265,7 +265,7 @@ export default function AccountsPage() {
 
               {/* Sin posiciones */}
               {!isLoading && !hasError && positions.length === 0 && (
-                <div className="rounded-[8px] bg-[var(--color-bg3)] px-4 py-3 text-[12.5px] text-[var(--color-text3)]">
+                <div className="rounded-none bg-[var(--color-bg3)] px-4 py-3 text-[12.5px] text-[var(--color-text3)]">
                   Sin posiciones abiertas actualmente.
                 </div>
               )}
@@ -279,7 +279,7 @@ export default function AccountsPage() {
                 </div>
                 <Link
                   href={bot.href}
-                  className="rounded-[8px] border border-[var(--color-border)] px-3 py-1.5 text-[11.5px] font-medium text-[var(--color-text2)] transition hover:border-[var(--color-border3)] hover:text-[var(--color-text)]"
+                  className="rounded-none border border-[var(--color-border)] px-3 py-1.5 text-[11.5px] font-medium text-[var(--color-text2)] transition hover:border-[var(--color-border3)] hover:text-[var(--color-text)]"
                 >
                   Ver detalle →
                 </Link>

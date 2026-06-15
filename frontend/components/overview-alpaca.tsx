@@ -169,7 +169,7 @@ export function AlpacaStatsBar() {
   return (
     <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4">
       {stats.map((s) => (
-        <div key={s.label} className="rounded-[12px] border border-[var(--color-border)] bg-[var(--color-bg2)] px-4 py-3">
+        <div key={s.label} className="rounded-none border border-[var(--color-border)] bg-[var(--color-bg2)] px-4 py-3">
           <div className="mb-1 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
             {s.label}
           </div>
@@ -185,7 +185,7 @@ export function AlpacaStatsBar() {
 
 function PositionChips({ positions }: { positions: Position[] }) {
   if (!positions.length) return (
-    <div className="rounded-[8px] bg-[var(--color-bg3)] px-3 py-2 text-[12px] text-[var(--color-text3)]">
+    <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2 text-[12px] text-[var(--color-text3)]">
       Sin posiciones abiertas.
     </div>
   );
@@ -194,7 +194,7 @@ function PositionChips({ positions }: { positions: Position[] }) {
       {positions.map((p) => {
         const pl = parseFloat(p.unrealized_plpc);
         return (
-          <div key={p.symbol} className="flex items-center gap-1.5 rounded-[6px] bg-[var(--color-bg)] px-2.5 py-1 border border-[var(--color-border)]">
+          <div key={p.symbol} className="flex items-center gap-1.5 rounded-none bg-[var(--color-bg)] px-2.5 py-1 border border-[var(--color-border)]">
             <span className="font-mono text-[12px] font-medium">{p.symbol}</span>
             <span className={`text-[11px] font-mono ${pl >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
               {pl >= 0 ? "+" : ""}{fmtPct(pl, { decimals: 2 })}
@@ -216,7 +216,7 @@ export function OlsBotStatus() {
   const holds   = signals.filter((s) => s.action === "HOLD");
 
   return (
-    <div className="flex flex-col rounded-[16px] border border-[var(--color-green)]/30 bg-[var(--color-green)]/5 p-5">
+    <div className="flex flex-col rounded-none border border-[var(--color-green)]/30 bg-[var(--color-green)]/5 p-5">
       <BotHeader label="OLS Model Bot" desc="Perfil P4 · Moderado Agresivo · 9 acciones"
         accentVar="--color-green" fetchedAt={data?.fetchedAt} />
 
@@ -228,7 +228,7 @@ export function OlsBotStatus() {
               { label: "Vender",  count: sells.length, color: "text-[var(--color-red)]",    bg: "bg-[var(--color-red)]/10"   },
               { label: "Esperar", count: holds.length, color: "text-[var(--color-text2)]",  bg: "bg-[var(--color-bg3)]"      },
             ].map((item) => (
-              <div key={item.label} className={`rounded-[8px] ${item.bg} px-3 py-2 text-center`}>
+              <div key={item.label} className={`rounded-none ${item.bg} px-3 py-2 text-center`}>
                 <div className={`font-mono text-[20px] font-bold ${item.color}`}>{item.count}</div>
                 <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">{item.label}</div>
               </div>
@@ -242,7 +242,7 @@ export function OlsBotStatus() {
                 .sort((a, b) => Math.abs(b.deltaPct) - Math.abs(a.deltaPct))
                 .slice(0, 5)
                 .map((s) => (
-                  <div key={s.ticker} className="flex items-center justify-between rounded-[6px] bg-[var(--color-bg2)] px-3 py-1.5">
+                  <div key={s.ticker} className="flex items-center justify-between rounded-none bg-[var(--color-bg2)] px-3 py-1.5">
                     <span className="font-mono text-[12px] font-medium">{s.ticker}</span>
                     <div className="flex items-center gap-2">
                       <span className="text-[11px] text-[var(--color-text3)]">
@@ -256,7 +256,7 @@ export function OlsBotStatus() {
                 ))}
             </div>
           ) : (
-            <div className="mb-4 rounded-[8px] bg-[var(--color-bg3)] px-3 py-2 text-[12px] text-[var(--color-text3)]">
+            <div className="mb-4 rounded-none bg-[var(--color-bg3)] px-3 py-2 text-[12px] text-[var(--color-text3)]">
               Sin señales activas — el modelo no ve movimientos significativos hoy.
             </div>
           )}
@@ -287,7 +287,7 @@ export function CapitolBotStatus() {
   const totalPnl  = positions.reduce((s, p) => s + parseFloat(p.unrealized_pl), 0);
 
   return (
-    <div className="flex flex-col rounded-[16px] border border-[var(--color-cyan)]/30 bg-[var(--color-cyan)]/5 p-5">
+    <div className="flex flex-col rounded-none border border-[var(--color-cyan)]/30 bg-[var(--color-cyan)]/5 p-5">
       <BotHeader label="Capitol Trades Bot" desc="Copia los trades del Congreso de EE.UU."
         accentVar="--color-cyan" fetchedAt={data?.fetchedAt} />
 
@@ -295,11 +295,11 @@ export function CapitolBotStatus() {
         <>
           {/* Mini account stats */}
           <div className="mb-4 grid grid-cols-2 gap-2">
-            <div className="rounded-[8px] bg-[var(--color-bg3)] px-3 py-2">
+            <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2">
               <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">Posiciones</div>
               <div className="font-mono text-[18px] font-bold text-[var(--color-cyan)]">{positions.length}</div>
             </div>
-            <div className="rounded-[8px] bg-[var(--color-bg3)] px-3 py-2">
+            <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2">
               <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">P&L abierto</div>
               <div className={`font-mono text-[18px] font-bold ${totalPnl >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
                 {totalPnl >= 0 ? "+" : ""}${fmtNumber(Math.abs(totalPnl), { decimals: 0 })}
@@ -327,7 +327,7 @@ export function CapitolBotStatus() {
                   const price = o.filled_avg_price ? parseFloat(o.filled_avg_price) : null;
                   const qty   = parseFloat(o.filled_qty || o.qty);
                   return (
-                    <div key={o.id} className="flex items-center justify-between rounded-[6px] bg-[var(--color-bg2)] px-3 py-1.5">
+                    <div key={o.id} className="flex items-center justify-between rounded-none bg-[var(--color-bg2)] px-3 py-1.5">
                       <div className="flex items-center gap-2">
                         <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${isBuy ? "bg-[var(--color-green)]/15 text-[var(--color-green)]" : "bg-[var(--color-red)]/15 text-[var(--color-red)]"}`}>
                           {isBuy ? "C" : "V"}
@@ -364,7 +364,7 @@ export function P0BotStatus() {
   const equity     = data?.account ? parseFloat(data.account.equity) : 0;
 
   return (
-    <div className="flex flex-col rounded-[16px] border border-[var(--color-violet)]/30 bg-[var(--color-violet)]/5 p-5">
+    <div className="flex flex-col rounded-none border border-[var(--color-violet)]/30 bg-[var(--color-violet)]/5 p-5">
       <BotHeader label="P0 Ultra Conservador" desc="Consumo básico · baja volatilidad · 6 acciones"
         accentVar="--color-violet" fetchedAt={data?.fetchedAt} />
 
@@ -372,11 +372,11 @@ export function P0BotStatus() {
         <>
           {/* Mini account stats */}
           <div className="mb-4 grid grid-cols-2 gap-2">
-            <div className="rounded-[8px] bg-[var(--color-bg3)] px-3 py-2">
+            <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2">
               <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">Posiciones</div>
               <div className="font-mono text-[18px] font-bold text-[var(--color-violet)]">{positions.length}</div>
             </div>
-            <div className="rounded-[8px] bg-[var(--color-bg3)] px-3 py-2">
+            <div className="rounded-none bg-[var(--color-bg3)] px-3 py-2">
               <div className="text-[10px] uppercase tracking-widest text-[var(--color-text3)]">P&L abierto</div>
               <div className={`font-mono text-[18px] font-bold ${totalPnl >= 0 ? "text-[var(--color-green)]" : "text-[var(--color-red)]"}`}>
                 {totalPnl >= 0 ? "+" : ""}${fmtNumber(Math.abs(totalPnl), { decimals: 0 })}
@@ -491,7 +491,7 @@ export function RecentActivity() {
   ] as const;
 
   return (
-    <div className="rounded-[16px] border border-[var(--color-border)] bg-[var(--color-bg2)] p-5">
+    <div className="rounded-none border border-[var(--color-border)] bg-[var(--color-bg2)] p-5">
       <div className="mb-4 flex items-start justify-between">
         <div>
           <div className="mb-0.5 text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
@@ -500,12 +500,12 @@ export function RecentActivity() {
           <h3 className="text-[14px] font-semibold">Últimos trades ejecutados</h3>
         </div>
         {/* Tab switcher */}
-        <div className="flex gap-1 rounded-[8px] bg-[var(--color-bg3)] p-1">
+        <div className="flex gap-1 rounded-none bg-[var(--color-bg3)] p-1">
           {tabs.map((t) => (
             <button
               key={t.key}
               onClick={() => setActiveTab(t.key)}
-              className={`rounded-[6px] px-2.5 py-1 text-[11px] font-medium transition-all ${
+              className={`rounded-none px-2.5 py-1 text-[11px] font-medium transition-all ${
                 activeTab === t.key
                   ? "bg-[var(--color-bg)] shadow-sm"
                   : "text-[var(--color-text3)] hover:text-[var(--color-text2)]"
@@ -521,7 +521,7 @@ export function RecentActivity() {
       {loading ? (
         <div className="text-[12px] text-[var(--color-text3)]">Cargando órdenes…</div>
       ) : orders.length === 0 ? (
-        <div className="rounded-[8px] bg-[var(--color-bg3)] px-4 py-3 text-[12.5px] text-[var(--color-text3)]">
+        <div className="rounded-none bg-[var(--color-bg3)] px-4 py-3 text-[12.5px] text-[var(--color-text3)]">
           No hay trades ejecutados aún para este bot.
         </div>
       ) : (
@@ -533,7 +533,7 @@ export function RecentActivity() {
             const total  = price ? price * qty : null;
             const when   = o.filled_at ?? o.submitted_at;
             return (
-              <div key={o.id} className="flex items-center justify-between rounded-[8px] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2">
+              <div key={o.id} className="flex items-center justify-between rounded-none border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2">
                 <div className="flex items-center gap-3">
                   <div className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${isBuy ? "bg-[var(--color-green)]/15 text-[var(--color-green)]" : "bg-[var(--color-red)]/15 text-[var(--color-red)]"}`}>
                     {isBuy ? "C" : "V"}

@@ -164,7 +164,7 @@ async function StockModelsGrid({ models }: { models: ModelSummary[] }) {
           <Link
             key={m.ticker}
             href={`/models/${m.ticker}`}
-            className="group block rounded-[14px] bg-[var(--color-bg2)] p-5 transition-colors duration-150 hover:bg-[var(--color-bg3)] shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_1px_2px_rgba(0,0,0,0.3)]"
+            className="group block rounded-none bg-[var(--color-bg2)] p-5 transition-colors duration-150 hover:bg-[var(--color-bg3)] shadow-[0_0_0_1px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.1)]"
           >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
@@ -210,7 +210,7 @@ async function StockModelsGrid({ models }: { models: ModelSummary[] }) {
                 {m.predictor_ids.map((p) => (
                   <span
                     key={p}
-                    className="rounded-[6px] bg-[var(--color-bg4)] px-1.5 py-0.5 text-[10.5px] text-[var(--color-text2)] font-mono"
+                    className="rounded-none bg-[var(--color-bg4)] px-1.5 py-0.5 text-[10.5px] text-[var(--color-text2)] font-mono"
                   >
                     {p}
                   </span>
@@ -324,7 +324,7 @@ async function PortfolioModelView({
                   </div>
                 </div>
               </div>
-              <div className="mt-4 flex h-3 overflow-hidden rounded-[6px] bg-[var(--color-bg3)]">
+              <div className="mt-4 flex h-3 overflow-hidden rounded-none bg-[var(--color-bg3)]">
                 {sorted.map(([ticker, w], i) => (
                   <div
                     key={ticker}

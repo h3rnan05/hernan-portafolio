@@ -26,7 +26,7 @@ export function DiagnosticGauge({
   detail,
 }: GaugeProps) {
   return (
-    <div className="rounded-[10px] bg-[var(--color-bg3)] p-3">
+    <div className="rounded-none bg-[var(--color-bg3)] p-3">
       <div className="mb-1 flex items-center justify-between">
         <span className="text-[10px] font-medium uppercase tracking-widest text-[var(--color-text3)]">
           {label}

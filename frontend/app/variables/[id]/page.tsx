@@ -111,7 +111,7 @@ export default async function VariableDetail({
           {variable.providers.map((p, i) => (
             <li
               key={`${p.name}-${i}`}
-              className="flex items-center gap-3 rounded-[10px] bg-[var(--color-bg3)] px-3 py-2 text-[12.5px]"
+              className="flex items-center gap-3 rounded-none bg-[var(--color-bg3)] px-3 py-2 text-[12.5px]"
             >
               <span className="inline-flex size-6 items-center justify-center rounded-full bg-[var(--color-bg4)] font-mono text-[10px] font-semibold text-[var(--color-text2)]">
                 {i + 1}
