@@ -1,31 +1,31 @@
 @import "tailwindcss";
 
-/* Design tokens — Bloomberg Terminal palette.
-   Warm blacks, phosphor orange accent, terminal green/red for P&L. */
+/* Design tokens — Bloomberg Terminal, cream light theme.
+   Warm parchment backgrounds, phosphor orange accent, deep ink text. */
 @theme {
-  --color-bg: #0a0800;
-  --color-bg2: #0f0b00;
-  --color-bg3: #161000;
-  --color-bg4: #1e1600;
+  --color-bg: #faf6ed;
+  --color-bg2: #f2ece0;
+  --color-bg3: #e8e0d0;
+  --color-bg4: #ddd5c0;
 
-  --color-border: #2a1f00;
-  --color-border2: #3d2e00;
+  --color-border: #d4c9b0;
+  --color-border2: #c0b090;
   --color-border3: #ff6600;
 
-  --color-green: #00ff41;
-  --color-green-dim: #00cc33;
-  --color-red: #ff3333;
-  --color-red-dim: #cc2222;
+  --color-green: #007a2e;
+  --color-green-dim: #005a20;
+  --color-red: #cc1a1a;
+  --color-red-dim: #a01414;
   --color-amber: #ff6600;
   --color-amber-dim: #cc5200;
-  --color-blue: #ffd060;
+  --color-blue: #c45200;
   --color-cyan: #ff6600;
-  --color-violet: #ffaa44;
+  --color-violet: #a04010;
 
-  --color-text: #f5edcc;
-  --color-text2: #d4a84b;
-  --color-text3: #8c6a2e;
-  --color-text4: #4a3518;
+  --color-text: #1a0e00;
+  --color-text2: #5a3e18;
+  --color-text3: #8a6a3a;
+  --color-text4: #b89868;
 
   --font-sans: "IBM Plex Mono", ui-monospace, monospace;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -36,10 +36,10 @@
   --radius-lg: 14px;
   --radius-xl: 20px;
 
-  /* Layered shadows replace borders on elevated surfaces */
-  --shadow-1: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-2: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 2px 6px rgba(0, 0, 0, 0.35),
-    0 8px 16px -8px rgba(0, 0, 0, 0.5);
+  /* Layered shadows — warm light theme */
+  --shadow-1: 0 0 0 1px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-2: 0 0 0 1px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.14),
+    0 8px 16px -8px rgba(0, 0, 0, 0.18);
 }
 
 html {

@@ -25,7 +25,8 @@ export function Card({
     <As
       className={
         "rounded-none bg-[var(--color-bg2)] p-5 " +
-        "border border-[var(--color-border2)] border-l-[var(--color-amber)] border-l-2 " +
+        "border border-[var(--color-border)] border-l-2 border-l-[var(--color-amber)] " +
+        "shadow-[0_0_0_1px_rgba(0,0,0,0.06),0_1px_3px_rgba(0,0,0,0.1)] " +
         className
       }
     >
