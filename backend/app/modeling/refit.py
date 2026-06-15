@@ -68,7 +68,7 @@ async def refit_all(
     min_obs: int = 60,
     only_ticker: str | None = None,
     allow_reuse: bool = True,
-    estimator: str = "ridge",
+    estimator: str = "xgboost",
     alpha: float | None = None,
     use_sector_pins: bool = True,
 ) -> list[RefitOutcome]:
@@ -104,6 +104,24 @@ async def refit_all(
         end=end,
     )
 
+    # Add self-momentum features: each ticker's own lagged returns at 1, 2, 5 days.
+    # These capture mean-reversion and momentum without requiring external data.
+    # Named "{ticker}_SELF_LAG{n}" so the prediction runner can resolve them.
+    SELF_LAGS = [1, 2, 5]
+    for tkr in tickers:
+        if tkr in returns.columns:
+            for lag in SELF_LAGS:
+                col = f"{tkr}_SELF_LAG{lag}"
+                returns[col] = returns[tkr].shift(lag)
+
+    # Extend available predictors with self-momentum columns
+    self_momentum_cols = [
+        f"{tkr}_SELF_LAG{lag}"
+        for tkr in tickers
+        for lag in SELF_LAGS
+        if f"{tkr}_SELF_LAG{lag}" in returns.columns
+    ]
+
     outcomes: list[RefitOutcome] = []
 
     if returns.empty:
@@ -126,7 +144,7 @@ async def refit_all(
     available_tickers = [t for t in tickers if t in returns.columns]
     available_predictors = [
         p
-        for p in predictors
+        for p in predictors + self_momentum_cols
         if p in returns.columns
         and returns[p].notna().sum() >= MIN_NON_NAN_FOR_PREDICTOR
     ]
@@ -146,9 +164,16 @@ async def refit_all(
 
     lag_overrides = await load_variable_lags(session, available_predictors)
 
-    pins = SECTOR_PINS if use_sector_pins else {}
-    # Only pass pins for tickers that are being refit in this run
-    active_pins = {t: v for t, v in pins.items() if t in available_tickers}
+    # Build pins: sector ETFs + self-momentum for every ticker
+    base_pins = SECTOR_PINS if use_sector_pins else {}
+    active_pins: dict[str, list[str]] = {}
+    for t in available_tickers:
+        self_lag_pins = [f"{t}_SELF_LAG1", f"{t}_SELF_LAG2"]
+        sector = base_pins.get(t, [])
+        # Only include pins that are in the available predictor pool
+        combined = [p for p in (self_lag_pins + sector) if p in available_predictors]
+        if combined:
+            active_pins[t] = combined
 
     chosen = select_features_greedy(
         returns,
@@ -185,10 +210,10 @@ async def refit_all(
         y = aligned[tkr]
         X = aligned[picks]
 
-        # Try estimators in order; stop at the first PASS.  If the caller
-        # pinned a specific estimator, respect it (no fallback cascade).
+        # Try estimators in order; stop at the first PASS.
         estimator_cascade = (
-            [estimator] if estimator != "ols"
+            ["xgboost", "ridge", "lasso"] if estimator == "xgboost"
+            else [estimator] if estimator != "ols"
             else ["ols", "ridge", "lasso"]
         )
         diag: DiagnosticResult | None = None

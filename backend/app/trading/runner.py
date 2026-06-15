@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.trading_run import TradingRun
 from app.trading import model_bot, pelosi_bot
 
 log = logging.getLogger(__name__)
@@ -111,6 +112,20 @@ async def run_all(
         except Exception as e:
             log.error("Bot 3 failed: %s", e)
             results.append(BotResult("P1 Conservative Bot", success=False, error=str(e)))
+
+    # ── Persist run log ───────────────────────────────────────────────────────
+    if not dry_run:
+        bot_keys = {"OLS Model Bot (P4)": "ols", "P0 Ultra Conservative Bot": "p0", "P1 Conservative Bot": "p1"}
+        for r in results:
+            key = bot_keys.get(r.name, r.name.lower()[:8])
+            real_trades = len([a for a in r.actions if hasattr(a, "side") and a.side not in ("skip",)])
+            session.add(TradingRun(
+                bot=key,
+                status="ok" if r.success else "error",
+                trades=real_trades,
+                error=r.error,
+            ))
+        await session.commit()
 
     elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
     log.info("=== TRADING SESSION END (%.1fs) ===", elapsed)

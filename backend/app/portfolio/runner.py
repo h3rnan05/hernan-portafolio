@@ -105,9 +105,36 @@ async def run_daily_predictions(
         _last_date, last_price_value = last
 
         # Pull each predictor at its own lag (HER-15): lag L → eligible[n_elig-L].
+        # Self-momentum predictors ({ticker}_SELF_LAGn) are resolved from the
+        # ticker's own observation history rather than the predictor returns frame.
         lagged: dict[str, float] = {}
         skip = False
         for p in m.predictor_ids:
+            # Self-momentum: {TICKER}_SELF_LAGn → load ticker's own lagged return
+            if "_SELF_LAG" in p:
+                try:
+                    lag_n = int(p.split("_SELF_LAG")[1])
+                except (IndexError, ValueError):
+                    lag_n = 1
+                # Get the last (lag_n + 1) prices from Observation to compute log return
+                price_rows = (
+                    await session.execute(
+                        select(Observation.observed_on, Observation.value)
+                        .where(Observation.variable_id == m.ticker)
+                        .order_by(Observation.observed_on.desc())
+                        .limit(lag_n + 2)
+                    )
+                ).all()
+                price_rows = sorted(price_rows, key=lambda r: r.observed_on)
+                if len(price_rows) >= lag_n + 1:
+                    p_t = float(price_rows[-(1)].value)
+                    p_prev = float(price_rows[-(lag_n + 1)].value)
+                    import math as _math
+                    lagged[p] = _math.log(p_t / p_prev) if p_prev > 0 else 0.0
+                else:
+                    lagged[p] = 0.0
+                continue
+
             pos = n_elig - lag_overrides.get(p, lag_days)
             if p not in returns.columns or pos < 0 or pos >= n_elig:
                 log.warning("predictions_missing_predictor", ticker=m.ticker, predictor=p)

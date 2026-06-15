@@ -1,9 +1,10 @@
 """Regression estimators + four-diagnostic battery.
 
 Estimators (HER-16):
-    * ``ols``   — statsmodels OLS (the original §4.2 path).
-    * ``ridge`` — L2 shrinkage, alpha chosen by CV (RidgeCV) unless fixed.
-    * ``lasso`` — L1 shrinkage + selection, alpha by CV (LassoCV) unless fixed.
+    * ``ols``      — statsmodels OLS (the original §4.2 path).
+    * ``ridge``    — L2 shrinkage, alpha chosen by CV (RidgeCV) unless fixed.
+    * ``lasso``    — L1 shrinkage + selection, alpha by CV (LassoCV) unless fixed.
+    * ``xgboost``  — gradient-boosted trees; captures non-linear interactions.
 
 Why regularization matters here: the pipeline selects predictors by univariate
 correlation and *then* fits OLS on the same rows. That double-dip inflates
@@ -53,7 +54,7 @@ DW_BAND = (1.5, 2.5)
 BP_P_FLOOR = 0.05
 VIF_CEILING = 10.0
 
-ESTIMATORS = ("ols", "ridge", "lasso")
+ESTIMATORS = ("ols", "ridge", "lasso", "xgboost")
 
 # Ridge alpha grid for cross-validation (log-spaced). Lasso picks its own path.
 _RIDGE_ALPHAS = np.logspace(-3, 3, 25)
@@ -164,6 +165,54 @@ def _fit_regularized(
     return coefficients, intercept_raw, fitted, used_alpha
 
 
+def _fit_xgboost(
+    y: pd.Series,
+    X: pd.DataFrame,
+    cv: int = 5,
+) -> tuple[dict[str, float], float, np.ndarray]:
+    """Fit XGBoost regressor and return linear-equivalent coefs via Ridge proxy.
+
+    XGBoost is non-linear, so there are no true linear coefficients.
+    We approximate them by fitting Ridge on (XGBoost fitted values ~ X) so
+    prediction is: intercept + Σ coef_i * x_i (linear proxy that keeps the
+    rest of the pipeline unchanged).
+
+    Raises ImportError if xgboost is not available (caught by refit cascade).
+    """
+    try:
+        from xgboost import XGBRegressor  # lazy import — unavailable locally on macOS without libomp
+    except Exception as exc:
+        raise ImportError(f"xgboost not available: {exc}") from exc
+
+    mu = X.mean()
+    sigma = X.std(ddof=0).replace(0.0, 1.0)
+    Xs = (X - mu) / sigma
+
+    model = XGBRegressor(
+        n_estimators=200,
+        max_depth=3,
+        learning_rate=0.05,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        reg_alpha=0.1,
+        reg_lambda=1.0,
+        random_state=42,
+        n_jobs=1,
+        verbosity=0,
+    )
+    model.fit(Xs.values, y.values)
+    fitted = model.predict(Xs.values)
+
+    # Linear proxy coefficients: fit Ridge on (fitted_xgb ~ X) so downstream
+    # predict_next_return can use the same intercept+coef dict format.
+    from sklearn.linear_model import Ridge as _Ridge
+    proxy = _Ridge(alpha=0.01).fit(X.values, fitted)
+    coef_raw = proxy.coef_
+    intercept_raw = float(proxy.intercept_)
+    coefficients = {col: float(c) for col, c in zip(X.columns, coef_raw, strict=True)}
+    return coefficients, intercept_raw, fitted
+
+
 def fit_and_diagnose(
     y: pd.Series,
     X: pd.DataFrame,
@@ -194,6 +243,8 @@ def fit_and_diagnose(
     n = len(y)
     p = X.shape[1]
 
+    used_alpha: float | None = None
+
     if estimator == "ols":
         res = sm.OLS(y, X_const).fit()
         coefficients = {col: float(res.params[col]) for col in X.columns}
@@ -201,7 +252,14 @@ def fit_and_diagnose(
         resid = np.asarray(res.resid, dtype=float)
         r2 = float(res.rsquared)
         r2_adj = float(res.rsquared_adj)
-        used_alpha: float | None = None
+    elif estimator == "xgboost":
+        coefficients, intercept, fitted = _fit_xgboost(y, X, cv=cv)
+        resid = y.values - fitted
+        ss_res = float(np.sum(resid**2))
+        ss_tot = float(np.sum((y.values - y.values.mean()) ** 2))
+        r2 = 1.0 - ss_res / ss_tot if ss_tot > 0 else 0.0
+        denom = n - p - 1
+        r2_adj = 1.0 - (1.0 - r2) * (n - 1) / denom if denom > 0 else r2
     else:
         coefficients, intercept, fitted, used_alpha = _fit_regularized(
             y, X, estimator, alpha, cv
