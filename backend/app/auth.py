@@ -6,16 +6,12 @@ on a route enforces it.
 
 from __future__ import annotations
 
-import hashlib
-
-import structlog
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.config import get_settings
 
 _bearer = HTTPBearer(auto_error=False)
-log = structlog.get_logger(__name__)
 
 
 async def require_admin(
@@ -24,14 +20,6 @@ async def require_admin(
     """Raise 401 unless the request bears the configured admin token."""
     settings = get_settings()
     expected = settings.admin_bearer_token
-    # TEMP DEBUG — remove after diagnosing token mismatch.
-    log.info(
-        "admin_token_debug",
-        expected_len=len(expected),
-        expected_sha8=hashlib.sha256(expected.encode()).hexdigest()[:8],
-        got_len=len(credentials.credentials) if credentials else None,
-        got_sha8=hashlib.sha256(credentials.credentials.encode()).hexdigest()[:8] if credentials else None,
-    )
 
     if not expected or expected == "dev-token-change-me":
         # Don't allow the placeholder token in real environments — fail closed.

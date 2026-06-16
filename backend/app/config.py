@@ -2,7 +2,7 @@
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # ─── Modeling constants ─────────────────────────────────────────────────────
@@ -54,6 +54,14 @@ class Settings(BaseSettings):
     admin_bearer_token: str = "dev-token-change-me"
     allowed_origins: str = "http://localhost:3000"
     log_level: str = "INFO"
+
+    @field_validator("admin_bearer_token", mode="after")
+    @classmethod
+    def _strip_admin_token(cls, v: str) -> str:
+        # Render's env var editor (and copy/paste in general) can leave a
+        # trailing newline/whitespace on secret values, which silently breaks
+        # exact-match comparisons in require_admin. Strip defensively.
+        return v.strip()
 
     # Observability
     sentry_dsn: str = ""
