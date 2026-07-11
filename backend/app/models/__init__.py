@@ -12,8 +12,8 @@ from app.models.portfolio import Portfolio
 from app.models.portfolio_snapshot import PortfolioSnapshot
 from app.models.position import PositionSnapshot
 from app.models.prediction import Prediction
-from app.models.user_account import AccountHolding, UserAccount
 from app.models.trading_run import TradingRun
+from app.models.user_account import AccountHolding, UserAccount
 from app.models.variable import Variable
 
 __all__ = [
@@ -26,7 +26,7 @@ __all__ = [
     "PortfolioSnapshot",
     "PositionSnapshot",
     "Prediction",
-    "UserAccount",
     "TradingRun",
+    "UserAccount",
     "Variable",
 ]

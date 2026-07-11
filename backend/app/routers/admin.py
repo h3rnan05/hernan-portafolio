@@ -11,13 +11,12 @@ import asyncio
 import logging
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy import select
 
 from app.auth import require_admin
-from app.db import get_session
 
 log = logging.getLogger(__name__)
 
@@ -56,7 +55,7 @@ async def run_trading(
     _: None = Depends(require_admin),
 ):
     """Trigger all 3 trading bots. Called by cron-job.org every weekday at 9:25 AM ET."""
-    started = datetime.now(timezone.utc).isoformat()
+    started = datetime.now(UTC).isoformat()
     log.info("[admin] run-trading triggered at %s", started)
 
     async def _task():
@@ -77,7 +76,7 @@ async def run_predictions(
     _: None = Depends(require_admin),
 ):
     """Trigger daily predictions pipeline. Called before run-trading."""
-    started = datetime.now(timezone.utc).isoformat()
+    started = datetime.now(UTC).isoformat()
     log.info("[admin] run-predictions triggered at %s", started)
 
     async def _task():
@@ -107,7 +106,7 @@ async def run_ingestion(
     Must run BEFORE run-predictions so backfill_actuals can find actual prices.
     Called by cron-job.org every weekday at 9:00 AM ET (before run-predictions).
     """
-    started = datetime.now(timezone.utc).isoformat()
+    started = datetime.now(UTC).isoformat()
     log.info("[admin] run-ingestion triggered at %s, days=%d", started, days)
 
     async def _task():
