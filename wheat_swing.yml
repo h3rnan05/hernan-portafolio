@@ -1,0 +1,60 @@
+# Guardar como: .github/workflows/wheat_swing.yml  (en el repo del bot)
+#
+# Corre el chequeo cada 15 min durante horario de mercado (lun-vie) y
+# commitea wheat_state.json de vuelta al repo para que el estado persista
+# entre corridas. Esto reemplaza al scheduler en memoria que mató al bot
+# anterior: aquí no hay proceso que se pueda morir — GitHub lo despierta solo.
+#
+# Secrets a configurar en el repo (Settings → Secrets → Actions):
+#   ALPACA_API_KEY, ALPACA_SECRET_KEY   (de la cuenta PAPER)
+#   DISCORD_WEBHOOK                     (opcional)
+#
+# Para probar a mano sin esperar al cron: pestaña Actions → Run workflow.
+# Nota: el cron de GitHub puede atrasarse 5-15 min. En gráfico diario, da igual.
+
+name: wheat-swing-bot
+
+on:
+  schedule:
+    # Cada 15 min, 13:00–20:59 UTC, lun–vie.
+    # En julio (EDT = UTC-4) eso cubre 9:00am–5:00pm ET, o sea toda la sesión
+    # de equities (9:30–16:00 ET) y la sesión diurna del trigo (9:30–14:20 ET).
+    - cron: "*/15 13-20 * * 1-5"
+  workflow_dispatch: {}
+
+concurrency:
+  group: wheat-swing
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q alpaca-py yfinance requests
+
+      - name: Correr chequeo
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          # DRY_RUN: "1"   # <- descomenta la primera semana para simular sin órdenes
+        run: python wheat_swing_zw.py
+
+      - name: Persistir estado
+        run: |
+          git config user.name "wheat-bot"
+          git config user.email "wheat-bot@users.noreply.github.com"
+          git add wheat_state.json || true
+          git diff --cached --quiet || git commit -m "wheat: actualiza estado [skip ci]"
+          git push
