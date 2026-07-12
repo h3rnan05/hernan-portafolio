@@ -70,6 +70,23 @@ class Settings(BaseSettings):
     # AI assistant (Claude). Empty disables the /chat endpoint.
     anthropic_api_key: str = ""
 
+    # Telegram trade-idea chat (wizards bot). All empty = endpoint disabled.
+    telegram_bot_token: str = ""
+    telegram_chat_id: str = ""  # only this chat may talk to the bot
+    telegram_webhook_secret: str = ""  # must match setWebhook's secret_token
+    # Fine-grained PAT with contents:write on github_repo, to queue ideas
+    # into wizards_inbox.json for the Actions bot to execute.
+    github_bot_token: str = ""
+    github_repo: str = "h3rnan05/hernan-portafolio"
+
+    @field_validator(
+        "telegram_bot_token", "telegram_chat_id", "telegram_webhook_secret",
+        "github_bot_token", mode="after",
+    )
+    @classmethod
+    def _strip_telegram(cls, v: str) -> str:
+        return v.strip()
+
     @property
     def cors_origins(self) -> list[str]:
         return [o.strip() for o in self.allowed_origins.split(",") if o.strip()]
