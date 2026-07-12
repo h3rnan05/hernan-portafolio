@@ -29,7 +29,17 @@ def _make_metrics() -> pd.DataFrame:
 def test_all_five_profiles_built() -> None:
     metrics = _make_metrics()
     profiles = build_portfolios(metrics)
+    # P0 is conditional: only present when LOW_VOL_TICKERS appear in metrics,
+    # and none of the synthetic tickers here belong to that group.
+    assert set(profiles.keys()) == set(PROFILE_IDS) - {"P0_ULTRA_CONSERVATIVE"}
+
+
+def test_p0_built_when_low_vol_tickers_present() -> None:
+    metrics = _make_metrics()
+    metrics.loc["KMB"] = [0.90, 0.03, 0.12, 0.8]  # member of LOW_VOL_TICKERS
+    profiles = build_portfolios(metrics)
     assert set(profiles.keys()) == set(PROFILE_IDS)
+    assert profiles["P0_ULTRA_CONSERVATIVE"] == {"KMB": 1.0}
 
 
 def test_all_weights_sum_to_one() -> None:

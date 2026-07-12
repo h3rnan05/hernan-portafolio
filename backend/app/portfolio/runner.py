@@ -26,7 +26,7 @@ from app.models import (
     PortfolioSnapshot,
     Prediction,
 )
-from app.portfolio.optimizer import PROFILE_DESCRIPTIONS, LOW_VOL_TICKERS, build_portfolios
+from app.portfolio.optimizer import PROFILE_DESCRIPTIONS, build_portfolios
 
 log = structlog.get_logger(__name__)
 

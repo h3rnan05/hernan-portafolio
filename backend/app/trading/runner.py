@@ -12,12 +12,12 @@ from __future__ import annotations
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.trading_run import TradingRun
-from app.trading import model_bot, pelosi_bot
+from app.trading import model_bot
 
 log = logging.getLogger(__name__)
 
@@ -40,7 +40,7 @@ async def run_all(
 ) -> list[BotResult]:
     """Run all 3 bots in sequence. Returns results per bot."""
     results: list[BotResult] = []
-    started_at = datetime.now(timezone.utc)
+    started_at = datetime.now(UTC)
     log.info("=== TRADING SESSION START %s (dry_run=%s) ===", started_at.isoformat(), dry_run)
 
     # ── Bot 1: OLS Model Bot (P4) ─────────────────────────────────────────────
@@ -127,6 +127,6 @@ async def run_all(
             ))
         await session.commit()
 
-    elapsed = (datetime.now(timezone.utc) - started_at).total_seconds()
+    elapsed = (datetime.now(UTC) - started_at).total_seconds()
     log.info("=== TRADING SESSION END (%.1fs) ===", elapsed)
     return results

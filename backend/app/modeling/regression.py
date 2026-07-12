@@ -180,7 +180,9 @@ def _fit_xgboost(
     Raises ImportError if xgboost is not available (caught by refit cascade).
     """
     try:
-        from xgboost import XGBRegressor  # lazy import — unavailable locally on macOS without libomp
+        from xgboost import (
+            XGBRegressor,  # lazy import — unavailable locally on macOS without libomp
+        )
     except Exception as exc:
         raise ImportError(f"xgboost not available: {exc}") from exc
 
