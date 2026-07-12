@@ -1,19 +1,28 @@
-"""Webhook de Telegram — chat directo con el wizards bot.
+"""Servicio standalone: chat de Telegram con el wizards bot.
 
-Flujo: el usuario manda una noticia/idea por Telegram → Claude la evalúa con
-el marco de Market Wizards (app/ai/idea_evaluator.py) → responde el veredicto
-al chat → si es INVERTIR, encola la idea en wizards_inbox.json del repo (vía
-GitHub API) para que el bot de Actions la ejecute en su siguiente corrida,
-sujeta a sus límites de riesgo en código.
+Deliberadamente separado del backend grande (backend/app) porque ese backend
+exige una base de datos Postgres real para arrancar (Settings de FastAPI con
+DATABASE_URL/FRED_API_KEY obligatorios) y este chat no necesita nada de eso:
+solo habla con Telegram, Claude y la API de contenidos de GitHub.
 
-Configuración (una sola vez):
-  1. Crear el bot con @BotFather → TELEGRAM_BOT_TOKEN.
-  2. Obtener tu chat id (mándale un mensaje al bot y mira
-     https://api.telegram.org/bot<TOKEN>/getUpdates) → TELEGRAM_CHAT_ID.
-  3. Inventar un secreto → TELEGRAM_WEBHOOK_SECRET.
-  4. Registrar el webhook:
-     curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<TU-BACKEND>.onrender.com/telegram/webhook&secret_token=<SECRETO>"
-  5. PAT fine-grained (contents:write en el repo) → GITHUB_BOT_TOKEN.
+Flujo: el usuario manda una noticia/idea por Telegram → este webhook →
+Claude la evalúa con el marco de Market Wizards (idea_evaluator.py) →
+responde el veredicto al chat → si es INVERTIR, encola la idea en
+wizards_inbox.json en main (vía API de GitHub) para que el bot de Actions
+la ejecute en su siguiente corrida, sujeta a sus límites de riesgo en código.
+
+DESPLIEGUE (Render, servicio nuevo — sin base de datos):
+  1. Render → New → Web Service → conecta el repo hernan-portafolio.
+  2. Root Directory: telegram_bot
+  3. Runtime: Python 3 | Build Command: pip install -r requirements.txt
+     Start Command: uvicorn app:app --host 0.0.0.0 --port $PORT
+  4. Plan: Free.
+  5. Env vars (Settings → Environment):
+       ANTHROPIC_API_KEY, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID,
+       TELEGRAM_WEBHOOK_SECRET, GITHUB_BOT_TOKEN
+     (GITHUB_REPO es opcional; default "h3rnan05/hernan-portafolio")
+  6. Tras el deploy, registra el webhook:
+       curl "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://<ESTE-SERVICIO>.onrender.com/telegram/webhook&secret_token=<TU_SECRETO>"
 
 Seguridad: se valida el header X-Telegram-Bot-Api-Secret-Token contra
 TELEGRAM_WEBHOOK_SECRET y el chat_id contra TELEGRAM_CHAT_ID. Cualquier otro
@@ -25,19 +34,21 @@ from __future__ import annotations
 import base64
 import json
 import logging
+import os
 import uuid
 from datetime import UTC, datetime
 
 import httpx
-from fastapi import APIRouter, BackgroundTasks, Header, Request
+from fastapi import BackgroundTasks, FastAPI, Header, Request
 
-from app.ai.idea_evaluator import evaluar_idea
-from app.config import get_settings
+from idea_evaluator import evaluar_idea
 
-log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger("telegram_bot")
 
-router = APIRouter(prefix="/telegram", tags=["telegram"])
+app = FastAPI(title="Wizards Bot — Telegram Chat (standalone)")
 
+GITHUB_REPO = os.getenv("GITHUB_REPO", "h3rnan05/hernan-portafolio")
 INBOX_PATH = "wizards_inbox.json"
 STATE_PATH = "wizards_state.json"
 _updates_vistos: set[int] = set()  # dedupe: Telegram reintenta si tardamos
@@ -55,21 +66,24 @@ AYUDA = (
 )
 
 
+def _env(nombre: str) -> str:
+    return os.getenv(nombre, "").strip()
+
+
 async def _telegram_send(chat_id: str, texto: str) -> None:
-    settings = get_settings()
+    token = _env("TELEGRAM_BOT_TOKEN")
     async with httpx.AsyncClient(timeout=15) as http:
         await http.post(
-            f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage",
+            f"https://api.telegram.org/bot{token}/sendMessage",
             json={"chat_id": chat_id, "text": texto[:4000]},
         )
 
 
 async def _github_get(http: httpx.AsyncClient, path: str) -> tuple[dict | None, str | None]:
     """Contenido JSON + sha de un archivo del repo (None si no existe)."""
-    settings = get_settings()
     r = await http.get(
-        f"https://api.github.com/repos/{settings.github_repo}/contents/{path}",
-        headers={"Authorization": f"Bearer {settings.github_bot_token}"},
+        f"https://api.github.com/repos/{GITHUB_REPO}/contents/{path}",
+        headers={"Authorization": f"Bearer {_env('GITHUB_BOT_TOKEN')}"},
     )
     if r.status_code == 404:
         return None, None
@@ -81,7 +95,6 @@ async def _github_get(http: httpx.AsyncClient, path: str) -> tuple[dict | None, 
 
 async def _encolar_idea(idea: dict) -> None:
     """Añade la idea a wizards_inbox.json en main (el bot de Actions la lee)."""
-    settings = get_settings()
     async with httpx.AsyncClient(timeout=30) as http:
         inbox, sha = await _github_get(http, INBOX_PATH)
         inbox = inbox or {"pendientes": []}
@@ -96,8 +109,8 @@ async def _encolar_idea(idea: dict) -> None:
         if sha:
             payload["sha"] = sha
         r = await http.put(
-            f"https://api.github.com/repos/{settings.github_repo}/contents/{INBOX_PATH}",
-            headers={"Authorization": f"Bearer {settings.github_bot_token}"},
+            f"https://api.github.com/repos/{GITHUB_REPO}/contents/{INBOX_PATH}",
+            headers={"Authorization": f"Bearer {_env('GITHUB_BOT_TOKEN')}"},
             json=payload,
         )
         r.raise_for_status()
@@ -119,7 +132,7 @@ async def _contexto_portafolio() -> str:
             f"P&L realizado ${estado.get('pnl_realizado', 0):+,.2f}"
         )
     except Exception as e:
-        log.warning("[telegram] no pude leer el estado del portafolio: %s", e)
+        log.warning("no pude leer el estado del portafolio: %s", e)
         return "(estado no disponible)"
 
 
@@ -141,11 +154,11 @@ async def _procesar(texto: str, chat_id: str) -> None:
             respuesta += (
                 f"\n\n✅ Encolada: {idea['ticker']}. El bot la ejecutará en su "
                 f"siguiente corrida si pasa los filtros de riesgo (te avisa "
-                f"por aquí y por Discord con el resultado)."
+                f"por aquí con el resultado)."
             )
         await _telegram_send(chat_id, respuesta)
     except Exception as e:
-        log.exception("[telegram] procesamiento falló")
+        log.exception("procesamiento falló")
         try:
             await _telegram_send(
                 chat_id, f"⚠️ Algo falló procesando tu idea: {type(e).__name__}. "
@@ -154,28 +167,26 @@ async def _procesar(texto: str, chat_id: str) -> None:
             pass
 
 
-@router.get("/health")
-async def telegram_health() -> dict:
-    s = get_settings()
+@app.get("/health")
+@app.get("/telegram/health")
+async def health() -> dict:
     return {
         "enabled": bool(
-            s.telegram_bot_token and s.telegram_chat_id
-            and s.telegram_webhook_secret and s.github_bot_token
-            and s.anthropic_api_key
+            _env("TELEGRAM_BOT_TOKEN") and _env("TELEGRAM_CHAT_ID")
+            and _env("TELEGRAM_WEBHOOK_SECRET") and _env("GITHUB_BOT_TOKEN")
+            and _env("ANTHROPIC_API_KEY")
         )
     }
 
 
-@router.post("/webhook")
+@app.post("/telegram/webhook")
 async def telegram_webhook(
     request: Request,
     background: BackgroundTasks,
     x_telegram_bot_api_secret_token: str | None = Header(default=None),
 ) -> dict:
-    settings = get_settings()
-    if not settings.telegram_webhook_secret or (
-        x_telegram_bot_api_secret_token != settings.telegram_webhook_secret
-    ):
+    secret = _env("TELEGRAM_WEBHOOK_SECRET")
+    if not secret or x_telegram_bot_api_secret_token != secret:
         # 200 vacío a impostores: no darles señal de qué falló.
         return {"ok": True}
 
@@ -193,7 +204,7 @@ async def telegram_webhook(
     if not chat_id or not texto:
         return {"ok": True}
 
-    if chat_id != settings.telegram_chat_id:
+    if chat_id != _env("TELEGRAM_CHAT_ID"):
         background.add_task(
             _telegram_send, chat_id,
             "Este bot es privado. No estás en su lista de chats autorizados.")
