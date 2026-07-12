@@ -33,7 +33,6 @@ import time
 import uuid
 
 import requests
-
 from webull.core.client import ApiClient
 from webull.data.common.category import Category
 from webull.data.data_client import DataClient
@@ -119,13 +118,12 @@ def main() -> None:
     seccion(f"1) Snapshot de {CONTRATO} — ¿precio real o dummy?")
     data = DataClient(api)
     try:
-        snap = dump(
+        dump(
             f"get_futures_snapshot({CONTRATO})",
             data.futures_market_data.get_futures_snapshot(
                 CONTRATO, Category.US_FUTURES.name),
         )
     except Exception as e:
-        snap = None
         print(f"  snapshot falló: {e}", flush=True)
 
     yahoo = precio_yahoo_zw()

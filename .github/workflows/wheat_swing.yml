@@ -15,11 +15,14 @@
 name: wheat-swing-bot
 
 on:
-  schedule:
-    # Cada 15 min, 13:00–20:59 UTC, lun–vie.
-    # En julio (EDT = UTC-4) eso cubre 9:00am–5:00pm ET, o sea toda la sesión
-    # de equities (9:30–16:00 ET) y la sesión diurna del trigo (9:30–14:20 ET).
-    - cron: "*/15 13-20 * * 1-5"
+  # Cron DESACTIVADO hasta que existan los secrets de Alpaca en el repo
+  # (sin ellos cada corrida fallaría en rojo cada 15 min). Para reactivarlo,
+  # descomenta el bloque schedule. Mientras tanto queda el disparo manual.
+  # schedule:
+  #   # Cada 15 min, 13:00–20:59 UTC, lun–vie.
+  #   # En julio (EDT = UTC-4) eso cubre 9:00am–5:00pm ET, o sea toda la sesión
+  #   # de equities (9:30–16:00 ET) y la sesión diurna del trigo (9:30–14:20 ET).
+  #   - cron: "*/15 13-20 * * 1-5"
   workflow_dispatch: {}
 
 concurrency:

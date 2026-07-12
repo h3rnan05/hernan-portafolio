@@ -1,0 +1,56 @@
+# Bot de portafolio "Market Wizards" — corre cada 30 min en horario de mercado
+# (lun-vie) y committea wizards_state.json para persistir el portafolio virtual
+# entre corridas.
+#
+# Secrets (todos OPCIONALES — el bot funciona en modo virtual sin ninguno):
+#   WEBULL_APP_KEY, WEBULL_APP_SECRET  (espejo de órdenes en sandbox Webull)
+#   DISCORD_WEBHOOK                    (avisos)
+#
+# Para probar a mano: pestaña Actions → wizards-bot → Run workflow.
+
+name: wizards-bot
+
+on:
+  schedule:
+    # Cada 30 min, 13:30–20:00 UTC lun–vie = 9:30am–4pm ET en horario de verano.
+    - cron: "30 13 * * 1-5"
+    - cron: "0,30 14-19 * * 1-5"
+    - cron: "0 20 * * 1-5"
+  workflow_dispatch: {}
+
+concurrency:
+  group: wizards-bot
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q requests webull-openapi-python-sdk
+
+      - name: Correr chequeo
+        env:
+          WEBULL_APP_KEY: ${{ secrets.WEBULL_APP_KEY }}
+          WEBULL_APP_SECRET: ${{ secrets.WEBULL_APP_SECRET }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: python wizards_bot.py
+
+      - name: Persistir estado
+        run: |
+          git config user.name "wizards-bot"
+          git config user.email "wizards-bot@users.noreply.github.com"
+          git add wizards_state.json || true
+          git diff --cached --quiet || git commit -m "wizards: actualiza estado [skip ci]"
+          git pull --rebase origin main || true
+          git push
