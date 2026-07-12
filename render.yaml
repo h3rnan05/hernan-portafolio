@@ -100,6 +100,18 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false
 
+      # ─── Telegram trade-idea chat (wizards bot) ────────────────────────────
+      # Bot de @BotFather; tu chat id; un secreto inventado para el webhook;
+      # y un PAT fine-grained (contents:write en este repo) para encolar ideas.
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: TELEGRAM_WEBHOOK_SECRET
+        sync: false
+      - key: GITHUB_BOT_TOKEN
+        sync: false
+
       # ─── Capital.com (optional; leave blank if not using) ──────────────────
       - key: CAPITAL_API_KEY
         sync: false

@@ -86,6 +86,7 @@ ATR_PERIODO       = 20
 ATR_MULT_STOP     = 2.0     # stop inicial = entrada - 2×ATR
 
 STATE_FILE = Path(__file__).resolve().parent / "wizards_state.json"
+INBOX_FILE = Path(__file__).resolve().parent / "wizards_inbox.json"
 DRY_RUN = os.getenv("DRY_RUN", "0") == "1"
 WEBULL_ENDPOINT = os.getenv("WEBULL_ENDPOINT", "api.sandbox.webull.com")
 
@@ -100,13 +101,25 @@ def ahora() -> str:
 
 def notify(msg: str) -> None:
     print(msg, flush=True)
+    if DRY_RUN:
+        return
     hook = os.getenv("DISCORD_WEBHOOK")
-    if hook and not DRY_RUN:
+    if hook:
         try:
             # Discord corta en 2000 chars por mensaje
             requests.post(hook, json={"content": msg[:1990]}, timeout=10)
         except Exception as e:
             print(f"  (aviso a Discord falló: {e})", flush=True)
+    tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
+    tg_chat = os.getenv("TELEGRAM_CHAT_ID")
+    if tg_token and tg_chat:
+        try:
+            requests.post(
+                f"https://api.telegram.org/bot{tg_token}/sendMessage",
+                json={"chat_id": tg_chat, "text": msg[:4000]}, timeout=10,
+            )
+        except Exception as e:
+            print(f"  (aviso a Telegram falló: {e})", flush=True)
 
 
 def cargar_estado() -> dict:
@@ -175,13 +188,14 @@ def _chart_yahoo(ticker: str) -> dict | None:
     return None
 
 
-def bajar_datos() -> dict[str, dict]:
+def bajar_datos(extra: set[str] | None = None) -> dict[str, dict]:
+    """Datos del universo + posiciones abiertas + ideas encoladas."""
     datos = {}
-    for t in UNIVERSO:
+    for t in list(UNIVERSO) + sorted((extra or set()) - set(UNIVERSO)):
         d = _chart_yahoo(t)
         if d:
             datos[t] = d
-        time.sleep(0.5)  # cortesía con Yahoo: 10 tickers sin ráfaga
+        time.sleep(0.5)  # cortesía con Yahoo: sin ráfagas
     return datos
 
 
@@ -206,7 +220,8 @@ def indicadores(d: dict) -> dict:
 def noticias_digest(st: dict, tickers_interes: list[str]) -> str:
     """Titulares de Google News RSS. Informativo: NO influye en las decisiones."""
     consultas = ["stock market today"]
-    consultas += [f"{UNIVERSO[t]} market news" for t in tickers_interes[:3]]
+    consultas += [f"{UNIVERSO.get(t, f'{t} stock')} market news"
+                  for t in tickers_interes[:3]]
     titulares: list[tuple[str, str]] = []
     for q in consultas:
         try:
@@ -310,7 +325,8 @@ def vender(st: dict, ticker: str, precio: float, motivo: str) -> str:
     return linea
 
 
-def comprar(st: dict, ticker: str, ind: dict, eq: float) -> str | None:
+def comprar(st: dict, ticker: str, ind: dict, eq: float,
+            motivo: str | None = None, origen: str = "sistema") -> str | None:
     precio, atr = ind["precio"], ind["atr"]
     stop = round(precio - ATR_MULT_STOP * atr, 2)
     riesgo_accion = precio - stop
@@ -324,14 +340,67 @@ def comprar(st: dict, ticker: str, ind: dict, eq: float) -> str | None:
     st["cash"] -= qty * precio
     st["posiciones"][ticker] = {
         "qty": qty, "entrada": precio, "stop": stop, "fecha": ahora(),
+        "origen": origen,
     }
     webull_espejo("BUY", ticker, qty)
-    linea = (f"🟢 COMPRA {ticker} ({UNIVERSO[ticker]}): {qty} @ ${precio:.2f} | "
-             f"ruptura de máx. {CANAL_ENTRADA}d | stop ${stop:.2f} "
+    motivo = motivo or f"ruptura de máx. {CANAL_ENTRADA}d"
+    linea = (f"🟢 COMPRA {ticker} ({UNIVERSO.get(ticker, origen)}): "
+             f"{qty} @ ${precio:.2f} | {motivo} | stop ${stop:.2f} "
              f"(riesgo ${qty * riesgo_accion:.2f} = "
              f"{qty * riesgo_accion / eq * 100:.1f}% del equity)")
     guardar_estado(st, linea)
     return linea
+
+
+# ============================== INBOX (ideas desde Telegram) ==============================
+
+
+def cargar_inbox() -> list[dict]:
+    """Ideas aprobadas por el evaluador de Telegram, pendientes de ejecutar."""
+    if INBOX_FILE.exists():
+        try:
+            return json.loads(INBOX_FILE.read_text()).get("pendientes", [])
+        except Exception as e:
+            print(f"  inbox ilegible ({e}); lo ignoro esta corrida", flush=True)
+    return []
+
+
+def limpiar_inbox() -> None:
+    if DRY_RUN:
+        print("  [DRY_RUN] no limpio el inbox", flush=True)
+        return
+    if INBOX_FILE.exists():
+        INBOX_FILE.write_text(json.dumps({"pendientes": []}, indent=2) + "\n")
+
+
+def procesar_ideas(st: dict, ideas: list[dict], inds: dict,
+                   precios: dict[str, float]) -> list[str]:
+    """Ejecuta las ideas del chat, SUJETAS a los mismos límites de riesgo
+    que el sistema. El LLM propuso; aquí manda el código."""
+    lineas = []
+    for idea in ideas:
+        t, tesis = idea.get("ticker", "?"), idea.get("tesis") or ""
+        eq = equity_total(st, precios)
+        if t in st["posiciones"]:
+            veredicto = f"ya hay posición abierta en {t} (nunca se promedia)"
+        elif t not in inds:
+            veredicto = (f"sin datos/histórico suficiente de {t} en Yahoo "
+                         f"(necesito {CANAL_ENTRADA + 5} barras diarias)")
+        elif len(st["posiciones"]) >= MAX_POSICIONES:
+            veredicto = f"sin slots: ya hay {MAX_POSICIONES} posiciones abiertas"
+        elif calor_actual(st, precios) >= MAX_HEAT:
+            veredicto = f"calor del portafolio ya en el tope de {MAX_HEAT:.0%}"
+        else:
+            linea = comprar(st, t, inds[t], eq,
+                            motivo=f"idea vía Telegram: {tesis[:90]}",
+                            origen="idea")
+            if linea:
+                lineas.append(linea)
+                continue
+            veredicto = "el sizing dio 0 acciones (precio alto vs cash/límites)"
+        lineas.append(f"🚫 Idea {t} RECHAZADA por riesgo: {veredicto}.")
+        guardar_estado(st, f"Idea {t} rechazada: {veredicto}")
+    return lineas
 
 
 # ============================== CICLO PRINCIPAL ==============================
@@ -339,7 +408,11 @@ def comprar(st: dict, ticker: str, ind: dict, eq: float) -> str | None:
 
 def ciclo() -> None:
     st = cargar_estado()
-    datos = bajar_datos()
+    ideas = cargar_inbox()
+    tickers_extra = set(st["posiciones"]) | {
+        i["ticker"] for i in ideas if i.get("ticker")
+    }
+    datos = bajar_datos(tickers_extra)
     if len(datos) < 5:
         notify(f"[{ahora()}] ⚠️ Solo obtuve datos de {len(datos)} tickers de "
                f"Yahoo. No opero a ciegas; reintento en el próximo cron.")
@@ -366,7 +439,16 @@ def ciclo() -> None:
             lineas.append(vender(st, ticker, ind["precio"],
                                  f"stop ${pos['stop']:.2f} tocado"))
 
-    # ---- 2) Buscar entradas (solo con mercado abierto y capacidad) ----
+    # ---- 2) Ideas del chat primero (tienen prioridad sobre las señales) ----
+    if ideas:
+        if abierto:
+            lineas += procesar_ideas(st, ideas, inds, precios)
+            limpiar_inbox()
+        else:
+            print(f"  {len(ideas)} idea(s) en el inbox esperando apertura "
+                  f"del mercado.", flush=True)
+
+    # ---- 3) Buscar entradas del sistema (mercado abierto y capacidad) ----
     if abierto:
         señales = [
             (ind["precio"] / ind["max55"], t)
@@ -384,7 +466,7 @@ def ciclo() -> None:
             if linea:
                 lineas.append(linea)
 
-    # ---- 3) Revisión de mercado (la "lectura" del libro, informativa) ----
+    # ---- 4) Revisión de mercado (la "lectura" del libro, informativa) ----
     eq = equity_total(st, precios)
     st["curva_equity"].append({"ts": ahora(), "equity": round(eq, 2)})
     revision = []
