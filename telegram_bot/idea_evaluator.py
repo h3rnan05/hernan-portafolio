@@ -10,11 +10,10 @@ evaluador dijera "sí" a una locura, el código de riesgo la recorta o rechaza.
 from __future__ import annotations
 
 import json
+import os
 from typing import Any
 
 from anthropic import AsyncAnthropic
-
-from app.config import get_settings
 
 MODEL = "claude-sonnet-4-6"
 
@@ -55,8 +54,7 @@ que ser cierto para que la idea sí fuera operable."""
 
 async def evaluar_idea(texto: str, contexto_portafolio: str) -> dict[str, Any]:
     """Un veredicto estructurado sobre una idea/noticia del usuario."""
-    settings = get_settings()
-    client = AsyncAnthropic(api_key=settings.anthropic_api_key)
+    client = AsyncAnthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     msg = await client.messages.create(
         model=MODEL,
         max_tokens=700,
