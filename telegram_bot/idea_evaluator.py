@@ -15,7 +15,7 @@ from typing import Any
 
 from anthropic import AsyncAnthropic
 
-MODEL = "claude-sonnet-4-6"
+MODEL = "claude-sonnet-5"
 
 SYSTEM_PROMPT = """\
 Eres el filtro de ideas de inversión de un bot de trading que sigue los \
