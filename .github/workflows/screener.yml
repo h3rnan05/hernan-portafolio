@@ -1,0 +1,59 @@
+# Screener cuantitativo — corre una vez al día antes de la apertura y manda
+# la shortlist del S&P 500 a Telegram. Persiste shortlist_hoy.{json,md} en el
+# repo como bitácora (idea generation: "el computador busca; tú decides").
+#
+# Secrets (opcionales): TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID — para el envío.
+
+name: quant-screener
+
+on:
+  schedule:
+    # 12:00 UTC = 8:00am ET (verano). Antes de la apertura, listo para el día.
+    - cron: "0 12 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Escanear solo los primeros N tickers (vacío = S&P 500 completo)"
+        required: false
+        default: ""
+
+concurrency:
+  group: quant-screener
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  screen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q -r screener/requirements.txt
+
+      - name: Correr screener
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          ARG=""
+          [ -n "${{ github.event.inputs.limit }}" ] && ARG="--limit ${{ github.event.inputs.limit }}"
+          python -m screener.run $ARG
+
+      - name: Persistir shortlist
+        run: |
+          git config user.name "quant-screener"
+          git config user.email "quant-screener@users.noreply.github.com"
+          for f in screener/shortlist_hoy.json screener/shortlist_hoy.md screener/sp500_cache.json; do
+            [ -f "$f" ] && git add "$f" || true
+          done
+          git diff --cached --quiet || git commit -m "screener: shortlist del día [skip ci]"
+          git pull --rebase origin main || true
+          git push

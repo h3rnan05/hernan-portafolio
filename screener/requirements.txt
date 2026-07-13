@@ -1,0 +1,6 @@
+# Dependencias del screener. Los factores de precio solo necesitan requests
+# (la librería estándar hace el resto — sin pandas/numpy, corre ligero en CI).
+# yfinance es OPCIONAL: habilita los factores fundamentales (calidad/valor);
+# sin él, el screener corre con factores de precio y degrada con gracia.
+requests>=2.31.0
+yfinance>=0.2.40
