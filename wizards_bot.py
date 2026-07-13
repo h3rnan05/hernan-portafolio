@@ -57,6 +57,7 @@ import hashlib
 import itertools
 import json
 import os
+import re
 import sys
 import time
 import uuid
@@ -234,6 +235,54 @@ def indicadores(d: dict) -> dict:
 
 # ============================== NOTICIAS (digest) ==============================
 
+_RE_ITEM_TITULO = re.compile(
+    r"<item\b[^>]*>.*?<title>(.*?)</title>", re.DOTALL | re.IGNORECASE)
+_ENTIDADES = {"&amp;": "&", "&lt;": "<", "&gt;": ">",
+              "&quot;": '"', "&#39;": "'", "&apos;": "'"}
+
+
+def _limpiar_titulo(t: str) -> str:
+    t = re.sub(r"<!\[CDATA\[(.*?)\]\]>", r"\1", t, flags=re.DOTALL)
+    for ent, char in _ENTIDADES.items():
+        t = t.replace(ent, char)
+    return t.strip()
+
+
+def titulares_google_news(query: str, maximo: int = 8) -> list[str]:
+    """Titulares de Google News RSS, con parseo TOLERANTE.
+
+    Las IPs de datacenter (GitHub Actions) reciben a veces una página de
+    bloqueo/consentimiento en vez del RSS, o XML ligeramente malformado. En
+    vez de tirar todo si ET.fromstring falla, se recuperan los <title> de cada
+    <item> por regex. Si tampoco hay items reales (página de bloqueo), regresa
+    lista vacía y el bot sigue sin noticias esa corrida — nunca revienta."""
+    try:
+        r = requests.get(
+            "https://news.google.com/rss/search",
+            params={"q": query, "hl": "en-US", "gl": "US", "ceid": "US:en"},
+            timeout=10, headers={"User-Agent": "Mozilla/5.0"},
+        )
+    except Exception as e:
+        print(f"  (RSS '{query}' red falló: {e})", flush=True)
+        return []
+    # Camino rápido: XML bien formado.
+    try:
+        items = ET.fromstring(r.content).iter("item")
+        titulos = [(it.findtext("title") or "").strip() for it in items]
+        titulos = [t for t in titulos if t]
+        if titulos:
+            return titulos[:maximo]
+    except ET.ParseError:
+        pass
+    # Camino tolerante: extraer <title> de cada <item> por regex.
+    texto = r.content.decode("utf-8", errors="replace")
+    titulos = [_limpiar_titulo(m) for m in _RE_ITEM_TITULO.findall(texto)]
+    titulos = [t for t in titulos if t]
+    if not titulos:
+        print(f"  (RSS '{query}': sin titulares recuperables, ¿bloqueo?)",
+              flush=True)
+    return titulos[:maximo]
+
 
 def noticias_digest(st: dict, tickers_interes: list[str]) -> str:
     """Titulares de Google News RSS. Informativo: NO influye en las decisiones."""
@@ -242,20 +291,8 @@ def noticias_digest(st: dict, tickers_interes: list[str]) -> str:
                   for t in tickers_interes[:3]]
     titulares: list[tuple[str, str]] = []
     for q in consultas:
-        try:
-            r = requests.get(
-                "https://news.google.com/rss/search",
-                params={"q": q, "hl": "en-US", "gl": "US", "ceid": "US:en"},
-                timeout=10, headers={"User-Agent": "Mozilla/5.0"},
-            )
-            for item in ET.fromstring(r.content).iter("item"):
-                titulo = (item.findtext("title") or "").strip()
-                if titulo:
-                    titulares.append((q, titulo))
-                if len([x for x in titulares if x[0] == q]) >= 2:
-                    break
-        except Exception as e:
-            print(f"  (RSS '{q}' falló: {e})", flush=True)
+        for titulo in titulares_google_news(q, maximo=2):
+            titulares.append((q, titulo))
     nuevos = []
     for _, titulo in titulares:
         h = hash_estable(titulo)
@@ -333,24 +370,15 @@ def explorar_noticias(st: dict) -> list[dict]:
                  "federal reserve news", "company earnings news today"]
     titulares: list[str] = []
     for q in consultas:
-        try:
-            r = requests.get(
-                "https://news.google.com/rss/search",
-                params={"q": q, "hl": "en-US", "gl": "US", "ceid": "US:en"},
-                timeout=10, headers={"User-Agent": "Mozilla/5.0"},
-            )
-            n_q = 0
-            for item in ET.fromstring(r.content).iter("item"):
-                titulo = (item.findtext("title") or "").strip()
-                h = hash_estable(titulo)
-                if titulo and h not in st["noticias_evaluadas"]:
-                    st["noticias_evaluadas"].append(h)
-                    titulares.append(titulo)
-                    n_q += 1
-                if n_q >= 4:
-                    break
-        except Exception as e:
-            print(f"  (explorador RSS '{q}' falló: {e})", flush=True)
+        n_q = 0
+        for titulo in titulares_google_news(q, maximo=8):
+            h = hash_estable(titulo)
+            if h not in st["noticias_evaluadas"]:
+                st["noticias_evaluadas"].append(h)
+                titulares.append(titulo)
+                n_q += 1
+            if n_q >= 4:
+                break
     if not titulares:
         return []  # nada nuevo que evaluar: cero costo de LLM esta corrida
 
