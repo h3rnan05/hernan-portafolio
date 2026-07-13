@@ -53,8 +53,11 @@ jobs:
         run: |
           git config user.name "wizards-bot"
           git config user.email "wizards-bot@users.noreply.github.com"
-          # -A + pathspecs: no falla si wizards_inbox.json aún no existe
-          git add -A -- wizards_state.json wizards_inbox.json
+          # Añade solo los archivos que existen (wizards_inbox.json puede no
+          # existir aún). El '|| true' evita que set -e tumbe el job si falta.
+          for f in wizards_state.json wizards_inbox.json; do
+            [ -f "$f" ] && git add "$f" || true
+          done
           git diff --cached --quiet || git commit -m "wizards: actualiza estado [skip ci]"
           git pull --rebase origin main || true
           git push
