@@ -31,14 +31,21 @@ CÓMO FUNCIONA
   - Ejecución espejo (opcional): si hay WEBULL_APP_KEY/WEBULL_APP_SECRET,
     replica las órdenes en el sandbox de Webull para validar la integración.
     El P&L "real" del bot es el virtual; el espejo es instrumentación.
-  - Noticias: digest informativo (Google News RSS) en cada aviso a Discord.
-    Las noticias NO deciden trades — las decisiones son 100% por reglas.
+  - Noticias, dos vías separadas:
+      · Digest informativo (Google News RSS) en cada aviso — no decide nada.
+      · EXPLORADOR (si hay ANTHROPIC_API_KEY): el bot lee titulares nuevos y
+        Claude propone hasta 2 compras por corrida con confianza >= 8 (barra
+        más alta que las ideas humanas, que exigen 7). Cada propuesta pasa por
+        los MISMOS gates de riesgo en código que todo lo demás: el LLM
+        propone, el código decide tamaño y si se ejecuta.
   - Cada corrida = un chequeo y termina (mismo patrón cron que wheat_swing).
 
 VARIABLES DE ENTORNO
   WEBULL_APP_KEY, WEBULL_APP_SECRET  (opcionales: espejo en sandbox Webull)
   WEBULL_ENDPOINT                    (default api.sandbox.webull.com)
+  ANTHROPIC_API_KEY                  (opcional: activa el explorador de noticias)
   DISCORD_WEBHOOK                    (opcional, para avisos)
+  TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID (opcionales, para avisos)
   DRY_RUN=1                          (simula sin guardar estado ni mandar órdenes)
 
 REGLA DURA: si WEBULL_ENDPOINT no contiene "sandbox" ni "uat", el script se
@@ -46,6 +53,7 @@ detiene con error. No hay bandera para saltarlo: pasar a producción requiere
 editar el código a propósito, con confirmación explícita del dueño.
 """
 
+import hashlib
 import itertools
 import json
 import os
@@ -99,6 +107,12 @@ def ahora() -> str:
     return datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
 
 
+def hash_estable(texto: str) -> str:
+    """hash() de Python cambia entre procesos (PYTHONHASHSEED); para deduplicar
+    titulares entre corridas del cron se necesita un hash determinista."""
+    return hashlib.md5(texto.encode()).hexdigest()[:12]
+
+
 def notify(msg: str) -> None:
     print(msg, flush=True)
     if DRY_RUN:
@@ -124,7 +138,9 @@ def notify(msg: str) -> None:
 
 def cargar_estado() -> dict:
     if STATE_FILE.exists():
-        return json.loads(STATE_FILE.read_text())
+        st = json.loads(STATE_FILE.read_text())
+        st.setdefault("noticias_evaluadas", [])  # estados previos al explorador
+        return st
     return {
         "cash": EQUITY_INICIAL,
         "posiciones": {},        # ticker -> {qty, entrada, stop, fecha}
@@ -132,7 +148,8 @@ def cargar_estado() -> dict:
         "trades_cerrados": 0,
         "trades_ganadores": 0,
         "curva_equity": [],      # [{ts, equity}]
-        "noticias_vistas": [],   # hashes para no repetir titulares
+        "noticias_vistas": [],      # hashes ya mostrados en el digest
+        "noticias_evaluadas": [],   # hashes ya analizados por el explorador
         "eventos": [],
     }
 
@@ -143,6 +160,7 @@ def guardar_estado(st: dict, evento: str | None = None) -> None:
     st["eventos"] = st["eventos"][-200:]
     st["curva_equity"] = st["curva_equity"][-500:]
     st["noticias_vistas"] = st["noticias_vistas"][-300:]
+    st["noticias_evaluadas"] = st.get("noticias_evaluadas", [])[-500:]
     if DRY_RUN:
         print(f"  [DRY_RUN] no guardo estado. Evento: {evento}", flush=True)
         return
@@ -240,7 +258,7 @@ def noticias_digest(st: dict, tickers_interes: list[str]) -> str:
             print(f"  (RSS '{q}' falló: {e})", flush=True)
     nuevos = []
     for _, titulo in titulares:
-        h = str(hash(titulo) % 10**12)
+        h = hash_estable(titulo)
         if h not in st["noticias_vistas"]:
             st["noticias_vistas"].append(h)
             nuevos.append(titulo)
@@ -249,6 +267,131 @@ def noticias_digest(st: dict, tickers_interes: list[str]) -> str:
     if not nuevos:
         return ""
     return "📰 Noticias:\n" + "\n".join(f"  • {t}" for t in nuevos)
+
+
+# ============================== EXPLORADOR (noticias → decisiones) ==============================
+
+MODELO_LLM = "claude-sonnet-5"
+CONFIANZA_MIN_NOTICIAS = 8  # barra MÁS alta que las ideas humanas (7): cuando
+                            # no hay humano en el circuito, el filtro se endurece
+MAX_IDEAS_NOTICIAS = 2      # tope de propuestas del explorador por corrida
+
+PROMPT_EXPLORADOR = """\
+Eres el explorador de noticias de un bot de trading que sigue los principios
+de "Los magos del mercado" (Market Wizards, Schwager). Recibes titulares
+recientes y el estado del portafolio, y decides si ALGUNO implica una
+oportunidad de compra LARGA accionable HOY en un ticker líquido de EEUU
+(NYSE/Nasdaq/ETF).
+
+Reglas duras:
+1. Tu respuesta por defecto es CERO ideas. Los magos no sobre-operan:
+   proponer es la excepción. Un titular interesante NO es una tesis.
+2. Nada ya corrido: si el titular describe un movimiento que ya ocurrió
+   ("X sube 15% tras..."), el precio ya lo descontó. Rechaza.
+3. Solo catalizadores frescos, concretos y medibles, con asimetría clara
+   asumiendo que el bot pondrá un stop a 2×ATR bajo la entrada.
+4. Nunca propongas tickers que ya están en el portafolio (no se promedia).
+5. Máximo 2 ideas y solo con confianza >= 8 de 10. Si dudas entre 7 y 8,
+   es 7 y no se propone.
+
+Responde SOLO con JSON válido, sin markdown:
+{"ideas": [{"ticker": "XYZ", "tesis": "una frase concreta", "confianza": 8,
+            "titular": "el titular que la origina"}]}
+La gran mayoría de las veces la respuesta correcta es {"ideas": []}."""
+
+
+def llamar_claude(system: str, user: str) -> str | None:
+    """Una llamada simple a la API de Anthropic con requests (sin SDK).
+    Sin ANTHROPIC_API_KEY devuelve None y el explorador queda apagado."""
+    key = os.getenv("ANTHROPIC_API_KEY", "").strip()
+    if not key:
+        return None
+    try:
+        r = requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={"x-api-key": key, "anthropic-version": "2023-06-01",
+                     "content-type": "application/json"},
+            json={"model": MODELO_LLM, "max_tokens": 500, "system": system,
+                  "messages": [{"role": "user", "content": user}]},
+            timeout=60,
+        )
+        r.raise_for_status()
+        return "".join(b.get("text", "") for b in r.json()["content"]
+                       if b.get("type") == "text").strip()
+    except Exception as e:
+        print(f"  (explorador: llamada a Claude falló: {e})", flush=True)
+        return None
+
+
+def explorar_noticias(st: dict) -> list[dict]:
+    """El bot lee titulares nuevos y Claude decide si alguno amerita compra.
+    El LLM solo PROPONE: cada propuesta pasa por los mismos gates de riesgo
+    en código que las ideas humanas (procesar_ideas). Barra de confianza >= 8."""
+    if not os.getenv("ANTHROPIC_API_KEY", "").strip():
+        return []  # sin llave no hay explorador; el resto del bot sigue igual
+    consultas = ["stock market news today", "commodities market news",
+                 "federal reserve news", "company earnings news today"]
+    titulares: list[str] = []
+    for q in consultas:
+        try:
+            r = requests.get(
+                "https://news.google.com/rss/search",
+                params={"q": q, "hl": "en-US", "gl": "US", "ceid": "US:en"},
+                timeout=10, headers={"User-Agent": "Mozilla/5.0"},
+            )
+            n_q = 0
+            for item in ET.fromstring(r.content).iter("item"):
+                titulo = (item.findtext("title") or "").strip()
+                h = hash_estable(titulo)
+                if titulo and h not in st["noticias_evaluadas"]:
+                    st["noticias_evaluadas"].append(h)
+                    titulares.append(titulo)
+                    n_q += 1
+                if n_q >= 4:
+                    break
+        except Exception as e:
+            print(f"  (explorador RSS '{q}' falló: {e})", flush=True)
+    if not titulares:
+        return []  # nada nuevo que evaluar: cero costo de LLM esta corrida
+
+    pos = ", ".join(st["posiciones"]) or "ninguna"
+    contexto = (f"Fecha/hora: {ahora()}. Posiciones abiertas (PROHIBIDO "
+                f"proponerlas): {pos}. Cash disponible: ${st['cash']:,.2f} de "
+                f"un portafolio de ${EQUITY_INICIAL:,.0f}.")
+    crudo = llamar_claude(
+        PROMPT_EXPLORADOR,
+        f"{contexto}\n\nTitulares nuevos:\n"
+        + "\n".join(f"- {t}" for t in titulares),
+    )
+    if not crudo:
+        return []
+    if crudo.startswith("```"):
+        crudo = crudo.strip("`").removeprefix("json").strip()
+    try:
+        propuestas = json.loads(crudo).get("ideas", [])
+    except (json.JSONDecodeError, AttributeError):
+        print(f"  (explorador devolvió algo no parseable: {crudo[:120]})",
+              flush=True)
+        return []
+
+    ideas = []
+    for p in propuestas[:MAX_IDEAS_NOTICIAS]:
+        ticker = str(p.get("ticker", "")).upper().strip()
+        try:
+            conf = int(p.get("confianza", 0))
+        except (TypeError, ValueError):
+            conf = 0
+        if not ticker or conf < CONFIANZA_MIN_NOTICIAS or ticker in st["posiciones"]:
+            continue
+        ideas.append({
+            "id": uuid.uuid4().hex[:12], "ticker": ticker,
+            "tesis": (f"{p.get('tesis', '')} "
+                      f"[titular: {str(p.get('titular', ''))[:80]}]"),
+            "confianza": conf, "ts": ahora(), "origen": "noticias",
+        })
+    if ideas:
+        print(f"  explorador: propone {[i['ticker'] for i in ideas]}", flush=True)
+    return ideas
 
 
 # ============================== WEBULL (espejo opcional) ==============================
@@ -380,6 +523,9 @@ def procesar_ideas(st: dict, ideas: list[dict], inds: dict,
     lineas = []
     for idea in ideas:
         t, tesis = idea.get("ticker", "?"), idea.get("tesis") or ""
+        origen = idea.get("origen", "idea")
+        etiqueta = ("noticia detectada por el bot" if origen == "noticias"
+                    else "idea vía Telegram")
         eq = equity_total(st, precios)
         if t in st["posiciones"]:
             veredicto = f"ya hay posición abierta en {t} (nunca se promedia)"
@@ -392,8 +538,8 @@ def procesar_ideas(st: dict, ideas: list[dict], inds: dict,
             veredicto = f"calor del portafolio ya en el tope de {MAX_HEAT:.0%}"
         else:
             linea = comprar(st, t, inds[t], eq,
-                            motivo=f"idea vía Telegram: {tesis[:90]}",
-                            origen="idea")
+                            motivo=f"{etiqueta}: {tesis[:90]}",
+                            origen=origen)
             if linea:
                 lineas.append(linea)
                 continue
@@ -448,7 +594,19 @@ def ciclo() -> None:
             print(f"  {len(ideas)} idea(s) en el inbox esperando apertura "
                   f"del mercado.", flush=True)
 
-    # ---- 3) Buscar entradas del sistema (mercado abierto y capacidad) ----
+    # ---- 3) Explorador: el bot lee noticias y propone (conf. >= 8) ----
+    if abierto:
+        propuestas = explorar_noticias(st)
+        for p in propuestas:  # datos para tickers fuera del universo
+            if p["ticker"] not in inds:
+                d = _chart_yahoo(p["ticker"])
+                if d:
+                    inds[p["ticker"]] = indicadores(d)
+                    precios[p["ticker"]] = inds[p["ticker"]]["precio"]
+        if propuestas:
+            lineas += procesar_ideas(st, propuestas, inds, precios)
+
+    # ---- 4) Buscar entradas del sistema (mercado abierto y capacidad) ----
     if abierto:
         señales = [
             (ind["precio"] / ind["max55"], t)
@@ -466,7 +624,7 @@ def ciclo() -> None:
             if linea:
                 lineas.append(linea)
 
-    # ---- 4) Revisión de mercado (la "lectura" del libro, informativa) ----
+    # ---- 5) Revisión de mercado (la "lectura" del libro, informativa) ----
     eq = equity_total(st, precios)
     st["curva_equity"].append({"ts": ahora(), "equity": round(eq, 2)})
     revision = []
