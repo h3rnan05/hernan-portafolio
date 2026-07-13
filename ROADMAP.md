@@ -1,102 +1,78 @@
-# Roadmap — Sistema de Trading Cuantitativo
+# Roadmap — Autonomous Investment Operating System (AIOS)
 
-Visión: Research → Decision → Portfolio → **(portón de backtesting)** →
-Execution → Self-improvement. "El computador busca, el humano decide",
-evolucionando hacia autonomía solo donde la validación histórica lo respalda.
+Ya no es "un bot de trading" — es la base de una plataforma cuantitativa de
+inversión institucional. Filosofía:
 
-## Decisiones acordadas (2026-07-13)
+> El computador investiga. Los modelos deciden. El risk manager aprueba.
+> La IA explica. El bróker ejecuta.
 
-- **Capital real**: $44,000, para operar pronto. No es un ejemplo ilustrativo.
-- El sistema nuevo **reemplaza** a `wizards_bot.py` (el sistema de ruptura de
-  55 días sobre 10 ETFs se retira cuando la Fase 4 esté lista).
-- Se **mantiene** el canal de Telegram como entrada de ideas al Decision Bot
-  — es la pieza de `wizards_bot`/`telegram_bot/` que sí se conserva.
-- **El backtesting histórico es un portón obligatorio antes de la Fase 4**
-  con dinero real. No se salta aunque haya prisa por operar — es la regla que
-  el propio dueño del proyecto puso: "cualquier cambio al modelo debe
-  validarse con backtesting y pruebas fuera de muestra, no solo porque una
-  racha reciente fue buena o mala."
+## Principios duros (no negociables)
 
-## Fases
+1. **Preservar capital antes que rentabilidad.**
+2. **Toda decisión debe ser determinística** — reglas fijas, reproducibles.
+3. **La IA (LLMs) NUNCA decide qué comprar o vender.** Su trabajo es
+   explicar decisiones, resumir research, leer filings/earnings calls,
+   resumir noticias, generar reportes. Punto.
+4. Toda decisión de inversión la genera un modelo cuantitativo con reglas
+   predefinidas — nunca el juicio de un LLM.
+5. Cada módulo es independiente y reemplazable.
 
-### Fase 1 — Research Bot ✅ HECHO
-`screener/` — S&P 500, factores normalizados cross-sectional 0-100 (momentum,
-tendencia, volatilidad, liquidez, calidad, valor), shortlist diaria de ~20
-nombres con razones, entregada a Telegram. Workflow `screener.yml`, corre
-12:00 UTC lun-vie.
+## ⚠️ Deuda de arquitectura conocida
 
-### Fase 2 — Decision Bot 🔜 SIGUIENTE
-Toma la shortlist del screener (y las ideas que lleguen por Telegram) y
-decide: ¿comprar o no?, ¿cuánto?, ¿dónde el stop?, ¿cuál es el riesgo?,
-¿cómo afecta al portafolio? — con la razón explícita de cada decisión.
+`telegram_bot/idea_evaluator.py` y el explorador de noticias de
+`wizards_bot.py` **violan el Principio #3 hoy**: Claude decide
+`INVERTIR`/`NO_INVERTIR` directamente. Se corrige cuando el Decision Engine
+exista — el LLM pasará a solo extraer hechos estructurados (ticker, tesis,
+catalizador) de lo que el usuario escribe; la decisión la toma el Decision
+Engine con reglas fijas. Anotado, no arreglado todavía — se hace por partes.
 
-Reutiliza: `telegram_bot/idea_evaluator.py` (Claude + razonamiento
-estructurado), la lógica de sizing/stop de `wizards_bot.comprar()`
-(1.5% riesgo, 2×ATR).
-Nuevo: conectar la salida del screener a la capa de decisión — hoy el
-screener solo notifica, no alimenta ninguna decisión.
+## Capital real
 
-### Fase 3 — Portfolio Manager
-Reglas a **nivel portafolio**, no por trade individual: riesgo máx. 1% por
-operación, máx. 5 posiciones, máx. 30% en un sector, beta máximo del
-portafolio 1.1, mínimo 15% en efectivo. Calibrado a $44k, pero todavía
-**virtual** (no toca dinero real en esta fase).
+$44,000. No se autoriza a operar real hasta pasar el Validation Pipeline
+completo (abajo). No es opcional ni negociable con prisa.
 
-Nuevo: trackear exposición sectorial y beta agregado del portafolio — no
-existe hoy (los gates actuales de `wizards_bot` son por-trade: calor 6%,
-máx. 4 posiciones, sin noción de sector ni beta conjunto).
+## Mapeo de agentes → estado actual del código
 
-### Fase 3.5 — Backtesting histórico 🚧 PORTÓN OBLIGATORIO
-No es opcional ni "fase 5 nice-to-have": es el paso que decide si la Fase 4
-se autoriza con capital real o se queda en papel.
+| # | Agente | Responsabilidad | Estado |
+|---|--------|------------------|--------|
+| 1 | **Market Data Agent** | precios, fundamentales, macro, insider, institucional, calendario económico — todo cacheado localmente | 🟡 Parcial — `screener/data/provider.py` (`DataProvider` ABC + `YahooProvider`) cubre precios y fundamentales best-effort. Falta: macro, insider, institucional, opciones |
+| 2 | **Research Agent** | escanea el universo, calcula Quality/Growth/Value/Momentum/Volatility/Liquidity, genera shortlist — **NO son señales de compra** | ✅ Hecho — `screener/` completo, shortlist diaria a Telegram |
+| 3 | **Fundamental Analysis Agent** | lee 10-K/10-Q/earnings calls/presentaciones, arma tesis estructurada (fortalezas/debilidades/ventajas/riesgos/catalizadores/valuación) — nunca decide comprar | ❌ No existe |
+| 4 | **Technical Analysis Agent** | medias móviles, ATR, RSI, MACD, ADX, momentum, breakouts, soporte/resistencia, tendencia — solo información | 🟡 Parcial — `screener/factors/technical.py` tiene medias, ATR, RSI, momentum. Falta MACD, ADX, soporte/resistencia explícitos |
+| 5 | **Macro Agent** | Fed, tasas, inflación, PIB, empleo, petróleo, oro, DXY, treasuries, geopolítica — nunca compra | ❌ No existe |
+| 6 | **Portfolio Optimizer** | construye el portafolio óptimo desde candidatos: max retorno esperado, min riesgo, respeta límites (sector, tamaño posición, cash mínimo, beta, correlación, drawdown objetivo) | ❌ No existe (era la "Fase 3" del roadmap anterior) |
+| 7 | **Risk Manager** | ⭐ el módulo más importante — **veto power**. Riesgo máx/trade, calor máx portafolio, correlación máx, exposición sectorial máx, volatilidad máx, drawdown máx, stop por ATR, position sizing, VaR, stress testing. Si algo falla → rechaza | 🟡 Parcial, disperso — la lógica de sizing/stop/heat vive dentro de `wizards_bot.comprar()`/`procesar_ideas()`, no como módulo propio, testeable y con veto explícito |
+| 8 | **Decision Engine** | recibe SOLO trades ya aprobados por el Risk Manager. Output: BUY / SELL / HOLD / **DO NOTHING**. "No trades today" es una salida válida y esperada, nunca se fuerza un trade | ❌ No existe como módulo determinístico — hoy la "decisión" la toma un LLM (ver deuda de arquitectura arriba) |
+| 9 | **AI Analyst** | genera reportes institucionales: tesis, fortalezas/debilidades/riesgos/catalizadores, por qué el modelo eligió esto y rechazó lo otro, impacto en portafolio, explicación de riesgo. Todo en lenguaje humano. **Nunca decide** | 🟡 Parcial — el LLM ya explica bien (ver las respuestas del evaluador de Telegram), pero hoy también decide, lo cual no debe |
+| 10 | **Execution Engine** | solo: conexión al bróker, ejecutar órdenes, poner stops/take-profit, monitorear, loggear. Separado por completo del research | 🟡 Parcial — `wizards_bot.py` ejecuta (mezclado con la lógica de señal/riesgo, no aislado como motor independiente); espejo a Webull verificado para futuros, no para acciones |
+| 11 | **Learning Engine** | cada trade se guarda para siempre: fecha, razón, factor scores, tamaño, riesgo, stop, estado del portafolio, resultado, holding period, drawdown, motivo de salida. El sistema nunca se cambia solo — mejoras requieren backtesting + out-of-sample + walk-forward + aprobación humana | ❌ No existe (diseño acordado antes en esta sesión, no implementado) |
 
-Backtest de 10+ años del sistema completo (screener + decisión + reglas de
-portafolio) sobre datos históricos gratis (Yahoo). Métricas: CAGR, Sharpe,
-Sortino, max drawdown, win rate, alpha/beta vs. buy-and-hold.
+## Validation Pipeline (obligatorio, sin atajos)
 
-Advertencia metodológica que hay que resolver, no esconder: **survivorship
-bias** — usar el S&P 500 de HOY para simular el pasado ignora empresas que
-quebraron o salieron del índice, lo que infla los resultados. Se documenta
-explícitamente en el reporte del backtest.
+Ninguna estrategia opera capital real sin pasar, en este orden:
 
-**No se autoriza la Fase 4 con capital real sin pasar este portón con
-números que sostengan la tesis.**
+1. **Historical Backtesting**
+2. **Walk-Forward Analysis**
+3. **Out-of-Sample Validation**
+4. **Paper Trading — mínimo 3-6 meses** (más largo de lo que se había hablado antes)
+5. **Despliegue con capital pequeño**
+6. **Despliegue con capital completo**
 
-### Fase 4 — Execution Bot
-Solo tras aprobar el backtest. Arranca con una **fracción** de los $44k, no
-el total — el tamaño exacto se decide con evidencia del backtest, no a
-priori.
+Nadie salta pasos por prisa, aunque el capital ya esté disponible.
 
-Pendiente de verificar antes de operar acciones reales: **Webull equities**
-— hasta ahora solo se verificó el sandbox para futuros (trigo/ZW). Requiere
-una sonda de verificación como la que se hizo con ZWU6, pero para el lado de
-acciones, antes de asumir que sirve igual.
+## Principios de ingeniería
 
-Retira: la lógica de ETFs por ruptura de 55 días de `wizards_bot.py`.
-Mantiene: el canal de Telegram como entrada de ideas humanas.
+Python, type hints, unit tests, logging, dependency injection, config files,
+caching, requests async, Clean Architecture, SOLID, Repository Pattern. Cada
+módulo debe poder probarse de forma aislada — como ya se hizo con
+`screener/scoring.py` (7 tests con un provider falso, sin red).
 
-### Fase 5 — Self-Improving Bot
-Bitácora enriquecida por trade **desde el día 1** (aunque sea virtual/papel)
-— para cuando llegue el dinero real ya hay historial con el que comparar, no
-se empieza de cero.
+## Cómo se está construyendo (por partes, sesión a sesión)
 
-- Cada trade registra: timestamps entrada/salida, señal que disparó la
-  entrada + valores de indicadores en ese momento, niveles planeados
-  (entrada/stop/riesgo), resultado real (salida/P&L/motivo), contexto de
-  mercado (tendencia según una media larga).
-- Revisión periódica cada **20 trades cerrados o 3 semanas** (lo que ocurra
-  primero) — nunca por trade individual, para evitar sobreajuste con poca
-  muestra.
-- Cualquier comparación entre grupos requiere **mínimo 8 muestras** por
-  grupo. Menos que eso no produce conclusiones.
-- El reporte de la revisión propone ajustes concretos pero **nunca los
-  aplica solo** — queda como propuesta pendiente hasta aprobación explícita
-  ("aprobar cambio X" por Telegram).
+No se construyen los 11 agentes de una sentada. Orden de dependencias reales:
+Research Agent (✅) → Portfolio Optimizer → Risk Manager → Decision Engine →
+(arreglar la deuda de arquitectura del LLM) → Fundamental/Macro Agents →
+Execution Engine aislado → Learning Engine → Validation Pipeline completo.
 
-(Diseño ya discutido y acordado en esta sesión; falta implementar la
-bitácora y el script de revisión periódica.)
-
-## Próximo paso concreto
-
-Construir la **Fase 2 (Decision Bot)** — es la que más reutiliza código
-existente y no toca capital real todavía.
+**Siguiente parte a construir: por decidir con el dueño del proyecto en cada
+sesión — ver la conversación para la elección más reciente.**
