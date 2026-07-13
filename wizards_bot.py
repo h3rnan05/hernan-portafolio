@@ -552,7 +552,24 @@ def procesar_ideas(st: dict, ideas: list[dict], inds: dict,
 # ============================== CICLO PRINCIPAL ==============================
 
 
+def _diagnostico_integraciones() -> None:
+    """Resumen de arranque: qué integraciones ve el proceso (solo presencia,
+    nunca valores). Útil en un bot desatendido para saber, mirando el log de
+    una corrida, si los avisos y el explorador están de verdad activos."""
+    def ok(v: str) -> str:
+        return "sí" if os.getenv(v, "").strip() else "NO"
+    print(
+        f"  integraciones | avisos Telegram: "
+        f"{ok('TELEGRAM_BOT_TOKEN') if ok('TELEGRAM_CHAT_ID') == 'sí' else 'NO'}"
+        f" | Discord: {ok('DISCORD_WEBHOOK')}"
+        f" | explorador de noticias: {ok('ANTHROPIC_API_KEY')}"
+        f" | espejo Webull: {ok('WEBULL_APP_KEY')}",
+        flush=True,
+    )
+
+
 def ciclo() -> None:
+    _diagnostico_integraciones()
     st = cargar_estado()
     ideas = cargar_inbox()
     tickers_extra = set(st["posiciones"]) | {
