@@ -40,7 +40,7 @@ completo (abajo). No es opcional ni negociable con prisa.
 | 3 | **Fundamental Analysis Agent** | lee 10-K/10-Q/earnings calls/presentaciones, arma tesis estructurada (fortalezas/debilidades/ventajas/riesgos/catalizadores/valuación) — nunca decide comprar | ❌ No existe |
 | 4 | **Technical Analysis Agent** | medias móviles, ATR, RSI, MACD, ADX, momentum, breakouts, soporte/resistencia, tendencia — solo información | 🟡 Parcial — `screener/factors/technical.py` tiene medias, ATR, RSI, momentum. Falta MACD, ADX, soporte/resistencia explícitos |
 | 5 | **Macro Agent** | Fed, tasas, inflación, PIB, empleo, petróleo, oro, DXY, treasuries, geopolítica — nunca compra | ❌ No existe |
-| 6 | **Portfolio Optimizer** | construye el portafolio óptimo desde candidatos: max retorno esperado, min riesgo, respeta límites (sector, tamaño posición, cash mínimo, beta, correlación, drawdown objetivo) | ❌ No existe (era la "Fase 3" del roadmap anterior) |
+| 6 | **Portfolio Optimizer** | construye el portafolio óptimo desde candidatos: max retorno esperado, min riesgo, respeta límites (sector, tamaño posición, cash mínimo, beta, correlación, drawdown objetivo) | 🟢 Parte 1 hecha — `portfolio_optimizer/` (standalone, 26 tests, sin LLM/red): ranking por retorno ajustado por riesgo × calidad factorial, asignación voraz respetando posiciones/sector/posición/cash/beta/volatilidad/correlación, arquitectura con algoritmo intercambiable (`OptimizationStrategy`). **Falta**: MVO/Risk Parity/Black-Litterman/HRP/ERC/Min-Variance reales (la interfaz ya los soporta), maximum drawdown (requiere backtesting), maximum heat (vive en `risk_manager`). **Falta integrar** con `wizards_bot`/Decision Engine |
 | 7 | **Risk Manager** | ⭐ el módulo más importante — **veto power**. Riesgo máx/trade, calor máx portafolio, correlación máx, exposición sectorial máx, volatilidad máx, drawdown máx, stop por ATR, position sizing, VaR, stress testing. Si algo falla → rechaza | 🟢 Parte 1 hecha — `risk_manager/` (standalone, 14 tests, sin LLM/red): promediar, máx. posiciones, ATR stop, sizing por riesgo, tope de posición, calor, sector, reserva de cash. **Falta parte 2**: correlación, beta, drawdown objetivo, VaR, stress testing. **Falta integrar** con `wizards_bot`/Decision Engine |
 | 8 | **Decision Engine** | recibe SOLO trades ya aprobados por el Risk Manager. Output: BUY / SELL / HOLD / **DO NOTHING**. "No trades today" es una salida válida y esperada, nunca se fuerza un trade | ❌ No existe como módulo determinístico — hoy la "decisión" la toma un LLM (ver deuda de arquitectura arriba) |
 | 9 | **AI Analyst** | genera reportes institucionales: tesis, fortalezas/debilidades/riesgos/catalizadores, por qué el modelo eligió esto y rechazó lo otro, impacto en portafolio, explicación de riesgo. Todo en lenguaje humano. **Nunca decide** | 🟡 Parcial — el LLM ya explica bien (ver las respuestas del evaluador de Telegram), pero hoy también decide, lo cual no debe |
@@ -70,10 +70,10 @@ módulo debe poder probarse de forma aislada — como ya se hizo con
 ## Cómo se está construyendo (por partes, sesión a sesión)
 
 No se construyen los 11 agentes de una sentada. Orden de dependencias reales:
-Research Agent (✅) → Portfolio Optimizer → Risk Manager (🟢 parte 1 hecha) →
-Decision Engine → (arreglar la deuda de arquitectura del LLM) →
-Fundamental/Macro Agents → Execution Engine aislado → Learning Engine →
-Validation Pipeline completo.
+Research Agent (✅) → Portfolio Optimizer (🟢 parte 1 hecha) → Risk Manager
+(🟢 parte 1 hecha) → Decision Engine → (arreglar la deuda de arquitectura
+del LLM) → Fundamental/Macro Agents → Execution Engine aislado → Learning
+Engine → Validation Pipeline completo.
 
 **Siguiente parte a construir: por decidir con el dueño del proyecto en cada
 sesión — ver la conversación para la elección más reciente.**
