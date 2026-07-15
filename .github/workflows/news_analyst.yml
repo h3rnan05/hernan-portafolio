@@ -1,0 +1,40 @@
+# AI Analyst de noticias: cruza titulares reales contra la shortlist del
+# día (screener/shortlist_hoy.json) y explica con LLM solo lo que
+# realmente la menciona -- "Why Should I Care?" (ver news_analyst/README.md).
+#
+# Requiere que screener.yml ya haya corrido hoy (consume shortlist_hoy.json).
+#
+# Solo workflow_dispatch por ahora, sin cron: primero se verifica calidad
+# y costo con corridas manuales antes de comprometerse a un horario fijo.
+#
+# Secrets: ANTHROPIC_API_KEY (sin ella, se listan las menciones sin
+# explicar) + TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID (opcionales, para el envío).
+
+name: news-analyst
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q requests
+
+      - name: Correr AI Analyst de noticias
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python -m news_analyst.run

@@ -120,7 +120,8 @@ def main() -> None:
         "universo_escaneado": universo_n,
         "shortlist": [
             {"ticker": p.ticker, "score": p.score_total,
-             "sector": p.sector, "sub_scores": p.sub}
+             "sector": p.sector, "sub_scores": p.sub,
+             "nombre": p.nombre, "industria": p.industria}
             for p in ranking[:CONFIG.top_n]
         ],
     }, indent=2, ensure_ascii=False))
