@@ -38,7 +38,10 @@ class Barras:
 @dataclass
 class Fundamentales:
     """Snapshot fundamental. Cualquier campo puede ser None (datos gratis
-    son parciales); los factores degradan con gracia ante None."""
+    son parciales); los factores degradan con gracia ante None.
+
+    `nombre`/`industria` son metadata puramente descriptiva para el reporte
+    (report.py) — no entran a ningún cálculo de scoring/ranking."""
     ticker: str
     pe: float | None = None
     pb: float | None = None
@@ -46,6 +49,8 @@ class Fundamentales:
     margen_operativo: float | None = None
     crecimiento_ingresos: float | None = None
     sector: str | None = None
+    nombre: str | None = None
+    industria: str | None = None
 
 
 class DataProvider(ABC):
@@ -133,6 +138,8 @@ class YahooProvider(DataProvider):
                     margen_operativo=_num(info.get("operatingMargins")),
                     crecimiento_ingresos=_num(info.get("revenueGrowth")),
                     sector=info.get("sector"),
+                    nombre=info.get("longName") or info.get("shortName"),
+                    industria=info.get("industry"),
                 )
             except Exception as e:
                 log.debug("fundamentales %s falló: %s", t, e)

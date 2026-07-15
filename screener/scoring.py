@@ -39,6 +39,8 @@ class Puntuacion:
     score_total: float
     sub: dict[str, float] = field(default_factory=dict)   # factor -> 0-100
     sector: str | None = None
+    nombre: str | None = None      # metadata para el reporte, no entra al cálculo
+    industria: str | None = None
 
 
 def _factor_valor(f: Fundamentales) -> float | None:
@@ -102,9 +104,10 @@ def puntuar(
         if peso_disp == 0:
             continue
         total = round(acum / peso_disp, 1)
+        f = fund.get(t, Fundamentales(t))
         resultado.append(Puntuacion(
             ticker=t, score_total=total, sub=sub,
-            sector=fund.get(t, Fundamentales(t)).sector,
+            sector=f.sector, nombre=f.nombre, industria=f.industria,
         ))
 
     resultado.sort(key=lambda p: p.score_total, reverse=True)
