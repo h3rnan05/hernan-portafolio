@@ -1,0 +1,30 @@
+# Envía UN mensaje de muestra a Telegram con titulares reales, para
+# verificar cómo se ve el formato. Aislado del bot de trading: no toca
+# wizards_state.json, no evalúa nada con LLM, no ejecuta ninguna lógica de
+# trading. Solo workflow_dispatch -- nunca corre solo.
+
+name: preview-noticia
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q requests
+
+      - name: Enviar noticia de muestra
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: python preview_noticia.py
