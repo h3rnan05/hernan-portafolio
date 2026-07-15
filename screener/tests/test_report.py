@@ -4,7 +4,10 @@ traducir los sub-scores a frases en español llano."""
 
 from __future__ import annotations
 
+import re
+
 from screener.config import ScreenerConfig
+from screener.options_ideas import DatosOpciones
 from screener.report import (
     _nombre_display,
     checklist_investigacion,
@@ -16,9 +19,13 @@ from screener.report import (
 from screener.scoring import Puntuacion
 
 
-def _p(ticker, score, sub, sector=None, nombre=None, industria=None):
+def _p(ticker, score, sub, sector=None, nombre=None, industria=None,
+      tendencia_cruda=None, vol_historica_anual=None, precio_actual=None):
     return Puntuacion(ticker=ticker, score_total=score, sub=sub, sector=sector,
-                      nombre=nombre, industria=industria)
+                      nombre=nombre, industria=industria,
+                      tendencia_cruda=tendencia_cruda,
+                      vol_historica_anual=vol_historica_anual,
+                      precio_actual=precio_actual)
 
 
 def test_razones_traduce_a_lenguaje_llano_y_omite_debiles():
@@ -108,6 +115,51 @@ def test_markdown_incluye_checklist_como_tareas():
     md = markdown(ranking, ScreenerConfig(), universo_n=480)
     assert "**¿Qué deberías investigar?**" in md
     assert "- [ ] " in md
+
+
+def test_texto_telegram_incluye_ideas_de_opciones_sin_datos():
+    """Sin proveedor de opciones inyectado, la sección igual aparece,
+    honesta: IV/movimiento esperado 'No disponible', ambas ramas de
+    estrategia porque no se puede clasificar el nivel de IV."""
+    ranking = [_p("AAPL", 81, {"momentum": 90}, nombre="Apple Inc.",
+                  tendencia_cruda=3.0, vol_historica_anual=0.20, precio_actual=200.0)]
+    txt = texto_telegram(ranking, ScreenerConfig(), universo_n=480)
+    assert "Ideas de opciones para investigar" in txt
+    assert "IV Rank: No disponible" in txt
+    assert "Volatilidad implícita actual: No disponible" in txt
+    assert "Long Call" in txt and "Covered Call" in txt  # las dos ramas alcistas
+    assert "Esto NO es una recomendación." in txt
+    assert "punto de partida educativo" in txt
+
+
+def test_markdown_incluye_ideas_de_opciones_con_datos_reales():
+    p = _p("AAPL", 81, {"momentum": 90}, nombre="Apple Inc.",
+           tendencia_cruda=3.0, vol_historica_anual=0.20, precio_actual=200.0)
+    datos = {"AAPL": DatosOpciones(
+        ticker="AAPL", iv_call_atm=0.10, iv_put_atm=0.10,
+        strike_call_atm=200.0, prima_call_atm=4.0,
+        dias_a_vencimiento=35, vencimiento="2026-08-15",
+        proxima_fecha_resultados="2026-07-30",
+    )}
+    md = markdown([p], ScreenerConfig(), universo_n=480, datos_opciones=datos)
+    assert "Long Call" in md
+    assert "Covered Call" not in md  # IV baja conocida -> solo una rama
+    assert "$400" in md  # prima real: 4.0 * 100
+    assert "2026-07-30" in md  # earnings
+    assert "**Esto NO es una recomendación." in md
+
+
+def test_opciones_nunca_fabrica_numeros_para_estrategias_multi_pata():
+    p = _p("XOM", 70, {}, nombre="Exxon", tendencia_cruda=3.0,
+           vol_historica_anual=0.20, precio_actual=100.0)
+    datos = {"XOM": DatosOpciones(ticker="XOM", iv_call_atm=0.40, iv_put_atm=0.40)}
+    txt = texto_telegram([p], ScreenerConfig(), universo_n=100, datos_opciones=datos)
+    assert "Covered Call" in txt
+    # la sección de Covered Call no debe traer un riesgo/ganancia en dólares
+    # reales (un "$0" conceptual -- el piso teórico del precio -- sí se permite)
+    bloque = txt.split("Estrategia posible a investigar: Covered Call")[1]
+    bloque_estrategia = bloque.split("Nota educativa")[0]
+    assert not re.search(r"\$[1-9]", bloque_estrategia)
 
 
 def test_resumen_modelo_vacio():
