@@ -5,7 +5,14 @@ traducir los sub-scores a frases en español llano."""
 from __future__ import annotations
 
 from screener.config import ScreenerConfig
-from screener.report import _nombre_display, markdown, razones, resumen_modelo, texto_telegram
+from screener.report import (
+    _nombre_display,
+    checklist_investigacion,
+    markdown,
+    razones,
+    resumen_modelo,
+    texto_telegram,
+)
 from screener.scoring import Puntuacion
 
 
@@ -64,6 +71,43 @@ def test_markdown_estructura_por_empresa():
     assert "## 1. Johnson & Johnson (JNJ)" in md
     assert "¿Por qué el modelo encontró esta empresa?" in md
     assert "no son recomendaciones de compra" in md.lower()
+
+
+def test_checklist_es_solo_preguntas_nunca_respuestas():
+    preguntas = checklist_investigacion(_p("AAPL", 81, {}, nombre="Apple Inc."))
+    assert len(preguntas) >= 10
+    assert all(p.strip().endswith("?") for p in preguntas)
+
+
+def test_checklist_menciona_el_nombre_de_la_empresa():
+    preguntas = checklist_investigacion(_p("AAPL", 81, {}, nombre="Apple Inc."))
+    assert any("Apple Inc." in p for p in preguntas)
+
+
+def test_checklist_competidores_incluye_industria_si_se_conoce():
+    con_industria = checklist_investigacion(
+        _p("AAPL", 81, {}, nombre="Apple Inc.", industria="Consumer Electronics")
+    )
+    sin_industria = checklist_investigacion(_p("X", 50, {}, nombre="X Corp"))
+    competidores_con = next(p for p in con_industria if "competidores" in p)
+    competidores_sin = next(p for p in sin_industria if "competidores" in p)
+    assert "Consumer Electronics" in competidores_con
+    assert "Consumer Electronics" not in competidores_sin
+
+
+def test_texto_telegram_incluye_checklist_de_investigacion():
+    ranking = [_p("AAPL", 81, {"momentum": 90}, nombre="Apple Inc.", industria="Tech")]
+    txt = texto_telegram(ranking, ScreenerConfig(), universo_n=480)
+    assert "¿Qué deberías investigar?" in txt
+    assert "☐" in txt
+    assert "¿Cuánta deuda tiene la empresa?" in txt
+
+
+def test_markdown_incluye_checklist_como_tareas():
+    ranking = [_p("AAPL", 81, {"momentum": 90}, nombre="Apple Inc.")]
+    md = markdown(ranking, ScreenerConfig(), universo_n=480)
+    assert "**¿Qué deberías investigar?**" in md
+    assert "- [ ] " in md
 
 
 def test_resumen_modelo_vacio():
