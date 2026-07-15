@@ -6,6 +6,7 @@ USO
   python -m screener.run                 # corrida completa (S&P 500)
   python -m screener.run --limit 30      # subconjunto rápido (pruebas)
   python -m screener.run --no-fund       # solo factores de precio (sin yfinance)
+  python -m screener.run --no-opciones   # sin ideas de opciones (sin cadenas de opciones)
 
 VARIABLES DE ENTORNO
   TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID   (opcionales: manda la shortlist)
@@ -25,6 +26,7 @@ import requests
 from screener import universe
 from screener.config import CONFIG, ScreenerConfig
 from screener.data.provider import DataProvider, Fundamentales, YahooProvider
+from screener.options_ideas import DatosOpciones, ProveedorOpciones, YahooOpcionesProvider
 from screener.report import markdown, texto_telegram
 from screener.scoring import Puntuacion, puntuar
 
@@ -76,12 +78,25 @@ def correr(cfg: ScreenerConfig, provider: DataProvider,
     return ranking
 
 
+def obtener_datos_opciones(
+    top: list[Puntuacion], proveedor: ProveedorOpciones,
+) -> dict[str, DatosOpciones]:
+    """Cotiza opciones SOLO para la shortlist final (~20 tickers), nunca
+    para las 500 del universo -- cadenas de opciones son caras y frágiles
+    (Yahoo puede bloquear la IP del datacenter, igual que ya pasó con el
+    RSS de noticias en este repo). El provider ya degrada con gracia por
+    ticker, así que esto nunca revienta la corrida."""
+    return {p.ticker: proveedor.datos(p.ticker, p.precio_actual) for p in top}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=None,
                     help="escanear solo los primeros N tickers (pruebas)")
     ap.add_argument("--no-fund", action="store_true",
                     help="omitir fundamentales (solo factores de precio)")
+    ap.add_argument("--no-opciones", action="store_true",
+                    help="omitir ideas de opciones (sin cadenas de opciones)")
     args = ap.parse_args()
 
     ranking = correr(CONFIG, YahooProvider(), args.limit, con_fund=not args.no_fund)
@@ -90,10 +105,16 @@ def main() -> None:
         return
 
     universo_n = len(ranking)
-    txt = texto_telegram(ranking, CONFIG, universo_n)
+    top = ranking[:CONFIG.top_n]
+    datos_opciones = (
+        {} if args.no_opciones
+        else obtener_datos_opciones(top, YahooOpcionesProvider())
+    )
+
+    txt = texto_telegram(ranking, CONFIG, universo_n, datos_opciones)
     print("\n" + txt)
 
-    SALIDA_MD.write_text(markdown(ranking, CONFIG, universo_n))
+    SALIDA_MD.write_text(markdown(ranking, CONFIG, universo_n, datos_opciones))
     SALIDA.write_text(json.dumps({
         "fecha": datetime.now(UTC).isoformat(timespec="seconds"),
         "universo_escaneado": universo_n,

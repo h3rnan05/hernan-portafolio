@@ -41,6 +41,9 @@ class Puntuacion:
     sector: str | None = None
     nombre: str | None = None      # metadata para el reporte, no entra al cálculo
     industria: str | None = None
+    precio_actual: float | None = None       # metadata: última barra de cierre
+    vol_historica_anual: float | None = None  # metadata: valor crudo (no percentil) de baja_vol
+    tendencia_cruda: float | None = None      # metadata: valor crudo (0..3) de tendencia
 
 
 def _factor_valor(f: Fundamentales) -> float | None:
@@ -105,9 +108,13 @@ def puntuar(
             continue
         total = round(acum / peso_disp, 1)
         f = fund.get(t, Fundamentales(t))
+        b = barras.get(t)
         resultado.append(Puntuacion(
             ticker=t, score_total=total, sub=sub,
             sector=f.sector, nombre=f.nombre, industria=f.industria,
+            precio_actual=b.close[-1] if b and b.close else None,
+            vol_historica_anual=crudo[t].get("baja_vol"),
+            tendencia_cruda=crudo[t].get("tendencia"),
         ))
 
     resultado.sort(key=lambda p: p.score_total, reverse=True)

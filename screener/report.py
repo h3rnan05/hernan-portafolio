@@ -18,6 +18,12 @@ from collections import Counter
 from datetime import UTC, datetime
 
 from screener.config import ScreenerConfig
+from screener.options_ideas import (
+    DISCLAIMER,
+    DatosOpciones,
+    generar_ideas,
+    movimiento_esperado,
+)
 from screener.scoring import Puntuacion
 
 # Cada factor tiene una frase "fuerte" (score >= 85) y una "sólida"
@@ -148,7 +154,73 @@ def checklist_investigacion(p: Puntuacion) -> list[str]:
     ]
 
 
-def texto_telegram(ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: int) -> str:
+def _fmt_pct(x: float | None) -> str:
+    return f"{x:.0%}" if x is not None else "No disponible"
+
+
+def _fmt_dato(x: str | None) -> str:
+    return x if x else "No disponible"
+
+
+def _bloque_opciones_telegram(p: Puntuacion, datos: DatosOpciones) -> list[str]:
+    lineas = [
+        "   💡 Ideas de opciones para investigar",
+        f"   Volatilidad implícita actual: {_fmt_pct(datos.iv_actual)}",
+        f"   Volatilidad histórica: {_fmt_pct(p.vol_historica_anual)}",
+        "   IV Rank: No disponible — requiere histórico de IV que el "
+        "screener no recolecta hoy.",
+        f"   Próximos resultados: {_fmt_dato(datos.proxima_fecha_resultados)}",
+        f"   Movimiento esperado: {movimiento_esperado(p, datos)}",
+        "",
+    ]
+    ideas = generar_ideas(p, datos)
+    if not ideas:
+        lineas.append("   Sin tendencia técnica suficientemente definida para "
+                       "sugerir una estrategia a investigar.")
+    for idea in ideas:
+        lineas.append(f"   Estrategia posible a investigar: {idea.nombre}")
+        lineas.append(f"   Razón: {idea.razon}")
+        lineas.append(f"   Riesgo máximo: {idea.riesgo_maximo}")
+        lineas.append(f"   Ganancia máxima: {idea.ganancia_maxima}")
+        lineas.append(f"   Breakeven: {idea.breakeven}")
+        lineas.append(f"   Nota educativa: {idea.notas}")
+        lineas.append("")
+    lineas.append(f"   {DISCLAIMER}")
+    return lineas
+
+
+def _bloque_opciones_markdown(p: Puntuacion, datos: DatosOpciones) -> list[str]:
+    out = [
+        "**Ideas de opciones para investigar**",
+        "",
+        f"- Volatilidad implícita actual: {_fmt_pct(datos.iv_actual)}",
+        f"- Volatilidad histórica: {_fmt_pct(p.vol_historica_anual)}",
+        "- IV Rank: No disponible — requiere histórico de IV que el "
+        "screener no recolecta hoy.",
+        f"- Próximos resultados: {_fmt_dato(datos.proxima_fecha_resultados)}",
+        f"- Movimiento esperado: {movimiento_esperado(p, datos)}",
+        "",
+    ]
+    ideas = generar_ideas(p, datos)
+    if not ideas:
+        out.append("Sin tendencia técnica suficientemente definida para sugerir "
+                    "una estrategia a investigar.")
+    for idea in ideas:
+        out.append(f"*Estrategia posible a investigar: {idea.nombre}*")
+        out.append(f"- Razón: {idea.razon}")
+        out.append(f"- Riesgo máximo: {idea.riesgo_maximo}")
+        out.append(f"- Ganancia máxima: {idea.ganancia_maxima}")
+        out.append(f"- Breakeven: {idea.breakeven}")
+        out.append(f"- Nota educativa: {idea.notas}")
+        out.append("")
+    out.append(f"**{DISCLAIMER}**")
+    return out
+
+
+def texto_telegram(
+    ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: int,
+    datos_opciones: dict[str, DatosOpciones] | None = None,
+) -> str:
     hoy = datetime.now(UTC).strftime("%Y-%m-%d")
     top = ranking[:cfg.top_n]
     lineas = [
@@ -176,6 +248,9 @@ def texto_telegram(ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: i
         for pregunta in checklist_investigacion(p):
             lineas.append(f"   ☐ {pregunta}")
         lineas.append("")
+        datos = (datos_opciones or {}).get(p.ticker) or DatosOpciones(ticker=p.ticker)
+        lineas.extend(_bloque_opciones_telegram(p, datos))
+        lineas.append("")
 
     lineas.append(resumen_modelo(top))
     lineas.append("")
@@ -183,7 +258,10 @@ def texto_telegram(ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: i
     return "\n".join(lineas)
 
 
-def markdown(ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: int) -> str:
+def markdown(
+    ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: int,
+    datos_opciones: dict[str, DatosOpciones] | None = None,
+) -> str:
     hoy = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
     top = ranking[:cfg.top_n]
     out = [
@@ -212,6 +290,9 @@ def markdown(ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: int) ->
         out.append("")
         for pregunta in checklist_investigacion(p):
             out.append(f"- [ ] {pregunta}")
+        out.append("")
+        datos = (datos_opciones or {}).get(p.ticker) or DatosOpciones(ticker=p.ticker)
+        out.extend(_bloque_opciones_markdown(p, datos))
         out.append("")
 
     out.append("---")
