@@ -121,6 +121,33 @@ def _nombre_display(p: Puntuacion) -> str:
     return p.nombre or p.ticker
 
 
+def checklist_investigacion(p: Puntuacion) -> list[str]:
+    """El checklist de investigación — preguntas fijas, nunca respuestas.
+    El objetivo es enseñar cómo piensa un analista profesional antes de
+    invertir, no darle al usuario la respuesta hecha. Determinístico: no
+    llama a ningún dato ni LLM, es la misma lista de preguntas siempre
+    (con el nombre/industria de la empresa insertados donde corresponde)."""
+    nombre = _nombre_display(p)
+    industria = p.industria or p.sector
+    competidores = (
+        f"¿Quiénes son los competidores más grandes de {nombre} dentro de {industria}?"
+        if industria else f"¿Quiénes son los competidores más grandes de {nombre}?"
+    )
+    return [
+        f"¿Cuándo son los próximos resultados trimestrales (earnings) de {nombre}?",
+        "¿Los ingresos han estado creciendo en los últimos años?",
+        "¿Cuánta deuda tiene la empresa?",
+        "¿Qué está esperando el consenso de analistas para los próximos trimestres?",
+        "¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?",
+        "¿Los inversionistas institucionales están aumentando o reduciendo su posición?",
+        competidores,
+        "¿Hay noticias importantes de la empresa esta semana?",
+        "¿La valuación actual es cara comparada con su propia historia o con su industria?",
+        "¿Cómo le afectaría un cambio en las tasas de interés?",
+        "¿Qué riesgos debo entender antes de invertir en esta empresa?",
+    ]
+
+
 def texto_telegram(ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: int) -> str:
     hoy = datetime.now(UTC).strftime("%Y-%m-%d")
     top = ranking[:cfg.top_n]
@@ -144,6 +171,10 @@ def texto_telegram(ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: i
                 lineas.append(f"   • {frase}")
         else:
             lineas.append("   • Puntúa de forma pareja en varios factores, sin uno que domine.")
+        lineas.append("")
+        lineas.append("   ¿Qué deberías investigar?")
+        for pregunta in checklist_investigacion(p):
+            lineas.append(f"   ☐ {pregunta}")
         lineas.append("")
 
     lineas.append(resumen_modelo(top))
@@ -176,6 +207,11 @@ def markdown(ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: int) ->
                 out.append(f"- {frase}")
         else:
             out.append("- Puntúa de forma pareja en varios factores, sin uno que domine.")
+        out.append("")
+        out.append("**¿Qué deberías investigar?**")
+        out.append("")
+        for pregunta in checklist_investigacion(p):
+            out.append(f"- [ ] {pregunta}")
         out.append("")
 
     out.append("---")
