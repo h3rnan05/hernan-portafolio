@@ -122,7 +122,7 @@ class YahooOpcionesProvider(ProveedorOpciones):
                 strike_put_atm=_get(put_atm, "strike"),
                 prima_put_atm=_prima_media(put_atm),
                 iv_put_atm=_get(put_atm, "impliedVolatility"),
-                proxima_fecha_resultados=_proxima_fecha_resultados(tk),
+                proxima_fecha_resultados=proxima_fecha_resultados(tk),
             )
         except Exception as e:
             log.debug("datos de opciones %s fallaron: %s", ticker, e)
@@ -189,7 +189,10 @@ def _prima_media(fila) -> float | None:
     return _get(fila, "lastPrice")
 
 
-def _proxima_fecha_resultados(tk) -> str | None:
+def proxima_fecha_resultados(tk) -> str | None:
+    """Próxima fecha de resultados (best-effort, yfinance). Pública porque
+    la reutiliza también telegram_bot/report_command.py -- ambos módulos
+    necesitan lo mismo, no tiene sentido duplicar la llamada."""
     try:
         df = tk.get_earnings_dates(limit=4)
         if df is None or len(df) == 0:
