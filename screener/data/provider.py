@@ -41,7 +41,14 @@ class Fundamentales:
     son parciales); los factores degradan con gracia ante None.
 
     `nombre`/`industria` son metadata puramente descriptiva para el reporte
-    (report.py) — no entran a ningún cálculo de scoring/ranking."""
+    (report.py) — no entran a ningún cálculo de scoring/ranking.
+
+    `analista_*`/`pct_institucional`/`pct_insiders` son snapshots reales de
+    yfinance (consenso de analistas y % de tenencia) para /report TICKER
+    (telegram_bot/report_command.py) — tampoco entran al scoring. Son
+    snapshots del día, no series históricas: yfinance no da el detalle de
+    transacciones de insiders ni el histórico 13F institucional, así que
+    ese detalle queda fuera (ver telegram_bot/README.md)."""
     ticker: str
     pe: float | None = None
     pb: float | None = None
@@ -51,6 +58,11 @@ class Fundamentales:
     sector: str | None = None
     nombre: str | None = None
     industria: str | None = None
+    analista_recomendacion: str | None = None
+    analista_precio_objetivo: float | None = None
+    analista_num_opiniones: int | None = None
+    pct_institucional: float | None = None
+    pct_insiders: float | None = None
 
 
 class DataProvider(ABC):
@@ -140,6 +152,11 @@ class YahooProvider(DataProvider):
                     sector=info.get("sector"),
                     nombre=info.get("longName") or info.get("shortName"),
                     industria=info.get("industry"),
+                    analista_recomendacion=info.get("recommendationKey"),
+                    analista_precio_objetivo=_num(info.get("targetMeanPrice")),
+                    analista_num_opiniones=info.get("numberOfAnalystOpinions"),
+                    pct_institucional=_num(info.get("heldPercentInstitutions")),
+                    pct_insiders=_num(info.get("heldPercentInsiders")),
                 )
             except Exception as e:
                 log.debug("fundamentales %s falló: %s", t, e)

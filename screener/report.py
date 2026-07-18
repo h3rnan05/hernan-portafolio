@@ -217,10 +217,51 @@ def _bloque_opciones_markdown(p: Puntuacion, datos: DatosOpciones) -> list[str]:
     return out
 
 
+def texto_telegram_corto(ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: int) -> str:
+    """El mensaje diario real: solo avisa qué empresas pasaron el
+    screener, sin razones/checklist/opciones -- eso satura Telegram con
+    algo que nadie termina de leer. La investigación profunda se pide
+    bajo demanda con /report TICKER (telegram_bot/report_command.py),
+    que sí reutiliza razones()/checklist_investigacion()/ideas de
+    opciones para ESE ticker en particular."""
+    hoy = datetime.now(UTC).strftime("%Y-%m-%d")
+    top = ranking[:cfg.top_n]
+    lineas = [
+        "Buenos días.",
+        "",
+        f"Analicé {universo_n} empresas hoy ({hoy}).",
+        f"{len(top)} pasaron todos los filtros cuantitativos.",
+        "",
+        "Esto NO es una recomendación de compra.",
+        "",
+        "Empresas destacadas:",
+        "",
+    ]
+    for i, p in enumerate(top, 1):
+        lineas.append(f"{i}. {p.ticker} ({p.score_total:.0f}/100)")
+        industria = p.industria or p.sector
+        if industria:
+            lineas.append(f"   {industria}")
+        lineas.append("")
+
+    lineas.append("Para investigar cualquiera escribe:")
+    lineas.append("")
+    lineas.append("/report TICKER")
+    if top:
+        ejemplos = "  ·  ".join(f"/report {p.ticker}" for p in top[:3])
+        lineas.append("")
+        lineas.append(f"Ejemplo: {ejemplos}")
+    return "\n".join(lineas)
+
+
 def texto_telegram(
     ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: int,
     datos_opciones: dict[str, DatosOpciones] | None = None,
 ) -> str:
+    """Versión larga (razones + checklist + ideas de opciones por cada
+    empresa) -- ya NO se manda automáticamente por Telegram (ver
+    texto_telegram_corto); queda como el contenido completo persistido en
+    shortlist_hoy.md y como la base que reutiliza /report TICKER."""
     hoy = datetime.now(UTC).strftime("%Y-%m-%d")
     top = ranking[:cfg.top_n]
     lineas = [
