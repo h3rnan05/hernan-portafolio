@@ -164,6 +164,24 @@ def test_interpretar_roe_y_pb():
     assert "muy por encima" in rc._interpretar_pb(20.0)
 
 
+def test_interpretar_precio_objetivo_por_debajo_del_actual():
+    # Caso real verificado: AAPL objetivo $318.25 vs precio $333.74
+    texto = rc._interpretar_precio_objetivo(precio_objetivo=318.25, precio_actual=333.74)
+    assert "por debajo" in texto
+    assert "4.6%" in texto
+
+
+def test_interpretar_precio_objetivo_por_encima_del_actual():
+    texto = rc._interpretar_precio_objetivo(precio_objetivo=150.0, precio_actual=100.0)
+    assert "por encima" in texto
+    assert "50.0%" in texto
+
+
+def test_interpretar_precio_objetivo_sin_datos():
+    assert rc._interpretar_precio_objetivo(None, 100.0) == "No disponible."
+    assert rc._interpretar_precio_objetivo(150.0, None) == "No disponible."
+
+
 def test_clasificar_valoracion_prefiere_subscore_sobre_pe():
     # valor_subscore alto (barata) pero P/E también luciría "exigente":
     # el sub-score cross-sectional manda porque es más riguroso.
@@ -223,6 +241,62 @@ def test_resumen_ejecutivo_sin_shortlist_no_inventa_calidad():
     assert "Calidad del negocio: No disponible" in texto
 
 
+# ------------------------- veredicto -------------------------
+
+def test_fortalezas_y_debilidades_derivan_de_las_mismas_senales():
+    fortalezas = rc._fortalezas(tendencia_label="alcista", calidad_score=90, liquidez_score=80, crecimiento=0.15)
+    assert "Tendencia alcista muy sólida." in fortalezas
+    assert "Negocio de buena calidad." in fortalezas
+    assert "Alta liquidez." in fortalezas
+    assert "Crecimiento de ingresos saludable." in fortalezas
+
+    debilidades = rc._debilidades(valoracion="Exigente", rsi=89, vol=0.15, tendencia_label="alcista")
+    assert "Valuación elevada." in debilidades
+    assert "RSI en zona de sobrecompra." in debilidades
+
+
+def test_fortalezas_sin_senales_lo_dice_explicito():
+    assert rc._fortalezas("neutral", None, None, None) == [
+        "Sin fortalezas destacadas detectadas hoy con los datos disponibles."]
+    assert rc._debilidades("Razonable", 50, 0.15, "neutral") == [
+        "Sin debilidades destacadas detectadas hoy con los datos disponibles."]
+
+
+def test_preguntas_pendientes_no_pregunta_lo_que_ya_sabe():
+    con_fecha = rc._preguntas_pendientes(fecha_resultados="2026-08-15", valoracion="Razonable")
+    sin_fecha = rc._preguntas_pendientes(fecha_resultados=None, valoracion="Razonable")
+    assert not any("earnings" in p for p in con_fecha)
+    assert any("earnings" in p for p in sin_fecha)
+
+
+def test_preguntas_pendientes_pregunta_por_valuacion_si_es_exigente():
+    preguntas = rc._preguntas_pendientes(fecha_resultados="2026-08-15", valoracion="Exigente")
+    assert any("crecimiento esperado" in p for p in preguntas)
+
+
+def test_confianza_reporte_refleja_cuantos_datos_llegaron():
+    fund_completo = Fundamentales("AAPL", pe=40.5, roe=1.4, analista_recomendacion="buy", pct_institucional=0.66)
+    completa = rc._confianza_reporte({"posicion": 1}, fund_completo, "2026-08-15", True)
+    fund_vacio = Fundamentales("ZZZZ")
+    vacia = rc._confianza_reporte(None, fund_vacio, None, False)
+    assert completa == 100
+    assert vacia == 0
+
+
+def test_veredicto_incluye_los_cuatro_bloques():
+    fund = Fundamentales("AAPL", pe=40.5, roe=1.4, crecimiento_ingresos=0.166,
+                         analista_recomendacion="buy", pct_institucional=0.66)
+    entrada = {"posicion": 2, "score": 82.0, "sub_scores": {"calidad": 98, "liquidez": 99}}
+    lineas = rc._veredicto(entrada, fund, "alcista", rsi=89, vol=0.28, valoracion="Exigente",
+                          fecha_resultados=None, hubo_noticias_explicadas=False)
+    texto = "\n".join(lineas)
+    assert "🎯 Veredicto" in texto
+    assert "Fortalezas:" in texto and "✅" in texto
+    assert "Debilidades:" in texto and "⚠️" in texto
+    assert "Preguntas que aún debo responder antes de invertir:" in texto and "☐" in texto
+    assert "Nivel de confianza del reporte:" in texto
+
+
 # ------------------------- noticias por relevancia -------------------------
 
 def test_noticias_se_ordenan_por_relevancia_no_por_fecha(monkeypatch, tmp_path):
@@ -241,7 +315,7 @@ def test_noticias_se_ordenan_por_relevancia_no_por_fecha(monkeypatch, tmp_path):
 
     entrada = {"posicion": 1, "score": 81.0, "sector": "Technology",
               "industria": None, "sub_scores": {}}
-    lineas = rc._seccion_noticias("AAPL", "Apple Inc.", entrada)
+    lineas, hubo_explicadas = rc._seccion_noticias("AAPL", "Apple Inc.", entrada)
     texto = "\n".join(lineas)
     idx_alta = texto.index("Alta relevancia")
     idx_media = texto.index("Media relevancia")
@@ -250,6 +324,7 @@ def test_noticias_se_ordenan_por_relevancia_no_por_fecha(monkeypatch, tmp_path):
     assert texto.index("Titular alto") < idx_media
     assert idx_media < texto.index("Titular medio") < idx_baja
     assert texto.index("Titular bajo") > idx_baja
+    assert hubo_explicadas is True
 
 
 def test_noticias_sin_explicar_van_en_su_propio_bloque(monkeypatch, tmp_path):
@@ -257,6 +332,8 @@ def test_noticias_sin_explicar_van_en_su_propio_bloque(monkeypatch, tmp_path):
     monkeypatch.setattr(rc, "generar_explicacion", lambda titular, entrada: None)
 
     entrada = {"posicion": 1, "score": 80.0, "sector": None, "industria": None, "sub_scores": {}}
-    texto = "\n".join(rc._seccion_noticias("MSFT", "Microsoft", entrada))
-    assert "Sin explicar (no se pudo evaluar relevancia)" in texto
+    lineas, hubo_explicadas = rc._seccion_noticias("MSFT", "Microsoft", entrada)
+    texto = "\n".join(lineas)
+    assert "no se pudieron clasificar por impacto" in texto
     assert "Sin explicar" in texto  # el titular literal también contiene esa palabra, ok
+    assert hubo_explicadas is False
