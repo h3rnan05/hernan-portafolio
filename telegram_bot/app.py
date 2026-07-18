@@ -31,6 +31,7 @@ chat recibe un rechazo y ninguna acción.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 import logging
@@ -42,6 +43,7 @@ import httpx
 from fastapi import BackgroundTasks, FastAPI, Header, Request
 
 from idea_evaluator import evaluar_idea
+from report_command import generar_reporte
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("telegram_bot")
@@ -62,7 +64,10 @@ AYUDA = (
     "riesgo: 1.5% por trade, stop 2×ATR, y nunca más de 4 posiciones.\n\n"
     "Las salidas las maneja el bot solo (trailing stop). Yo no acepto "
     "órdenes de venta: el sistema no se sobreescribe por impulso — eso "
-    "también viene del libro."
+    "también viene del libro.\n\n"
+    "/report TICKER -- memo de investigación de una empresa (técnico, "
+    "fundamentales, consenso de analistas, noticias relevantes). Ej.: "
+    "/report AAPL"
 )
 
 
@@ -77,6 +82,13 @@ async def _telegram_send(chat_id: str, texto: str) -> None:
             f"https://api.telegram.org/bot{token}/sendMessage",
             json={"chat_id": chat_id, "text": texto[:4000]},
         )
+
+
+async def _telegram_send_largo(chat_id: str, texto: str) -> None:
+    """Como _telegram_send, pero en trozos -- un reporte completo puede
+    superar el límite de 4096 caracteres de un solo mensaje de Telegram."""
+    for i in range(0, len(texto), 3900):
+        await _telegram_send(chat_id, texto[i:i + 3900])
 
 
 async def _github_get(http: httpx.AsyncClient, path: str) -> tuple[dict | None, str | None]:
@@ -167,6 +179,24 @@ async def _procesar(texto: str, chat_id: str) -> None:
             pass
 
 
+async def _procesar_reporte(ticker: str, chat_id: str) -> None:
+    """Genera el memo de /report TICKER y lo manda. Corre como background
+    task; generar_reporte hace llamadas de red síncronas (Yahoo/yfinance/
+    Google News/Anthropic), así que se ejecuta en un hilo aparte para no
+    bloquear el event loop del webhook."""
+    try:
+        texto = await asyncio.to_thread(generar_reporte, ticker)
+        await _telegram_send_largo(chat_id, texto)
+    except Exception as e:
+        log.exception("reporte de %s falló", ticker)
+        try:
+            await _telegram_send(
+                chat_id, f"⚠️ Algo falló generando el reporte de {ticker}: "
+                         f"{type(e).__name__}. Inténtalo de nuevo en un momento.")
+        except Exception:
+            pass
+
+
 @app.get("/health")
 @app.get("/telegram/health")
 async def health() -> dict:
@@ -212,6 +242,15 @@ async def telegram_webhook(
 
     if texto.startswith(("/start", "/help", "/ayuda")):
         background.add_task(_telegram_send, chat_id, AYUDA)
+        return {"ok": True}
+
+    if texto.startswith("/report"):
+        partes = texto.split()
+        if len(partes) < 2:
+            background.add_task(
+                _telegram_send, chat_id, "Uso: /report TICKER (ej. /report AAPL)")
+            return {"ok": True}
+        background.add_task(_procesar_reporte, partes[1].upper(), chat_id)
         return {"ok": True}
 
     background.add_task(_procesar, texto, chat_id)

@@ -27,7 +27,7 @@ from screener import universe
 from screener.config import CONFIG, ScreenerConfig
 from screener.data.provider import DataProvider, Fundamentales, YahooProvider
 from screener.options_ideas import DatosOpciones, ProveedorOpciones, YahooOpcionesProvider
-from screener.report import markdown, texto_telegram
+from screener.report import markdown, texto_telegram, texto_telegram_corto
 from screener.scoring import Puntuacion, puntuar
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -111,10 +111,18 @@ def main() -> None:
         else obtener_datos_opciones(top, YahooOpcionesProvider())
     )
 
-    txt = texto_telegram(ranking, CONFIG, universo_n, datos_opciones)
-    print("\n" + txt)
+    # El mensaje diario a Telegram es corto a propósito: solo avisa qué
+    # pasó el screener. La investigación profunda (razones, checklist,
+    # ideas de opciones) se pide bajo demanda con /report TICKER -- un
+    # mensaje enorme todos los días es ruido, no señal.
+    txt_corto = texto_telegram_corto(ranking, CONFIG, universo_n)
+    print("\n" + txt_corto)
 
+    # El markdown persistido SÍ guarda el análisis completo -- es la
+    # bitácora histórica, no lo que se manda por Telegram.
+    txt_largo = texto_telegram(ranking, CONFIG, universo_n, datos_opciones)
     SALIDA_MD.write_text(markdown(ranking, CONFIG, universo_n, datos_opciones))
+    log.debug("versión completa (no enviada a Telegram):\n%s", txt_largo)
     SALIDA.write_text(json.dumps({
         "fecha": datetime.now(UTC).isoformat(timespec="seconds"),
         "universo_escaneado": universo_n,
@@ -125,7 +133,7 @@ def main() -> None:
             for p in ranking[:CONFIG.top_n]
         ],
     }, indent=2, ensure_ascii=False))
-    enviar_telegram(txt)
+    enviar_telegram(txt_corto)
 
 
 if __name__ == "__main__":

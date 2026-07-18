@@ -15,6 +15,7 @@ from screener.report import (
     razones,
     resumen_modelo,
     texto_telegram,
+    texto_telegram_corto,
 )
 from screener.scoring import Puntuacion
 
@@ -160,6 +161,35 @@ def test_opciones_nunca_fabrica_numeros_para_estrategias_multi_pata():
     bloque = txt.split("Estrategia posible a investigar: Covered Call")[1]
     bloque_estrategia = bloque.split("Nota educativa")[0]
     assert not re.search(r"\$[1-9]", bloque_estrategia)
+
+
+def test_texto_telegram_corto_no_incluye_razones_ni_checklist_ni_opciones():
+    """El mensaje diario real: nada de investigación profunda, solo el
+    aviso de qué pasó el screener."""
+    ranking = [
+        _p("AAPL", 81, {"momentum": 98, "tendencia": 100, "liquidez": 99},
+           sector="Technology", nombre="Apple Inc.", industria="Consumer Electronics"),
+    ]
+    txt = texto_telegram_corto(ranking, ScreenerConfig(), universo_n=480)
+    assert "¿Por qué el modelo encontró esta empresa?" not in txt
+    assert "¿Qué deberías investigar?" not in txt
+    assert "Ideas de opciones" not in txt
+    assert "AAPL (81/100)" in txt
+    assert "Consumer Electronics" in txt
+    assert "/report AAPL" in txt
+    assert "no es una recomendación de compra" in txt.lower()
+
+
+def test_texto_telegram_corto_industria_cae_a_sector():
+    ranking = [_p("XOM", 70, {}, sector="Energy", industria=None)]
+    txt = texto_telegram_corto(ranking, ScreenerConfig(), universo_n=100)
+    assert "Energy" in txt
+
+
+def test_texto_telegram_corto_sin_resultados_no_sugiere_ejemplos():
+    txt = texto_telegram_corto([], ScreenerConfig(), universo_n=100)
+    assert "/report TICKER" in txt
+    assert "Ejemplo:" not in txt
 
 
 def test_resumen_modelo_vacio():
