@@ -137,6 +137,21 @@ def _interpretar_pb(pb: float | None) -> str:
             "alta calidad, pero encarece el margen de seguridad.")
 
 
+def _interpretar_precio_objetivo(precio_objetivo: float | None, precio_actual: float | None) -> str:
+    """Compara el precio objetivo promedio contra el precio actual -- el
+    dato ya se mostraba, pero sin decir qué implica frente al precio de
+    hoy, que es la pregunta real que le importa a quien lo lee."""
+    if precio_objetivo is None or not precio_actual:
+        return "No disponible."
+    diff_pct = (precio_objetivo - precio_actual) / precio_actual
+    if diff_pct < 0:
+        return (f"El consenso de analistas está aproximadamente {abs(diff_pct):.1%} por "
+                f"debajo del precio actual. Esto sugiere que, en promedio, el mercado ya "
+                f"refleja gran parte de las expectativas positivas.")
+    return (f"El consenso de analistas está aproximadamente {diff_pct:.1%} por encima del "
+            f"precio actual. Esto sugiere que, en promedio, los analistas ven más recorrido al alza.")
+
+
 def _texto_calidad(score: float | None) -> str:
     if score is None:
         return "desconocida"
@@ -259,6 +274,97 @@ def _score_breakdown(entrada: dict) -> list[str]:
     return lineas
 
 
+# ------------------------- veredicto (deterministas) -------------------------
+
+def _fortalezas(
+    tendencia_label: str, calidad_score: float | None, liquidez_score: float | None,
+    crecimiento: float | None,
+) -> list[str]:
+    items = []
+    if tendencia_label == "alcista":
+        items.append("Tendencia alcista muy sólida.")
+    if calidad_score is not None and calidad_score >= 70:
+        items.append("Negocio de buena calidad.")
+    if liquidez_score is not None and liquidez_score >= 70:
+        items.append("Alta liquidez.")
+    if crecimiento is not None and crecimiento >= 0.10:
+        items.append("Crecimiento de ingresos saludable.")
+    return items or ["Sin fortalezas destacadas detectadas hoy con los datos disponibles."]
+
+
+def _debilidades(
+    valoracion: str, rsi: float | None, vol: float | None, tendencia_label: str,
+) -> list[str]:
+    items = []
+    if valoracion == "Exigente":
+        items.append("Valuación elevada.")
+    if rsi is not None and rsi >= 70:
+        items.append("RSI en zona de sobrecompra.")
+    if rsi is not None and rsi <= 30:
+        items.append("RSI en zona de sobreventa.")
+    if vol is not None and vol >= 0.40:
+        items.append("Volatilidad histórica alta.")
+    if tendencia_label == "bajista":
+        items.append("Tendencia técnica bajista.")
+    return items or ["Sin debilidades destacadas detectadas hoy con los datos disponibles."]
+
+
+def _preguntas_pendientes(fecha_resultados: str | None, valoracion: str) -> list[str]:
+    """Preguntas genuinamente abiertas -- si ya tenemos el dato (ej. la
+    fecha de resultados), no se pregunta lo que ya se respondió."""
+    preguntas = []
+    if not fecha_resultados:
+        preguntas.append("¿Cuándo son los próximos earnings?")
+    if valoracion == "Exigente":
+        preguntas.append("¿La valuación está justificada por el crecimiento esperado?")
+    preguntas.append("¿Los analistas están revisando al alza o a la baja sus estimaciones?")
+    return preguntas
+
+
+def _confianza_reporte(
+    entrada: dict | None, fund: Fundamentales, fecha_resultados: str | None, hubo_noticias_explicadas: bool,
+) -> int:
+    """Cobertura real de datos: de todo lo que este reporte INTENTA
+    obtener, ¿cuánto sí llegó? No es un juicio de calidad del análisis --
+    es una medida honesta de cuántos huecos de 'No disponible' tiene este
+    reporte en particular."""
+    checks = [
+        entrada is not None,
+        fund.pe is not None,
+        fund.roe is not None,
+        fund.analista_recomendacion is not None,
+        fund.pct_institucional is not None,
+        fecha_resultados is not None,
+        hubo_noticias_explicadas,
+    ]
+    return round(100 * sum(checks) / len(checks))
+
+
+def _veredicto(
+    entrada: dict | None, fund: Fundamentales, tendencia_label: str, rsi: float | None,
+    vol: float | None, valoracion: str, fecha_resultados: str | None, hubo_noticias_explicadas: bool,
+) -> list[str]:
+    calidad_score = (entrada or {}).get("sub_scores", {}).get("calidad")
+    liquidez_score = (entrada or {}).get("sub_scores", {}).get("liquidez")
+    fortalezas = _fortalezas(tendencia_label, calidad_score, liquidez_score, fund.crecimiento_ingresos)
+    debilidades = _debilidades(valoracion, rsi, vol, tendencia_label)
+    preguntas = _preguntas_pendientes(fecha_resultados, valoracion)
+    confianza = _confianza_reporte(entrada, fund, fecha_resultados, hubo_noticias_explicadas)
+
+    lineas = ["🎯 Veredicto", "", "Fortalezas:"]
+    lineas += [f"✅ {f}" for f in fortalezas]
+    lineas.append("")
+    lineas.append("Debilidades:")
+    lineas += [f"⚠️ {d}" for d in debilidades]
+    lineas.append("")
+    lineas.append("Preguntas que aún debo responder antes de invertir:")
+    lineas += [f"☐ {p}" for p in preguntas]
+    lineas.append("")
+    lineas.append(f"Nivel de confianza del reporte: {confianza}% (cuántos de los datos que "
+                  f"se intentaron obtener sí estuvieron disponibles hoy)")
+    return lineas
+
+
 # ------------------------- secciones -------------------------
 
 def _seccion_shortlist(entrada: dict | None) -> list[str]:
@@ -312,7 +418,7 @@ def _seccion_fundamentales(f: Fundamentales) -> list[str]:
     ]
 
 
-def _seccion_analistas_y_tenencia(f: Fundamentales) -> list[str]:
+def _seccion_analistas_y_tenencia(f: Fundamentales, precio_actual: float | None) -> list[str]:
     lineas = [
         "Consenso de analistas y tenencia (snapshot de hoy, no histórico):",
         f"  Recomendación: {f.analista_recomendacion or 'No disponible'}",
@@ -320,6 +426,7 @@ def _seccion_analistas_y_tenencia(f: Fundamentales) -> list[str]:
     if f.analista_precio_objetivo:
         lineas.append(f"  Precio objetivo promedio: ${f.analista_precio_objetivo:.2f} "
                       f"({f.analista_num_opiniones or '?'} analistas)")
+        lineas.append(f"    Interpretación: {_interpretar_precio_objetivo(f.analista_precio_objetivo, precio_actual)}")
     else:
         lineas.append("  Precio objetivo: No disponible")
     lineas.append(f"  % en manos institucionales: {_fmt_pct(f.pct_institucional)}")
@@ -337,11 +444,13 @@ def _bloque_noticias(titulo: str, items: list[tuple[str, Explicacion]]) -> list[
     return out
 
 
-def _seccion_noticias(ticker: str, nombre: str | None, entrada: dict | None) -> list[str]:
+def _seccion_noticias(ticker: str, nombre: str | None, entrada: dict | None) -> tuple[list[str], bool]:
+    """Devuelve (líneas, hubo_al_menos_una_explicada) -- lo segundo
+    alimenta la confianza del reporte en _veredicto()."""
     query = f"{nombre or ticker} stock"
     titulares = titulares_google_news(query, maximo=MAX_TITULARES_REPORTE)
     if not titulares:
-        return ["Noticias: no se encontraron titulares recientes."]
+        return ["Noticias: no se encontraron titulares recientes."], False
 
     lineas = ["Noticias recientes:"]
     if not entrada:
@@ -349,7 +458,7 @@ def _seccion_noticias(ticker: str, nombre: str | None, entrada: dict | None) -> 
         # explicación honesta del LLM -- se listan los titulares crudos
         # en vez de forzar una conexión que no existe.
         lineas += [f'  📰 "{t}"' for t in titulares]
-        return lineas
+        return lineas, False
 
     contexto = EntradaShortlist(
         ticker=ticker, posicion=entrada["posicion"], score=entrada["score"],
@@ -372,9 +481,10 @@ def _seccion_noticias(ticker: str, nombre: str | None, entrada: dict | None) -> 
     lineas += _bloque_noticias("Media relevancia", medias)
     lineas += _bloque_noticias("Baja relevancia", bajas)
     if sin_explicar:
-        lineas.append("  Sin explicar (no se pudo evaluar relevancia):")
+        lineas.append("  Estado: ⚠️ Las noticias se encontraron correctamente, pero aún no "
+                      "se pudieron clasificar por impacto. Mostrando solo titulares.")
         lineas += [f'    📰 "{t}"' for t in sin_explicar]
-    return lineas
+    return lineas, bool(altas or medias or bajas)
 
 
 def generar_reporte(ticker: str) -> str:
@@ -396,8 +506,11 @@ def generar_reporte(ticker: str) -> str:
     tendencia_label = clasificar_tendencia(tech.score_tendencia(barras))
     rsi = tech.rsi(barras)
     vol = tech.volatilidad_anual(barras)
+    precio_actual = barras.close[-1]
     riesgos = _riesgos(rsi, fund.pe, vol, tendencia_label)
     fecha_resultados = _obtener_fecha_resultados(ticker)
+    valoracion = _clasificar_valoracion(fund.pe, (entrada or {}).get("sub_scores", {}).get("valor"))
+    lineas_noticias, hubo_noticias_explicadas = _seccion_noticias(ticker, nombre, entrada)
 
     lineas = [f"📊 Reporte: {nombre or ticker} ({ticker})", ""]
     lineas += _resumen_ejecutivo(entrada, fund.pe, tendencia_label, riesgos)
@@ -411,7 +524,7 @@ def generar_reporte(ticker: str) -> str:
     lineas.append("")
     lineas += _seccion_fundamentales(fund)
     lineas.append("")
-    lineas += _seccion_analistas_y_tenencia(fund)
+    lineas += _seccion_analistas_y_tenencia(fund, precio_actual)
     lineas.append("")
     lineas.append("Riesgos principales:")
     lineas += [f"  • {r}" for r in riesgos]
@@ -419,7 +532,9 @@ def generar_reporte(ticker: str) -> str:
     lineas.append("Catalizadores:")
     lineas += [f"  • {c}" for c in _catalizadores(fecha_resultados)]
     lineas.append("")
-    lineas += _seccion_noticias(ticker, nombre, entrada)
+    lineas += lineas_noticias
+    lineas.append("")
+    lineas += _veredicto(entrada, fund, tendencia_label, rsi, vol, valoracion, fecha_resultados, hubo_noticias_explicadas)
     lineas.append("")
     lineas.append(DISCLAIMER)
     return "\n".join(lineas)
