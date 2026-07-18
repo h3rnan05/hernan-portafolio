@@ -9,8 +9,13 @@ universo completo, así que es rápido y barato de correr on-demand.
 Honestidad de los datos: solo se muestra lo que de verdad se pudo obtener.
 yfinance da un snapshot real de consenso de analistas y % de tenencia
 institucional/insider (no el detalle de transacciones ni el histórico
-13F -- eso no está disponible gratis, así que no se inventa). Ver
-telegram_bot/README.md para el detalle de qué es real y qué quedó fuera.
+13F -- eso no está disponible gratis, así que no se inventa). El Executive
+Summary y los Riesgos/Catalizadores son texto DETERMINÍSTICO armado con
+plantillas sobre números reales -- ningún LLM interviene en esta parte
+(no hace falta: son solo reglas fijas sobre datos ya calculados). El LLM
+solo se usa para explicar noticias (news_analyst.explicador), con los
+mismos guardrails de siempre. Ver telegram_bot/README.md para el detalle
+de qué es real y qué quedó fuera.
 """
 
 from __future__ import annotations
@@ -25,9 +30,11 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from news_analyst.explicador import generar_explicacion  # noqa: E402
-from news_analyst.models import EntradaShortlist  # noqa: E402
+from news_analyst.models import EntradaShortlist, Explicacion  # noqa: E402
+from screener.config import CONFIG  # noqa: E402
 from screener.data.provider import Barras, Fundamentales, YahooProvider  # noqa: E402
 from screener.factors import technical as tech  # noqa: E402
+from screener.options_ideas import clasificar_tendencia, proxima_fecha_resultados  # noqa: E402
 from screener.report import razones  # noqa: E402
 from screener.scoring import Puntuacion  # noqa: E402
 from wizards_bot import titulares_google_news  # noqa: E402
@@ -36,6 +43,16 @@ log = logging.getLogger("telegram_bot.report_command")
 
 SHORTLIST_PATH = _REPO_ROOT / "screener" / "shortlist_hoy.json"
 MAX_TITULARES_REPORTE = 5
+
+_NOMBRE_FACTOR = {
+    "momentum": "Momentum", "tendencia": "Tendencia", "baja_vol": "Volatilidad",
+    "liquidez": "Liquidez", "calidad": "Calidad", "valor": "Valor",
+}
+
+DISCLAIMER = (
+    "Esto NO es una recomendación de compra/venta. Es un resumen "
+    "informativo para que investigues más a fondo."
+)
 
 
 def _fmt_pct(x: float | None) -> str:
@@ -61,6 +78,188 @@ def _shortlist_entry(ticker: str) -> dict | None:
             return fila
     return None
 
+
+def _obtener_fecha_resultados(ticker: str) -> str | None:
+    try:
+        import yfinance as yf
+    except ImportError:
+        return None
+    try:
+        return proxima_fecha_resultados(yf.Ticker(ticker))
+    except Exception as e:
+        log.debug("fecha de resultados de %s falló: %s", ticker, e)
+        return None
+
+
+# ------------------------- interpretaciones (deterministas) -------------------------
+
+def _interpretar_rsi(rsi: float | None) -> str:
+    if rsi is None:
+        return "No disponible."
+    if rsi >= 70:
+        return ("Zona de sobrecompra. Esto no significa que vaya a caer, pero "
+                "históricamente aumenta la probabilidad de una pausa o corrección "
+                "de corto plazo.")
+    if rsi <= 30:
+        return "Zona de sobreventa. Históricamente asociada a rebotes de corto plazo, aunque no lo garantiza."
+    return "En rango neutral, sin señal de sobrecompra ni sobreventa."
+
+
+def _interpretar_pe(pe: float | None) -> str:
+    if pe is None:
+        return "No disponible."
+    if pe < 15:
+        return "Valuación baja frente al promedio histórico del mercado (P/E < 15)."
+    if pe <= 30:
+        return "Valuación dentro de un rango razonable frente al mercado (P/E 15-30)."
+    return ("Valuación exigente: el mercado ya está pagando un múltiplo alto por "
+            "cada dólar de ganancia (P/E > 30).")
+
+
+def _interpretar_roe(roe: float | None) -> str:
+    if roe is None:
+        return "No disponible."
+    if roe >= 0.20:
+        return "Muy alta rentabilidad sobre el capital que usa el negocio."
+    if roe >= 0.10:
+        return "Rentabilidad sólida sobre el capital."
+    return "Rentabilidad sobre el capital por debajo de lo que se considera sólido (ROE < 10%)."
+
+
+def _interpretar_pb(pb: float | None) -> str:
+    if pb is None:
+        return "No disponible."
+    if pb < 1:
+        return "Cotiza por debajo de su valor en libros."
+    if pb <= 5:
+        return "Cotiza en un múltiplo razonable sobre su valor en libros."
+    return ("Cotiza muy por encima de su valor en libros -- común en negocios de "
+            "alta calidad, pero encarece el margen de seguridad.")
+
+
+def _texto_calidad(score: float | None) -> str:
+    if score is None:
+        return "desconocida"
+    if score >= 90:
+        return "muy alta"
+    if score >= 70:
+        return "alta"
+    if score >= 40:
+        return "media"
+    if score >= 20:
+        return "baja"
+    return "muy baja"
+
+
+def _clasificar_valoracion(pe: float | None, valor_subscore: float | None) -> str:
+    """Prefiere el sub-score cross-sectional (valor_subscore, percentil
+    contra el resto de la shortlist) cuando existe -- es más riguroso que
+    un umbral fijo de P/E. Si el ticker no está en la shortlist, cae a
+    umbrales fijos razonables sobre P/E."""
+    if valor_subscore is not None:
+        if valor_subscore >= 70:
+            return "Atractiva"
+        if valor_subscore >= 30:
+            return "Razonable"
+        return "Exigente"
+    if pe is not None:
+        if pe < 15:
+            return "Atractiva"
+        if pe <= 30:
+            return "Razonable"
+        return "Exigente"
+    return "No determinable"
+
+
+def _estrellas_100(score: float | None) -> str:
+    if score is None:
+        return "No disponible"
+    # int(x + 0.5) en vez de round(): redondeo "hacia arriba" en los .5,
+    # más intuitivo para una calificación en estrellas que el redondeo
+    # bancario de Python (round(4.5) da 4, no 5).
+    n = max(0, min(5, int(score / 20 + 0.5)))
+    return "⭐" * n + "☆" * (5 - n)
+
+
+# ------------------------- riesgos / catalizadores (deterministas) -------------------------
+
+def _riesgos(rsi: float | None, pe: float | None, vol: float | None, tendencia_label: str) -> list[str]:
+    """Banderas de riesgo por reglas fijas, en orden de severidad -- nunca
+    el juicio de un LLM. Máximo 3, y si ninguna aplica se dice
+    explícitamente (no forzar un riesgo que no existe)."""
+    candidatos = []
+    if rsi is not None and rsi >= 70:
+        candidatos.append(f"RSI en {rsi:.0f} -- zona de sobrecompra, aumenta la "
+                          f"probabilidad de una pausa o corrección de corto plazo.")
+    if rsi is not None and rsi <= 30:
+        candidatos.append(f"RSI en {rsi:.0f} -- zona de sobreventa.")
+    if pe is not None and pe > 30:
+        candidatos.append(f"Valuación exigente (P/E {pe:.1f}) frente a lo que sería razonable históricamente.")
+    if vol is not None and vol >= 0.40:
+        candidatos.append(f"Volatilidad histórica alta ({vol:.0%} anual) -- movimientos de precio más bruscos que el promedio.")
+    if tendencia_label == "bajista":
+        candidatos.append("Tendencia técnica bajista -- el precio está por debajo de sus promedios de largo plazo.")
+    if not candidatos:
+        candidatos.append("Sin banderas de riesgo técnico relevantes detectadas hoy con los datos disponibles.")
+    return candidatos[:3]
+
+
+def _catalizadores(fecha_resultados: str | None) -> list[str]:
+    """Solo catalizadores que se pueden confirmar con datos reales -- no se
+    inventan lanzamientos de producto ni recompras de acciones sin una
+    fuente que los sostenga."""
+    if fecha_resultados:
+        return [f"Próximos resultados trimestrales: {fecha_resultados}."]
+    return [
+        "No identifiqué catalizadores confirmados con los datos disponibles "
+        "hoy (solo se verifica la fecha de próximos resultados; no se "
+        "inventan catalizadores -- lanzamientos de producto, recompras -- "
+        "sin una fuente real que los confirme).",
+    ]
+
+
+def _resumen_ejecutivo(
+    entrada: dict | None, pe: float | None, tendencia_label: str, riesgos: list[str],
+) -> list[str]:
+    calidad_score = (entrada or {}).get("sub_scores", {}).get("calidad")
+    valor_score = (entrada or {}).get("sub_scores", {}).get("valor")
+    valoracion = _clasificar_valoracion(pe, valor_score)
+    detalle_pe = f" (P/E {pe:.1f})" if pe is not None else ""
+
+    conclusion = (
+        f"Negocio de calidad {_texto_calidad(calidad_score)}, tendencia técnica "
+        f"{tendencia_label}, valoración {valoracion.lower()}. {riesgos[0]}"
+    )
+    return [
+        "📋 Executive Summary",
+        f"  Calidad del negocio: {_estrellas_100(calidad_score)}",
+        f"  Tendencia: {tendencia_label.capitalize()}",
+        f"  Valoración: {valoracion}{detalle_pe}",
+        f"  Riesgo principal: {riesgos[0]}",
+        f"  Conclusión: {conclusion}",
+    ]
+
+
+def _score_breakdown(entrada: dict) -> list[str]:
+    """Desglosa el score exactamente con la misma fórmula de
+    screener/scoring.puntuar() (suma ponderada / peso disponible) -- no es
+    una aproximación, es la cuenta real hecha transparente."""
+    sub = entrada.get("sub_scores", {})
+    lineas = [f"Score breakdown (cómo se arma el {entrada['score']:.0f}/100):"]
+    for factor, peso in CONFIG.pesos.items():
+        nombre = _NOMBRE_FACTOR.get(factor, factor)
+        s = sub.get(factor)
+        if s is None:
+            lineas.append(f"  {nombre} (peso {peso:.0%}): No disponible ese día -- "
+                          f"se excluyó del total (no se penaliza con 0)")
+            continue
+        contrib = s * peso
+        lineas.append(f"  {nombre} (peso {peso:.0%}): {s:.0f}/100 -> {contrib:.1f}/{peso * 100:.0f} pts")
+    lineas.append(f"  TOTAL: {entrada['score']:.0f}/100")
+    return lineas
+
+
+# ------------------------- secciones -------------------------
 
 def _seccion_shortlist(entrada: dict | None) -> list[str]:
     if not entrada:
@@ -95,6 +294,7 @@ def _seccion_tecnico(barras: Barras) -> list[str]:
     lineas.append(f"  A qué % del máximo de 52 semanas: {prox:.1%}" if prox is not None
                   else "  Máximo de 52 semanas: No disponible")
     lineas.append(f"  RSI (14): {rsi:.0f}" if rsi is not None else "  RSI: No disponible")
+    lineas.append(f"  Interpretación RSI: {_interpretar_rsi(rsi)}")
     return lineas
 
 
@@ -102,8 +302,11 @@ def _seccion_fundamentales(f: Fundamentales) -> list[str]:
     return [
         "Fundamentales:",
         f"  P/E: {f.pe:.1f}" if f.pe else "  P/E: No disponible",
+        f"    Interpretación: {_interpretar_pe(f.pe)}",
         f"  P/B: {f.pb:.1f}" if f.pb else "  P/B: No disponible",
+        f"    Interpretación: {_interpretar_pb(f.pb)}",
         f"  ROE: {_fmt_pct(f.roe)}",
+        f"    Interpretación: {_interpretar_roe(f.roe)}",
         f"  Margen operativo: {_fmt_pct(f.margen_operativo)}",
         f"  Crecimiento de ingresos (interanual): {_fmt_pct(f.crecimiento_ingresos)}",
     ]
@@ -122,6 +325,16 @@ def _seccion_analistas_y_tenencia(f: Fundamentales) -> list[str]:
     lineas.append(f"  % en manos institucionales: {_fmt_pct(f.pct_institucional)}")
     lineas.append(f"  % en manos de insiders: {_fmt_pct(f.pct_insiders)}")
     return lineas
+
+
+def _bloque_noticias(titulo: str, items: list[tuple[str, Explicacion]]) -> list[str]:
+    if not items:
+        return []
+    out = [f"  {titulo}:"]
+    for titular, explicacion in items:
+        out.append(f'    📰 "{titular}"')
+        out.append(f"       {explicacion.texto}")
+    return out
 
 
 def _seccion_noticias(ticker: str, nombre: str | None, entrada: dict | None) -> list[str]:
@@ -143,19 +356,25 @@ def _seccion_noticias(ticker: str, nombre: str | None, entrada: dict | None) -> 
         sector=entrada.get("sector"), nombre=nombre, industria=entrada.get("industria"),
         sub_scores=entrada.get("sub_scores", {}),
     )
+    altas, medias, bajas, sin_explicar = [], [], [], []
     for titular in titulares:
         explicacion = generar_explicacion(titular, contexto)
-        lineas.append(f'  📰 "{titular}"')
-        if explicacion:
-            lineas.append(f"     {explicacion.texto}")
-        lineas.append("")
+        if explicacion is None:
+            sin_explicar.append(titular)
+        elif explicacion.nivel_importancia >= 4:
+            altas.append((titular, explicacion))
+        elif explicacion.nivel_importancia >= 2:
+            medias.append((titular, explicacion))
+        else:
+            bajas.append((titular, explicacion))
+
+    lineas += _bloque_noticias("Alta relevancia", altas)
+    lineas += _bloque_noticias("Media relevancia", medias)
+    lineas += _bloque_noticias("Baja relevancia", bajas)
+    if sin_explicar:
+        lineas.append("  Sin explicar (no se pudo evaluar relevancia):")
+        lineas += [f'    📰 "{t}"' for t in sin_explicar]
     return lineas
-
-
-DISCLAIMER = (
-    "Esto NO es una recomendación de compra/venta. Es un resumen "
-    "informativo para que investigues más a fondo."
-)
 
 
 def generar_reporte(ticker: str) -> str:
@@ -163,24 +382,42 @@ def generar_reporte(ticker: str) -> str:
     convierte en un mensaje de error legible para el usuario."""
     ticker = ticker.upper().strip()
     provider = YahooProvider()
-    barras = provider.barras([ticker], dias=400)
-    if ticker not in barras:
+    barras_por_ticker = provider.barras([ticker], dias=400)
+    if ticker not in barras_por_ticker:
         return (f"No pude obtener datos de precio para {ticker} -- revisa que "
                 f"el ticker esté bien escrito, o Yahoo bloqueó la consulta. "
                 f"Intenta de nuevo en un momento.")
+    barras = barras_por_ticker[ticker]
 
     fund = provider.fundamentales([ticker]).get(ticker, Fundamentales(ticker))
     entrada = _shortlist_entry(ticker)
     nombre = fund.nombre or ((entrada or {}).get("nombre"))
 
+    tendencia_label = clasificar_tendencia(tech.score_tendencia(barras))
+    rsi = tech.rsi(barras)
+    vol = tech.volatilidad_anual(barras)
+    riesgos = _riesgos(rsi, fund.pe, vol, tendencia_label)
+    fecha_resultados = _obtener_fecha_resultados(ticker)
+
     lineas = [f"📊 Reporte: {nombre or ticker} ({ticker})", ""]
-    lineas += _seccion_shortlist(entrada)
+    lineas += _resumen_ejecutivo(entrada, fund.pe, tendencia_label, riesgos)
     lineas.append("")
-    lineas += _seccion_tecnico(barras[ticker])
+    lineas += _seccion_shortlist(entrada)
+    if entrada:
+        lineas.append("")
+        lineas += _score_breakdown(entrada)
+    lineas.append("")
+    lineas += _seccion_tecnico(barras)
     lineas.append("")
     lineas += _seccion_fundamentales(fund)
     lineas.append("")
     lineas += _seccion_analistas_y_tenencia(fund)
+    lineas.append("")
+    lineas.append("Riesgos principales:")
+    lineas += [f"  • {r}" for r in riesgos]
+    lineas.append("")
+    lineas.append("Catalizadores:")
+    lineas += [f"  • {c}" for c in _catalizadores(fecha_resultados)]
     lineas.append("")
     lineas += _seccion_noticias(ticker, nombre, entrada)
     lineas.append("")
