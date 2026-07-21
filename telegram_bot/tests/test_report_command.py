@@ -337,3 +337,58 @@ def test_noticias_sin_explicar_van_en_su_propio_bloque(monkeypatch, tmp_path):
     assert "no se pudieron clasificar por impacto" in texto
     assert "Sin explicar" in texto  # el titular literal también contiene esa palabra, ok
     assert hubo_explicadas is False
+
+
+# ------------------------- /list -------------------------
+
+def test_lista_completa_sin_shortlist_da_mensaje_claro(tmp_path):
+    original = rc.SHORTLIST_PATH
+    try:
+        rc.SHORTLIST_PATH = tmp_path / "no_existe.json"
+        texto = rc.generar_lista_completa()
+    finally:
+        rc.SHORTLIST_PATH = original
+    assert "no ha corrido" in texto.lower()
+
+
+def test_lista_completa_con_json_corrupto_da_mensaje_claro(tmp_path):
+    archivo = tmp_path / "shortlist_hoy.json"
+    archivo.write_text("esto no es json valido {{{")
+    original = rc.SHORTLIST_PATH
+    try:
+        rc.SHORTLIST_PATH = archivo
+        texto = rc.generar_lista_completa()
+    finally:
+        rc.SHORTLIST_PATH = original
+    assert "no pude leer" in texto.lower()
+
+
+def test_lista_completa_vacia_da_mensaje_claro(tmp_path):
+    archivo = _escribir_shortlist(tmp_path, [])
+    original = rc.SHORTLIST_PATH
+    try:
+        rc.SHORTLIST_PATH = archivo
+        texto = rc.generar_lista_completa()
+    finally:
+        rc.SHORTLIST_PATH = original
+    assert "vacía" in texto.lower()
+
+
+def test_lista_completa_renderiza_todas_las_filas_sin_truncar(tmp_path):
+    filas = [
+        {"ticker": "BNY", "score": 83.0, "sector": "Financial Services", "sub_scores": {}},
+        {"ticker": "AAPL", "score": 81.0, "sector": "Technology", "sub_scores": {}},
+        {"ticker": "XOM", "score": 70.0, "sector": "Energy", "sub_scores": {}},
+    ]
+    archivo = _escribir_shortlist(tmp_path, filas)
+    original = rc.SHORTLIST_PATH
+    try:
+        rc.SHORTLIST_PATH = archivo
+        texto = rc.generar_lista_completa()
+    finally:
+        rc.SHORTLIST_PATH = original
+    assert "🏦 BNY" in texto
+    assert "💻 AAPL" in texto
+    assert "🛢️ XOM" in texto
+    assert "Shortlist completa de hoy" in texto
+    assert "/report TICKER" in texto

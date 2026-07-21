@@ -15,6 +15,7 @@ screener, así que no se inventa esa frase aunque "suene bien".
 from __future__ import annotations
 
 from collections import Counter
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from screener.config import ScreenerConfig
@@ -25,6 +26,23 @@ from screener.options_ideas import (
     movimiento_esperado,
 )
 from screener.scoring import Puntuacion
+
+# Sectores GICS que trae yfinance en info["sector"]. Fallback genérico para
+# lo que no esté mapeado (sector desconocido, o taxonomías distintas).
+_EMOJI_SECTOR: dict[str, str] = {
+    "Technology": "💻",
+    "Healthcare": "⚕️",
+    "Financial Services": "🏦",
+    "Consumer Cyclical": "🛍️",
+    "Industrials": "🏭",
+    "Communication Services": "📡",
+    "Consumer Defensive": "🛒",
+    "Energy": "🛢️",
+    "Basic Materials": "⛏️",
+    "Real Estate": "🏠",
+    "Utilities": "⚡",
+}
+_EMOJI_SECTOR_DEFAULT = "🏢"
 
 # Cada factor tiene una frase "fuerte" (score >= 85) y una "sólida"
 # (60 <= score < 85). Nunca se muestra el número: solo la idea en español
@@ -217,13 +235,60 @@ def _bloque_opciones_markdown(p: Puntuacion, datos: DatosOpciones) -> list[str]:
     return out
 
 
-def texto_telegram_corto(ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: int) -> str:
+@dataclass(frozen=True)
+class DiffShortlist:
+    """Diferencia entre la shortlist de la corrida anterior y la de hoy.
+    'Anterior' es literalmente el shortlist_hoy.json de antes de
+    sobrescribirlo -- no asume que fue "ayer" en el calendario (fines de
+    semana, feriados, o una corrida saltada comparan contra la última
+    corrida real, que es lo honesto)."""
+    nuevos: list[str]
+    salieron: list[str]
+    deltas: dict[str, float]  # ticker -> score_hoy - score_anterior (solo los que siguen en la lista)
+
+
+def calcular_diff(anterior: dict | None, top_hoy: list[Puntuacion]) -> DiffShortlist:
+    """anterior: el dict ya parseado de shortlist_hoy.json ANTES de
+    sobrescribirlo (o None si es la primera corrida / no se pudo leer)."""
+    if not anterior:
+        return DiffShortlist(nuevos=[], salieron=[], deltas={})
+    scores_antes = {fila["ticker"]: fila["score"] for fila in anterior.get("shortlist", [])}
+    scores_hoy = {p.ticker: p.score_total for p in top_hoy}
+    nuevos = [t for t in scores_hoy if t not in scores_antes]
+    salieron = [t for t in scores_antes if t not in scores_hoy]
+    deltas = {t: round(scores_hoy[t] - scores_antes[t], 1) for t in scores_hoy if t in scores_antes}
+    return DiffShortlist(nuevos=nuevos, salieron=salieron, deltas=deltas)
+
+
+def _emoji_sector(sector: str | None) -> str:
+    return _EMOJI_SECTOR.get(sector, _EMOJI_SECTOR_DEFAULT) if sector else _EMOJI_SECTOR_DEFAULT
+
+
+def _flecha_delta(delta: float | None) -> str:
+    """▲N / ▼N / = -- redondeado a entero porque el score ya se muestra
+    sin decimales; None (ticker nuevo, sin comparación posible) no
+    imprime nada."""
+    if delta is None:
+        return ""
+    redondeado = round(delta)
+    if redondeado > 0:
+        return f" ▲{redondeado}"
+    if redondeado < 0:
+        return f" ▼{abs(redondeado)}"
+    return " ="
+
+
+def texto_telegram_corto(
+    ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: int,
+    diff: DiffShortlist | None = None,
+) -> str:
     """El mensaje diario real: solo avisa qué empresas pasaron el
     screener, sin razones/checklist/opciones -- eso satura Telegram con
     algo que nadie termina de leer. La investigación profunda se pide
     bajo demanda con /report TICKER (telegram_bot/report_command.py),
     que sí reutiliza razones()/checklist_investigacion()/ideas de
-    opciones para ESE ticker en particular."""
+    opciones para ESE ticker en particular. Solo se muestran las primeras
+    cfg.top_n_mensaje_diario -- el resto vía /list."""
     hoy = datetime.now(UTC).strftime("%Y-%m-%d")
     top = ranking[:cfg.top_n]
     lineas = [
@@ -234,23 +299,58 @@ def texto_telegram_corto(ranking: list[Puntuacion], cfg: ScreenerConfig, univers
         "",
         "Esto NO es una recomendación de compra.",
         "",
-        "Empresas destacadas:",
-        "",
     ]
-    for i, p in enumerate(top, 1):
-        lineas.append(f"{i}. {p.ticker} ({p.score_total:.0f}/100)")
+
+    if diff and (diff.nuevos or diff.salieron):
+        if diff.nuevos:
+            lineas.append("🟢 Nuevas:")
+            lineas += [f"  {t}" for t in diff.nuevos]
+        if diff.salieron:
+            lineas.append("🔴 Salieron:")
+            lineas += [f"  {t}" for t in diff.salieron]
+        lineas.append("")
+
+    lineas.append("Empresas destacadas:")
+    lineas.append("")
+    mostrar = top[:cfg.top_n_mensaje_diario]
+    for i, p in enumerate(mostrar, 1):
+        delta = diff.deltas.get(p.ticker) if diff else None
+        emoji = _emoji_sector(p.sector)
+        lineas.append(f"{i}. {emoji} {p.ticker} ({p.score_total:.0f}{_flecha_delta(delta)})")
         industria = p.industria or p.sector
         if industria:
             lineas.append(f"   {industria}")
         lineas.append("")
 
+    restantes = len(top) - len(mostrar)
+    if restantes > 0:
+        lineas.append(f"... y {restantes} más. Escribe /list")
+        lineas.append("")
+
     lineas.append("Para investigar cualquiera escribe:")
     lineas.append("")
     lineas.append("/report TICKER")
-    if top:
-        ejemplos = "  ·  ".join(f"/report {p.ticker}" for p in top[:3])
+    if mostrar:
+        ejemplos = "  ·  ".join(f"/report {p.ticker}" for p in mostrar[:3])
         lineas.append("")
         lineas.append(f"Ejemplo: {ejemplos}")
+    return "\n".join(lineas)
+
+
+def texto_telegram_lista_completa(ranking: list[Puntuacion], universo_n: int) -> str:
+    """/list -- la shortlist completa de hoy (hasta cfg.top_n), sin
+    truncar. Mismo formato visual que texto_telegram_corto, sin el
+    saludo/diff/disclaimer repetidos."""
+    hoy = datetime.now(UTC).strftime("%Y-%m-%d")
+    lineas = [f"📋 Shortlist completa de hoy ({len(ranking)} de {universo_n} analizadas) -- {hoy}", ""]
+    for i, p in enumerate(ranking, 1):
+        emoji = _emoji_sector(p.sector)
+        lineas.append(f"{i}. {emoji} {p.ticker} ({p.score_total:.0f}/100)")
+        industria = p.industria or p.sector
+        if industria:
+            lineas.append(f"   {industria}")
+    lineas.append("")
+    lineas.append("Para investigar cualquiera: /report TICKER")
     return "\n".join(lineas)
 
 

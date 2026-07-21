@@ -35,7 +35,7 @@ from screener.config import CONFIG  # noqa: E402
 from screener.data.provider import Barras, Fundamentales, YahooProvider  # noqa: E402
 from screener.factors import technical as tech  # noqa: E402
 from screener.options_ideas import clasificar_tendencia, proxima_fecha_resultados  # noqa: E402
-from screener.report import razones  # noqa: E402
+from screener.report import razones, texto_telegram_lista_completa  # noqa: E402
 from screener.scoring import Puntuacion  # noqa: E402
 from wizards_bot import titulares_google_news  # noqa: E402
 
@@ -538,3 +538,24 @@ def generar_reporte(ticker: str) -> str:
     lineas.append("")
     lineas.append(DISCLAIMER)
     return "\n".join(lineas)
+
+
+def generar_lista_completa() -> str:
+    """Punto de entrada de /list: la shortlist de hoy completa (el mensaje
+    corto diario solo muestra el Top N; esto es "el resto"). Nunca lanza:
+    cualquier fallo se convierte en un mensaje legible."""
+    if not SHORTLIST_PATH.exists():
+        return "Todavía no hay una shortlist de hoy -- el screener no ha corrido."
+    try:
+        data = json.loads(SHORTLIST_PATH.read_text())
+    except (json.JSONDecodeError, OSError):
+        return "No pude leer la shortlist de hoy."
+    filas = data.get("shortlist", [])
+    if not filas:
+        return "La shortlist de hoy está vacía."
+    ranking = [
+        Puntuacion(ticker=f["ticker"], score_total=f["score"], sub=f.get("sub_scores", {}),
+                   sector=f.get("sector"), nombre=f.get("nombre"), industria=f.get("industria"))
+        for f in filas
+    ]
+    return texto_telegram_lista_completa(ranking, data.get("universo_escaneado", len(filas)))

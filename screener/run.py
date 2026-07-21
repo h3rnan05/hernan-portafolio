@@ -27,7 +27,7 @@ from screener import universe
 from screener.config import CONFIG, ScreenerConfig
 from screener.data.provider import DataProvider, Fundamentales, YahooProvider
 from screener.options_ideas import DatosOpciones, ProveedorOpciones, YahooOpcionesProvider
-from screener.report import markdown, texto_telegram, texto_telegram_corto
+from screener.report import calcular_diff, markdown, texto_telegram, texto_telegram_corto
 from screener.scoring import Puntuacion, puntuar
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -111,11 +111,23 @@ def main() -> None:
         else obtener_datos_opciones(top, YahooOpcionesProvider())
     )
 
+    # Leer la shortlist ANTES de sobrescribirla: en el checkout de la
+    # corrida de hoy, ese archivo todavía tiene el contenido de la última
+    # corrida real (no necesariamente "ayer" -- fines de semana/feriados
+    # comparan contra la última corrida, que es lo honesto).
+    anterior = None
+    if SALIDA.exists():
+        try:
+            anterior = json.loads(SALIDA.read_text())
+        except (json.JSONDecodeError, OSError) as e:
+            log.warning("no pude leer shortlist_hoy.json anterior para el diff: %s", e)
+    diff = calcular_diff(anterior, top)
+
     # El mensaje diario a Telegram es corto a propósito: solo avisa qué
     # pasó el screener. La investigación profunda (razones, checklist,
     # ideas de opciones) se pide bajo demanda con /report TICKER -- un
     # mensaje enorme todos los días es ruido, no señal.
-    txt_corto = texto_telegram_corto(ranking, CONFIG, universo_n)
+    txt_corto = texto_telegram_corto(ranking, CONFIG, universo_n, diff)
     print("\n" + txt_corto)
 
     # El markdown persistido SÍ guarda el análisis completo -- es la

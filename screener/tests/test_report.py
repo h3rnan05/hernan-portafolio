@@ -9,13 +9,18 @@ import re
 from screener.config import ScreenerConfig
 from screener.options_ideas import DatosOpciones
 from screener.report import (
+    DiffShortlist,
+    _emoji_sector,
+    _flecha_delta,
     _nombre_display,
+    calcular_diff,
     checklist_investigacion,
     markdown,
     razones,
     resumen_modelo,
     texto_telegram,
     texto_telegram_corto,
+    texto_telegram_lista_completa,
 )
 from screener.scoring import Puntuacion
 
@@ -174,7 +179,7 @@ def test_texto_telegram_corto_no_incluye_razones_ni_checklist_ni_opciones():
     assert "¿Por qué el modelo encontró esta empresa?" not in txt
     assert "¿Qué deberías investigar?" not in txt
     assert "Ideas de opciones" not in txt
-    assert "AAPL (81/100)" in txt
+    assert "💻 AAPL (81)" in txt
     assert "Consumer Electronics" in txt
     assert "/report AAPL" in txt
     assert "no es una recomendación de compra" in txt.lower()
@@ -190,6 +195,70 @@ def test_texto_telegram_corto_sin_resultados_no_sugiere_ejemplos():
     txt = texto_telegram_corto([], ScreenerConfig(), universo_n=100)
     assert "/report TICKER" in txt
     assert "Ejemplo:" not in txt
+
+
+def test_texto_telegram_corto_trunca_al_top_n_mensaje_diario_y_ofrece_list():
+    cfg = ScreenerConfig()  # top_n_mensaje_diario=10, top_n=20
+    ranking = [_p(f"T{i}", 90 - i, {}) for i in range(15)]
+    txt = texto_telegram_corto(ranking, cfg, universo_n=480)
+    assert "T0" in txt and "T9" in txt
+    assert "T10" not in txt  # truncado, no aparece en el cuerpo
+    assert "... y 5 más. Escribe /list" in txt
+
+
+# ------------------------- diff vs. corrida anterior -------------------------
+
+def _entrada_json(ticker, score, sector="Technology"):
+    return {"ticker": ticker, "score": score, "sector": sector, "sub_scores": {}}
+
+
+def test_calcular_diff_detecta_nuevos_y_salieron():
+    anterior = {"shortlist": [_entrada_json("AAPL", 80), _entrada_json("MSFT", 75)]}
+    top_hoy = [_p("AAPL", 82, {}), _p("CSX", 70, {})]
+    diff = calcular_diff(anterior, top_hoy)
+    assert diff.nuevos == ["CSX"]
+    assert diff.salieron == ["MSFT"]
+    assert diff.deltas == {"AAPL": 2.0}
+
+
+def test_calcular_diff_sin_anterior_no_rompe():
+    assert calcular_diff(None, [_p("AAPL", 80, {})]) == DiffShortlist(nuevos=[], salieron=[], deltas={})
+
+
+def test_flecha_delta():
+    assert _flecha_delta(5) == " ▲5"
+    assert _flecha_delta(-3) == " ▼3"
+    assert _flecha_delta(0) == " ="
+    assert _flecha_delta(0.4) == " ="  # redondea a 0
+    assert _flecha_delta(None) == ""
+
+
+def test_emoji_sector_conocido_y_desconocido():
+    assert _emoji_sector("Financial Services") == "🏦"
+    assert _emoji_sector("Sector Inventado") == "🏢"
+    assert _emoji_sector(None) == "🏢"
+
+
+def test_texto_telegram_corto_muestra_nuevas_salieron_y_delta():
+    diff = DiffShortlist(nuevos=["CSX"], salieron=["JPM"], deltas={"AAPL": 2.0, "BAC": -1.0})
+    ranking = [
+        _p("AAPL", 82, {}, sector="Technology"),
+        _p("BAC", 78, {}, sector="Financial Services"),
+        _p("CSX", 70, {}, sector="Industrials"),
+    ]
+    txt = texto_telegram_corto(ranking, ScreenerConfig(), universo_n=480, diff=diff)
+    assert "🟢 Nuevas:" in txt and "CSX" in txt.split("🟢 Nuevas:")[1].split("🔴")[0]
+    assert "🔴 Salieron:" in txt and "JPM" in txt
+    assert "AAPL (82 ▲2)" in txt
+    assert "BAC (78 ▼1)" in txt
+
+
+def test_texto_telegram_lista_completa_incluye_todas_sin_truncar():
+    ranking = [_p(f"T{i}", 90 - i, {}, sector="Technology") for i in range(15)]
+    txt = texto_telegram_lista_completa(ranking, universo_n=480)
+    assert "T0" in txt and "T14" in txt
+    assert "📋 Shortlist completa de hoy (15 de 480 analizadas)" in txt
+    assert "/report TICKER" in txt
 
 
 def test_resumen_modelo_vacio():

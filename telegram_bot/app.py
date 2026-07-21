@@ -43,7 +43,7 @@ import httpx
 from fastapi import BackgroundTasks, FastAPI, Header, Request
 
 from idea_evaluator import evaluar_idea
-from report_command import generar_reporte
+from report_command import generar_lista_completa, generar_reporte
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("telegram_bot")
@@ -67,7 +67,9 @@ AYUDA = (
     "también viene del libro.\n\n"
     "/report TICKER -- memo de investigación de una empresa (técnico, "
     "fundamentales, consenso de analistas, noticias relevantes). Ej.: "
-    "/report AAPL"
+    "/report AAPL\n\n"
+    "/list -- la shortlist completa de hoy (el mensaje diario solo muestra "
+    "el Top 10)."
 )
 
 
@@ -179,6 +181,23 @@ async def _procesar(texto: str, chat_id: str) -> None:
             pass
 
 
+async def _procesar_lista(chat_id: str) -> None:
+    """Genera la shortlist completa de hoy (/list) y la manda. Corre como
+    background task por consistencia con los demás handlers, aunque solo
+    lee un archivo local (no hace llamadas de red)."""
+    try:
+        texto = await asyncio.to_thread(generar_lista_completa)
+        await _telegram_send_largo(chat_id, texto)
+    except Exception as e:
+        log.exception("lista completa falló")
+        try:
+            await _telegram_send(
+                chat_id, f"⚠️ Algo falló generando la lista: {type(e).__name__}. "
+                         f"Inténtalo de nuevo en un momento.")
+        except Exception:
+            pass
+
+
 async def _procesar_reporte(ticker: str, chat_id: str) -> None:
     """Genera el memo de /report TICKER y lo manda. Corre como background
     task; generar_reporte hace llamadas de red síncronas (Yahoo/yfinance/
@@ -242,6 +261,10 @@ async def telegram_webhook(
 
     if texto.startswith(("/start", "/help", "/ayuda")):
         background.add_task(_telegram_send, chat_id, AYUDA)
+        return {"ok": True}
+
+    if texto.startswith("/list"):
+        background.add_task(_procesar_lista, chat_id)
         return {"ok": True}
 
     if texto.startswith("/report"):
