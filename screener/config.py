@@ -29,8 +29,9 @@ class ScreenerConfig:
     })
 
     # --- Salida ---
-    top_n: int = 20                   # tamaño de la shortlist
+    top_n: int = 20                   # tamaño de la shortlist (persistida completa)
     razones_por_accion: int = 3       # cuántos factores destacados explicar
+    top_n_mensaje_diario: int = 10    # cuántas se muestran en el mensaje corto; el resto vía /list
 
     def validar(self) -> None:
         total = sum(self.pesos.values())

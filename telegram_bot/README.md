@@ -12,6 +12,12 @@ despliegue). Dos funciones separadas:
    diario del screener (que ahora es corto, ver `screener/report.
    texto_telegram_corto`) de la investigación profunda (que ahora se pide
    explícitamente, no se manda automáticamente todos los días).
+3. **`/list`** (`report_command.generar_lista_completa`): la shortlist
+   completa de hoy. El mensaje diario automático solo muestra el Top 10
+   (`cfg.top_n_mensaje_diario`) para que sea corto y legible en segundos;
+   `/list` muestra las hasta ~20 que sí pasaron el screener, con el mismo
+   formato (emoji de sector + score) que el mensaje diario. Solo lee el
+   archivo `shortlist_hoy.json` ya generado — no hace llamadas de red.
 
 ## Qué trae `/report TICKER`
 
