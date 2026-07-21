@@ -10,6 +10,7 @@ from screener.config import ScreenerConfig
 from screener.options_ideas import DatosOpciones
 from screener.report import (
     DiffShortlist,
+    _destacado_del_dia,
     _emoji_sector,
     _flecha_delta,
     _nombre_display,
@@ -219,10 +220,12 @@ def test_calcular_diff_detecta_nuevos_y_salieron():
     assert diff.nuevos == ["CSX"]
     assert diff.salieron == ["MSFT"]
     assert diff.deltas == {"AAPL": 2.0}
+    assert diff.lider_anterior == "AAPL"  # primera fila de la shortlist anterior
 
 
 def test_calcular_diff_sin_anterior_no_rompe():
-    assert calcular_diff(None, [_p("AAPL", 80, {})]) == DiffShortlist(nuevos=[], salieron=[], deltas={})
+    diff = calcular_diff(None, [_p("AAPL", 80, {})])
+    assert diff == DiffShortlist(nuevos=[], salieron=[], deltas={}, lider_anterior=None)
 
 
 def test_flecha_delta():
@@ -240,7 +243,8 @@ def test_emoji_sector_conocido_y_desconocido():
 
 
 def test_texto_telegram_corto_muestra_nuevas_salieron_y_delta():
-    diff = DiffShortlist(nuevos=["CSX"], salieron=["JPM"], deltas={"AAPL": 2.0, "BAC": -1.0})
+    diff = DiffShortlist(nuevos=["CSX"], salieron=["JPM"], deltas={"AAPL": 2.0, "BAC": -1.0},
+                         lider_anterior="AAPL")
     ranking = [
         _p("AAPL", 82, {}, sector="Technology"),
         _p("BAC", 78, {}, sector="Financial Services"),
@@ -251,6 +255,51 @@ def test_texto_telegram_corto_muestra_nuevas_salieron_y_delta():
     assert "🔴 Salieron:" in txt and "JPM" in txt
     assert "AAPL (82 ▲2)" in txt
     assert "BAC (78 ▼1)" in txt
+
+
+def test_texto_telegram_corto_marca_nueva_en_vez_de_flecha_vacia():
+    diff = DiffShortlist(nuevos=["CSX"], salieron=[], deltas={}, lider_anterior=None)
+    ranking = [_p("CSX", 70, {}, sector="Industrials")]
+    txt = texto_telegram_corto(ranking, ScreenerConfig(), universo_n=480, diff=diff)
+    assert "🏭 CSX (70 🟢 NUEVA)" in txt
+
+
+# ------------------------- destacado del día -------------------------
+
+def test_destacado_del_dia_sin_historial_no_inventa():
+    ranking = [_p("AAPL", 82, {}, sector="Technology")]
+    assert _destacado_del_dia(ranking, None) is None
+    assert _destacado_del_dia(ranking, DiffShortlist(nuevos=[], salieron=[], deltas={})) is None
+
+
+def test_destacado_del_dia_lider_nuevo():
+    diff = DiffShortlist(nuevos=["AMD"], salieron=[], deltas={}, lider_anterior="AAPL")
+    ranking = [_p("AMD", 79, {}, sector="Technology")]
+    texto = _destacado_del_dia(ranking, diff)
+    assert "AMD" in texto and "primera vez" in texto and "79" in texto
+
+
+def test_destacado_del_dia_cambio_de_lider_con_delta():
+    diff = DiffShortlist(nuevos=[], salieron=[], deltas={"BNY": 1.0}, lider_anterior="AAPL")
+    ranking = [_p("BNY", 84, {}, sector="Financial Services")]
+    texto = _destacado_del_dia(ranking, diff)
+    assert "BNY" in texto and "primer lugar" in texto and "▲1" in texto
+
+
+def test_destacado_del_dia_lider_sin_cambio_resalta_mayor_subida():
+    diff = DiffShortlist(nuevos=[], salieron=[], deltas={"AAPL": 0.5, "BAC": 4.0}, lider_anterior="AAPL")
+    ranking = [
+        _p("AAPL", 82, {}, sector="Technology"),
+        _p("BAC", 78, {}, sector="Financial Services"),
+    ]
+    texto = _destacado_del_dia(ranking, diff)
+    assert "BAC" in texto and "mayor subida" in texto and "▲4" in texto
+
+
+def test_destacado_del_dia_lider_sin_cambio_ni_subidas_no_destaca_nada():
+    diff = DiffShortlist(nuevos=[], salieron=[], deltas={"AAPL": -1.0}, lider_anterior="AAPL")
+    ranking = [_p("AAPL", 81, {}, sector="Technology")]
+    assert _destacado_del_dia(ranking, diff) is None
 
 
 def test_texto_telegram_lista_completa_incluye_todas_sin_truncar():

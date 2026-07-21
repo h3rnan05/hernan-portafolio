@@ -245,19 +245,22 @@ class DiffShortlist:
     nuevos: list[str]
     salieron: list[str]
     deltas: dict[str, float]  # ticker -> score_hoy - score_anterior (solo los que siguen en la lista)
+    lider_anterior: str | None = None  # ticker #1 de la corrida anterior, para detectar cambio de líder
 
 
 def calcular_diff(anterior: dict | None, top_hoy: list[Puntuacion]) -> DiffShortlist:
     """anterior: el dict ya parseado de shortlist_hoy.json ANTES de
     sobrescribirlo (o None si es la primera corrida / no se pudo leer)."""
     if not anterior:
-        return DiffShortlist(nuevos=[], salieron=[], deltas={})
-    scores_antes = {fila["ticker"]: fila["score"] for fila in anterior.get("shortlist", [])}
+        return DiffShortlist(nuevos=[], salieron=[], deltas={}, lider_anterior=None)
+    filas_antes = anterior.get("shortlist", [])
+    scores_antes = {fila["ticker"]: fila["score"] for fila in filas_antes}
     scores_hoy = {p.ticker: p.score_total for p in top_hoy}
     nuevos = [t for t in scores_hoy if t not in scores_antes]
     salieron = [t for t in scores_antes if t not in scores_hoy]
     deltas = {t: round(scores_hoy[t] - scores_antes[t], 1) for t in scores_hoy if t in scores_antes}
-    return DiffShortlist(nuevos=nuevos, salieron=salieron, deltas=deltas)
+    lider_anterior = filas_antes[0]["ticker"] if filas_antes else None
+    return DiffShortlist(nuevos=nuevos, salieron=salieron, deltas=deltas, lider_anterior=lider_anterior)
 
 
 def _emoji_sector(sector: str | None) -> str:
@@ -278,6 +281,33 @@ def _flecha_delta(delta: float | None) -> str:
     return " ="
 
 
+def _destacado_del_dia(mostrar: list[Puntuacion], diff: DiffShortlist | None) -> str | None:
+    """Una línea que dirige la atención a lo más relevante del día: quién
+    lidera (si cambió respecto a la corrida anterior) o, si el líder se
+    mantuvo, quién tuvo la mayor subida de score entre los mostrados.
+    Devuelve None sin historial todavía (primera corrida) -- no se inventa
+    un destacado sin datos para compararlo."""
+    if not diff or not mostrar or (not diff.deltas and not diff.nuevos):
+        return None
+    lider = mostrar[0]
+    es_nuevo = lider.ticker in diff.nuevos
+    if es_nuevo or (diff.lider_anterior and diff.lider_anterior != lider.ticker):
+        if es_nuevo:
+            detalle = f"entra por primera vez a la shortlist liderando con {lider.score_total:.0f} puntos"
+        else:
+            detalle = (f"toma el primer lugar con {lider.score_total:.0f} puntos"
+                       f"{_flecha_delta(diff.deltas.get(lider.ticker))}")
+        return f"⭐ Destacado del día: {lider.ticker} {detalle}."
+
+    subidas = {p.ticker: diff.deltas[p.ticker] for p in mostrar if diff.deltas.get(p.ticker, 0) > 0}
+    if subidas:
+        ticker_max = max(subidas, key=subidas.get)
+        score_max = next(p.score_total for p in mostrar if p.ticker == ticker_max)
+        return (f"⭐ Destacado del día: {ticker_max} tuvo la mayor subida de puntaje hoy "
+                f"(▲{round(subidas[ticker_max])}, ahora {score_max:.0f} puntos).")
+    return None
+
+
 def texto_telegram_corto(
     ranking: list[Puntuacion], cfg: ScreenerConfig, universo_n: int,
     diff: DiffShortlist | None = None,
@@ -291,6 +321,7 @@ def texto_telegram_corto(
     cfg.top_n_mensaje_diario -- el resto vía /list."""
     hoy = datetime.now(UTC).strftime("%Y-%m-%d")
     top = ranking[:cfg.top_n]
+    mostrar = top[:cfg.top_n_mensaje_diario]
     lineas = [
         "Buenos días.",
         "",
@@ -310,13 +341,18 @@ def texto_telegram_corto(
             lineas += [f"  {t}" for t in diff.salieron]
         lineas.append("")
 
+    destacado = _destacado_del_dia(mostrar, diff)
+    if destacado:
+        lineas.append(destacado)
+        lineas.append("")
+
     lineas.append("Empresas destacadas:")
     lineas.append("")
-    mostrar = top[:cfg.top_n_mensaje_diario]
     for i, p in enumerate(mostrar, 1):
-        delta = diff.deltas.get(p.ticker) if diff else None
+        es_nuevo = diff is not None and p.ticker in diff.nuevos
         emoji = _emoji_sector(p.sector)
-        lineas.append(f"{i}. {emoji} {p.ticker} ({p.score_total:.0f}{_flecha_delta(delta)})")
+        sufijo = " 🟢 NUEVA" if es_nuevo else _flecha_delta(diff.deltas.get(p.ticker) if diff else None)
+        lineas.append(f"{i}. {emoji} {p.ticker} ({p.score_total:.0f}{sufijo})")
         industria = p.industria or p.sector
         if industria:
             lineas.append(f"   {industria}")
