@@ -295,8 +295,12 @@ def _destacado_del_dia(mostrar: list[Puntuacion], diff: DiffShortlist | None) ->
         if es_nuevo:
             detalle = f"entra por primera vez a la shortlist liderando con {lider.score_total:.0f} puntos"
         else:
-            detalle = (f"toma el primer lugar con {lider.score_total:.0f} puntos"
-                       f"{_flecha_delta(diff.deltas.get(lider.ticker))}")
+            # Si el score del nuevo líder no cambió, omitir la flecha de
+            # delta: combinar "toma el primer lugar" con "=" leería como
+            # contradictorio (el cambio es de liderazgo, no de score).
+            delta_lider = diff.deltas.get(lider.ticker)
+            sufijo = _flecha_delta(delta_lider) if delta_lider else ""
+            detalle = f"toma el primer lugar con {lider.score_total:.0f} puntos{sufijo}"
         return f"⭐ Destacado del día: {lider.ticker} {detalle}."
 
     subidas = {p.ticker: diff.deltas[p.ticker] for p in mostrar if diff.deltas.get(p.ticker, 0) > 0}

@@ -286,6 +286,17 @@ def test_destacado_del_dia_cambio_de_lider_con_delta():
     assert "BNY" in texto and "primer lugar" in texto and "▲1" in texto
 
 
+def test_destacado_del_dia_cambio_de_lider_sin_cambio_de_score_no_dice_igual():
+    # Regresión: el líder anterior salió de la lista y el nuevo líder tiene
+    # el mismo score que tenía antes -- "toma el primer lugar" + "=" leería
+    # como contradictorio, así que la flecha de delta se omite.
+    diff = DiffShortlist(nuevos=[], salieron=["MSFT"], deltas={"AAPL": 0.0}, lider_anterior="MSFT")
+    ranking = [_p("AAPL", 81, {}, sector="Technology")]
+    texto = _destacado_del_dia(ranking, diff)
+    assert texto == "⭐ Destacado del día: AAPL toma el primer lugar con 81 puntos."
+    assert "=" not in texto
+
+
 def test_destacado_del_dia_lider_sin_cambio_resalta_mayor_subida():
     diff = DiffShortlist(nuevos=[], salieron=[], deltas={"AAPL": 0.5, "BAC": 4.0}, lider_anterior="AAPL")
     ranking = [
