@@ -1,0 +1,36 @@
+# Envía una muestra del mensaje diario corto (diff/emoji/delta/Top N) y de
+# /list a Telegram, reusando screener/run.py y screener/report.py reales --
+# para verificar cómo se ven con datos de producción, sin escribir
+# shortlist_hoy.json ni hacer commits (a diferencia de quant-screener.yml).
+#
+# Solo workflow_dispatch -- nunca corre en cron.
+
+name: preview-diario
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Escanear solo los primeros N tickers (preview rápido)"
+        required: false
+        default: "40"
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q -r screener/requirements.txt
+
+      - name: Enviar mensaje diario + /list de muestra
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python preview_diario.py --limit "${{ github.event.inputs.limit }}"
