@@ -43,6 +43,7 @@ import httpx
 from fastapi import BackgroundTasks, FastAPI, Header, Request
 
 from idea_evaluator import evaluar_idea
+from journal_command import abrir_operacion, cerrar_operacion, listar_abiertas, mostrar_estadisticas
 from options_command import generar_options
 from report_command import generar_lista_completa, generar_reporte
 
@@ -75,7 +76,15 @@ AYUDA = (
     "--full para ver todas con el detalle completo. Ej.: /options AAPL, "
     "/options AAPL --full\n\n"
     "/list -- la shortlist completa de hoy (el mensaje diario solo muestra "
-    "el Top 10)."
+    "el Top 10).\n\n"
+    "/journal open TICKER ESTRATEGIA [motivo] -- registra una operación de "
+    "paper trading con los números que /options ya calculó. Ej.: "
+    "/journal open BNY Bull Call Spread me gustó el momentum\n"
+    "/journal close TICKER RESULTADO [notas] -- cierra la más reciente que "
+    "abriste de ese ticker. Ej.: /journal close BNY +150\n"
+    "/journal list -- operaciones abiertas.\n"
+    "/journal stats -- win rate, expectancy, drawdown y rendimiento por "
+    "estrategia (solo sobre lo cerrado)."
 )
 
 
@@ -240,6 +249,65 @@ async def _procesar_options(ticker: str, modo: str, chat_id: str) -> None:
             pass
 
 
+async def _procesar_journal_open(ticker: str, resto: str, chat_id: str) -> None:
+    """Genera y registra una entrada de /journal open. Corre como
+    background task; abrir_operacion hace llamadas de red síncronas
+    (Yahoo/yfinance/GitHub), así que se ejecuta en un hilo aparte."""
+    try:
+        texto = await asyncio.to_thread(abrir_operacion, ticker, resto)
+        await _telegram_send_largo(chat_id, texto)
+    except Exception as e:
+        log.exception("journal open de %s falló", ticker)
+        try:
+            await _telegram_send(
+                chat_id, f"⚠️ Algo falló registrando la operación de {ticker}: "
+                         f"{type(e).__name__}. Inténtalo de nuevo en un momento.")
+        except Exception:
+            pass
+
+
+async def _procesar_journal_close(ticker: str, resultado: float, notas: str | None, chat_id: str) -> None:
+    try:
+        texto = await asyncio.to_thread(cerrar_operacion, ticker, resultado, notas)
+        await _telegram_send_largo(chat_id, texto)
+    except Exception as e:
+        log.exception("journal close de %s falló", ticker)
+        try:
+            await _telegram_send(
+                chat_id, f"⚠️ Algo falló cerrando la operación de {ticker}: "
+                         f"{type(e).__name__}. Inténtalo de nuevo en un momento.")
+        except Exception:
+            pass
+
+
+async def _procesar_journal_list(chat_id: str) -> None:
+    try:
+        texto = await asyncio.to_thread(listar_abiertas)
+        await _telegram_send_largo(chat_id, texto)
+    except Exception as e:
+        log.exception("journal list falló")
+        try:
+            await _telegram_send(
+                chat_id, f"⚠️ Algo falló listando el journal: {type(e).__name__}. "
+                         f"Inténtalo de nuevo en un momento.")
+        except Exception:
+            pass
+
+
+async def _procesar_journal_stats(chat_id: str) -> None:
+    try:
+        texto = await asyncio.to_thread(mostrar_estadisticas)
+        await _telegram_send_largo(chat_id, texto)
+    except Exception as e:
+        log.exception("journal stats falló")
+        try:
+            await _telegram_send(
+                chat_id, f"⚠️ Algo falló calculando estadísticas: {type(e).__name__}. "
+                         f"Inténtalo de nuevo en un momento.")
+        except Exception:
+            pass
+
+
 @app.get("/health")
 @app.get("/telegram/health")
 async def health() -> dict:
@@ -309,6 +377,59 @@ async def telegram_webhook(
             return {"ok": True}
         modo = "full" if "--full" in partes[2:] else "simple"
         background.add_task(_procesar_options, partes[1].upper(), modo, chat_id)
+        return {"ok": True}
+
+    if texto.startswith("/journal"):
+        partes = texto.split(maxsplit=2)
+        subcomando = partes[1].lower() if len(partes) > 1 else ""
+
+        if subcomando == "list":
+            background.add_task(_procesar_journal_list, chat_id)
+            return {"ok": True}
+
+        if subcomando == "stats":
+            background.add_task(_procesar_journal_stats, chat_id)
+            return {"ok": True}
+
+        if subcomando == "open":
+            if len(partes) < 3:
+                background.add_task(
+                    _telegram_send, chat_id,
+                    "Uso: /journal open TICKER ESTRATEGIA [motivo] "
+                    "(ej. /journal open BNY Bull Call Spread me gustó el momentum)")
+                return {"ok": True}
+            resto = partes[2].split(maxsplit=1)
+            ticker = resto[0]
+            resto_estrategia = resto[1] if len(resto) > 1 else ""
+            background.add_task(_procesar_journal_open, ticker, resto_estrategia, chat_id)
+            return {"ok": True}
+
+        if subcomando == "close":
+            if len(partes) < 3:
+                background.add_task(
+                    _telegram_send, chat_id,
+                    "Uso: /journal close TICKER RESULTADO [notas] (ej. /journal close BNY +150)")
+                return {"ok": True}
+            resto = partes[2].split(maxsplit=2)
+            if len(resto) < 2:
+                background.add_task(
+                    _telegram_send, chat_id,
+                    "Uso: /journal close TICKER RESULTADO [notas] (ej. /journal close BNY +150)")
+                return {"ok": True}
+            ticker = resto[0]
+            try:
+                resultado = float(resto[1].replace("$", "").replace(",", ""))
+            except ValueError:
+                background.add_task(
+                    _telegram_send, chat_id, f"No pude interpretar '{resto[1]}' como un número.")
+                return {"ok": True}
+            notas = resto[2] if len(resto) > 2 else None
+            background.add_task(_procesar_journal_close, ticker, resultado, notas, chat_id)
+            return {"ok": True}
+
+        background.add_task(
+            _telegram_send, chat_id,
+            "Subcomando no reconocido. Usa: /journal open|close|list|stats")
         return {"ok": True}
 
     background.add_task(_procesar, texto, chat_id)
