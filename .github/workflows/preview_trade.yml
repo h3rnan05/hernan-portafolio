@@ -1,0 +1,39 @@
+# Envía UN /trade TICKER de muestra a Telegram, reusando
+# telegram_bot/trade_command.py real -- para verificar cómo se ve el
+# tablero de decisión con datos de producción, sin depender del webhook
+# de Render.
+#
+# Solo workflow_dispatch -- nunca corre en cron.
+
+name: preview-trade
+
+on:
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: "Ticker a analizar"
+        required: true
+        default: "AAPL"
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q -r screener/requirements.txt
+
+      - name: Enviar /trade de muestra
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          python preview_trade.py "${{ github.event.inputs.ticker }}"
