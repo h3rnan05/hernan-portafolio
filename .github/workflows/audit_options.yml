@@ -1,0 +1,30 @@
+# Corre audit_options.py sobre un ticker real y deja el desglose completo
+# (IV por leg, EV, riesgo, probabilidad, liquidez, percentiles, score) en
+# el log del job -- no manda nada a Telegram. Solo workflow_dispatch.
+
+name: audit-options
+
+on:
+  workflow_dispatch:
+    inputs:
+      ticker:
+        description: "Ticker a auditar"
+        required: true
+        default: "AAPL"
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q -r screener/requirements.txt
+
+      - name: Auditar ranking de /options
+        run: python audit_options.py "${{ github.event.inputs.ticker }}"
