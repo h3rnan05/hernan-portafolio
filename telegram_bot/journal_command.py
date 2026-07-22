@@ -37,7 +37,7 @@ from journal.store import abrir_entrada, cerrar_entrada, encontrar_abierta_por_t
 from screener.data.provider import YahooProvider  # noqa: E402
 from screener.factors import technical as tech  # noqa: E402
 from screener.options_ideas import clasificar_tendencia, obtener_cadena  # noqa: E402
-from screener.options_strategies import EstrategiaOpciones, construir_estrategias  # noqa: E402
+from screener.options_strategies import construir_estrategias, costo_apertura  # noqa: E402
 
 log = logging.getLogger("telegram_bot.journal_command")
 
@@ -49,7 +49,6 @@ NOMBRES_ESTRATEGIA = [
     "Long Call", "Long Put", "Bull Call Spread", "Bear Put Spread", "Bull Put Spread",
     "Bear Call Spread", "Covered Call", "Cash Secured Put", "Iron Condor",
 ]
-_ESTRATEGIAS_CREDITO = {"Bull Put Spread", "Bear Call Spread", "Iron Condor"}
 
 
 def _env(nombre: str) -> str:
@@ -116,18 +115,6 @@ def _tesis(tendencia_label: str) -> str:
         tendencia_label, "No determinable")
 
 
-def _costo_apertura(e: EstrategiaOpciones) -> float:
-    """Costo neto de abrir la posición: positivo = prima pagada (efectivo
-    que sale), negativo = prima neta recibida (efectivo que entra). Para
-    Covered Call y Cash Secured Put, que comprometen capital además de
-    intercambiar una prima, se usa riesgo_maximo (el capital realmente
-    comprometido) -- es la cifra más útil para el journal, no la prima
-    aislada."""
-    if e.nombre in _ESTRATEGIAS_CREDITO:
-        return -(e.ganancia_maxima or 0.0)
-    return e.riesgo_maximo or 0.0
-
-
 def _parsear_estrategia_y_motivo(texto: str) -> tuple[str | None, str]:
     """Los 9 nombres de estrategia son un vocabulario fijo y conocido, así
     que se hace match del más largo que sea prefijo del texto (para que
@@ -171,7 +158,7 @@ def abrir_operacion(ticker: str, texto_resto: str) -> str:
     entrada_shortlist = _shortlist_entry(ticker)
     score = entrada_shortlist["score"] if entrada_shortlist else None
     posicion = entrada_shortlist.get("posicion") if entrada_shortlist else None
-    costo = _costo_apertura(coincidencia)
+    costo = costo_apertura(coincidencia)
     motivo = motivo_usuario or coincidencia.razon
 
     entrada = abrir_entrada(

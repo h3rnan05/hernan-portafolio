@@ -46,6 +46,7 @@ from idea_evaluator import evaluar_idea
 from journal_command import abrir_operacion, cerrar_operacion, listar_abiertas, mostrar_estadisticas
 from options_command import generar_options
 from report_command import generar_lista_completa, generar_reporte
+from trade_command import generar_trade
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("telegram_bot")
@@ -67,6 +68,12 @@ AYUDA = (
     "Las salidas las maneja el bot solo (trailing stop). Yo no acepto "
     "órdenes de venta: el sistema no se sobreescribe por impulso — eso "
     "también viene del libro.\n\n"
+    "/trade TICKER -- el tablero del trader: opinión con estrellas, "
+    "confianza (qué tan alineadas están las señales, no una probabilidad "
+    "de éxito), checklist de 6 señales, ranking de estrategias, un "
+    "ejemplo educativo con costo/riesgo/objetivo real, y escenarios. El "
+    "resumen ejecutivo de /report + /options en menos de 30 segundos de "
+    "lectura. Ej.: /trade AAPL\n\n"
     "/report TICKER -- memo de investigación de una empresa (técnico, "
     "fundamentales, consenso de analistas, noticias relevantes). Ej.: "
     "/report AAPL\n\n"
@@ -249,6 +256,24 @@ async def _procesar_options(ticker: str, modo: str, chat_id: str) -> None:
             pass
 
 
+async def _procesar_trade(ticker: str, chat_id: str) -> None:
+    """Genera el tablero de /trade TICKER y lo manda. Corre como
+    background task; generar_trade hace llamadas de red síncronas (Yahoo/
+    yfinance/Google News/Anthropic), así que se ejecuta en un hilo aparte
+    para no bloquear el event loop del webhook."""
+    try:
+        texto = await asyncio.to_thread(generar_trade, ticker)
+        await _telegram_send_largo(chat_id, texto)
+    except Exception as e:
+        log.exception("trade de %s falló", ticker)
+        try:
+            await _telegram_send(
+                chat_id, f"⚠️ Algo falló generando el tablero de {ticker}: "
+                         f"{type(e).__name__}. Inténtalo de nuevo en un momento.")
+        except Exception:
+            pass
+
+
 async def _procesar_journal_open(ticker: str, resto: str, chat_id: str) -> None:
     """Genera y registra una entrada de /journal open. Corre como
     background task; abrir_operacion hace llamadas de red síncronas
@@ -357,6 +382,15 @@ async def telegram_webhook(
 
     if texto.startswith("/list"):
         background.add_task(_procesar_lista, chat_id)
+        return {"ok": True}
+
+    if texto.startswith("/trade"):
+        partes = texto.split()
+        if len(partes) < 2:
+            background.add_task(
+                _telegram_send, chat_id, "Uso: /trade TICKER (ej. /trade AAPL)")
+            return {"ok": True}
+        background.add_task(_procesar_trade, partes[1].upper(), chat_id)
         return {"ok": True}
 
     if texto.startswith("/report"):

@@ -23,6 +23,9 @@ despliegue). Dos funciones separadas:
    completo (Top 4 por defecto). Ver la sección dedicada más abajo.
 5. **`/journal open|close|list|stats`** (`journal_command.py`): registro
    de paper trading. Ver la sección dedicada más abajo.
+6. **`/trade TICKER`** (`trade_command.py`): el "tablero de trader" --
+   el resumen ejecutivo de `/report` + `/options` en menos de 30 segundos
+   de lectura. Ver la sección dedicada más abajo.
 
 ## Qué trae `/report TICKER`
 
@@ -171,6 +174,55 @@ Render.
 Ningún LLM interviene en ningún punto de `/journal`: construir la
 estrategia, calcular el costo, y las estadísticas son puro cálculo
 determinístico.
+
+## Qué trae `/trade TICKER`
+
+Decisión de producto: `/report` y `/options` son correctos pero son
+*reportes* -- este bot existe para ayudar a decidir, no solo para leer.
+`/trade` (`trade_command.py`) reempaqueta exactamente los mismos números
+que ya calculan `/report` y `/options` (ningún dato nuevo, ningún cálculo
+nuevo) en un formato legible en menos de 30 segundos, con `/report`/
+`/options` disponibles al final para quien quiera profundizar.
+
+- **Mi opinión**: estrellas + un veredicto de una frase, puramente
+  determinístico sobre el promedio de 6 señales (nunca lo redacta el
+  LLM).
+- **Confianza**: mide qué tan ALINEADAS están las señales entre sí
+  (`abs(promedio - 0.5) * 2`) -- se etiqueta explícitamente como "% de
+  señales alineadas, no una probabilidad de éxito" para no dar la
+  impresión de que el sistema predice resultados (Principio #3).
+- **¿Qué veo?**: 6 señales con estrellas/emoji -- Negocio (sub-score
+  `calidad` de la shortlist), Tendencia, Valuación, Noticias (tono
+  promedio de las explicadas hoy), Analistas (consenso yfinance), Riesgo
+  (número de banderas reales de `report_command._riesgos`). Cualquier
+  señal sin dato real dice "No disponible"/"No determinable", nunca se
+  inventa.
+- **Si hoy quisiera entrar...**: TODAS las estrategias que `/options`
+  pudo construir, con estrellas relativas a ese ranking (mismo
+  `_estrellas_por_posicion` de `options_command.py`), más "Comprar
+  acciones" con las mismas estrellas del veredicto general (la única
+  "estrategia" que no depende de la cadena de opciones).
+- **¿Por qué?**: 3-4 bullets del LLM explicando por qué el motor
+  determinístico puso primera a esa estrategia -- mismo guardrail
+  belt-and-suspenders que `/options` (nunca sugiere abrir/comprar/vender;
+  si se desvía, la explicación se descarta entera).
+- **Ejemplo educativo**: la estrategia top con sus patas/strikes/primas
+  reales, costo (`options_strategies.costo_apertura`), pérdida máxima,
+  ganancia máxima, objetivo (precio objetivo REAL de analistas vía
+  yfinance, o "No disponible" -- nunca inventado) y "Salir si" (el/los
+  breakeven(s) reales de la estrategia).
+- **¿Qué espero?**: escenarios (no una predicción) evaluando el payoff
+  REAL de la estrategia (`options_strategies.evaluar_payoff`) en 3
+  precios concretos: objetivo de analistas, precio actual sin cambios, y
+  un movimiento del 15% en la dirección que perjudica a la estrategia
+  (según el signo de su delta neto).
+- **¿Qué eventos debo esperar?**: fecha real de próximos resultados y
+  días restantes -- deliberadamente SIN una calificación de "qué tan
+  importante será", porque eso requeriría un histórico de volatilidad
+  alrededor de earnings pasados que este sistema no recolecta (fabricar
+  esa cifra sería peor que omitirla).
+- **Riesgos**: mismas banderas reales de `/report` (máx. 3, en orden de
+  severidad).
 
 ## Arquitectura
 

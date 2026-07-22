@@ -233,10 +233,10 @@ def test_mostrar_estadisticas_con_cerradas(monkeypatch):
 def test_costo_apertura_debito_usa_riesgo_maximo():
     from screener.options_strategies import EstrategiaOpciones
     e = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=500.0, ganancia_maxima=None)
-    assert jc._costo_apertura(e) == 500.0
+    assert jc.costo_apertura(e) == 500.0
 
 
 def test_costo_apertura_credito_usa_ganancia_maxima_negativa():
     from screener.options_strategies import EstrategiaOpciones
     e = EstrategiaOpciones(nombre="Iron Condor", patas=[], razon="", riesgo_maximo=1000.0, ganancia_maxima=250.0)
-    assert jc._costo_apertura(e) == -250.0
+    assert jc.costo_apertura(e) == -250.0

@@ -30,6 +30,8 @@ from screener.options_strategies import (
     _payoff_posicion,
     _percentil,
     construir_estrategias,
+    costo_apertura,
+    evaluar_payoff,
     iv_en_precio,
     iv_referencia,
     rankear,
@@ -355,3 +357,37 @@ def test_probabilidad_y_ev_usan_iv_local_no_la_plana_cuando_hay_skew():
     # habría dado la IV plana.
     assert abs(e.valor_esperado - ev_con_iv_plana) > 0.01
     assert abs(e.probabilidad_exito - (1.0 - prob_con_iv_plana)) > 1e-4
+
+
+# ------------------------- costo_apertura / evaluar_payoff -------------------------
+
+def test_costo_apertura_debito_es_riesgo_maximo():
+    e = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=500.0, ganancia_maxima=None)
+    assert costo_apertura(e) == 500.0
+
+
+def test_costo_apertura_credito_es_ganancia_maxima_negativa():
+    for nombre in ("Bull Put Spread", "Bear Call Spread", "Iron Condor"):
+        e = EstrategiaOpciones(nombre=nombre, patas=[], razon="", riesgo_maximo=1000.0, ganancia_maxima=250.0)
+        assert costo_apertura(e) == -250.0
+
+
+def test_evaluar_payoff_coincide_con_bear_put_spread_real():
+    cadena = _cadena_sintetica()
+    e = _bear_put_spread(cadena, SPOT, DIAS, IV)
+    assert e is not None
+    # En el breakeven, el payoff debe ser (casi) cero por definición.
+    assert abs(evaluar_payoff(e, e.breakevens[0])) < 0.5
+
+
+def test_evaluar_payoff_covered_call_requiere_spot():
+    cadena = _cadena_sintetica()
+    e = _covered_call(cadena, SPOT, DIAS, IV)
+    assert e is not None
+    try:
+        evaluar_payoff(e, SPOT)
+        raise AssertionError("debía lanzar ValueError sin spot")
+    except ValueError:
+        pass
+    # En su propio breakeven, el payoff debe ser (casi) cero.
+    assert abs(evaluar_payoff(e, e.breakevens[0], spot=SPOT)) < 0.5
