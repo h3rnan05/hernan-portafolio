@@ -94,6 +94,38 @@ def _payoff_posicion(patas: list[PataOpcion], precio_final: float) -> float:
     return sum(_payoff_pata(p, precio_final) for p in patas) * 100
 
 
+# Estrategias donde se RECIBE una prima neta al abrir (en vez de pagarla) --
+# usado por costo_apertura() y por telegram_bot/journal_command.py.
+ESTRATEGIAS_CREDITO = frozenset({"Bull Put Spread", "Bear Call Spread", "Iron Condor"})
+
+
+def evaluar_payoff(e: EstrategiaOpciones, precio_final: float, spot: float | None = None) -> float:
+    """Resultado en dólares por 1 contrato de la posición COMPLETA a un
+    precio final dado -- útil para escenarios ('si el precio llega a X,
+    ganarías/perderías Y'). Covered Call necesita `spot` (el precio de
+    entrada de las 100 acciones) porque esa estrategia también incluye
+    esa pata, que no está en `e.patas` (solo se registran las patas de
+    OPCIONES ahí)."""
+    resultado = _payoff_posicion(e.patas, precio_final)
+    if e.nombre == "Covered Call":
+        if spot is None:
+            raise ValueError("Covered Call necesita spot para evaluar su payoff")
+        resultado += (precio_final - spot) * 100
+    return resultado
+
+
+def costo_apertura(e: EstrategiaOpciones) -> float:
+    """Costo neto de abrir la posición: positivo = prima pagada (efectivo
+    que sale), negativo = prima neta recibida (efectivo que entra). Para
+    Covered Call y Cash Secured Put, que comprometen capital además de
+    intercambiar una prima, se usa riesgo_maximo (el capital realmente
+    comprometido) -- es la cifra más útil para el journal/trade, no la
+    prima aislada."""
+    if e.nombre in ESTRATEGIAS_CREDITO:
+        return -(e.ganancia_maxima or 0.0)
+    return e.riesgo_maximo or 0.0
+
+
 def _iv_o_referencia(contrato: ContratoOpcion, iv_referencia: float) -> float:
     return contrato.iv if contrato.iv and contrato.iv > 0 else iv_referencia
 
@@ -544,12 +576,11 @@ def _percentil(valores: list[float], x: float) -> float:
     return sum(1 for v in valores if v <= x) / n
 
 
-def rankear(estrategias: list[EstrategiaOpciones]) -> list[EstrategiaOpciones]:
-    """Orden puramente cuantitativo, de mejor a peor score compuesto --
-    nunca decide cuál operar, la decisión es del usuario. Cada métrica se
-    normaliza a su percentil DENTRO de las estrategias candidatas (ver
-    _percentil) antes de combinarlas con pesos fijos y documentados, que
-    no se ajustan por ticker ni por LLM:
+def puntuar(estrategias: list[EstrategiaOpciones]) -> list[float]:
+    """Score compuesto (0-1) de cada estrategia, en el mismo orden que la
+    lista de entrada -- misma fórmula que rankear() usa para ordenar,
+    expuesta para quien necesite mostrar una calificación real (ej.
+    /trade) sin re-derivar la lógica de percentiles:
       - 50%: valor esperado por dólar de riesgo (rendimiento esperado
         ajustado por lo que se arriesga -- la métrica central).
       - 30%: probabilidad de éxito bajo la IV implícita.
@@ -562,12 +593,19 @@ def rankear(estrategias: list[EstrategiaOpciones]) -> list[EstrategiaOpciones]:
     ev_riesgo = [_ev_por_riesgo(e) for e in estrategias]
     probs = [e.probabilidad_exito or 0.0 for e in estrategias]
     liquidez = [e.liquidez_score or 0.0 for e in estrategias]
-
-    scores = [
+    return [
         _percentil(ev_riesgo, ev_riesgo[i]) * 0.5
         + _percentil(probs, probs[i]) * 0.3
         + _percentil(liquidez, liquidez[i]) * 0.2
         for i in range(len(estrategias))
     ]
+
+
+def rankear(estrategias: list[EstrategiaOpciones]) -> list[EstrategiaOpciones]:
+    """Orden puramente cuantitativo, de mejor a peor score compuesto (ver
+    puntuar()) -- nunca decide cuál operar, la decisión es del usuario."""
+    if not estrategias:
+        return []
+    scores = puntuar(estrategias)
     orden = sorted(range(len(estrategias)), key=lambda i: scores[i], reverse=True)
     return [estrategias[i] for i in orden]

@@ -32,8 +32,8 @@ from screener.options_math import probabilidad_sobre, valor_esperado_payoff
 from screener.options_strategies import (
     EstrategiaOpciones,
     _iv_local,
-    _payoff_posicion,
     construir_estrategias,
+    evaluar_payoff,
     iv_referencia,
 )
 
@@ -58,12 +58,10 @@ def _ev_por_riesgo(valor_esperado: float | None, riesgo_maximo: float | None) ->
 
 
 def _payoff_generico(e: EstrategiaOpciones, spot: float):
-    """Reconstruye el payoff real de la estrategia a partir de sus patas
-    -- Covered Call es especial porque también posee 100 acciones (no
-    solo la pata de opción vendida)."""
-    if e.nombre == "Covered Call":
-        return lambda s: (s - spot) * 100 + _payoff_posicion(e.patas, s)
-    return lambda s: _payoff_posicion(e.patas, s)
+    """Payoff real de la estrategia -- envuelve options_strategies.
+    evaluar_payoff() (pública) fijando `spot` para Covered Call, que lo
+    necesita porque esa estrategia también posee 100 acciones."""
+    return lambda s: evaluar_payoff(e, s, spot)
 
 
 def _probabilidad_generica(spot: float, dias: int, iv: float, breakevens: list[float], payoff) -> float | None:
