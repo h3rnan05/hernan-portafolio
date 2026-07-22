@@ -52,6 +52,7 @@ from screener.options_ideas import clasificar_tendencia, obtener_cadena  # noqa:
 from screener.options_strategies import (  # noqa: E402
     EstrategiaOpciones,
     construir_estrategias,
+    direccion_estrategia,
     evaluar_payoff,
     puntuar,
     rankear,
@@ -122,17 +123,53 @@ def _precio_favorable(spot: float, delta_neto: float | None) -> float:
     return spot * 1.15
 
 
-def _conclusion_acciones(tendencia_label: str, valoracion_label: str, rsi: float | None) -> tuple[str | None, str]:
-    """(preámbulo opcional, veredicto) sobre comprar la acción directamente
-    -- puramente determinístico sobre tendencia técnica, valoración y RSI."""
+_TESIS_DISPLAY = {
+    "alcista": "Alcista", "bajista": "Bajista", "esperar": "Esperar",
+    "neutral": "Neutral", "no_determinable": "No determinable",
+}
+
+
+def _tesis_categoria(tendencia_label: str, valoracion_label: str, rsi: float | None) -> str:
+    """Tesis del screener en una de 4 categorías ("alcista"/"bajista"/
+    "esperar"/"neutral") -- "esperar" es un caso especial de tendencia
+    alcista con una señal de sobrecompra o valuación exigente encima:
+    todavía no es una tesis bajista, pero tampoco compraría hoy. Única
+    fuente de verdad tanto para el texto de "Mi conclusión" como para la
+    capa de coherencia contra la estrategia de opciones (ver
+    _tesis_coincide_con_estrategia)."""
     sobrecomprado = rsi is not None and rsi >= 70
     if tendencia_label == "alcista" and (sobrecomprado or valoracion_label == "Exigente"):
+        return "esperar"
+    if tendencia_label in ("alcista", "bajista", "neutral"):
+        return tendencia_label
+    return "no_determinable"
+
+
+def _tesis_coincide_con_estrategia(tesis_categoria: str, direccion: str) -> bool:
+    """Compara la tesis del screener con la dirección de la estrategia top
+    -- NUNCA cambia el ranking, solo decide cómo se PRESENTA. Sin tesis
+    direccional clara (neutral/no_determinable) no hay con qué contradecir,
+    así que cualquier dirección cuenta como coherente. "Esperar" es
+    incompatible con una estrategia alcista (es justo el caso que motivó
+    esta capa: "no compraría hoy" seguido de "Long Call" leía como
+    contradictorio)."""
+    if tesis_categoria in ("neutral", "no_determinable"):
+        return True
+    if tesis_categoria == "esperar":
+        return direccion != "alcista"
+    return tesis_categoria == direccion
+
+
+def _conclusion_acciones(tesis_categoria: str) -> tuple[str | None, str]:
+    """(preámbulo opcional, veredicto) sobre comprar la acción directamente
+    -- puramente determinístico sobre la tesis ya categorizada."""
+    if tesis_categoria == "esperar":
         return "Esperaría una pequeña corrección antes de entrar.", "No compraría acciones hoy."
-    if tendencia_label == "alcista":
+    if tesis_categoria == "alcista":
         return None, "Compraría acciones hoy si busco exposición directa al alza."
-    if tendencia_label == "bajista":
+    if tesis_categoria == "bajista":
         return None, "No compraría acciones hoy -- la tendencia técnica es bajista."
-    if tendencia_label == "neutral":
+    if tesis_categoria == "neutral":
         return None, "No hay una señal técnica clara para comprar acciones hoy."
     return None, "No tengo suficiente información técnica para opinar sobre comprar acciones hoy."
 
@@ -201,6 +238,8 @@ def generar_trade(ticker: str) -> str:
     top = estrategias[0] if estrategias else None
     score_100 = round(puntuar(estrategias)[0] * 100) if estrategias else None
 
+    tesis_categoria = _tesis_categoria(tendencia_label, valoracion_label, rsi)
+
     lineas = [f"📊 {ticker} — {nombre}", ""]
     if score_screener is not None:
         lineas.append(f"{_emoji_convic(score_screener)} Convicción del modelo: {score_screener:.0f}/100")
@@ -208,19 +247,32 @@ def generar_trade(ticker: str) -> str:
         lineas.append("⚪ Convicción del modelo: No disponible (no está en la shortlist de hoy)")
     lineas += ["", SEP, "", "📌 Mi conclusión", ""]
 
-    preambulo, veredicto_acciones = _conclusion_acciones(tendencia_label, valoracion_label, rsi)
+    preambulo, veredicto_acciones = _conclusion_acciones(tesis_categoria)
     if preambulo:
         lineas.append(preambulo)
         lineas.append("")
     lineas.append(veredicto_acciones)
     lineas.append(_conclusion_opciones(estrategias, score_100))
-    lineas += ["", SEP, "", "🎯 Mejor estrategia", ""]
+    lineas += ["", SEP, ""]
 
     if top is None:
+        lineas += ["🎯 Mejor estrategia", ""]
         lineas.append("No pude calcular estrategias de opciones para hoy (cadena insuficiente o no disponible).")
     else:
+        direccion_top = direccion_estrategia(top.nombre)
+        coincide = _tesis_coincide_con_estrategia(tesis_categoria, direccion_top)
+        if coincide:
+            lineas += ["🎯 Mejor estrategia", "", top.nombre, ""]
+        else:
+            lineas += [
+                "🎯 Si decidieras operar hoy, la estrategia con mejor relación matemática es...", "",
+                top.nombre, "",
+                f"⚠️ Esta estrategia no coincide con la tesis principal del modelo "
+                f"({_TESIS_DISPLAY[tesis_categoria]}). El ranking de opciones es puramente matemático "
+                f"(valor esperado, probabilidad, liquidez) y no considera la dirección de la tesis técnica.",
+                "",
+            ]
         lineas += [
-            top.nombre, "",
             f"Convicción: {score_100}/100", "",
             "¿Por qué?", "",
         ]
