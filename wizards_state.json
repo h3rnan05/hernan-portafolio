@@ -1,6 +1,14 @@
 {
-  "cash": 5000.0,
-  "posiciones": {},
+  "cash": 3524.84,
+  "posiciones": {
+    "WEAT": {
+      "qty": 57,
+      "entrada": 25.88,
+      "stop": 24.87,
+      "fecha": "2026-07-22 15:19 UTC",
+      "origen": "sistema"
+    }
+  },
   "pnl_realizado": 0.0,
   "trades_cerrados": 0,
   "trades_ganadores": 0,
@@ -204,6 +212,10 @@
     {
       "ts": "2026-07-21 21:14 UTC",
       "equity": 5000.0
+    },
+    {
+      "ts": "2026-07-22 15:19 UTC",
+      "equity": 5000.0
     }
   ],
   "noticias_vistas": [
@@ -307,8 +319,33 @@
     "0db133e4e9df",
     "47f34969cc8f",
     "6678cd7645d4",
-    "0ab948773d73"
+    "0ab948773d73",
+    "6c1871f3de78",
+    "a6124ea289b2",
+    "76d6233cc310"
   ],
-  "eventos": [],
-  "noticias_evaluadas": []
+  "eventos": [
+    {
+      "ts": "2026-07-22 15:19 UTC",
+      "evento": "🟢 COMPRA WEAT (Trigo): 57 @ $25.88 | ruptura de máx. 55d | stop $24.87 (riesgo $57.57 = 1.2% del equity)"
+    }
+  ],
+  "noticias_evaluadas": [
+    "21d8895eb31e",
+    "6c1871f3de78",
+    "b78fc5aabd34",
+    "3843ffe02078",
+    "027d0d284c19",
+    "c1abb202939f",
+    "39f55fd380bb",
+    "2eefff4eb174",
+    "44a2a21f7413",
+    "61c698a5b0f3",
+    "f9b645ccde57",
+    "bd06e94cc6dd",
+    "bfc00abdac37",
+    "071a085ea7d3",
+    "778521668c4f",
+    "15879f21bd2e"
+  ]
 }
