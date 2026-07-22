@@ -18,6 +18,9 @@ despliegue). Dos funciones separadas:
    `/list` muestra las hasta ~20 que sí pasaron el screener, con el mismo
    formato (emoji de sector + score) que el mensaje diario. Solo lee el
    archivo `shortlist_hoy.json` ya generado — no hace llamadas de red.
+4. **`/options TICKER`** (`options_command.py`): ranking cuantitativo de
+   estrategias de opciones para una empresa. `--full` para el detalle
+   completo (Top 4 por defecto). Ver la sección dedicada más abajo.
 
 ## Qué trae `/report TICKER`
 
@@ -76,9 +79,53 @@ solo da el % de tenencia snapshot, no el detalle transaccional). Se
 muestra el snapshot real disponible, documentado como tal, en vez de
 fabricar un historial que no existe.
 
-`/options`, `/history`, `/diff`, `/quality` — no existen todavía (el spec
-original los daba por existentes; no es así). Quedan para una siguiente
-parte.
+`/history`, `/diff`, `/quality` — no existen todavía. Quedan para una
+siguiente parte.
+
+## Qué trae `/options TICKER`
+
+Motor 100% determinístico (`screener/options_math.py` +
+`screener/options_strategies.py`) sobre la cadena de opciones real del
+ticker (`screener/options_ideas.obtener_cadena`) -- **el LLM nunca elige
+strikes, nunca puntúa ni cambia el orden de las estrategias**, solo
+traduce a lenguaje llano el ranking que el motor matemático ya calculó
+(Principio #3 del AIOS, ver `ROADMAP.md`).
+
+- **Tesis técnica** (Alcista/Bajista/Neutral): de `screener.options_ideas.
+  clasificar_tendencia` sobre los mismos datos técnicos que ya usa
+  `/report`.
+- **9 de las 10 estrategias del spec**: Long Call, Long Put, Bull Call
+  Spread, Bear Put Spread, Bull Put Spread, Bear Call Spread, Covered
+  Call, Cash Secured Put, Iron Condor. Cada una con strikes reales de la
+  cadena (elegidos por delta objetivo -- convenciones estándar: ~30 delta
+  para el leg corto de spreads/covered call/cash secured put, ~16/8 delta
+  para las alas del iron condor), riesgo máximo, ganancia máxima,
+  breakeven(s), probabilidad de éxito (bajo la IV implícita, vía
+  Black-Scholes), valor esperado (integrando el payoff real sobre esa
+  misma distribución) y liquidez (open interest + bid-ask spread).
+  **Calendar Spread no está incluido** -- necesita una segunda fecha de
+  vencimiento, se puede agregar después.
+- **Ranking puramente cuantitativo**: 50% valor esperado por dólar de
+  riesgo, 30% probabilidad de éxito, 20% liquidez -- cada métrica
+  normalizada a su percentil dentro de las estrategias candidatas (misma
+  técnica de scoring cross-sectional que `screener/scoring.py` ya usa
+  para los factores del stock screener) antes de combinarlas, para que
+  ninguna domine solo por vivir en una escala distinta.
+- **`--full` vs. por defecto**: por defecto muestra el Top 4 con
+  estrellas relativas a este ranking; `--full` muestra las ~9 completas
+  con el desglose entero (patas, Greeks netos, breakeven, probabilidad,
+  valor esperado, liquidez).
+- **Explicación del LLM**: un párrafo por estrategia explicando ventajas/
+  desventajas/cuándo tendría sentido/qué la invalidaría -- nunca "cuál
+  operar". Mismo guardrail de belt-and-suspenders que `news_analyst/
+  explicador.py`: si el LLM se desvía y sugiere una acción de todas
+  formas, la explicación se descarta entera antes de mostrarse. Sin
+  `ANTHROPIC_API_KEY` o si la respuesta no pasa el filtro, el memo lo
+  dice explícitamente en vez de omitirlo en silencio.
+- **IV Rank: siempre "No disponible"**. Calcularlo de verdad requiere un
+  histórico de IV (percentil de la IV actual contra ~1 año de historia)
+  que este screener no recolecta hoy -- se documenta la ausencia, nunca
+  se inventa un número.
 
 ## Arquitectura
 
