@@ -69,6 +69,84 @@ class DatosOpciones:
         return sum(vals) / len(vals) if vals else None
 
 
+@dataclass(frozen=True)
+class ContratoOpcion:
+    """Un contrato real de la cadena (una fila de Yahoo) -- a diferencia de
+    DatosOpciones (solo el contrato ATM), esto se usa para poder elegir
+    strikes distintos al ATM (spreads, covered calls, cash secured puts,
+    iron condors, etc. necesitan más de un strike)."""
+    strike: float
+    prima: float | None       # punto medio bid/ask, o lastPrice si no hay bid/ask
+    bid: float | None
+    ask: float | None
+    iv: float | None
+    open_interest: int | None
+    volumen: int | None
+
+
+@dataclass(frozen=True)
+class CadenaOpciones:
+    """Cadena completa (todos los strikes cotizados) para UN vencimiento."""
+    ticker: str
+    vencimiento: str
+    dias_a_vencimiento: int
+    calls: list[ContratoOpcion]
+    puts: list[ContratoOpcion]
+
+
+def _contratos_desde_tabla(tabla) -> list[ContratoOpcion]:
+    """tabla es un DataFrame de pandas (lo que devuelve yfinance); se
+    accede de forma defensiva fila por fila para no acoplarse a pandas
+    como dependencia dura, igual que _fila_atm/_get ya hacían."""
+    if tabla is None or len(tabla) == 0:
+        return []
+    contratos = []
+    for _, fila in tabla.iterrows():
+        strike = _get(fila, "strike")
+        if strike is None:
+            continue
+        oi = _get(fila, "openInterest")
+        vol = _get(fila, "volume")
+        contratos.append(ContratoOpcion(
+            strike=strike, prima=_prima_media(fila),
+            bid=_get(fila, "bid"), ask=_get(fila, "ask"), iv=_get(fila, "impliedVolatility"),
+            open_interest=int(oi) if oi is not None else None,
+            volumen=int(vol) if vol is not None else None,
+        ))
+    return contratos
+
+
+def obtener_cadena(ticker: str) -> CadenaOpciones | None:
+    """Cadena completa del vencimiento elegido por _elegir_vencimiento --
+    a diferencia de YahooOpcionesProvider.datos() (que solo cotiza el
+    contrato ATM), esto trae todos los strikes para poder construir
+    estrategias de varias patas con strikes reales. None si Yahoo no
+    responde o no hay expiraciones (nunca lanza)."""
+    try:
+        import yfinance as yf
+    except ImportError:
+        log.warning("yfinance no instalado: no se puede obtener la cadena completa")
+        return None
+    try:
+        tk = yf.Ticker(ticker)
+        expiraciones = tk.options
+        if not expiraciones:
+            return None
+        vencimiento = _elegir_vencimiento(expiraciones)
+        dias = _dias_hasta(vencimiento)
+        if not dias:
+            return None
+        cadena = tk.option_chain(vencimiento)
+        return CadenaOpciones(
+            ticker=ticker, vencimiento=vencimiento, dias_a_vencimiento=dias,
+            calls=_contratos_desde_tabla(cadena.calls),
+            puts=_contratos_desde_tabla(cadena.puts),
+        )
+    except Exception as e:
+        log.debug("cadena completa de %s falló: %s", ticker, e)
+        return None
+
+
 @dataclass
 class IdeaEstrategia:
     nombre: str
