@@ -8,12 +8,31 @@ un LLM podrá más adelante EXPLICAR estos resultados ya calculados en
 lenguaje llano, pero nunca decidir strikes ni el orden del ranking
 (Principio #3 del proyecto: la IA nunca decide qué operar).
 
+Superficie de volatilidad (skew): la probabilidad de éxito y el valor
+esperado de CADA estrategia se calculan con la IV interpolada de la
+cadena real EN el/los breakeven(s) propios de esa estrategia
+(ver `_iv_local`/`iv_en_precio`), no con una única IV plana (ATM) para
+todo el ticker. Antes de este cambio, todas las estrategias se evaluaban
+contra la misma IV promedio ATM aunque sus primas reales sí reflejaran el
+skew -- eso favorecía artificialmente a estrategias cuyas patas quedaban
+"baratas de comprar / caras de vender" respecto a esa IV plana, sin que
+tuviera nada que ver con la tesis direccional del ticker. La selección de
+STRIKES (por delta objetivo) y los GREEKS por pata ya usaban la IV real
+de cada contrato individual desde el principio -- solo la probabilidad y
+el valor esperado usaban la IV plana; ahora usan la superficie real
+interpolada, igual que el resto.
+
 Fuera de alcance de esta pieza (documentado, no fabricado):
   - Calendar Spread: necesita una segunda fecha de vencimiento (esta
     pieza solo cotiza UN vencimiento por ticker, elegido por
     options_ideas._elegir_vencimiento). Se puede agregar después.
   - IV Rank real: sigue sin estar disponible (ver options_ideas.py) --
     este módulo no lo usa para nada.
+  - Densidad risk-neutral completa (Breeden-Litzenberger) o simulación
+    Monte Carlo: la interpolación lineal por breakeven es una
+    aproximación práctica del skew, no una reconstrucción completa de la
+    superficie. Suficiente para corregir el sesgo detectado; una
+    reconstrucción más rigurosa queda para una fase posterior.
 """
 
 from __future__ import annotations
@@ -130,6 +149,49 @@ def _liquidez(contratos: list[ContratoOpcion]) -> float | None:
     return sum(valores) / len(valores) if valores else None
 
 
+def _interpolar_iv(puntos: list[tuple[float, float | None]], strike: float) -> float | None:
+    """Interpolación lineal de IV sobre strikes cotizados reales. `puntos`
+    son pares (strike, iv) de UN lado de la cadena (calls o puts). Si
+    `strike` cae fuera del rango cotizado, se usa el IV del extremo más
+    cercano -- nunca se extrapola más allá de los datos reales."""
+    validos = sorted((s, iv) for s, iv in puntos if iv is not None and iv > 0)
+    if not validos:
+        return None
+    if strike <= validos[0][0]:
+        return validos[0][1]
+    if strike >= validos[-1][0]:
+        return validos[-1][1]
+    for (s0, iv0), (s1, iv1) in zip(validos, validos[1:]):
+        if s0 <= strike <= s1:
+            return iv0 if s1 == s0 else iv0 + (strike - s0) / (s1 - s0) * (iv1 - iv0)
+    return None  # inalcanzable: strike está acotado por validos[0][0]..validos[-1][0]
+
+
+def iv_en_precio(cadena: CadenaOpciones, precio: float, spot: float) -> float | None:
+    """IV interpolada de la superficie REAL de volatilidad en un precio
+    dado -- usa el lado de la cadena más relevante para ese precio (puts
+    para precios por debajo del spot, calls para precios por encima;
+    convención estándar de trading: cada lado del skew es más líquido y
+    representativo de sí mismo). None si ese lado no tiene datos de IV."""
+    tabla = cadena.calls if precio >= spot else cadena.puts
+    return _interpolar_iv([(c.strike, c.iv) for c in tabla], precio)
+
+
+def _iv_local(cadena: CadenaOpciones, spot: float, breakevens: list[float], iv_fallback: float) -> float:
+    """IV de referencia para el cálculo de PROBABILIDAD y VALOR ESPERADO
+    de una estrategia -- a diferencia de una única IV plana (ATM) para
+    todo el ticker, esto interpola la superficie real de volatilidad en
+    el/los breakeven(s) propios de la estrategia. Es lo que corrige el
+    sesgo de comparar primas reales (que sí reflejan el skew real) contra
+    una distribución de probabilidad que lo ignoraba: ahora estrategias
+    cuyo breakeven cae lejos del spot (donde el skew es más pronunciado)
+    se evalúan con la IV que el mercado realmente cotiza ahí, no con el
+    promedio ATM. iv_fallback (iv_referencia, el promedio ATM) se usa
+    solo si no se pudo interpolar nada (cadena con muy pocos strikes)."""
+    valores = [iv for b in breakevens if (iv := iv_en_precio(cadena, b, spot)) is not None]
+    return sum(valores) / len(valores) if valores else iv_fallback
+
+
 def _prob_sobre(spot: float, umbral: float, dias: int, iv: float) -> float | None:
     return probabilidad_sobre(spot, umbral, dias, iv)
 
@@ -153,30 +215,32 @@ def _greeks_neto(patas_con_tipo: list[tuple[PataOpcion, float]], spot: float, di
     return delta_total, theta_total
 
 
-def _long_call(calls: list[ContratoOpcion], spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
-    atm = _contrato_atm(calls, spot)
+def _long_call(cadena: CadenaOpciones, spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
+    atm = _contrato_atm(cadena.calls, spot)
     if atm is None:
         return None
     pata = PataOpcion("call", "comprar", atm.strike, atm.prima)
     breakeven = atm.strike + atm.prima
+    iv_local = _iv_local(cadena, spot, [breakeven], iv_ref)
     delta_neto, theta_neto = _greeks_neto([(pata, _iv_o_referencia(atm, iv_ref))], spot, dias)
     return EstrategiaOpciones(
         nombre="Long Call", patas=[pata],
         razon=f"Compra call ${atm.strike:.2f}: apuesta simple a que el precio suba, "
               f"pérdida limitada a la prima pagada.",
         riesgo_maximo=atm.prima * 100, ganancia_maxima=None, breakevens=[breakeven],
-        probabilidad_exito=_prob_sobre(spot, breakeven, dias, iv_ref),
-        valor_esperado=valor_esperado_payoff(spot, dias, iv_ref, lambda s: _payoff_posicion([pata], s)),
+        probabilidad_exito=_prob_sobre(spot, breakeven, dias, iv_local),
+        valor_esperado=valor_esperado_payoff(spot, dias, iv_local, lambda s: _payoff_posicion([pata], s)),
         delta_neto=delta_neto, theta_neto=theta_neto, liquidez_score=_liquidez([atm]),
     )
 
 
-def _long_put(puts: list[ContratoOpcion], spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
-    atm = _contrato_atm(puts, spot)
+def _long_put(cadena: CadenaOpciones, spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
+    atm = _contrato_atm(cadena.puts, spot)
     if atm is None:
         return None
     pata = PataOpcion("put", "comprar", atm.strike, atm.prima)
     breakeven = atm.strike - atm.prima
+    iv_local = _iv_local(cadena, spot, [breakeven], iv_ref)
     delta_neto, theta_neto = _greeks_neto([(pata, _iv_o_referencia(atm, iv_ref))], spot, dias)
     return EstrategiaOpciones(
         nombre="Long Put", patas=[pata],
@@ -184,17 +248,17 @@ def _long_put(puts: list[ContratoOpcion], spot: float, dias: int, iv_ref: float)
               f"pérdida limitada a la prima pagada.",
         riesgo_maximo=atm.prima * 100, ganancia_maxima=max(atm.strike - atm.prima, 0) * 100,
         breakevens=[breakeven],
-        probabilidad_exito=_prob_bajo(spot, breakeven, dias, iv_ref),
-        valor_esperado=valor_esperado_payoff(spot, dias, iv_ref, lambda s: _payoff_posicion([pata], s)),
+        probabilidad_exito=_prob_bajo(spot, breakeven, dias, iv_local),
+        valor_esperado=valor_esperado_payoff(spot, dias, iv_local, lambda s: _payoff_posicion([pata], s)),
         delta_neto=delta_neto, theta_neto=theta_neto, liquidez_score=_liquidez([atm]),
     )
 
 
-def _bull_call_spread(calls: list[ContratoOpcion], spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
-    largo = _contrato_atm(calls, spot)
+def _bull_call_spread(cadena: CadenaOpciones, spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
+    largo = _contrato_atm(cadena.calls, spot)
     if largo is None:
         return None
-    corto = _contrato_delta_objetivo(calls, DELTA_SPREAD_VERTICAL, "call", spot, dias, iv_ref,
+    corto = _contrato_delta_objetivo(cadena.calls, DELTA_SPREAD_VERTICAL, "call", spot, dias, iv_ref,
                                       filtro_strike=lambda k: k > largo.strike)
     if corto is None:
         return None
@@ -204,6 +268,7 @@ def _bull_call_spread(calls: list[ContratoOpcion], spot: float, dias: int, iv_re
     if costo_neto <= 0:
         return None
     breakeven = largo.strike + costo_neto
+    iv_local = _iv_local(cadena, spot, [breakeven], iv_ref)
     delta_neto, theta_neto = _greeks_neto(
         [(patas[0], _iv_o_referencia(largo, iv_ref)), (patas[1], _iv_o_referencia(corto, iv_ref))], spot, dias)
     return EstrategiaOpciones(
@@ -212,17 +277,17 @@ def _bull_call_spread(calls: list[ContratoOpcion], spot: float, dias: int, iv_re
               f"apostar al alza a cambio de limitar la ganancia.",
         riesgo_maximo=costo_neto * 100, ganancia_maxima=(corto.strike - largo.strike - costo_neto) * 100,
         breakevens=[breakeven],
-        probabilidad_exito=_prob_sobre(spot, breakeven, dias, iv_ref),
-        valor_esperado=valor_esperado_payoff(spot, dias, iv_ref, lambda s: _payoff_posicion(patas, s)),
+        probabilidad_exito=_prob_sobre(spot, breakeven, dias, iv_local),
+        valor_esperado=valor_esperado_payoff(spot, dias, iv_local, lambda s: _payoff_posicion(patas, s)),
         delta_neto=delta_neto, theta_neto=theta_neto, liquidez_score=_liquidez([largo, corto]),
     )
 
 
-def _bear_put_spread(puts: list[ContratoOpcion], spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
-    largo = _contrato_atm(puts, spot)
+def _bear_put_spread(cadena: CadenaOpciones, spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
+    largo = _contrato_atm(cadena.puts, spot)
     if largo is None:
         return None
-    corto = _contrato_delta_objetivo(puts, DELTA_SPREAD_VERTICAL, "put", spot, dias, iv_ref,
+    corto = _contrato_delta_objetivo(cadena.puts, DELTA_SPREAD_VERTICAL, "put", spot, dias, iv_ref,
                                       filtro_strike=lambda k: k < largo.strike)
     if corto is None:
         return None
@@ -232,6 +297,7 @@ def _bear_put_spread(puts: list[ContratoOpcion], spot: float, dias: int, iv_ref:
     if costo_neto <= 0:
         return None
     breakeven = largo.strike - costo_neto
+    iv_local = _iv_local(cadena, spot, [breakeven], iv_ref)
     delta_neto, theta_neto = _greeks_neto(
         [(patas[0], _iv_o_referencia(largo, iv_ref)), (patas[1], _iv_o_referencia(corto, iv_ref))], spot, dias)
     return EstrategiaOpciones(
@@ -240,18 +306,18 @@ def _bear_put_spread(puts: list[ContratoOpcion], spot: float, dias: int, iv_ref:
               f"apostar a la baja a cambio de limitar la ganancia.",
         riesgo_maximo=costo_neto * 100, ganancia_maxima=(largo.strike - corto.strike - costo_neto) * 100,
         breakevens=[breakeven],
-        probabilidad_exito=_prob_bajo(spot, breakeven, dias, iv_ref),
-        valor_esperado=valor_esperado_payoff(spot, dias, iv_ref, lambda s: _payoff_posicion(patas, s)),
+        probabilidad_exito=_prob_bajo(spot, breakeven, dias, iv_local),
+        valor_esperado=valor_esperado_payoff(spot, dias, iv_local, lambda s: _payoff_posicion(patas, s)),
         delta_neto=delta_neto, theta_neto=theta_neto, liquidez_score=_liquidez([largo, corto]),
     )
 
 
-def _bull_put_spread(puts: list[ContratoOpcion], spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
-    corto = _contrato_delta_objetivo(puts, DELTA_SPREAD_VERTICAL, "put", spot, dias, iv_ref,
+def _bull_put_spread(cadena: CadenaOpciones, spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
+    corto = _contrato_delta_objetivo(cadena.puts, DELTA_SPREAD_VERTICAL, "put", spot, dias, iv_ref,
                                       filtro_strike=lambda k: k < spot)
     if corto is None:
         return None
-    largo = _contrato_delta_objetivo(puts, DELTA_ALA_PROTECCION, "put", spot, dias, iv_ref,
+    largo = _contrato_delta_objetivo(cadena.puts, DELTA_ALA_PROTECCION, "put", spot, dias, iv_ref,
                                       filtro_strike=lambda k: k < corto.strike)
     if largo is None:
         return None
@@ -261,6 +327,7 @@ def _bull_put_spread(puts: list[ContratoOpcion], spot: float, dias: int, iv_ref:
     if credito_neto <= 0:
         return None
     breakeven = corto.strike - credito_neto
+    iv_local = _iv_local(cadena, spot, [breakeven], iv_ref)
     delta_neto, theta_neto = _greeks_neto(
         [(patas[0], _iv_o_referencia(corto, iv_ref)), (patas[1], _iv_o_referencia(largo, iv_ref))], spot, dias)
     return EstrategiaOpciones(
@@ -269,18 +336,18 @@ def _bull_put_spread(puts: list[ContratoOpcion], spot: float, dias: int, iv_ref:
               f"una prima apostando a que el precio se mantenga por encima del breakeven.",
         riesgo_maximo=(corto.strike - largo.strike - credito_neto) * 100, ganancia_maxima=credito_neto * 100,
         breakevens=[breakeven],
-        probabilidad_exito=_prob_sobre(spot, breakeven, dias, iv_ref),
-        valor_esperado=valor_esperado_payoff(spot, dias, iv_ref, lambda s: _payoff_posicion(patas, s)),
+        probabilidad_exito=_prob_sobre(spot, breakeven, dias, iv_local),
+        valor_esperado=valor_esperado_payoff(spot, dias, iv_local, lambda s: _payoff_posicion(patas, s)),
         delta_neto=delta_neto, theta_neto=theta_neto, liquidez_score=_liquidez([corto, largo]),
     )
 
 
-def _bear_call_spread(calls: list[ContratoOpcion], spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
-    corto = _contrato_delta_objetivo(calls, DELTA_SPREAD_VERTICAL, "call", spot, dias, iv_ref,
+def _bear_call_spread(cadena: CadenaOpciones, spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
+    corto = _contrato_delta_objetivo(cadena.calls, DELTA_SPREAD_VERTICAL, "call", spot, dias, iv_ref,
                                       filtro_strike=lambda k: k > spot)
     if corto is None:
         return None
-    largo = _contrato_delta_objetivo(calls, DELTA_ALA_PROTECCION, "call", spot, dias, iv_ref,
+    largo = _contrato_delta_objetivo(cadena.calls, DELTA_ALA_PROTECCION, "call", spot, dias, iv_ref,
                                       filtro_strike=lambda k: k > corto.strike)
     if largo is None:
         return None
@@ -290,6 +357,7 @@ def _bear_call_spread(calls: list[ContratoOpcion], spot: float, dias: int, iv_re
     if credito_neto <= 0:
         return None
     breakeven = corto.strike + credito_neto
+    iv_local = _iv_local(cadena, spot, [breakeven], iv_ref)
     delta_neto, theta_neto = _greeks_neto(
         [(patas[0], _iv_o_referencia(corto, iv_ref)), (patas[1], _iv_o_referencia(largo, iv_ref))], spot, dias)
     return EstrategiaOpciones(
@@ -298,19 +366,20 @@ def _bear_call_spread(calls: list[ContratoOpcion], spot: float, dias: int, iv_re
               f"una prima apostando a que el precio se mantenga por debajo del breakeven.",
         riesgo_maximo=(largo.strike - corto.strike - credito_neto) * 100, ganancia_maxima=credito_neto * 100,
         breakevens=[breakeven],
-        probabilidad_exito=_prob_bajo(spot, breakeven, dias, iv_ref),
-        valor_esperado=valor_esperado_payoff(spot, dias, iv_ref, lambda s: _payoff_posicion(patas, s)),
+        probabilidad_exito=_prob_bajo(spot, breakeven, dias, iv_local),
+        valor_esperado=valor_esperado_payoff(spot, dias, iv_local, lambda s: _payoff_posicion(patas, s)),
         delta_neto=delta_neto, theta_neto=theta_neto, liquidez_score=_liquidez([corto, largo]),
     )
 
 
-def _covered_call(calls: list[ContratoOpcion], spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
-    corto = _contrato_delta_objetivo(calls, DELTA_SPREAD_VERTICAL, "call", spot, dias, iv_ref,
+def _covered_call(cadena: CadenaOpciones, spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
+    corto = _contrato_delta_objetivo(cadena.calls, DELTA_SPREAD_VERTICAL, "call", spot, dias, iv_ref,
                                       filtro_strike=lambda k: k > spot)
     if corto is None:
         return None
     pata = PataOpcion("call", "vender", corto.strike, corto.prima)
     breakeven = spot - corto.prima
+    iv_local = _iv_local(cadena, spot, [breakeven], iv_ref)
 
     def payoff(precio_final: float) -> float:
         return (precio_final - spot) * 100 + _payoff_posicion([pata], precio_final)
@@ -324,20 +393,21 @@ def _covered_call(calls: list[ContratoOpcion], spot: float, dias: int, iv_ref: f
               f"limita la ganancia si el precio sube mucho.",
         riesgo_maximo=(spot - corto.prima) * 100, ganancia_maxima=(corto.strike - spot + corto.prima) * 100,
         breakevens=[breakeven],
-        probabilidad_exito=_prob_sobre(spot, breakeven, dias, iv_ref),
-        valor_esperado=valor_esperado_payoff(spot, dias, iv_ref, payoff),
+        probabilidad_exito=_prob_sobre(spot, breakeven, dias, iv_local),
+        valor_esperado=valor_esperado_payoff(spot, dias, iv_local, payoff),
         delta_neto=delta_neto, theta_neto=theta_neto, liquidez_score=_liquidez([corto]),
         capital_adicional_requerido=True,
     )
 
 
-def _cash_secured_put(puts: list[ContratoOpcion], spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
-    corto = _contrato_delta_objetivo(puts, DELTA_SPREAD_VERTICAL, "put", spot, dias, iv_ref,
+def _cash_secured_put(cadena: CadenaOpciones, spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
+    corto = _contrato_delta_objetivo(cadena.puts, DELTA_SPREAD_VERTICAL, "put", spot, dias, iv_ref,
                                       filtro_strike=lambda k: k < spot)
     if corto is None:
         return None
     pata = PataOpcion("put", "vender", corto.strike, corto.prima)
     breakeven = corto.strike - corto.prima
+    iv_local = _iv_local(cadena, spot, [breakeven], iv_ref)
     delta_neto, theta_neto = _greeks_neto([(pata, _iv_o_referencia(corto, iv_ref))], spot, dias)
     delta_neto = -delta_neto if delta_neto is not None else None
     theta_neto = -theta_neto if theta_neto is not None else None
@@ -347,15 +417,15 @@ def _cash_secured_put(puts: list[ContratoOpcion], spot: float, dias: int, iv_ref
               f"te asignan: cobra una prima apostando a que el precio se mantenga por encima del breakeven.",
         riesgo_maximo=(corto.strike - corto.prima) * 100, ganancia_maxima=corto.prima * 100,
         breakevens=[breakeven],
-        probabilidad_exito=_prob_sobre(spot, breakeven, dias, iv_ref),
-        valor_esperado=valor_esperado_payoff(spot, dias, iv_ref, lambda s: _payoff_posicion([pata], s)),
+        probabilidad_exito=_prob_sobre(spot, breakeven, dias, iv_local),
+        valor_esperado=valor_esperado_payoff(spot, dias, iv_local, lambda s: _payoff_posicion([pata], s)),
         delta_neto=delta_neto, theta_neto=theta_neto, liquidez_score=_liquidez([corto]),
         capital_adicional_requerido=True,
     )
 
 
-def _iron_condor(calls: list[ContratoOpcion], puts: list[ContratoOpcion],
-                  spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
+def _iron_condor(cadena: CadenaOpciones, spot: float, dias: int, iv_ref: float) -> EstrategiaOpciones | None:
+    calls, puts = cadena.calls, cadena.puts
     put_corto = _contrato_delta_objetivo(puts, DELTA_ALA_IRON_CONDOR, "put", spot, dias, iv_ref,
                                           filtro_strike=lambda k: k < spot)
     if put_corto is None:
@@ -385,8 +455,9 @@ def _iron_condor(calls: list[ContratoOpcion], puts: list[ContratoOpcion],
     riesgo = max(ancho_puts, ancho_calls) * 100 - credito_neto * 100
     breakeven_inf = put_corto.strike - credito_neto
     breakeven_sup = call_corto.strike + credito_neto
-    prob_inf = _prob_sobre(spot, breakeven_inf, dias, iv_ref)
-    prob_sup = _prob_sobre(spot, breakeven_sup, dias, iv_ref)
+    iv_local = _iv_local(cadena, spot, [breakeven_inf, breakeven_sup], iv_ref)
+    prob_inf = _prob_sobre(spot, breakeven_inf, dias, iv_local)
+    prob_sup = _prob_sobre(spot, breakeven_sup, dias, iv_local)
     prob = (prob_inf - prob_sup) if prob_inf is not None and prob_sup is not None else None
     contratos_iv = [(patas[0], _iv_o_referencia(put_corto, iv_ref)), (patas[1], _iv_o_referencia(put_largo, iv_ref)),
                      (patas[2], _iv_o_referencia(call_corto, iv_ref)), (patas[3], _iv_o_referencia(call_largo, iv_ref))]
@@ -399,22 +470,15 @@ def _iron_condor(calls: list[ContratoOpcion], puts: list[ContratoOpcion],
         riesgo_maximo=riesgo, ganancia_maxima=credito_neto * 100,
         breakevens=[breakeven_inf, breakeven_sup],
         probabilidad_exito=prob,
-        valor_esperado=valor_esperado_payoff(spot, dias, iv_ref, lambda s: _payoff_posicion(patas, s)),
+        valor_esperado=valor_esperado_payoff(spot, dias, iv_local, lambda s: _payoff_posicion(patas, s)),
         delta_neto=delta_neto, theta_neto=theta_neto,
         liquidez_score=_liquidez([put_corto, put_largo, call_corto, call_largo]),
     )
 
 
 _CONSTRUCTORES = [
-    lambda cadena, spot, dias, iv_ref: _long_call(cadena.calls, spot, dias, iv_ref),
-    lambda cadena, spot, dias, iv_ref: _long_put(cadena.puts, spot, dias, iv_ref),
-    lambda cadena, spot, dias, iv_ref: _bull_call_spread(cadena.calls, spot, dias, iv_ref),
-    lambda cadena, spot, dias, iv_ref: _bear_put_spread(cadena.puts, spot, dias, iv_ref),
-    lambda cadena, spot, dias, iv_ref: _bull_put_spread(cadena.puts, spot, dias, iv_ref),
-    lambda cadena, spot, dias, iv_ref: _bear_call_spread(cadena.calls, spot, dias, iv_ref),
-    lambda cadena, spot, dias, iv_ref: _covered_call(cadena.calls, spot, dias, iv_ref),
-    lambda cadena, spot, dias, iv_ref: _cash_secured_put(cadena.puts, spot, dias, iv_ref),
-    lambda cadena, spot, dias, iv_ref: _iron_condor(cadena.calls, cadena.puts, spot, dias, iv_ref),
+    _long_call, _long_put, _bull_call_spread, _bear_put_spread, _bull_put_spread,
+    _bear_call_spread, _covered_call, _cash_secured_put, _iron_condor,
 ]
 
 

@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 
 from screener.options_ideas import CadenaOpciones, ContratoOpcion
-from screener.options_math import precio_black_scholes
+from screener.options_math import precio_black_scholes, probabilidad_sobre, valor_esperado_payoff
 from screener.options_strategies import (
     DELTA_SPREAD_VERTICAL,
     EstrategiaOpciones,
@@ -20,13 +20,17 @@ from screener.options_strategies import (
     _cash_secured_put,
     _covered_call,
     _ev_por_riesgo,
+    _interpolar_iv,
     _iron_condor,
+    _iv_local,
     _liquidez,
     _liquidez_contrato,
     _long_call,
     _long_put,
+    _payoff_posicion,
     _percentil,
     construir_estrategias,
+    iv_en_precio,
     iv_referencia,
     rankear,
 )
@@ -65,7 +69,7 @@ def _sanidad(e) -> None:
 
 def test_long_call_estrategia_razonable():
     cadena = _cadena_sintetica()
-    e = _long_call(cadena.calls, SPOT, DIAS, IV)
+    e = _long_call(cadena, SPOT, DIAS, IV)
     assert e is not None
     _sanidad(e)
     assert e.ganancia_maxima is None  # ilimitada
@@ -74,7 +78,7 @@ def test_long_call_estrategia_razonable():
 
 def test_long_put_estrategia_razonable():
     cadena = _cadena_sintetica()
-    e = _long_put(cadena.puts, SPOT, DIAS, IV)
+    e = _long_put(cadena, SPOT, DIAS, IV)
     assert e is not None
     _sanidad(e)
     assert e.patas[0].accion == "comprar"
@@ -82,7 +86,7 @@ def test_long_put_estrategia_razonable():
 
 def test_bull_call_spread_orden_de_strikes_correcto():
     cadena = _cadena_sintetica()
-    e = _bull_call_spread(cadena.calls, SPOT, DIAS, IV)
+    e = _bull_call_spread(cadena, SPOT, DIAS, IV)
     assert e is not None
     _sanidad(e)
     largo, corto = e.patas
@@ -92,7 +96,7 @@ def test_bull_call_spread_orden_de_strikes_correcto():
 
 def test_bear_put_spread_orden_de_strikes_correcto():
     cadena = _cadena_sintetica()
-    e = _bear_put_spread(cadena.puts, SPOT, DIAS, IV)
+    e = _bear_put_spread(cadena, SPOT, DIAS, IV)
     assert e is not None
     _sanidad(e)
     largo, corto = e.patas
@@ -102,7 +106,7 @@ def test_bear_put_spread_orden_de_strikes_correcto():
 
 def test_bull_put_spread_es_credito():
     cadena = _cadena_sintetica()
-    e = _bull_put_spread(cadena.puts, SPOT, DIAS, IV)
+    e = _bull_put_spread(cadena, SPOT, DIAS, IV)
     assert e is not None
     _sanidad(e)
     corto, largo = e.patas
@@ -113,7 +117,7 @@ def test_bull_put_spread_es_credito():
 
 def test_bear_call_spread_es_credito():
     cadena = _cadena_sintetica()
-    e = _bear_call_spread(cadena.calls, SPOT, DIAS, IV)
+    e = _bear_call_spread(cadena, SPOT, DIAS, IV)
     assert e is not None
     _sanidad(e)
     corto, largo = e.patas
@@ -123,7 +127,7 @@ def test_bear_call_spread_es_credito():
 
 def test_covered_call_requiere_capital_adicional():
     cadena = _cadena_sintetica()
-    e = _covered_call(cadena.calls, SPOT, DIAS, IV)
+    e = _covered_call(cadena, SPOT, DIAS, IV)
     assert e is not None
     _sanidad(e)
     assert e.capital_adicional_requerido is True
@@ -132,7 +136,7 @@ def test_covered_call_requiere_capital_adicional():
 
 def test_cash_secured_put_requiere_capital_adicional():
     cadena = _cadena_sintetica()
-    e = _cash_secured_put(cadena.puts, SPOT, DIAS, IV)
+    e = _cash_secured_put(cadena, SPOT, DIAS, IV)
     assert e is not None
     _sanidad(e)
     assert e.capital_adicional_requerido is True
@@ -140,7 +144,7 @@ def test_cash_secured_put_requiere_capital_adicional():
 
 def test_iron_condor_cuatro_patas_dos_breakevens():
     cadena = _cadena_sintetica()
-    e = _iron_condor(cadena.calls, cadena.puts, SPOT, DIAS, IV)
+    e = _iron_condor(cadena, SPOT, DIAS, IV)
     assert e is not None
     _sanidad(e)
     assert len(e.patas) == 4
@@ -252,3 +256,102 @@ def test_delta_spread_vertical_es_una_convencion_documentada():
     # convención usada (0.30) para que un cambio accidental del valor no
     # pase desapercibido.
     assert DELTA_SPREAD_VERTICAL == 0.30
+
+
+# ------------------------- superficie de volatilidad (skew) -------------------------
+
+def _cadena_con_skew(spot=SPOT, dias=DIAS, iv_base=IV, pendiente=0.002) -> CadenaOpciones:
+    """Cadena sintética con skew de puts hacia abajo (strikes más bajos =
+    IV más alta, la convención empírica estándar de equities -- el mismo
+    patrón que se observó en datos reales de AAPL durante la auditoría).
+    Las primas de cada contrato son Black-Scholes consistentes CON su
+    propio IV real por strike, no con un IV plano."""
+    calls, puts = [], []
+    for k in range(60, 145, 5):
+        iv_put = iv_base + pendiente * max(0.0, spot - k)
+        iv_call = iv_base + pendiente * max(0.0, k - spot) * 0.3
+        precio_call = precio_black_scholes(spot, k, dias, iv_call, "call")
+        precio_put = precio_black_scholes(spot, k, dias, iv_put, "put")
+        oi = max(50, int(600 - abs(k - spot) * 10))
+        calls.append(ContratoOpcion(
+            strike=float(k), prima=round(precio_call, 2),
+            bid=round(precio_call * 0.975, 2), ask=round(precio_call * 1.025, 2),
+            iv=iv_call, open_interest=oi, volumen=oi // 2))
+        puts.append(ContratoOpcion(
+            strike=float(k), prima=round(precio_put, 2),
+            bid=round(precio_put * 0.975, 2), ask=round(precio_put * 1.025, 2),
+            iv=iv_put, open_interest=oi, volumen=oi // 2))
+    return CadenaOpciones(ticker="TEST", vencimiento="2099-01-01", dias_a_vencimiento=dias, calls=calls, puts=puts)
+
+
+def test_interpolar_iv_interpola_linealmente_entre_dos_strikes():
+    puntos = [(90.0, 0.30), (100.0, 0.40)]
+    assert _interpolar_iv(puntos, 95.0) == 0.35  # punto medio exacto
+
+
+def test_interpolar_iv_fuera_de_rango_usa_extremo_mas_cercano():
+    puntos = [(90.0, 0.30), (100.0, 0.40)]
+    assert _interpolar_iv(puntos, 50.0) == 0.30  # nunca extrapola
+    assert _interpolar_iv(puntos, 150.0) == 0.40
+
+
+def test_interpolar_iv_sin_puntos_validos_da_none():
+    assert _interpolar_iv([], 100.0) is None
+    assert _interpolar_iv([(90.0, None), (100.0, None)], 95.0) is None
+
+
+def test_iv_en_precio_usa_puts_bajo_spot_y_calls_sobre_spot():
+    cadena = _cadena_con_skew()
+    iv_abajo = iv_en_precio(cadena, 85.0, SPOT)
+    iv_arriba = iv_en_precio(cadena, 115.0, SPOT)
+    # con skew hacia abajo, un precio bien por debajo del spot debe traer
+    # una IV mayor que uno igual de lejos por encima
+    assert iv_abajo > iv_arriba
+
+
+def test_iv_local_promedia_breakevens_dados():
+    cadena = _cadena_con_skew()
+    iv_un_breakeven = _iv_local(cadena, SPOT, [85.0], IV)
+    iv_dos_breakevens = _iv_local(cadena, SPOT, [85.0, 115.0], IV)
+    esperado = (iv_en_precio(cadena, 85.0, SPOT) + iv_en_precio(cadena, 115.0, SPOT)) / 2
+    assert iv_un_breakeven == iv_en_precio(cadena, 85.0, SPOT)
+    assert abs(iv_dos_breakevens - esperado) < 1e-9
+
+
+def test_iv_local_sin_datos_cae_al_fallback():
+    vacia = CadenaOpciones(ticker="ZZZZ", vencimiento="2099-01-01", dias_a_vencimiento=35, calls=[], puts=[])
+    assert _iv_local(vacia, SPOT, [90.0], 0.42) == 0.42
+
+
+def test_iv_local_en_cadena_sin_skew_coincide_con_iv_plana():
+    # Sanity check: si TODOS los strikes cotizan la misma IV (sin skew),
+    # la IV local en cualquier breakeven debe coincidir con la IV plana
+    # -- el fix no debe cambiar nada cuando no hay skew que corregir.
+    cadena = _cadena_sintetica()
+    plana = iv_referencia(cadena, SPOT)
+    assert abs(_iv_local(cadena, SPOT, [85.0, 120.0], plana) - plana) < 1e-9
+
+
+def test_probabilidad_y_ev_usan_iv_local_no_la_plana_cuando_hay_skew():
+    # Regresión del hallazgo de auditoría (AAPL, Bear Put Spread #1 con
+    # tesis alcista): antes, probabilidad_exito y valor_esperado de TODAS
+    # las estrategias se calculaban con una única IV plana (ATM) aunque
+    # las primas reales sí reflejaran el skew real por strike. Con una
+    # cadena con skew real, el EV/probabilidad de una estrategia cuyo
+    # breakeven cae lejos del ATM (donde el skew es más pronunciado) debe
+    # diferir de lo que habría dado la IV plana -- si coincidieran
+    # exactamente, el fix no estaría teniendo ningún efecto.
+    cadena = _cadena_con_skew()
+    e = _bear_put_spread(cadena, SPOT, DIAS, IV)
+    assert e is not None
+
+    iv_plana = iv_referencia(cadena, SPOT)
+    ev_con_iv_plana = valor_esperado_payoff(SPOT, DIAS, iv_plana, lambda s: _payoff_posicion(e.patas, s))
+    prob_con_iv_plana = probabilidad_sobre(SPOT, e.breakevens[0], DIAS, iv_plana)
+
+    # El breakeven de este Bear Put Spread cae del lado de las puts, cuyo
+    # skew es más pronunciado en esta cadena sintética -- el EV/prob
+    # calculados con la IV local real deben diferir medibles de los que
+    # habría dado la IV plana.
+    assert abs(e.valor_esperado - ev_con_iv_plana) > 0.01
+    assert abs(e.probabilidad_exito - (1.0 - prob_con_iv_plana)) > 1e-4
