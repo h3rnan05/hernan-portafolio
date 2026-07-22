@@ -21,6 +21,8 @@ despliegue). Dos funciones separadas:
 4. **`/options TICKER`** (`options_command.py`): ranking cuantitativo de
    estrategias de opciones para una empresa. `--full` para el detalle
    completo (Top 4 por defecto). Ver la sección dedicada más abajo.
+5. **`/journal open|close|list|stats`** (`journal_command.py`): registro
+   de paper trading. Ver la sección dedicada más abajo.
 
 ## Qué trae `/report TICKER`
 
@@ -126,6 +128,49 @@ traduce a lenguaje llano el ranking que el motor matemático ya calculó
   histórico de IV (percentil de la IV actual contra ~1 año de historia)
   que este screener no recolecta hoy -- se documenta la ausencia, nunca
   se inventa un número.
+
+## Qué trae `/journal`
+
+Registro de paper trading (`journal_command.py` + el paquete `journal/`
+en la raíz del repo). El objetivo: poder responder con datos reales, tras
+30-50 operaciones, si el screener + /options realmente tienen ventaja
+estadística -- no solo "sentir" que funcionan.
+
+- **`/journal open TICKER ESTRATEGIA [motivo]`**: re-calcula la
+  estrategia pedida con datos de opciones EN VIVO (mismo motor de
+  `/options`, `screener/options_strategies.construir_estrategias`) y
+  registra automáticamente: ticker, fecha, score y posición del screener
+  ese día (si estaba en la shortlist), tesis técnica, la estrategia con
+  todas sus patas/strikes/primas reales, costo, riesgo máximo, ganancia
+  máxima, probabilidad de éxito, valor esperado, y el motivo (el que
+  escribas, o la razón determinística de la estrategia si no escribes
+  nada). `ESTRATEGIA` debe ser uno de los 9 nombres exactos que produce
+  el motor (ej. "Bull Call Spread", "Iron Condor").
+- **`/journal close TICKER RESULTADO [notas]`**: cierra la operación
+  abierta más reciente de ese ticker con el resultado real en dólares
+  (ej. `+150` o `-80`) que **tú reportas** -- este sistema no tiene
+  acceso a tu cuenta de paper trading real, así que nunca inventa ni
+  infiere un resultado.
+- **`/journal list`**: operaciones abiertas.
+- **`/journal stats`**: win rate, ganancia/pérdida promedio, expectancy,
+  P&L total y drawdown máximo -- generales y desglosados por estrategia
+  (`journal/stats.py`). Solo sobre operaciones CERRADAS; nunca estima
+  nada sobre las abiertas.
+
+Costo: para estrategias de débito (Long Call/Put, Bull Call Spread, Bear
+Put Spread, y Covered Call/Cash Secured Put que comprometen capital) es
+`riesgo_maximo` (lo que efectivamente arriesgas). Para estrategias de
+crédito (Bull Put Spread, Bear Call Spread, Iron Condor) es
+`-ganancia_maxima` (negativo: recibes esa prima al abrir).
+
+Persistencia: `journal/journal.json` en el repo, leído/escrito vía la API
+de contenidos de GitHub -- mismo patrón que `wizards_inbox.json`/
+`wizards_state.json`, porque este servicio no tiene disco persistente en
+Render.
+
+Ningún LLM interviene en ningún punto de `/journal`: construir la
+estrategia, calcular el costo, y las estadísticas son puro cálculo
+determinístico.
 
 ## Arquitectura
 
