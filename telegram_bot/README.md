@@ -182,45 +182,38 @@ Decisión de producto: `/report` y `/options` son correctos pero son
 `/trade` (`trade_command.py`) reempaqueta exactamente los mismos números
 que ya calculan `/report` y `/options` (ningún dato nuevo, ningún cálculo
 nuevo) en un formato legible en menos de 30 segundos, con `/report`/
-`/options` disponibles al final para quien quiera profundizar.
+`/options --full` al final para quien quiera profundizar.
 
-- **Mi opinión**: estrellas + un veredicto de una frase, puramente
-  determinístico sobre el promedio de 6 señales (nunca lo redacta el
-  LLM).
-- **Confianza**: mide qué tan ALINEADAS están las señales entre sí
-  (`abs(promedio - 0.5) * 2`) -- se etiqueta explícitamente como "% de
-  señales alineadas, no una probabilidad de éxito" para no dar la
-  impresión de que el sistema predice resultados (Principio #3).
-- **¿Qué veo?**: 6 señales con estrellas/emoji -- Negocio (sub-score
-  `calidad` de la shortlist), Tendencia, Valuación, Noticias (tono
-  promedio de las explicadas hoy), Analistas (consenso yfinance), Riesgo
-  (número de banderas reales de `report_command._riesgos`). Cualquier
-  señal sin dato real dice "No disponible"/"No determinable", nunca se
-  inventa.
-- **Si hoy quisiera entrar...**: TODAS las estrategias que `/options`
-  pudo construir, con estrellas relativas a ese ranking (mismo
-  `_estrellas_por_posicion` de `options_command.py`), más "Comprar
-  acciones" con las mismas estrellas del veredicto general (la única
-  "estrategia" que no depende de la cadena de opciones).
-- **¿Por qué?**: 3-4 bullets del LLM explicando por qué el motor
-  determinístico puso primera a esa estrategia -- mismo guardrail
-  belt-and-suspenders que `/options` (nunca sugiere abrir/comprar/vender;
-  si se desvía, la explicación se descarta entera).
-- **Ejemplo educativo**: la estrategia top con sus patas/strikes/primas
-  reales, costo (`options_strategies.costo_apertura`), pérdida máxima,
-  ganancia máxima, objetivo (precio objetivo REAL de analistas vía
-  yfinance, o "No disponible" -- nunca inventado) y "Salir si" (el/los
-  breakeven(s) reales de la estrategia).
-- **¿Qué espero?**: escenarios (no una predicción) evaluando el payoff
-  REAL de la estrategia (`options_strategies.evaluar_payoff`) en 3
-  precios concretos: objetivo de analistas, precio actual sin cambios, y
-  un movimiento del 15% en la dirección que perjudica a la estrategia
-  (según el signo de su delta neto).
-- **¿Qué eventos debo esperar?**: fecha real de próximos resultados y
-  días restantes -- deliberadamente SIN una calificación de "qué tan
-  importante será", porque eso requeriría un histórico de volatilidad
-  alrededor de earnings pasados que este sistema no recolecta (fabricar
-  esa cifra sería peor que omitirla).
+100% determinístico, sin LLM -- a diferencia de la primera versión de
+este comando, ninguna sección depende de una llamada a Claude (que podía
+fallar en silencio). Cada línea sale de reglas fijas sobre números ya
+reales.
+
+- **Convicción del modelo**: el score REAL del screener (0-100,
+  `screener.scoring.puntuar()`, el mismo que aparece en la shortlist
+  diaria) con emoji 🟢/🟡/🔴 por umbral -- "No disponible" si el ticker no
+  está en la shortlist de hoy. No es una probabilidad de éxito, es la
+  calificación del modelo (Principio #3).
+- **Mi conclusión**: dos frases deterministas -- si compraría la acción
+  hoy (según tendencia técnica, valoración y RSI) y si investigaría una
+  estrategia de opciones (según si el ranking pudo construirse y qué tan
+  bien calificó la mejor).
+- **Mejor estrategia**: el #1 del ranking de `/options`, con su propia
+  "Convicción" (0-100, el score compuesto de `options_strategies.
+  puntuar()` -- 50% valor esperado/riesgo, 30% probabilidad, 20%
+  liquidez) y un bloque "¿Por qué?" armado de hechos reales (RSI,
+  precio vs. objetivo de analistas, calidad de la relación
+  riesgo/beneficio) -- sin LLM, así nunca puede fallar en silencio.
+- **Ejemplo**: patas/strikes reales, costo máximo (`riesgo_maximo`),
+  ganancia máxima, y punto de equilibrio (el/los breakeven(s) reales).
+- **Escenarios**: el payoff REAL de la estrategia
+  (`options_strategies.evaluar_payoff`) en 3 precios concretos --
+  objetivo de analistas (o un movimiento del 15% si no hay objetivo),
+  precio actual sin cambios, y un movimiento del 15% adverso. El emoji
+  🟢/🔴 de cada escenario refleja el SIGNO real del payoff calculado, no
+  una dirección asumida de antemano (el objetivo de analistas puede
+  apuntar en la dirección que en realidad perjudica a la estrategia
+  elegida -- ver test de regresión en `test_trade_command.py`).
 - **Riesgos**: mismas banderas reales de `/report` (máx. 3, en orden de
   severidad).
 
