@@ -72,7 +72,7 @@ def test_mensaje_basico_incluye_secciones_clave(monkeypatch):
     assert "📊 AAPL — Apple Inc." in texto
     assert "Convicción del modelo:" in texto
     assert "📌 Mi conclusión" in texto
-    assert "🎯 Mejor estrategia" in texto
+    assert "🎯" in texto  # "Mejor estrategia" o la variante "Si decidieras operar hoy..."
     assert "¿Por qué?" in texto
     assert "💰 Ejemplo" in texto
     assert "Costo máximo:" in texto
@@ -136,6 +136,43 @@ def test_escenario_favorable_usa_emoji_por_signo_no_por_direccion_asumida(monkey
     texto = tc.generar_trade("AAPL")
     assert "🔴 Si baja hacia $318" in texto
     assert "Pérdida estimada:" in texto
+
+
+def test_coherencia_estrategia_alineada_con_tesis_muestra_mejor_estrategia(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "alcista")
+    long_call = EstrategiaOpciones(
+        nombre="Long Call", patas=[PataOpcion("call", "comprar", 100.0, 5.0)],
+        razon="Compra call $100.00.", riesgo_maximo=500.0, ganancia_maxima=None,
+        breakevens=[105.0], probabilidad_exito=0.4, valor_esperado=50.0,
+        delta_neto=0.5, theta_neto=-1.0, liquidez_score=80.0,
+    )
+    monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
+    monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
+    texto = tc.generar_trade("AAPL")
+    assert "🎯 Mejor estrategia" in texto
+    assert "no coincide con la tesis" not in texto
+
+
+def test_coherencia_estrategia_no_alineada_cambia_encabezado_y_agrega_nota(monkeypatch):
+    """Regresión del pedido explícito del usuario: evitar mensajes
+    contradictorios ("No compraría hoy" + "Long Call" presentado como
+    "Mejor estrategia") sin tocar el ranking matemático."""
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "esperar")
+    long_call = EstrategiaOpciones(
+        nombre="Long Call", patas=[PataOpcion("call", "comprar", 100.0, 5.0)],
+        razon="Compra call $100.00.", riesgo_maximo=500.0, ganancia_maxima=None,
+        breakevens=[105.0], probabilidad_exito=0.4, valor_esperado=50.0,
+        delta_neto=0.5, theta_neto=-1.0, liquidez_score=80.0,
+    )
+    monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
+    monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
+    texto = tc.generar_trade("AAPL")
+    assert "🎯 Mejor estrategia" not in texto
+    assert "Si decidieras operar hoy, la estrategia con mejor relación matemática es..." in texto
+    assert "no coincide con la tesis principal del modelo (Esperar)" in texto
+    assert "Long Call" in texto
 
 
 def test_por_que_usa_precio_vs_objetivo_de_analistas(monkeypatch):
@@ -208,25 +245,62 @@ def test_precio_favorable_es_espejo_del_adverso():
     assert tc._precio_favorable(100.0, delta_neto=-0.5) == pytest.approx(85.0)
 
 
-def test_conclusion_acciones_alcista_sobrecomprado_espera_correccion():
-    preambulo, veredicto = tc._conclusion_acciones("alcista", "Exigente", rsi=80.0)
+def test_tesis_categoria_alcista_sobrecomprado_es_esperar():
+    assert tc._tesis_categoria("alcista", "Exigente", rsi=80.0) == "esperar"
+    assert tc._tesis_categoria("alcista", "Razonable", rsi=90.0) == "esperar"
+
+
+def test_tesis_categoria_alcista_sano():
+    assert tc._tesis_categoria("alcista", "Razonable", rsi=50.0) == "alcista"
+
+
+def test_tesis_categoria_bajista_y_neutral_pasan_directo():
+    assert tc._tesis_categoria("bajista", "Razonable", rsi=50.0) == "bajista"
+    assert tc._tesis_categoria("neutral", "Razonable", rsi=50.0) == "neutral"
+
+
+def test_tesis_categoria_desconocida_es_no_determinable():
+    assert tc._tesis_categoria("rara", "Razonable", rsi=50.0) == "no_determinable"
+
+
+def test_tesis_coincide_neutral_y_no_determinable_siempre_coinciden():
+    assert tc._tesis_coincide_con_estrategia("neutral", "alcista") is True
+    assert tc._tesis_coincide_con_estrategia("neutral", "bajista") is True
+    assert tc._tesis_coincide_con_estrategia("no_determinable", "bajista") is True
+
+
+def test_tesis_coincide_esperar_rechaza_alcista_acepta_el_resto():
+    assert tc._tesis_coincide_con_estrategia("esperar", "alcista") is False
+    assert tc._tesis_coincide_con_estrategia("esperar", "bajista") is True
+    assert tc._tesis_coincide_con_estrategia("esperar", "neutral") is True
+
+
+def test_tesis_coincide_alcista_bajista_exigen_coincidencia_exacta():
+    assert tc._tesis_coincide_con_estrategia("alcista", "alcista") is True
+    assert tc._tesis_coincide_con_estrategia("alcista", "bajista") is False
+    assert tc._tesis_coincide_con_estrategia("bajista", "bajista") is True
+    assert tc._tesis_coincide_con_estrategia("bajista", "alcista") is False
+
+
+def test_conclusion_acciones_esperar():
+    preambulo, veredicto = tc._conclusion_acciones("esperar")
     assert preambulo == "Esperaría una pequeña corrección antes de entrar."
     assert veredicto == "No compraría acciones hoy."
 
 
 def test_conclusion_acciones_alcista_sano():
-    preambulo, veredicto = tc._conclusion_acciones("alcista", "Razonable", rsi=50.0)
+    preambulo, veredicto = tc._conclusion_acciones("alcista")
     assert preambulo is None
     assert "Compraría acciones hoy" in veredicto
 
 
 def test_conclusion_acciones_bajista():
-    _, veredicto = tc._conclusion_acciones("bajista", "Razonable", rsi=50.0)
+    _, veredicto = tc._conclusion_acciones("bajista")
     assert "No compraría acciones hoy" in veredicto
 
 
 def test_conclusion_acciones_neutral():
-    _, veredicto = tc._conclusion_acciones("neutral", "Razonable", rsi=50.0)
+    _, veredicto = tc._conclusion_acciones("neutral")
     assert "No hay una señal técnica clara" in veredicto
 
 

@@ -33,6 +33,7 @@ from screener.options_strategies import (
     EstrategiaOpciones,
     _iv_local,
     construir_estrategias,
+    direccion_estrategia,
     evaluar_payoff,
     iv_referencia,
 )
@@ -204,15 +205,14 @@ def main() -> None:
         print("  Ninguna estrategia cambió de posición en este ticker/día.")
     print()
 
-    tesis_alcistas = {"Long Call", "Bull Call Spread", "Bull Put Spread", "Covered Call", "Cash Secured Put"}
-    tesis_bajistas = {"Long Put", "Bear Put Spread", "Bear Call Spread"}
     if ranking_nuevo:
         lider = ranking_nuevo[0].nombre
-        if tendencia == "alcista" and lider in tesis_bajistas:
+        direccion_lider = direccion_estrategia(lider)
+        if tendencia == "alcista" and direccion_lider == "bajista":
             print(f"  Nota: el líder del ranking nuevo ({lider}) es una estrategia BAJISTA "
                   f"con tesis técnica ALCISTA -- puede ser legítimo (ver disclaimer: el ranking "
                   f"es risk-neutral, no direccional), pero vale revisarlo caso por caso.")
-        elif tendencia == "bajista" and lider in tesis_alcistas:
+        elif tendencia == "bajista" and direccion_lider == "alcista":
             print(f"  Nota: el líder del ranking nuevo ({lider}) es una estrategia ALCISTA "
                   f"con tesis técnica BAJISTA -- puede ser legítimo, pero vale revisarlo caso por caso.")
         else:

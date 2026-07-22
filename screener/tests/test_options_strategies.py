@@ -31,9 +31,11 @@ from screener.options_strategies import (
     _percentil,
     construir_estrategias,
     costo_apertura,
+    direccion_estrategia,
     evaluar_payoff,
     iv_en_precio,
     iv_referencia,
+    puntuar,
     rankear,
 )
 
@@ -218,6 +220,40 @@ def test_rankear_no_deja_que_probabilidad_domine_un_ev_por_riesgo_claramente_mej
     cara_baja_ev = _estrategia_minima("B", ev=-3.0, riesgo=9000.0, prob=0.77, liquidez=88.0)   # ev/riesgo=-0.03%
     ranking = rankear([barata_alta_ev, cara_baja_ev])
     assert ranking[0].nombre == "A"
+
+
+def test_puntuar_ordena_igual_que_rankear():
+    # rankear() reusa puntuar() internamente -- el orden que produce
+    # ordenar por puntuar() debe coincidir exactamente con rankear().
+    a = _estrategia_minima("A", ev=50.0, riesgo=500.0, prob=0.60, liquidez=80.0)
+    b = _estrategia_minima("B", ev=-3.0, riesgo=9000.0, prob=0.77, liquidez=88.0)
+    estrategias = [a, b]
+    scores = puntuar(estrategias)
+    ranking = rankear(estrategias)
+    orden_por_score = [e.nombre for e in sorted(estrategias, key=lambda e: scores[estrategias.index(e)], reverse=True)]
+    assert orden_por_score == [e.nombre for e in ranking]
+
+
+def test_puntuar_lista_vacia_no_rompe():
+    assert puntuar([]) == []
+
+
+def test_direccion_estrategia_alcistas():
+    for nombre in ("Long Call", "Bull Call Spread", "Bull Put Spread", "Covered Call", "Cash Secured Put"):
+        assert direccion_estrategia(nombre) == "alcista"
+
+
+def test_direccion_estrategia_bajistas():
+    for nombre in ("Long Put", "Bear Put Spread", "Bear Call Spread"):
+        assert direccion_estrategia(nombre) == "bajista"
+
+
+def test_direccion_estrategia_iron_condor_es_neutral():
+    assert direccion_estrategia("Iron Condor") == "neutral"
+
+
+def test_direccion_estrategia_nombre_desconocido_es_neutral():
+    assert direccion_estrategia("Estrategia Inventada") == "neutral"
 
 
 def test_percentil_de_un_solo_valor_es_uno():

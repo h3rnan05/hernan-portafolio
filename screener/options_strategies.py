@@ -98,6 +98,25 @@ def _payoff_posicion(patas: list[PataOpcion], precio_final: float) -> float:
 # usado por costo_apertura() y por telegram_bot/journal_command.py.
 ESTRATEGIAS_CREDITO = frozenset({"Bull Put Spread", "Bear Call Spread", "Iron Condor"})
 
+# Dirección direccional de cada estrategia -- usada por audit_options.py (para
+# la nota de coherencia con la tesis técnica) y por telegram_bot/
+# trade_command.py (para decidir si la estrategia top coincide con la tesis
+# del screener antes de presentarla como "Mejor estrategia"). Iron Condor no
+# está en ninguno de los dos conjuntos: es neutral por diseño (apuesta a que
+# el precio se quede DENTRO de un rango, no a una dirección).
+ESTRATEGIAS_ALCISTAS = frozenset({"Long Call", "Bull Call Spread", "Bull Put Spread", "Covered Call", "Cash Secured Put"})
+ESTRATEGIAS_BAJISTAS = frozenset({"Long Put", "Bear Put Spread", "Bear Call Spread"})
+
+
+def direccion_estrategia(nombre: str) -> str:
+    """"alcista"/"bajista"/"neutral" según a qué apuesta la estrategia --
+    puramente una clasificación fija por nombre, no cambia el ranking."""
+    if nombre in ESTRATEGIAS_ALCISTAS:
+        return "alcista"
+    if nombre in ESTRATEGIAS_BAJISTAS:
+        return "bajista"
+    return "neutral"
+
 
 def evaluar_payoff(e: EstrategiaOpciones, precio_final: float, spot: float | None = None) -> float:
     """Resultado en dólares por 1 contrato de la posición COMPLETA a un
