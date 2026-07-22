@@ -44,6 +44,9 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
+_TELEGRAM_BOT_DIR = Path(__file__).resolve().parent
+if str(_TELEGRAM_BOT_DIR) not in sys.path:
+    sys.path.insert(0, str(_TELEGRAM_BOT_DIR))
 
 from news_analyst.explicador import generar_explicacion, llamar_claude  # noqa: E402
 from news_analyst.models import EntradaShortlist  # noqa: E402
