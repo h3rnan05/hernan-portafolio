@@ -418,6 +418,22 @@ _CONSTRUCTORES = [
 ]
 
 
+def iv_referencia(cadena: CadenaOpciones, spot: float) -> float | None:
+    """IV 'de referencia' para el vencimiento elegido = promedio de la IV
+    de la call y la put ATM (deberían ser casi iguales por paridad
+    put-call; promediar reduce ruido). Es la misma IV que se usa
+    internamente para construir todas las estrategias -- pública para que
+    el comando de Telegram pueda mostrarla honestamente. None si la
+    cadena no tiene datos suficientes."""
+    atm_call = _contrato_atm(cadena.calls, spot)
+    atm_put = _contrato_atm(cadena.puts, spot)
+    ivs_atm = [c.iv for c in (atm_call, atm_put) if c and c.iv]
+    if not ivs_atm:
+        return None
+    iv = sum(ivs_atm) / len(ivs_atm)
+    return iv if iv > 0 else None
+
+
 def construir_estrategias(cadena: CadenaOpciones, spot: float) -> list[EstrategiaOpciones]:
     """Punto de entrada: construye las estrategias que se puedan armar con
     los datos reales de la cadena (una estrategia se omite, no se inventa,
@@ -426,13 +442,8 @@ def construir_estrategias(cadena: CadenaOpciones, spot: float) -> list[Estrategi
     dias = cadena.dias_a_vencimiento
     if not dias or dias <= 0 or not cadena.calls or not cadena.puts:
         return []
-    atm_call = _contrato_atm(cadena.calls, spot)
-    atm_put = _contrato_atm(cadena.puts, spot)
-    ivs_atm = [c.iv for c in (atm_call, atm_put) if c and c.iv]
-    if not ivs_atm:
-        return []
-    iv_ref = sum(ivs_atm) / len(ivs_atm)
-    if iv_ref <= 0:
+    iv_ref = iv_referencia(cadena, spot)
+    if iv_ref is None:
         return []
 
     resultado = []

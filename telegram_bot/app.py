@@ -43,6 +43,7 @@ import httpx
 from fastapi import BackgroundTasks, FastAPI, Header, Request
 
 from idea_evaluator import evaluar_idea
+from options_command import generar_options
 from report_command import generar_lista_completa, generar_reporte
 
 logging.basicConfig(level=logging.INFO)
@@ -68,6 +69,11 @@ AYUDA = (
     "/report TICKER -- memo de investigación de una empresa (técnico, "
     "fundamentales, consenso de analistas, noticias relevantes). Ej.: "
     "/report AAPL\n\n"
+    "/options TICKER -- ranking cuantitativo de estrategias de opciones "
+    "(Greeks, probabilidad, valor esperado, liquidez -- 100% "
+    "determinístico, el LLM solo lo explica). Top 4 por defecto; agrega "
+    "--full para ver todas con el detalle completo. Ej.: /options AAPL, "
+    "/options AAPL --full\n\n"
     "/list -- la shortlist completa de hoy (el mensaje diario solo muestra "
     "el Top 10)."
 )
@@ -216,6 +222,24 @@ async def _procesar_reporte(ticker: str, chat_id: str) -> None:
             pass
 
 
+async def _procesar_options(ticker: str, modo: str, chat_id: str) -> None:
+    """Genera el memo de /options TICKER y lo manda. Corre como background
+    task; generar_options hace llamadas de red síncronas (Yahoo/yfinance/
+    Anthropic), así que se ejecuta en un hilo aparte para no bloquear el
+    event loop del webhook."""
+    try:
+        texto = await asyncio.to_thread(generar_options, ticker, modo)
+        await _telegram_send_largo(chat_id, texto)
+    except Exception as e:
+        log.exception("options de %s falló", ticker)
+        try:
+            await _telegram_send(
+                chat_id, f"⚠️ Algo falló generando las opciones de {ticker}: "
+                         f"{type(e).__name__}. Inténtalo de nuevo en un momento.")
+        except Exception:
+            pass
+
+
 @app.get("/health")
 @app.get("/telegram/health")
 async def health() -> dict:
@@ -274,6 +298,17 @@ async def telegram_webhook(
                 _telegram_send, chat_id, "Uso: /report TICKER (ej. /report AAPL)")
             return {"ok": True}
         background.add_task(_procesar_reporte, partes[1].upper(), chat_id)
+        return {"ok": True}
+
+    if texto.startswith("/options"):
+        partes = texto.split()
+        if len(partes) < 2:
+            background.add_task(
+                _telegram_send, chat_id,
+                "Uso: /options TICKER (ej. /options AAPL, o /options AAPL --full)")
+            return {"ok": True}
+        modo = "full" if "--full" in partes[2:] else "simple"
+        background.add_task(_procesar_options, partes[1].upper(), modo, chat_id)
         return {"ok": True}
 
     background.add_task(_procesar, texto, chat_id)

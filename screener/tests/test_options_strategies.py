@@ -27,6 +27,7 @@ from screener.options_strategies import (
     _long_put,
     _percentil,
     construir_estrategias,
+    iv_referencia,
     rankear,
 )
 
@@ -160,6 +161,18 @@ def test_construir_estrategias_arma_multiples_sin_calendar_spread():
 def test_construir_estrategias_cadena_vacia_no_rompe():
     vacia = CadenaOpciones(ticker="ZZZZ", vencimiento="2099-01-01", dias_a_vencimiento=35, calls=[], puts=[])
     assert construir_estrategias(vacia, SPOT) == []
+
+
+def test_iv_referencia_promedia_atm_call_y_put():
+    cadena = _cadena_sintetica()
+    iv = iv_referencia(cadena, SPOT)
+    assert iv is not None
+    assert abs(iv - IV) < 1e-9  # cadena sintética construida con IV constante
+
+
+def test_iv_referencia_cadena_vacia_da_none():
+    vacia = CadenaOpciones(ticker="ZZZZ", vencimiento="2099-01-01", dias_a_vencimiento=35, calls=[], puts=[])
+    assert iv_referencia(vacia, SPOT) is None
 
 
 def test_construir_estrategias_sin_dias_no_rompe():
