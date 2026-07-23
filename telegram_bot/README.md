@@ -9,16 +9,17 @@ despliegue). Dos funciones separadas:
    ejecute en su siguiente corrida (sujeta a sus límites de riesgo en código).
 2. **`/report TICKER`** (`report_command.py`): decide en menos de un
    minuto si vale la pena investigar la empresa. `--full` para el memo
-   exhaustivo. Nace de separar el mensaje diario del screener (que ahora
-   es corto, ver `screener/report.texto_telegram_corto`) de la
-   investigación profunda (que ahora se pide explícitamente, no se manda
-   automáticamente todos los días). Ver la sección dedicada más abajo.
+   exhaustivo. Es la investigación profunda que el mensaje diario
+   automático (ver Opportunity Hunter, abajo) YA NO manda para todo lo que
+   pasó el screener -- se pide explícitamente, un ticker a la vez. Ver la
+   sección dedicada más abajo.
 3. **`/list`** (`report_command.generar_lista_completa`): la shortlist
-   completa de hoy. El mensaje diario automático solo muestra el Top 10
-   (`cfg.top_n_mensaje_diario`) para que sea corto y legible en segundos;
-   `/list` muestra las hasta ~20 que sí pasaron el screener, con el mismo
-   formato (emoji de sector + score) que el mensaje diario. Solo lee el
-   archivo `shortlist_hoy.json` ya generado — no hace llamadas de red.
+   completa de hoy (hasta ~20 tickers que pasaron el screener, con el
+   score/sector de cada uno). El mensaje diario automático ya no incluye
+   esta lista -- ahora es el Opportunity Hunter (abajo); `/list` sigue
+   disponible para quien igual quiera ver todo lo que pasó el screener.
+   Solo lee el archivo `shortlist_hoy.json` ya generado — no hace llamadas
+   de red.
 4. **`/options TICKER`** (`options_command.py`): ranking cuantitativo de
    estrategias de opciones para una empresa. `--full` para el detalle
    completo (Top 4 por defecto). Ver la sección dedicada más abajo.
@@ -27,6 +28,76 @@ despliegue). Dos funciones separadas:
 6. **`/trade TICKER`** (`trade_command.py`): el "tablero de trader" --
    el resumen ejecutivo de `/report` + `/options` en menos de 30 segundos
    de lectura. Ver la sección dedicada más abajo.
+7. **Opportunity Hunter** (`screener/opportunity_hunter.py`, NO es un
+   comando de Telegram -- corre solo, automáticamente, cada día). Ver la
+   sección dedicada más abajo.
+
+## Mensaje diario automático: Opportunity Hunter
+
+Corre en `screener/run.py`, inmediatamente después del screener diario
+(mismo cron, `.github/workflows/screener.yml`), y reutiliza los datos que
+el screener ya calculó ese día (barras, sub-scores cross-sectional del
+universo completo, fundamentales) -- no descarga nada nuevo salvo, para
+los 0-3 tickers que ya dispararon un patrón, su cadena de opciones.
+
+Filosofía (pedido explícito, 2026-07-23: "Wizards deja de ser un
+generador de reportes y se convierte en un Opportunity Hunter... quiero
+que elimines el 99% del ruido. Solo quiero recibir oportunidades
+excepcionales"): el mensaje diario automático **ya no es** la shortlist
+corta de lo que pasó el screener (`texto_telegram_corto` -- se sigue
+calculando y logueando para auditoría, pero no se envía). Ahora escanea
+el universo COMPLETO ya validado (no solo el Top 20 que persiste
+`shortlist_hoy.json`) buscando patrones donde 3-4 señales independientes
+coinciden a la vez -- nunca un score alto solo. Si nada coincide, el
+mensaje del día es, literalmente:
+
+> Hoy no encontré ninguna oportunidad que cumpla mis estándares. No
+> abriría ninguna posición.
+
+Ese "no encontré nada" es una salida válida y esperada, no un bug --
+esperable la mayoría de los días, por diseño ("prefiero recibir 2
+oportunidades excelentes por semana que 20 mediocres por día").
+
+**Patrones fase 1** (honestamente calculables hoy con los datos gratis
+que ya se recolectan; como máximo un patrón por ticker, prioridad
+ruptura > pullback > valor_impulso):
+
+- **Ruptura confirmada**: precio a ≥98% de su máximo de 52 semanas +
+  volumen de la última barra ≥1.5x el promedio de 20 días + tendencia
+  alcista fuerte (precio > SMA50 > SMA100 > SMA200).
+- **Pullback sano**: misma tendencia alcista fuerte, corrigiendo dentro
+  de ±3% de la SMA50 sin romperla, RSI entre 40-60 (ni sobrecomprado ni
+  en pánico), y negocio de calidad (percentil ≥60) o creciendo ingresos
+  ≥10%.
+- **Infravalorada con impulso**: percentiles cross-sectional del día
+  valor ≥70, calidad ≥60 y momentum ≥70 a la vez -- evita depender de
+  historial día-a-día (que `shortlist_hoy.json` no tiene para el
+  universo completo, solo para el Top 20).
+
+**Deliberadamente NO implementado todavía (fase 2, requiere datos que hoy
+no se recolectan)**: earnings sorpresa + guía al alza (sin historial
+estructurado de guidance) y volumen de opciones inusual acompañado de
+tesis fundamental (sin histórico de IV/volumen de opciones -- misma
+limitación ya documentada para "IV Rank" en `screener/options_ideas.py`).
+
+Cada oportunidad detectada se manda con: **Convicción del modelo**
+(0-100, reusa los mismos sub_scores reales del día, ponderados distinto
+por patrón -- nunca un número inventado), **Mi decisión** (Comprar
+hoy/Esperar/No operar -- reglas fijas: liquidez cross-sectional <20 →
+No operar, earnings en ≤5 días → Esperar), **¿Por qué?** (qué ocurrió y
+qué la invalidaría, máximo 4 líneas, con números reales), **Entrada
+ideal/Stop/Objetivo** (mismo motor ATR/SMA50 de `/trade` y `/report`,
+`screener.factors.technical.niveles_precio`), **Capital mínimo** y
+**Estrategia recomendada** (cadena de opciones real solo para ese
+ticker, filtrada a direcciones no-bajistas, mejor por el ranking de
+`options_strategies.rankear()` -- se degrada a "comprar acciones
+directamente" si la cadena falla), y **Nivel de urgencia**. 100%
+determinístico, sin LLM -- `.github/workflows/screener.yml` ni siquiera
+le pasa `ANTHROPIC_API_KEY`.
+
+`/report`, `/options`, `/trade` y `/list` no cambian: siguen leyendo
+`shortlist_hoy.json`/`.md`, que se sigue persistiendo exactamente igual
+que antes.
 
 ## Qué trae `/report TICKER`
 
