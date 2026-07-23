@@ -229,8 +229,22 @@ sobre números ya reales.
   hechos sobre cómo funciona ese tipo de estrategia, iguales para
   cualquier ticker) con hechos reales del día (RSI, precio vs. objetivo
   de analistas).
+- **Plan del trade** (justo antes de "Ejemplo", solo cuando la conclusión
+  es "esperar"): tabla compacta Entrada/Objetivo 1/Objetivo 2/Stop, ver
+  detalle más abajo. Se muestra aquí -- inmediatamente después de conocer
+  la estrategia elegida y antes de ver sus strikes concretos -- en vez de
+  al final del mensaje, para que el plan de niveles quede junto a la
+  estrategia a la que pertenece.
 - **Ejemplo**: patas/strikes reales, costo máximo (`riesgo_maximo`) y
   ganancia máxima.
+- **Capital mínimo recomendado** (siempre que haya estrategias
+  construidas, no solo cuando la conclusión es "esperar"): reempaqueta
+  `riesgo_maximo` -- que para Covered Call y Cash Secured Put ya
+  representa el capital real comprometido, no solo la prima -- de cada
+  estrategia ya construida y rankeada, más el costo de comprar 100
+  acciones al precio actual. Ningún cálculo nuevo, solo agrupado para
+  planear cuánto capital necesitas antes de decidir cuál estrategia
+  perseguir.
 - **¿Qué tiene que pasar para que esta estrategia gane?**: reemplaza a
   una sección anterior de "escenarios" que a veces mostraba pérdida en
   los 3 precios evaluados (ej. un Long Call pierde tanto si el precio
@@ -276,23 +290,39 @@ sobre números ya reales.
   Si hay fecha real de próximos resultados, también recuerda revisar 2
   días antes. Cualquier nivel que no se pueda calcular con los datos
   disponibles simplemente no aparece.
-- **Plan del trade** (misma condición que el Plan de acción): tabla
-  compacta Entrada/Objetivo 1/Objetivo 2/Stop. Objetivo 1 es el máximo
-  de 52 semanas (mismo nivel real de "ruptura para reconsiderar");
-  Objetivo 2 es una extensión de igual distancia más allá del objetivo 1
-  ("measured move", convención técnica estándar, no un número
-  arbitrario). La relación riesgo/beneficio se muestra junto a CADA
-  objetivo (no como una sola línea) porque el objetivo 1 puede quedar
-  cerca de la entrada justo cuando el precio ya está cerca de máximos --
-  exactamente el escenario donde esta sección se activa (tesis "esperar"
-  por sobrecompra). Mostrar la relación real, aunque sea modesta, es más
-  honesto que forzar un múltiplo fijo que no refleje el nivel técnico
-  real.
+- **Plan del trade** (ver arriba dónde aparece en el mensaje -- misma
+  condición que el Plan de acción, tesis "esperar"): tabla compacta
+  Entrada/Objetivo 1/Objetivo 2/Stop. Objetivo 1 es el máximo de 52
+  semanas (mismo nivel real de "ruptura para reconsiderar"); Objetivo 2
+  es una extensión de igual distancia más allá del objetivo 1 ("measured
+  move", convención técnica estándar, no un número arbitrario). La
+  relación riesgo/beneficio se muestra junto a CADA objetivo (no como una
+  sola línea) porque el objetivo 1 puede quedar cerca de la entrada justo
+  cuando el precio ya está cerca de máximos -- exactamente el escenario
+  donde esta sección se activa (tesis "esperar" por sobrecompra). Mostrar
+  la relación real, aunque sea modesta, es más honesto que forzar un
+  múltiplo fijo que no refleje el nivel técnico real.
 - **Alertas para Yahoo Finance** (misma condición que el Plan de acción):
   reempaqueta los mismos 4 niveles ya calculados en formato listo para
   configurar alertas de precio, cada uno con una línea "¿Por qué?"
   (de dónde sale ese nivel: ATR, media móvil de 50 días, o máximo de 52
-  semanas) -- ningún cálculo nuevo.
+  semanas) -- ningún cálculo nuevo. Cada alerta también incluye, si hay
+  volatilidad anualizada disponible, un "¿Cuándo?" con un estimado (nunca
+  una garantía) de en cuántos días de operación podría activarse
+  (`_dias_estimados`, escalamiento de varianza en el tiempo σ√t sobre la
+  distancia real hasta el nivel) -- se muestra como un rango (mitad al
+  doble del estimado central), nunca un solo número, porque el
+  movimiento de precios es aleatorio. Si la volatilidad medida es tan
+  baja que el estimado se dispara a una cifra sin sentido (cientos de
+  miles de días), la línea simplemente se omite en vez de mostrar un
+  número absurdo.
+- **Mi decisión hoy** (última sección del mensaje, antes de "Próximo
+  paso", siempre presente): resume todo el reporte en una sola acción
+  concreta -- para quien ya leyó todo, o se saltó directo al final.
+  Ningún dato nuevo: reempaqueta la misma tesis y los mismos niveles ya
+  calculados arriba. Si la conclusión es "esperar", lista hasta 2 alertas
+  concretas (entrada y ruptura); en cualquier otro caso, una frase de
+  cierre acorde a la tesis (alcista/bajista/neutral/no determinable).
 
 ## Arquitectura
 
