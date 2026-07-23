@@ -195,6 +195,16 @@ sobre números ya reales.
   está en la shortlist de hoy. Se llama "Score cuantitativo" y no
   "Confianza"/"Convicción" a propósito: ese nombre podía leerse como una
   probabilidad de ganar, que no es lo que mide (Principio #3).
+- **Score de oportunidad hoy**: % de reglas objetivas que se cumplen hoy
+  para cada acción posible -- Comprar acciones (tendencia, RSI, valuación,
+  precio vs. objetivo de analistas), Comprar opciones (reusa
+  `options_strategies.puntuar()`, liquidez, probabilidad de éxito), y
+  Esperar (RSI extremo, valuación exigente, proximidad a resultados,
+  tendencia poco clara). Cada regla sin datos reales para evaluarla se
+  ignora (nunca se fuerza) -- ver `_pct_reglas`. Se etiqueta explícitamente
+  como "% de reglas objetivas", NUNCA como una probabilidad de que la
+  operación vaya a ganar dinero (mismo cuidado que "Confianza" →
+  "Score cuantitativo").
 - **Mi conclusión**: dos frases deterministas -- si compraría la acción
   hoy (según tendencia técnica, valoración y RSI) y si investigaría una
   estrategia de opciones.
@@ -226,19 +236,32 @@ sobre números ya reales.
   (verdades estructurales, no una predicción sobre este ticker).
 - **Riesgos**: mismas banderas reales de `/report` (máx. 3, en orden de
   severidad).
-- **Plan de acción**: solo aparece cuando la conclusión es "esperar".
-  "Precio ideal para volver a revisar" usa la media móvil de 50 días
-  (`screener.factors.technical.sma`) y el nivel de ruptura para
-  reconsiderar usa el máximo de 52 semanas
-  (`screener.factors.technical.maximo_52s`) -- niveles técnicos reales,
-  no porcentajes inventados. El nivel de ruptura usa el máximo de 52
-  semanas y no el breakeven de la estrategia, porque el breakeven mide
-  dónde una estrategia de OPCIONES específica empieza a ganar, no dónde
-  técnicamente se confirma que la tesis alcista de la ACCIÓN se
-  reactivó (para una estrategia de ingreso como Covered Call, el
-  breakeven queda por debajo del spot y no serviría como señal de
-  ruptura al alza). Si hay fecha real de próximos resultados, también
-  recuerda revisar 2 días antes.
+- **Plan de acción** (solo cuando la conclusión es "esperar"): responde 4
+  preguntas fijas -- ✅ a qué precio me interesaría comprar, 🚀 en qué
+  ruptura también me interesaría, ❌ a qué precio cancelaría la idea, ⏰
+  cuándo volver a revisar -- con 4 niveles de precio calculados por
+  reglas objetivas (`_niveles_precio`), nunca inventados por el LLM:
+    - **Entrada**: spot − 1×ATR (`screener.factors.technical.atr`, mismo
+      cálculo y periodo que ya usa `wizards_bot.py` para su stop de
+      Turtle Trading).
+    - **Ideal**: el más profundo entre la entrada y la media móvil de 50
+      días (`technical.sma`) -- nunca queda por encima de la entrada.
+    - **Cancelar**: 2×ATR por debajo del nivel ideal (mismo múltiplo de
+      stop que ya usa `wizards_bot.py` en producción, no uno inventado
+      para esta ocasión).
+    - **Ruptura para reconsiderar**: el máximo de 52 semanas
+      (`technical.maximo_52s`), no el breakeven de la estrategia --el
+      breakeven mide dónde una estrategia de OPCIONES específica empieza
+      a ganar, no dónde técnicamente se confirma que la tesis alcista de
+      la ACCIÓN se reactivó (para una estrategia de ingreso como Covered
+      Call, el breakeven queda por debajo del spot y no serviría como
+      señal de ruptura al alza).
+  Si hay fecha real de próximos resultados, también recuerda revisar 2
+  días antes. Cualquier nivel que no se pueda calcular con los datos
+  disponibles simplemente no aparece.
+- **Alertas para Yahoo Finance** (misma condición que el Plan de acción):
+  reempaqueta los mismos 4 niveles ya calculados en formato listo para
+  configurar alertas de precio -- ningún cálculo nuevo.
 
 ## Arquitectura
 

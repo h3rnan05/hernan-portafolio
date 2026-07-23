@@ -152,14 +152,26 @@ def test_coherencia_estrategia_no_alineada_cambia_encabezado(monkeypatch):
     assert "Long Call" in texto
     assert "🟡 Esperar" in texto
     # el "Plan de acción" solo aparece cuando la conclusión es "esperar"
-    assert "📝 Plan de acción" in texto
+    assert "🎯 Plan de acción" in texto
 
 
 def test_plan_de_accion_ausente_si_tesis_no_es_esperar(monkeypatch):
     _mock_red_basica(monkeypatch)
     monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "alcista")
     texto = tc.generar_trade("AAPL")
-    assert "📝 Plan de acción" not in texto
+    assert "🎯 Plan de acción" not in texto
+    assert "🔔 Alertas para Yahoo Finance" not in texto
+
+
+def test_score_de_oportunidad_siempre_presente(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    texto = tc.generar_trade("AAPL")
+    assert "📊 Score de oportunidad hoy" in texto
+    assert "(% de reglas objetivas que se cumplen -- no una probabilidad de éxito)" in texto
+    assert "Comprar acciones:" in texto
+    assert "Comprar opciones:" in texto
+    assert "Esperar:" in texto
+    assert "Probabilidad" not in texto
 
 
 def test_por_que_incluye_explicacion_fija_de_la_estrategia(monkeypatch):
@@ -382,32 +394,131 @@ def test_condicion_para_ganar_sin_breakeven():
     assert "No pude determinar" in tc._condicion_para_ganar(e, "AAPL", "1 de enero")
 
 
-def test_plan_de_accion_incluye_sma():
-    lineas = tc._plan_de_accion("AAPL", top=None, sma50=95.0, maximo_52s=110.0, fecha_resultados=None)
-    texto = "\n".join(lineas)
-    assert "cerca de $95" in texto
+def test_niveles_precio_entrada_es_spot_menos_1atr():
+    niveles = tc._niveles_precio(spot=100.0, atr_val=5.0, sma50=None)
+    assert niveles["entrada"] == 95.0
+    assert niveles["ideal"] == 95.0  # sin sma50, ideal cae al mismo valor de entrada
+    assert niveles["cancelar"] == 85.0  # ideal - 2xATR
 
 
-def test_plan_de_accion_sin_top_omite_nivel_de_ruptura():
-    lineas = tc._plan_de_accion("AAPL", top=None, sma50=95.0, maximo_52s=110.0, fecha_resultados=None)
+def test_niveles_precio_ideal_es_el_mas_profundo_entre_sma50_y_entrada():
+    # sma50 más bajo que la entrada por ATR -- ideal debe usar sma50.
+    niveles = tc._niveles_precio(spot=100.0, atr_val=2.0, sma50=90.0)
+    assert niveles["entrada"] == 98.0
+    assert niveles["ideal"] == 90.0
+    assert niveles["cancelar"] == 86.0  # 90 - 2*2
+
+
+def test_niveles_precio_sma50_por_encima_de_entrada_usa_entrada():
+    # sma50 más alto que spot-1ATR (ej. tendencia fuertemente alcista) --
+    # "ideal" nunca debe quedar por ENCIMA de "entrada".
+    niveles = tc._niveles_precio(spot=100.0, atr_val=2.0, sma50=99.0)
+    assert niveles["ideal"] == 98.0
+    assert niveles["ideal"] <= niveles["entrada"]
+
+
+def test_niveles_precio_sin_atr_da_todo_none():
+    niveles = tc._niveles_precio(spot=100.0, atr_val=None, sma50=90.0)
+    assert niveles == {"entrada": None, "ideal": 90.0, "cancelar": None}
+
+
+def test_dias_hasta_calcula_diferencia():
+    hoy = tc.date(2026, 8, 20)
+    assert tc._dias_hasta("2026-08-28", hoy=hoy) == 8
+
+
+def test_dias_hasta_sin_fecha_da_none():
+    assert tc._dias_hasta(None) is None
+
+
+def test_dias_hasta_fecha_invalida_da_none():
+    assert tc._dias_hasta("no-es-fecha") is None
+
+
+def test_plan_de_accion_usa_rango_cuando_entrada_es_mas_alta_que_ideal():
+    niveles = {"entrada": 100.0, "ideal": 90.0, "cancelar": 86.0}
+    lineas = tc._plan_de_accion("AAPL", top=None, niveles=niveles, maximo_52s=None, fecha_resultados=None)
     texto = "\n".join(lineas)
-    assert "máximo de 52 semanas" not in texto
+    assert "AAPL corrige entre $90 y $100." in texto
 
 
 def test_plan_de_accion_con_top_incluye_nivel_de_ruptura():
     e = EstrategiaOpciones(nombre="Covered Call", patas=[], razon="", riesgo_maximo=500.0,
                            ganancia_maxima=100.0, breakevens=[95.0])
-    lineas = tc._plan_de_accion("AAPL", top=e, sma50=95.0, maximo_52s=110.0, fecha_resultados=None)
+    niveles = {"entrada": 90.0, "ideal": 90.0, "cancelar": 80.0}
+    lineas = tc._plan_de_accion("AAPL", top=e, niveles=niveles, maximo_52s=110.0, fecha_resultados=None)
     texto = "\n".join(lineas)
-    assert "Si rompe arriba de $110 (máximo de 52 semanas), volvería a analizar Covered Call." in texto
+    assert "Rompe arriba de $110 (máximo de 52 semanas) -- volvería a analizar Covered Call." in texto
 
 
-def test_plan_de_accion_incluye_fecha_resultados_si_existe():
-    lineas = tc._plan_de_accion("AAPL", top=None, sma50=None, maximo_52s=None, fecha_resultados="2026-08-28")
+def test_plan_de_accion_incluye_cancelar_y_fecha_resultados():
+    niveles = {"entrada": None, "ideal": None, "cancelar": 80.0}
+    lineas = tc._plan_de_accion("AAPL", top=None, niveles=niveles, maximo_52s=None, fecha_resultados="2026-08-28")
     texto = "\n".join(lineas)
-    assert "2 días antes de resultados (28 de agosto)" in texto
+    assert "Cae debajo de $80, o si cambian los fundamentales." in texto
+    assert "en earnings (2 días antes, 28 de agosto)" in texto
 
 
 def test_plan_de_accion_sin_datos_no_rompe():
-    lineas = tc._plan_de_accion("AAPL", top=None, sma50=None, maximo_52s=None, fecha_resultados=None)
-    assert lineas == ["📝 Plan de acción", "", "Esperaría. No abriría posición hoy."]
+    niveles = {"entrada": None, "ideal": None, "cancelar": None}
+    lineas = tc._plan_de_accion("AAPL", top=None, niveles=niveles, maximo_52s=None, fecha_resultados=None)
+    assert lineas == ["🎯 Plan de acción", "", "No abriría posición hoy."]
+
+
+def test_alertas_yahoo_incluye_los_niveles_disponibles():
+    niveles = {"entrada": 100.0, "ideal": 90.0, "cancelar": 80.0}
+    lineas = tc._alertas_yahoo(niveles, maximo_52s=110.0)
+    texto = "\n".join(lineas)
+    assert "🟢 Comprar si baja a: $100" in texto
+    assert "🟢 Comprar con fuerza si baja a: $90" in texto
+    assert "🟡 Revisar si rompe: $110" in texto
+    assert "🔴 Cancelar la idea si cae debajo de: $80" in texto
+
+
+def test_alertas_yahoo_no_duplica_si_entrada_es_igual_a_ideal():
+    niveles = {"entrada": 90.0, "ideal": 90.0, "cancelar": 80.0}
+    lineas = tc._alertas_yahoo(niveles, maximo_52s=None)
+    assert lineas.count("🟢 Comprar si baja a: $90") == 1
+    assert not any("con fuerza" in linea for linea in lineas)
+
+
+def test_alertas_yahoo_sin_datos_da_solo_encabezado():
+    niveles = {"entrada": None, "ideal": None, "cancelar": None}
+    assert tc._alertas_yahoo(niveles, maximo_52s=None) == ["🔔 Alertas para Yahoo Finance", ""]
+
+
+def test_pct_reglas_cuenta_solo_las_evaluables():
+    assert tc._pct_reglas([True, False, None, True]) == 67  # 2 de 3 evaluables
+    assert tc._pct_reglas([None, None]) is None
+    assert tc._pct_reglas([]) is None
+
+
+def test_reglas_comprar_acciones_todas_favorables():
+    reglas = tc._reglas_comprar_acciones("alcista", "Razonable", rsi=50.0, spot=100.0, objetivo=110.0)
+    assert reglas == [True, True, True, True]
+
+
+def test_reglas_comprar_acciones_sin_datos_da_none_en_esas_reglas():
+    reglas = tc._reglas_comprar_acciones("alcista", "No determinable", rsi=None, spot=100.0, objetivo=None)
+    assert reglas == [True, None, None, None]
+
+
+def test_reglas_comprar_opciones_sin_estrategias():
+    assert tc._reglas_comprar_opciones([], None, None) == [False]
+
+
+def test_reglas_comprar_opciones_con_top():
+    e = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=500.0,
+                           ganancia_maxima=None, liquidez_score=80.0, probabilidad_exito=0.5)
+    reglas = tc._reglas_comprar_opciones([e], 60, e)
+    assert reglas == [True, True, True, True]
+
+
+def test_reglas_esperar_sobrecompra_y_exigente():
+    reglas = tc._reglas_esperar("alcista", "Exigente", rsi=80.0, dias_a_resultados=5)
+    assert reglas == [True, True, True, False]
+
+
+def test_fmt_pct():
+    assert tc._fmt_pct(62) == "62%"
+    assert tc._fmt_pct(None) == "No disponible"

@@ -42,12 +42,21 @@ breakeven y el vencimiento REALES; "lo que puede salir mal" es una lista
 fija por tipo de estrategia (verdades estructurales, no una predicción
 sobre este ticker).
 
-Plan de acción: solo aparece cuando la conclusión es "esperar" -- usa la
-media móvil de 50 días (nivel técnico real, no un porcentaje arbitrario)
-como referencia de "precio ideal para volver a revisar", el breakeven de
-la estrategia top como nivel de ruptura para reconsiderar, y la fecha
-real de resultados si existe. Nunca inventa un nivel de soporte que no
-se pueda calcular con los datos disponibles.
+Plan de acción: solo aparece cuando la conclusión es "esperar". Los 4
+niveles de precio (entrada, ideal, cancelar, ruptura) salen de reglas
+objetivas -- ATR (misma convención de 2×ATR de stop que ya usa
+wizards_bot.py para el bot de Turtle Trading), media móvil de 50 días y
+máximo de 52 semanas -- nunca un número inventado por el LLM (de hecho,
+ningún LLM interviene en absoluto en este cálculo). "Alertas para Yahoo
+Finance" reempaqueta los mismos 4 niveles, ya calculados, en formato
+listo para configurar alertas de precio.
+
+"Score de oportunidad": % de reglas objetivas (tendencia, RSI, valuación,
+proximidad a resultados, calidad del ranking de opciones) que se cumplen
+hoy para cada acción posible (comprar acciones / comprar opciones /
+esperar) -- se etiqueta explícitamente como eso, NUNCA como una
+probabilidad de que la operación vaya a ganar dinero (mismo cuidado que
+ya se tuvo con "Confianza" → "Score cuantitativo").
 """
 
 from __future__ import annotations
@@ -316,29 +325,149 @@ def _por_que_bullets(rsi: float | None, fund: Fundamentales, spot: float) -> lis
     return bullets
 
 
-def _plan_de_accion(ticker: str, top: EstrategiaOpciones | None, sma50: float | None,
+ATR_MULT_ENTRADA = 1.0
+ATR_MULT_STOP = 2.0  # misma convención de wizards_bot.py: stop = entrada - 2×ATR
+
+
+def _niveles_precio(spot: float, atr_val: float | None, sma50: float | None) -> dict[str, float | None]:
+    """Niveles de precio objetivos para el Plan de acción -- ATR (misma
+    convención de wizards_bot.py) y SMA50 (soporte técnico real), nunca un
+    número inventado. "entrada": primer pullback (spot - 1×ATR). "ideal":
+    el más profundo entre ese pullback y la media móvil de 50 días (si
+    está disponible) -- así "ideal" nunca queda por encima de "entrada".
+    "cancelar": 2×ATR por debajo de "ideal" (mismo múltiplo de stop que ya
+    usa el bot de Turtle Trading). Cualquier nivel que no se pueda
+    calcular con los datos disponibles queda en None -- nunca se rellena
+    con un valor inventado."""
+    entrada = spot - ATR_MULT_ENTRADA * atr_val if atr_val is not None else None
+    if sma50 is not None and entrada is not None:
+        ideal = min(sma50, entrada)
+    elif sma50 is not None:
+        ideal = sma50
+    else:
+        ideal = entrada
+    cancelar = ideal - ATR_MULT_STOP * atr_val if (ideal is not None and atr_val is not None) else None
+    return {"entrada": entrada, "ideal": ideal, "cancelar": cancelar}
+
+
+def _dias_hasta(fecha_iso: str | None, hoy: date | None = None) -> int | None:
+    if not fecha_iso:
+        return None
+    try:
+        return (date.fromisoformat(fecha_iso) - (hoy or date.today())).days
+    except ValueError:
+        return None
+
+
+def _plan_de_accion(ticker: str, top: EstrategiaOpciones | None, niveles: dict[str, float | None],
                      maximo_52s: float | None, fecha_resultados: str | None) -> list[str]:
     """Solo se llama cuando la conclusión es "esperar" -- qué tendría que
-    pasar para volver a considerar la operación. sma50 (media móvil de 50
-    días) y maximo_52s (máximo de 52 semanas) son niveles técnicos reales,
-    no porcentajes inventados; si no se pueden calcular (pocos datos),
-    esas líneas simplemente no aparecen. El nivel de ruptura usa el
-    máximo de 52 semanas -- no el breakeven de la estrategia -- porque el
+    pasar para volver a considerar la operación, en 4 preguntas fijas.
+    Todos los niveles vienen de _niveles_precio()/maximo_52s (reglas
+    objetivas, nunca inventadas); las líneas cuyo nivel no se pudo
+    calcular simplemente no aparecen. El nivel de ruptura usa el máximo
+    de 52 semanas -- no el breakeven de la estrategia -- porque el
     breakeven mide dónde una estrategia de OPCIONES específica empieza a
     ganar, no dónde técnicamente se confirma que la tesis alcista de la
     ACCIÓN se reactivó (para una estrategia de ingreso como Covered Call,
     el breakeven queda por debajo del spot y no serviría como señal de
     ruptura al alza)."""
-    lineas = ["📝 Plan de acción", "", "Esperaría. No abriría posición hoy."]
-    if sma50 is not None:
-        lineas += ["", "Precio ideal para volver a revisar:",
-                  f"cerca de {_fmt_price_round(sma50)} (media móvil de 50 días)"]
+    entrada, ideal, cancelar = niveles["entrada"], niveles["ideal"], niveles["cancelar"]
+    lineas = ["🎯 Plan de acción", "", "No abriría posición hoy."]
+
+    if ideal is not None:
+        lineas += ["", "✅ Me interesaría comprar si:"]
+        if entrada is not None and entrada > ideal:
+            lineas.append(f"{ticker} corrige entre {_fmt_price_round(ideal)} y {_fmt_price_round(entrada)}.")
+        else:
+            lineas.append(f"{ticker} corrige a {_fmt_price_round(ideal)}.")
+
     if maximo_52s is not None and top is not None:
-        lineas += ["", f"Si rompe arriba de {_fmt_price_round(maximo_52s)} (máximo de 52 semanas), "
-                       f"volvería a analizar {top.nombre}."]
+        lineas += ["", "🚀 También me interesaría si:",
+                  f"Rompe arriba de {_fmt_price_round(maximo_52s)} (máximo de 52 semanas) -- "
+                  f"volvería a analizar {top.nombre}."]
+
+    if cancelar is not None:
+        lineas += ["", "❌ Cancelaría la idea si:",
+                  f"Cae debajo de {_fmt_price_round(cancelar)}, o si cambian los fundamentales."]
+
+    condiciones = []
+    if entrada is not None or maximo_52s is not None:
+        condiciones.append("llega a alguno de estos niveles")
     if fecha_resultados:
-        lineas += ["", f"Volver a revisar: 2 días antes de resultados ({_fmt_fecha_es(fecha_resultados)})."]
+        condiciones.append(f"en earnings (2 días antes, {_fmt_fecha_es(fecha_resultados)})")
+    if condiciones:
+        texto = " o ".join(condiciones)
+        lineas += ["", "⏰ Volver a revisar:", f"Si {texto}."]
     return lineas
+
+
+def _alertas_yahoo(niveles: dict[str, float | None], maximo_52s: float | None) -> list[str]:
+    """Reempaqueta los mismos niveles ya calculados en _niveles_precio()
+    en formato listo para configurar alertas de precio -- ningún cálculo
+    nuevo, solo una presentación distinta de los mismos números."""
+    entrada, ideal, cancelar = niveles["entrada"], niveles["ideal"], niveles["cancelar"]
+    items = []
+    if entrada is not None:
+        items.append(f"🟢 Comprar si baja a: {_fmt_price_round(entrada)}")
+    if ideal is not None and ideal != entrada:
+        items.append(f"🟢 Comprar con fuerza si baja a: {_fmt_price_round(ideal)}")
+    if maximo_52s is not None:
+        items.append(f"🟡 Revisar si rompe: {_fmt_price_round(maximo_52s)}")
+    if cancelar is not None:
+        items.append(f"🔴 Cancelar la idea si cae debajo de: {_fmt_price_round(cancelar)}")
+    lineas = ["🔔 Alertas para Yahoo Finance", ""]
+    for i, item in enumerate(items):
+        if i > 0:
+            lineas.append("")
+        lineas.append(item)
+    return lineas
+
+
+def _pct_reglas(reglas: list[bool | None]) -> int | None:
+    """% de reglas objetivas que se cumplen -- ignora las que no se
+    pudieron evaluar por falta de datos (nunca fuerza una regla sin datos
+    reales). None si NINGUNA regla pudo evaluarse."""
+    evaluables = [r for r in reglas if r is not None]
+    if not evaluables:
+        return None
+    return round(100 * sum(1 for r in evaluables if r) / len(evaluables))
+
+
+def _reglas_comprar_acciones(tendencia_label: str, valoracion_label: str, rsi: float | None,
+                              spot: float, objetivo: float | None) -> list[bool | None]:
+    return [
+        tendencia_label == "alcista",
+        (rsi < 70) if rsi is not None else None,
+        (valoracion_label != "Exigente") if valoracion_label != "No determinable" else None,
+        (spot <= objetivo * 1.05) if objetivo else None,
+    ]
+
+
+def _reglas_comprar_opciones(estrategias: list[EstrategiaOpciones], score_100: float | None,
+                              top: EstrategiaOpciones | None) -> list[bool | None]:
+    if not estrategias or top is None:
+        return [False]
+    return [
+        True,
+        (score_100 >= 50) if score_100 is not None else None,
+        (top.liquidez_score >= 50) if top.liquidez_score is not None else None,
+        (top.probabilidad_exito >= 0.4) if top.probabilidad_exito is not None else None,
+    ]
+
+
+def _reglas_esperar(tendencia_label: str, valoracion_label: str, rsi: float | None,
+                    dias_a_resultados: int | None) -> list[bool | None]:
+    return [
+        (rsi >= 70 or rsi <= 30) if rsi is not None else None,
+        (valoracion_label == "Exigente") if valoracion_label != "No determinable" else None,
+        (dias_a_resultados <= 14) if dias_a_resultados is not None else None,
+        tendencia_label not in ("alcista", "bajista"),
+    ]
+
+
+def _fmt_pct(pct: int | None) -> str:
+    return f"{pct}%" if pct is not None else "No disponible"
 
 
 def generar_trade(ticker: str) -> str:
@@ -371,12 +500,27 @@ def generar_trade(ticker: str) -> str:
     score_100 = round(puntuar(estrategias)[0] * 100) if estrategias else None
 
     tesis_categoria = _tesis_categoria(tendencia_label, valoracion_label, rsi)
+    fecha_resultados = _obtener_fecha_resultados(ticker)
+    dias_a_resultados = _dias_hasta(fecha_resultados)
 
     lineas = [f"📊 {ticker} — {nombre}", ""]
     if score_screener is not None:
         lineas.append(f"{_emoji_score(score_screener)} Score cuantitativo del modelo: {score_screener:.0f}/100")
     else:
         lineas.append("⚪ Score cuantitativo del modelo: No disponible (no está en la shortlist de hoy)")
+
+    score_acciones = _pct_reglas(_reglas_comprar_acciones(
+        tendencia_label, valoracion_label, rsi, spot, fund.analista_precio_objetivo))
+    score_opciones = _pct_reglas(_reglas_comprar_opciones(estrategias, score_100, top))
+    score_esperar = _pct_reglas(_reglas_esperar(tendencia_label, valoracion_label, rsi, dias_a_resultados))
+    lineas += [
+        "", SEP, "",
+        "📊 Score de oportunidad hoy",
+        "(% de reglas objetivas que se cumplen -- no una probabilidad de éxito)", "",
+        f"Comprar acciones: {_fmt_pct(score_acciones)}",
+        f"Comprar opciones: {_fmt_pct(score_opciones)}",
+        f"Esperar: {_fmt_pct(score_esperar)}",
+    ]
     lineas += ["", SEP, "", "📌 Mi conclusión", ""]
 
     preambulo, veredicto_acciones = _conclusion_acciones(tesis_categoria)
@@ -440,10 +584,15 @@ def generar_trade(ticker: str) -> str:
     if tesis_categoria == "esperar":
         sma50 = tech.sma(barras.close, 50)
         maximo_52s = tech.maximo_52s(barras)
-        fecha_resultados = _obtener_fecha_resultados(ticker)
+        atr_val = tech.atr(barras)
+        niveles = _niveles_precio(spot, atr_val, sma50)
         lineas += [SEP, ""]
-        lineas += _plan_de_accion(ticker, top, sma50, maximo_52s, fecha_resultados)
+        lineas += _plan_de_accion(ticker, top, niveles, maximo_52s, fecha_resultados)
         lineas.append("")
+        if any(v is not None for v in niveles.values()) or maximo_52s is not None:
+            lineas += [SEP, ""]
+            lineas += _alertas_yahoo(niveles, maximo_52s)
+            lineas.append("")
 
     lineas += [SEP, "", "Próximo paso", "", f"/report {ticker}", f"/options {ticker} --full", ""]
     lineas.append("Esto no es una recomendación de compra/venta.")
