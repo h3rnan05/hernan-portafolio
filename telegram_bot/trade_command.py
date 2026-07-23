@@ -48,11 +48,31 @@ Horizonte esperado: el vencimiento REAL de la opción elegida (nunca un
 rango de tiempo inventado como "3-6 semanas" sin base) -- el trade está
 atado a esa fecha, se dice explícitamente para que no se confunda con
 una tesis de largo plazo.
+
+Capital mínimo recomendado: reempaqueta `riesgo_maximo` (el capital real
+comprometido, ya calculado por el motor de opciones para cada estrategia
+construida) más el costo de comprar 100 acciones al precio actual --
+ningún número nuevo, solo agrupado para planear cuánto capital necesitas
+antes de decidir cuál estrategia perseguir. Se muestra siempre que haya
+estrategias, no solo cuando la conclusión es "esperar".
+
+Alertas para Yahoo Finance: cada alerta ahora también incluye un
+estimado (nunca una garantía) de cuántos días de operación podría tardar
+en activarse, a partir de la volatilidad anualizada real -- ver
+_dias_estimados(). Se devuelve como un rango, no un solo número, porque
+el movimiento de precios es aleatorio y una sola cifra daría una falsa
+precisión.
+
+Mi decisión hoy: última sección del mensaje, resume todo el reporte en
+una sola acción concreta (para quien ya leyó todo, o se saltó directo al
+final) -- no agrega ningún dato nuevo, reempaqueta la misma tesis y los
+mismos niveles ya calculados arriba.
 """
 
 from __future__ import annotations
 
 import logging
+import math
 import sys
 from datetime import date
 from pathlib import Path
@@ -404,6 +424,34 @@ def _dias_hasta(fecha_iso: str | None, hoy: date | None = None) -> int | None:
         return None
 
 
+_DIAS_ESTIMADOS_MAX = 500  # ~2 años bursátiles -- más allá de esto el estimado deja de ser útil
+
+
+def _dias_estimados(spot: float | None, nivel: float | None, vol_anual: float | None) -> tuple[int, int] | None:
+    """Estimado (nunca una garantía) de cuántos días de operación podría
+    tardar el precio en recorrer la distancia hasta `nivel`, a partir de
+    la volatilidad anualizada real (`tech.volatilidad_anual`) -- la
+    distancia recorrida escala con σ√t, así que despejando t se obtiene
+    un estimado central. Se devuelve un rango (la mitad al doble de ese
+    estimado) en vez de un solo número: el movimiento de precios es
+    aleatorio, y un solo día daría una falsa precisión que no existe."""
+    if not spot or not nivel or spot <= 0 or nivel <= 0 or not vol_anual or vol_anual <= 0:
+        return None
+    distancia_log = abs(math.log(nivel / spot))
+    if distancia_log == 0:
+        return None
+    sigma_diaria = vol_anual / math.sqrt(252)
+    dias_central = (distancia_log / sigma_diaria) ** 2
+    if dias_central > _DIAS_ESTIMADOS_MAX:
+        # Con la volatilidad medida, el nivel queda tan lejos que el
+        # estimado deja de ser útil (leería como "millones de días") --
+        # mejor omitir la línea que mostrar una cifra sin sentido.
+        return None
+    lo = max(1, round(dias_central * 0.5))
+    hi = max(lo + 1, round(dias_central * 2.0))
+    return (lo, hi)
+
+
 def _plan_de_accion(ticker: str, top: EstrategiaOpciones | None, niveles: dict[str, float | None],
                      maximo_52s: float | None, fecha_resultados: str | None) -> list[str]:
     """Solo se llama cuando la conclusión es "esperar" -- qué tendría que
@@ -479,31 +527,54 @@ def _plan_del_trade(entrada: float | None, objetivo_1: float | None, objetivo_2:
     return lineas
 
 
-def _alertas_yahoo(niveles: dict[str, float | None], maximo_52s: float | None) -> list[str]:
+def _alertas_yahoo(niveles: dict[str, float | None], maximo_52s: float | None,
+                    spot: float | None = None, vol_anual: float | None = None) -> list[str]:
     """Reempaqueta los mismos niveles ya calculados en _niveles_precio()
     en formato listo para configurar alertas de precio -- ningún cálculo
     nuevo. Cada alerta incluye de dónde sale ese nivel (ATR, media móvil
     de 50 días, máximo de 52 semanas) para que quede claro que no es un
-    número arbitrario."""
+    número arbitrario, y -- si hay spot/volatilidad disponibles -- un
+    estimado (nunca una garantía) de cuántos días de operación podría
+    tardar en activarse, vía _dias_estimados()."""
     entrada, ideal, cancelar = niveles["entrada"], niveles["ideal"], niveles["cancelar"]
     items = []
     if entrada is not None:
         items.append((f"🟢 Comprar si baja a: {_fmt_price_round(entrada)}",
-                      "Es un retroceso de 1×ATR desde el precio actual."))
+                      "Es un retroceso de 1×ATR desde el precio actual.", entrada))
     if ideal is not None and ideal != entrada:
         items.append((f"🟢 Comprar con fuerza si baja a: {_fmt_price_round(ideal)}",
-                      "Está cerca de la media móvil de 50 días, un soporte técnico real."))
+                      "Está cerca de la media móvil de 50 días, un soporte técnico real.", ideal))
     if maximo_52s is not None:
         items.append((f"🟡 Revisar si rompe: {_fmt_price_round(maximo_52s)}",
-                      "Es el máximo de 52 semanas."))
+                      "Es el máximo de 52 semanas.", maximo_52s))
     if cancelar is not None:
         items.append((f"🔴 Cancelar la idea si cae debajo de: {_fmt_price_round(cancelar)}",
-                      "Es 2×ATR por debajo del nivel ideal (mismo margen que usa el sistema para acciones)."))
+                      "Es 2×ATR por debajo del nivel ideal (mismo margen que usa el sistema para acciones).", cancelar))
     lineas = ["🔔 Alertas para Yahoo Finance", ""]
-    for i, (item, porque) in enumerate(items):
+    for i, (item, porque, nivel) in enumerate(items):
         if i > 0:
             lineas.append("")
         lineas += [item, "¿Por qué?", porque]
+        rango = _dias_estimados(spot, nivel, vol_anual)
+        if rango:
+            lineas.append(f"¿Cuándo? Podría activarse en aproximadamente {rango[0]}-{rango[1]} días "
+                          f"de operación (estimación según la volatilidad reciente, no una garantía).")
+    return lineas
+
+
+def _capital_minimo(estrategias: list[EstrategiaOpciones], spot: float) -> list[str]:
+    """Capital real requerido por estrategia -- ningún cálculo nuevo,
+    reempaqueta `riesgo_maximo` (que para Covered Call y Cash Secured Put
+    ya representa el capital comprometido, no solo la prima) de cada
+    estrategia ya construida y rankeada, más "Comprar acciones" (spot ×
+    100, el lote estándar de un contrato de opciones). Para planear
+    cuánto capital necesitas antes de decidir cuál estrategia perseguir."""
+    if not estrategias:
+        return []
+    lineas = ["💵 Capital mínimo recomendado", "", f"Comprar acciones (100): {_fmt_price_round(spot * 100)}"]
+    for e in estrategias:
+        if e.riesgo_maximo is not None:
+            lineas.append(f"{e.nombre}: {_fmt_price_round(e.riesgo_maximo)}")
     return lineas
 
 
@@ -606,6 +677,33 @@ def _resumen_15s(tesis_categoria: str, veredicto_acciones: str, preambulo: str |
     return lineas
 
 
+def _mi_decision_hoy(tesis_categoria: str, niveles: dict[str, float | None],
+                      maximo_52s: float | None, top: EstrategiaOpciones | None) -> list[str]:
+    """Última sección del mensaje -- resume todo el reporte en una sola
+    acción concreta, para quien ya leyó todo (o se saltó directo al
+    final). No agrega ningún dato nuevo: reempaqueta la misma tesis y los
+    mismos niveles ya calculados arriba en el mensaje."""
+    lineas = ["✅ Mi decisión hoy", ""]
+    if tesis_categoria == "esperar":
+        lineas.append("No hago nada por ahora.")
+        alertas = []
+        if niveles.get("entrada") is not None:
+            alertas.append(f"Comprar si baja a {_fmt_price_round(niveles['entrada'])}")
+        if maximo_52s is not None and top is not None:
+            alertas.append(f"Revisar si rompe {_fmt_price_round(maximo_52s)}")
+        if alertas:
+            lineas.append("Tengo alertas puestas:")
+            for a in alertas[:2]:
+                lineas.append(f"• {a}")
+    elif tesis_categoria == "alcista":
+        lineas.append("Consideraría abrir posición hoy (acción u opciones, según mi perfil de riesgo).")
+    elif tesis_categoria == "bajista":
+        lineas.append("No abro posición larga hoy -- la tendencia técnica es bajista.")
+    else:
+        lineas.append("No hay una señal lo suficientemente clara para actuar hoy.")
+    return lineas
+
+
 def generar_trade(ticker: str) -> str:
     """Punto de entrada de /trade TICKER. Nunca lanza: cualquier fallo se
     convierte en un mensaje de error legible."""
@@ -643,6 +741,8 @@ def generar_trade(ticker: str) -> str:
     maximo_52s = tech.maximo_52s(barras)
     atr_val = tech.atr(barras)
     niveles = _niveles_precio(spot, atr_val, sma50)
+    objetivo_1 = maximo_52s
+    objetivo_2 = _objetivo_2(objetivo_1, niveles["entrada"])
 
     preambulo, veredicto_acciones = _conclusion_acciones(tesis_categoria)
 
@@ -681,6 +781,13 @@ def generar_trade(ticker: str) -> str:
             lineas.append("")
         for b in _por_que_bullets(rsi, fund, spot):
             lineas.append(b)
+
+        if tesis_categoria == "esperar":
+            plan_trade = _plan_del_trade(niveles["entrada"], objetivo_1, objetivo_2, niveles["cancelar"])
+            if plan_trade:
+                lineas += ["", SEP, ""]
+                lineas += plan_trade
+
         lineas += ["", SEP, "", "💰 Ejemplo", ""]
 
         for p in top.patas:
@@ -695,8 +802,14 @@ def generar_trade(ticker: str) -> str:
             "",
             "Ganancia máxima:",
             ganancia_txt,
-            "", SEP, "", "¿Qué tiene que pasar para que esta estrategia gane?", "",
         ]
+
+        capital = _capital_minimo(estrategias, spot)
+        if capital:
+            lineas += ["", SEP, ""]
+            lineas += capital
+
+        lineas += ["", SEP, "", "¿Qué tiene que pasar para que esta estrategia gane?", ""]
 
         vencimiento_txt = _fmt_fecha_es(cadena.vencimiento)
         lineas.append("✅ Para ganar necesitas:")
@@ -732,18 +845,14 @@ def generar_trade(ticker: str) -> str:
         lineas += _plan_de_accion(ticker, top, niveles, maximo_52s, fecha_resultados)
         lineas.append("")
 
-        objetivo_1 = maximo_52s
-        objetivo_2 = _objetivo_2(objetivo_1, niveles["entrada"])
-        plan_trade = _plan_del_trade(niveles["entrada"], objetivo_1, objetivo_2, niveles["cancelar"])
-        if plan_trade:
-            lineas += [SEP, ""]
-            lineas += plan_trade
-            lineas.append("")
-
         if any(v is not None for v in niveles.values()) or maximo_52s is not None:
             lineas += [SEP, ""]
-            lineas += _alertas_yahoo(niveles, maximo_52s)
+            lineas += _alertas_yahoo(niveles, maximo_52s, spot, vol)
             lineas.append("")
+
+    lineas += [SEP, ""]
+    lineas += _mi_decision_hoy(tesis_categoria, niveles, maximo_52s, top)
+    lineas.append("")
 
     lineas += [SEP, "", "Próximo paso", "", f"/report {ticker}", f"/options {ticker} --full", ""]
     lineas.append("Esto no es una recomendación de compra/venta.")

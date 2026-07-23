@@ -661,3 +661,141 @@ def test_resumen_15s_sin_top_omite_estrategia_y_horizonte():
     texto = "\n".join(lineas)
     assert "La mejor estrategia hoy:" not in texto
     assert "Horizonte:" not in texto
+
+
+def test_dias_estimados_calcula_rango_a_partir_de_volatilidad():
+    rango = tc._dias_estimados(spot=100.0, nivel=95.0, vol_anual=0.30)
+    assert rango is not None
+    lo, hi = rango
+    assert lo >= 1
+    assert hi > lo
+
+
+def test_dias_estimados_sin_datos_da_none():
+    assert tc._dias_estimados(None, 95.0, 0.30) is None
+    assert tc._dias_estimados(100.0, None, 0.30) is None
+    assert tc._dias_estimados(100.0, 95.0, None) is None
+    assert tc._dias_estimados(100.0, 95.0, 0.0) is None
+
+
+def test_dias_estimados_nivel_igual_a_spot_da_none():
+    assert tc._dias_estimados(100.0, 100.0, 0.30) is None
+
+
+def test_dias_estimados_volatilidad_muy_baja_da_none_en_vez_de_cifra_absurda():
+    """Regresión: con volatilidad casi nula el estimado central se dispara
+    a millones de días -- una cifra sin sentido es peor que omitir la
+    línea (encontrado con datos sintéticos de muy baja volatilidad)."""
+    assert tc._dias_estimados(100.0, 95.0, vol_anual=0.001) is None
+
+
+def test_alertas_yahoo_incluye_estimado_de_dias_si_hay_spot_y_volatilidad():
+    niveles = {"entrada": 95.0, "ideal": 90.0, "cancelar": 80.0}
+    lineas = tc._alertas_yahoo(niveles, maximo_52s=110.0, spot=100.0, vol_anual=0.30)
+    texto = "\n".join(lineas)
+    assert "¿Cuándo?" in texto
+    assert "no una garantía" in texto
+
+
+def test_alertas_yahoo_sin_spot_ni_volatilidad_omite_estimado():
+    niveles = {"entrada": 95.0, "ideal": 90.0, "cancelar": 80.0}
+    lineas = tc._alertas_yahoo(niveles, maximo_52s=110.0)
+    texto = "\n".join(lineas)
+    assert "¿Cuándo?" not in texto
+
+
+def test_capital_minimo_incluye_comprar_acciones_y_cada_estrategia():
+    long_call = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=1272.0,
+                                   ganancia_maxima=None)
+    csp = EstrategiaOpciones(nombre="Cash Secured Put", patas=[], razon="", riesgo_maximo=30800.0,
+                             ganancia_maxima=100.0)
+    lineas = tc._capital_minimo([long_call, csp], spot=327.0)
+    texto = "\n".join(lineas)
+    assert "💵 Capital mínimo recomendado" in texto
+    assert "Comprar acciones (100): $32,700" in texto
+    assert "Long Call: $1,272" in texto
+    assert "Cash Secured Put: $30,800" in texto
+
+
+def test_capital_minimo_sin_estrategias_da_vacio():
+    assert tc._capital_minimo([], spot=100.0) == []
+
+
+def test_capital_minimo_omite_estrategias_sin_riesgo_maximo():
+    e = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=None, ganancia_maxima=None)
+    lineas = tc._capital_minimo([e], spot=100.0)
+    assert "Long Call" not in "\n".join(lineas)
+
+
+def test_mi_decision_hoy_esperar_incluye_alertas():
+    e = EstrategiaOpciones(nombre="Covered Call", patas=[], razon="", riesgo_maximo=1.0, ganancia_maxima=None)
+    niveles = {"entrada": 317.0, "ideal": 305.0, "cancelar": 287.0}
+    lineas = tc._mi_decision_hoy("esperar", niveles, maximo_52s=334.0, top=e)
+    texto = "\n".join(lineas)
+    assert "✅ Mi decisión hoy" in texto
+    assert "No hago nada por ahora." in texto
+    assert "Comprar si baja a $317" in texto
+    assert "Revisar si rompe $334" in texto
+
+
+def test_mi_decision_hoy_esperar_sin_niveles_no_agrega_alertas():
+    niveles = {"entrada": None, "ideal": None, "cancelar": None}
+    lineas = tc._mi_decision_hoy("esperar", niveles, maximo_52s=None, top=None)
+    assert "Tengo alertas puestas:" not in "\n".join(lineas)
+
+
+def test_mi_decision_hoy_alcista():
+    niveles = {"entrada": None, "ideal": None, "cancelar": None}
+    lineas = tc._mi_decision_hoy("alcista", niveles, maximo_52s=None, top=None)
+    assert "Consideraría abrir posición hoy" in "\n".join(lineas)
+
+
+def test_mi_decision_hoy_bajista():
+    niveles = {"entrada": None, "ideal": None, "cancelar": None}
+    lineas = tc._mi_decision_hoy("bajista", niveles, maximo_52s=None, top=None)
+    assert "No abro posición larga hoy" in "\n".join(lineas)
+
+
+def test_mi_decision_hoy_neutral_o_no_determinable():
+    niveles = {"entrada": None, "ideal": None, "cancelar": None}
+    for categoria in ("neutral", "no_determinable"):
+        lineas = tc._mi_decision_hoy(categoria, niveles, maximo_52s=None, top=None)
+        assert "No hay una señal lo suficientemente clara" in "\n".join(lineas)
+
+
+def test_mensaje_incluye_mi_decision_hoy_antes_de_proximo_paso(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    texto = tc.generar_trade("AAPL")
+    assert "✅ Mi decisión hoy" in texto
+    assert texto.index("✅ Mi decisión hoy") < texto.index("Próximo paso")
+
+
+def test_mensaje_incluye_capital_minimo_cuando_hay_estrategias(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    texto = tc.generar_trade("AAPL")
+    assert "💵 Capital mínimo recomendado" in texto
+    assert "Comprar acciones (100):" in texto
+
+
+def test_mensaje_sin_estrategias_omite_capital_minimo(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "obtener_cadena", lambda ticker: None)
+    texto = tc.generar_trade("AAPL")
+    assert "💵 Capital mínimo recomendado" not in texto
+
+
+def test_plan_del_trade_aparece_antes_de_ejemplo_cuando_tesis_es_esperar(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "esperar")
+    texto = tc.generar_trade("AAPL")
+    assert "🧮 Plan del trade" in texto
+    assert texto.index("🧮 Plan del trade") < texto.index("💰 Ejemplo")
+    # ya no debe aparecer una segunda vez más abajo, cerca de las alertas
+    assert texto.count("🧮 Plan del trade") == 1
+
+
+def test_plan_del_trade_ausente_si_tesis_no_es_esperar(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "alcista")
+    texto = tc.generar_trade("AAPL")
+    assert "🧮 Plan del trade" not in texto
