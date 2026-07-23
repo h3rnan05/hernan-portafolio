@@ -25,7 +25,8 @@ import requests
 
 from screener import universe
 from screener.config import CONFIG, ScreenerConfig
-from screener.data.provider import DataProvider, Fundamentales, YahooProvider
+from screener.data.provider import Barras, DataProvider, Fundamentales, YahooProvider
+from screener.opportunity_hunter import buscar_oportunidades, mensaje_oportunidades
 from screener.options_ideas import DatosOpciones, ProveedorOpciones, YahooOpcionesProvider
 from screener.report import calcular_diff, markdown, texto_telegram, texto_telegram_corto
 from screener.scoring import Puntuacion, puntuar
@@ -55,8 +56,13 @@ def enviar_telegram(texto: str) -> None:
 
 
 def correr(cfg: ScreenerConfig, provider: DataProvider,
-           limite: int | None = None, con_fund: bool = True) -> list[Puntuacion]:
-    """Pipeline puro y testeable: recibe el provider inyectado."""
+           limite: int | None = None, con_fund: bool = True,
+           ) -> tuple[list[Puntuacion], dict[str, Barras], dict[str, Fundamentales]]:
+    """Pipeline puro y testeable: recibe el provider inyectado. Devuelve
+    también las barras/fundamentales del universo YA validado (no solo el
+    ranking) -- el Opportunity Hunter (`screener.opportunity_hunter`) los
+    necesita para escanear el universo completo, no solo el Top N que
+    persiste shortlist_hoy.json."""
     tickers = universe.cargar(cfg.universe)
     if limite:
         tickers = tickers[:limite]
@@ -75,7 +81,7 @@ def correr(cfg: ScreenerConfig, provider: DataProvider,
             else {t: Fundamentales(t) for t in validos})
 
     ranking = puntuar(validos, fund, cfg)
-    return ranking
+    return ranking, validos, fund
 
 
 def obtener_datos_opciones(
@@ -99,7 +105,7 @@ def main() -> None:
                     help="omitir ideas de opciones (sin cadenas de opciones)")
     args = ap.parse_args()
 
-    ranking = correr(CONFIG, YahooProvider(), args.limit, con_fund=not args.no_fund)
+    ranking, barras_validas, fund = correr(CONFIG, YahooProvider(), args.limit, con_fund=not args.no_fund)
     if not ranking:
         log.warning("ranking vacío (¿Yahoo bloqueó los datos?). No envío nada.")
         return
@@ -123,12 +129,29 @@ def main() -> None:
             log.warning("no pude leer shortlist_hoy.json anterior para el diff: %s", e)
     diff = calcular_diff(anterior, top)
 
-    # El mensaje diario a Telegram es corto a propósito: solo avisa qué
-    # pasó el screener. La investigación profunda (razones, checklist,
-    # ideas de opciones) se pide bajo demanda con /report TICKER -- un
-    # mensaje enorme todos los días es ruido, no señal.
+    # El mensaje corto de antes ("qué pasó el screener hoy") ya no se
+    # manda a Telegram por defecto -- se reemplazó por el Opportunity
+    # Hunter (pedido explícito: "ya no quiero solamente saber qué
+    # empresas pasaron el screener... quiero descubrir oportunidades").
+    # Se sigue calculando e imprimiendo en logs (auditoría/debug), pero el
+    # mensaje diario real ahora es `mensaje_oportunidades`, que escanea el
+    # universo COMPLETO ya validado (no solo el Top N) buscando setups de
+    # alta convicción -- si no hay ninguno, lo dice explícitamente en vez
+    # de forzar contenido.
     txt_corto = texto_telegram_corto(ranking, CONFIG, universo_n, diff)
     print("\n" + txt_corto)
+
+    # buscar_oportunidades() cotiza opciones SOLO para los tickers que ya
+    # dispararon un patrón (típicamente 0-3 por día, nunca el universo
+    # completo) -- por eso corre siempre, incluso con --no-opciones (ese
+    # flag existe para el paso de arriba, `datos_opciones` sobre el Top N
+    # completo, no para esto). Si la cadena de un ticker puntual falla,
+    # se degrada con gracia a "Comprar acciones directamente" (ver
+    # opportunity_hunter._estrategia_recomendada), nunca revienta la corrida.
+    oportunidades = buscar_oportunidades(ranking, barras_validas, fund)
+    txt_oportunidades = mensaje_oportunidades(oportunidades)
+    log.info("Opportunity Hunter: %d oportunidad(es) detectada(s)", len(oportunidades))
+    print("\n" + txt_oportunidades)
 
     # El markdown persistido SÍ guarda el análisis completo -- es la
     # bitácora histórica, no lo que se manda por Telegram.
@@ -145,7 +168,7 @@ def main() -> None:
             for p in ranking[:CONFIG.top_n]
         ],
     }, indent=2, ensure_ascii=False))
-    enviar_telegram(txt_corto)
+    enviar_telegram(txt_oportunidades)
 
 
 if __name__ == "__main__":
