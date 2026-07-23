@@ -32,6 +32,7 @@ from screener.options_strategies import (  # noqa: E402
     EstrategiaOpciones,
     construir_estrategias,
     iv_referencia,
+    puntuar,
     rankear,
 )
 
@@ -102,24 +103,15 @@ def _filtrar_explicacion(texto: str | None) -> str | None:
     return texto.strip()
 
 
-def _estrellas_por_posicion(indice0: int, total: int) -> str:
-    """indice0: posición 0-based en el ranking. 1ra -> 5 estrellas, última
-    -> 1 estrella, escala lineal entre medio. Es relativo a ESTE ranking
-    (las ~9 estrategias de este ticker hoy), no una escala universal."""
-    n = 5 if total <= 1 else round(5 - (indice0 / (total - 1)) * 4)
-    n = max(1, min(5, n))
-    return "⭐" * n + "☆" * (5 - n)
-
-
-def _formatear_simple(indice: int, total: int, e: EstrategiaOpciones) -> list[str]:
+def _formatear_simple(indice: int, score_100: int, e: EstrategiaOpciones) -> list[str]:
     ganancia = f"${e.ganancia_maxima:,.0f}" if e.ganancia_maxima is not None else "Ilimitada"
     return [
-        f"{indice}. {e.nombre} {_estrellas_por_posicion(indice - 1, total)}",
+        f"{indice}. {e.nombre} -- Score: {score_100}/100",
         f"   Riesgo máx: ${e.riesgo_maximo:,.0f}  |  Ganancia máx: {ganancia}",
     ]
 
 
-def _formatear_full(indice: int, e: EstrategiaOpciones) -> list[str]:
+def _formatear_full(indice: int, score_100: int, e: EstrategiaOpciones) -> list[str]:
     ganancia = f"${e.ganancia_maxima:,.0f}" if e.ganancia_maxima is not None else "Ilimitada"
     prob = f"{e.probabilidad_exito:.0%}" if e.probabilidad_exito is not None else "No disponible"
     ev = f"${e.valor_esperado:,.2f}" if e.valor_esperado is not None else "No disponible"
@@ -127,7 +119,7 @@ def _formatear_full(indice: int, e: EstrategiaOpciones) -> list[str]:
     delta = f"{e.delta_neto:+.2f}" if e.delta_neto is not None else "No disponible"
     theta = f"${e.theta_neto:+.2f}/día" if e.theta_neto is not None else "No disponible"
     breakevens = ", ".join(f"${b:.2f}" for b in e.breakevens) or "No disponible"
-    lineas = [f"{indice}. {e.nombre}"]
+    lineas = [f"{indice}. {e.nombre} -- Score: {score_100}/100"]
     for p in e.patas:
         lineas.append(f"     {p.accion} {p.tipo} ${p.strike:.2f} (prima ${p.prima:.2f})")
     if e.capital_adicional_requerido:
@@ -174,6 +166,7 @@ def generar_options(ticker: str, modo: str = "simple") -> str:
         return (f"No pude construir estrategias de opciones para {ticker} con los "
                 f"datos disponibles hoy -- puede que la cadena tenga muy pocos "
                 f"strikes cotizados.")
+    scores_100 = [round(s * 100) for s in puntuar(estrategias)]
 
     tesis = _tesis(tendencia_label)
     lineas = [f"📐 Opciones: {nombre} ({ticker})", "", f"Tesis técnica: {tesis}",
@@ -187,14 +180,14 @@ def generar_options(ticker: str, modo: str = "simple") -> str:
         lineas.append(f"Ranking completo ({len(estrategias)} estrategias, orden puramente cuantitativo):")
         lineas.append("")
         for i, e in enumerate(estrategias, 1):
-            lineas += _formatear_full(i, e)
+            lineas += _formatear_full(i, scores_100[i - 1], e)
     else:
         top = estrategias[:TOP_N_SIMPLE]
         estrategias_para_llm = top
         lineas.append(f"Top {len(top)} estrategias (de {len(estrategias)} calculadas):")
         lineas.append("")
         for i, e in enumerate(top, 1):
-            lineas += _formatear_simple(i, len(top), e)
+            lineas += _formatear_simple(i, scores_100[i - 1], e)
             lineas.append("")
         restantes = len(estrategias) - len(top)
         if restantes > 0:

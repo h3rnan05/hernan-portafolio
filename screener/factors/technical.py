@@ -12,7 +12,11 @@ import statistics
 from screener.data.provider import Barras
 
 
-def _sma(valores: list[float], n: int) -> float | None:
+def sma(valores: list[float], n: int) -> float | None:
+    """Media móvil simple de las últimas `n` barras -- pública porque
+    telegram_bot/trade_command.py la reutiliza como nivel de referencia
+    real (no inventado) para "precio ideal para volver a revisar" en el
+    Plan de acción de /trade."""
     return sum(valores[-n:]) / n if len(valores) >= n else None
 
 
@@ -44,11 +48,19 @@ def volatilidad_anual(b: Barras, ventana: int = 63) -> float | None:
     return statistics.pstdev(rets) * (252 ** 0.5)
 
 
+def maximo_52s(b: Barras) -> float | None:
+    """Máximo de cierre de las últimas 52 semanas (~252 barras) -- nivel
+    técnico real de referencia, público porque telegram_bot/
+    trade_command.py lo reutiliza como el nivel de ruptura para
+    reconsiderar una tesis alcista en pausa (no un porcentaje inventado)."""
+    ventana = b.close[-252:] if len(b.close) >= 252 else b.close
+    return max(ventana) if ventana else None
+
+
 def proximidad_maximo_52s(b: Barras) -> float | None:
     """Qué tan cerca del máximo de 52 semanas está el precio (1.0 = en máximos).
     Es la señal de fuerza/ruptura que buscan los trend-followers."""
-    ventana = b.close[-252:] if len(b.close) >= 252 else b.close
-    maximo = max(ventana)
+    maximo = maximo_52s(b)
     return b.close[-1] / maximo if maximo else None
 
 
@@ -56,7 +68,7 @@ def score_tendencia(b: Barras) -> float | None:
     """Alineación con medias móviles: +1 por cada condición alcista cumplida
     (precio>50DMA, 50>100, 100>200). Rango 0..3 → lo normaliza scoring.py."""
     c = b.close
-    sma50, sma100, sma200 = _sma(c, 50), _sma(c, 100), _sma(c, 200)
+    sma50, sma100, sma200 = sma(c, 50), sma(c, 100), sma(c, 200)
     if None in (sma50, sma100, sma200):
         return None
     p = c[-1]

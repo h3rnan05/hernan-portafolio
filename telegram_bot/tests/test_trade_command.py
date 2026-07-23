@@ -1,12 +1,14 @@
 """Pruebas de /trade TICKER: red (Yahoo) mockeada por completo -- verifica
 que la versión de bolsillo muestre solo lo que de verdad se pudo calcular
-(nunca invente Convicción/Objetivo), que "Convicción" sea siempre un
-score real (screener o ranking de estrategias, nunca una probabilidad de
-éxito), y que el bloque "¿Por qué?" sea 100% determinístico (sin LLM)."""
+(nunca invente Score/Objetivo), que "Score cuantitativo" sea siempre un
+score real (nunca una probabilidad de éxito), que la capa de coherencia
+tesis-vs-estrategia funcione sin tocar el ranking, que "¿Qué tiene que
+pasar para ganar?" use el breakeven/vencimiento reales, y que el Plan de
+acción use niveles técnicos reales (SMA50, máximo 52 semanas) en vez de
+un breakeven de opciones que no tiene sentido para estrategias de
+ingreso."""
 
 from __future__ import annotations
-
-import pytest
 
 import trade_command as tc
 from screener.data.provider import Barras, Fundamentales
@@ -58,6 +60,7 @@ def _mock_red_basica(monkeypatch, fund=None):
                         lambda: _FakeProvider({"AAPL": _barras()}, {"AAPL": fund or Fundamentales("AAPL", nombre="Apple Inc.")}))
     monkeypatch.setattr(tc, "obtener_cadena", lambda ticker: _cadena_sintetica(ticker))
     monkeypatch.setattr(tc, "_shortlist_entry", lambda ticker: None)
+    monkeypatch.setattr(tc, "_obtener_fecha_resultados", lambda ticker: None)
 
 
 def test_ticker_sin_datos_de_precio_da_mensaje_claro(monkeypatch):
@@ -70,35 +73,38 @@ def test_mensaje_basico_incluye_secciones_clave(monkeypatch):
     _mock_red_basica(monkeypatch)
     texto = tc.generar_trade("AAPL")
     assert "📊 AAPL — Apple Inc." in texto
-    assert "Convicción del modelo:" in texto
+    assert "Score cuantitativo del modelo:" in texto
+    assert "Convicción" not in texto
     assert "📌 Mi conclusión" in texto
-    assert "🎯" in texto  # "Mejor estrategia" o la variante "Si decidieras operar hoy..."
-    assert "¿Por qué?" in texto
+    assert "🎯 Tesis del modelo" in texto
+    assert "¿Por qué" in texto
     assert "💰 Ejemplo" in texto
     assert "Costo máximo:" in texto
     assert "Ganancia máxima:" in texto
-    assert "Punto de equilibrio:" in texto
-    assert "📈 Escenarios" in texto
+    assert "¿Qué tiene que pasar para que esta estrategia gane?" in texto
+    assert "✅ Para ganar necesitas:" in texto
+    assert "Lo que puede salir mal" in texto
     assert "⚠️ Riesgos" in texto
     assert "Próximo paso" in texto
     assert "/report AAPL" in texto
     assert "/options AAPL --full" in texto
     assert "Esto no es una recomendación de compra/venta." in texto
+    assert "⭐" not in texto  # sin estrellas
 
 
-def test_convic_no_disponible_si_no_esta_en_shortlist(monkeypatch):
+def test_score_no_disponible_si_no_esta_en_shortlist(monkeypatch):
     _mock_red_basica(monkeypatch)
     texto = tc.generar_trade("AAPL")
-    assert "⚪ Convicción del modelo: No disponible (no está en la shortlist de hoy)" in texto
+    assert "⚪ Score cuantitativo del modelo: No disponible (no está en la shortlist de hoy)" in texto
 
 
-def test_convic_usa_score_real_del_screener(monkeypatch):
+def test_score_usa_score_real_del_screener(monkeypatch):
     _mock_red_basica(monkeypatch)
     monkeypatch.setattr(tc, "_shortlist_entry", lambda ticker: {
         "score": 84.0, "sector": "Technology", "sub_scores": {"calidad": 70.0, "valor": 50.0},
     })
     texto = tc.generar_trade("AAPL")
-    assert "🟢 Convicción del modelo: 84/100" in texto
+    assert "🟢 Score cuantitativo del modelo: 84/100" in texto
 
 
 def test_cadena_none_no_rompe_y_omite_estrategias(monkeypatch):
@@ -107,38 +113,10 @@ def test_cadena_none_no_rompe_y_omite_estrategias(monkeypatch):
     texto = tc.generar_trade("AAPL")
     assert "No pude calcular estrategias de opciones para hoy" in texto
     assert "💰 Ejemplo" not in texto
-    assert "📈 Escenarios" not in texto
-    assert "No hay estrategias de opciones disponibles hoy" in texto
+    assert "¿Qué tiene que pasar" not in texto
 
 
-def test_escenario_favorable_usa_emoji_por_signo_no_por_direccion_asumida(monkeypatch):
-    """Regresión de extremo a extremo: una Covered Call (delta neto
-    positivo, favorecida por una subida) con un precio objetivo de
-    analistas por DEBAJO del spot debe mostrar 🔴 en ese escenario (el
-    payoff real ahí es una pérdida), no 🟢 solo porque la estrategia en
-    general se beneficia de que el precio suba."""
-    spot = 327.74
-    monkeypatch.setattr(tc, "YahooProvider", lambda: _FakeProvider(
-        {"AAPL": _barras(precio_final=spot)},
-        {"AAPL": Fundamentales("AAPL", nombre="Apple Inc.", analista_precio_objetivo=318.25)}))
-    monkeypatch.setattr(tc, "obtener_cadena", lambda ticker: _cadena_sintetica(spot=spot))
-    monkeypatch.setattr(tc, "_shortlist_entry", lambda ticker: None)
-    covered_call = EstrategiaOpciones(
-        nombre="Covered Call",
-        patas=[PataOpcion("call", "vender", 345.0, 5.0)],
-        razon="Compra 100 acciones + vende call $345.00.",
-        riesgo_maximo=32190.0, ganancia_maxima=2310.0, breakevens=[321.90],
-        probabilidad_exito=0.6, valor_esperado=100.0, delta_neto=0.4, theta_neto=1.0,
-        liquidez_score=80.0, capital_adicional_requerido=True,
-    )
-    monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [covered_call])
-    monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
-    texto = tc.generar_trade("AAPL")
-    assert "🔴 Si baja hacia $318" in texto
-    assert "Pérdida estimada:" in texto
-
-
-def test_coherencia_estrategia_alineada_con_tesis_muestra_mejor_estrategia(monkeypatch):
+def test_coherencia_estrategia_alineada_muestra_mejor_estrategia(monkeypatch):
     _mock_red_basica(monkeypatch)
     monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "alcista")
     long_call = EstrategiaOpciones(
@@ -150,14 +128,14 @@ def test_coherencia_estrategia_alineada_con_tesis_muestra_mejor_estrategia(monke
     monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
     monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
     texto = tc.generar_trade("AAPL")
-    assert "🎯 Mejor estrategia" in texto
-    assert "no coincide con la tesis" not in texto
+    assert "Mejor estrategia" in texto
+    assert "Si aun así quieres operar" not in texto
 
 
-def test_coherencia_estrategia_no_alineada_cambia_encabezado_y_agrega_nota(monkeypatch):
+def test_coherencia_estrategia_no_alineada_cambia_encabezado(monkeypatch):
     """Regresión del pedido explícito del usuario: evitar mensajes
-    contradictorios ("No compraría hoy" + "Long Call" presentado como
-    "Mejor estrategia") sin tocar el ranking matemático."""
+    contradictorios ("No compraría hoy" + "Long Call" presentado sin más
+    contexto) sin tocar el ranking matemático."""
     _mock_red_basica(monkeypatch)
     monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "esperar")
     long_call = EstrategiaOpciones(
@@ -169,10 +147,47 @@ def test_coherencia_estrategia_no_alineada_cambia_encabezado_y_agrega_nota(monke
     monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
     monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
     texto = tc.generar_trade("AAPL")
-    assert "🎯 Mejor estrategia" not in texto
-    assert "Si decidieras operar hoy, la estrategia con mejor relación matemática es..." in texto
-    assert "no coincide con la tesis principal del modelo (Esperar)" in texto
+    assert "Si aun así quieres operar..." in texto
+    assert "Mejor estrategia" not in texto
     assert "Long Call" in texto
+    assert "🟡 Esperar" in texto
+    # el "Plan de acción" solo aparece cuando la conclusión es "esperar"
+    assert "📝 Plan de acción" in texto
+
+
+def test_plan_de_accion_ausente_si_tesis_no_es_esperar(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "alcista")
+    texto = tc.generar_trade("AAPL")
+    assert "📝 Plan de acción" not in texto
+
+
+def test_por_que_incluye_explicacion_fija_de_la_estrategia(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    long_call = EstrategiaOpciones(
+        nombre="Long Call", patas=[PataOpcion("call", "comprar", 100.0, 5.0)],
+        razon="Compra call $100.00.", riesgo_maximo=500.0, ganancia_maxima=None,
+        breakevens=[105.0], probabilidad_exito=0.4, valor_esperado=50.0,
+        delta_neto=0.5, theta_neto=-1.0, liquidez_score=80.0,
+    )
+    monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
+    monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
+    texto = tc.generar_trade("AAPL")
+    assert "la estrategia que más gana si AAPL sigue subiendo con fuerza" in texto
+
+
+def test_condicion_para_ganar_usa_breakeven_y_vencimiento_reales(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    long_call = EstrategiaOpciones(
+        nombre="Long Call", patas=[PataOpcion("call", "comprar", 100.0, 5.0)],
+        razon="Compra call $100.00.", riesgo_maximo=500.0, ganancia_maxima=None,
+        breakevens=[105.0], probabilidad_exito=0.4, valor_esperado=50.0,
+        delta_neto=0.5, theta_neto=-1.0, liquidez_score=80.0,
+    )
+    monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
+    monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
+    texto = tc.generar_trade("AAPL")
+    assert "Que AAPL suba arriba de $105 antes del 1 de enero." in texto
 
 
 def test_por_que_usa_precio_vs_objetivo_de_analistas(monkeypatch):
@@ -196,10 +211,10 @@ def test_riesgo_bajo_sin_banderas_reales(monkeypatch):
 # ------------------------- funciones auxiliares deterministas -------------------------
 
 
-def test_emoji_convic_umbrales():
-    assert tc._emoji_convic(84) == "🟢"
-    assert tc._emoji_convic(50) == "🟡"
-    assert tc._emoji_convic(10) == "🔴"
+def test_emoji_score_umbrales():
+    assert tc._emoji_score(84) == "🟢"
+    assert tc._emoji_score(50) == "🟡"
+    assert tc._emoji_score(10) == "🔴"
 
 
 def test_fmt_strike_entero_vs_decimal():
@@ -207,42 +222,14 @@ def test_fmt_strike_entero_vs_decimal():
     assert tc._fmt_strike(327.5) == "327.50"
 
 
-def test_fmt_signed_round():
-    assert tc._fmt_signed_round(427.0) == "+$427"
-    assert tc._fmt_signed_round(-573.0) == "-$573"
+def test_fmt_price_round():
+    assert tc._fmt_price_round(427.0) == "$427"
+    assert tc._fmt_price_round(1272.3) == "$1,272"
 
 
-def test_emoji_payoff_usa_el_signo_real_no_una_direccion_asumida():
-    """Regresión: el emoji del escenario debe reflejar el payoff real
-    calculado, no la dirección que en teoría favorece a la estrategia --
-    el precio objetivo real de analistas puede apuntar en la dirección
-    que técnicamente perjudica a la estrategia elegida."""
-    assert tc._emoji_payoff(427.0) == "🟢"
-    assert tc._emoji_payoff(-365.0) == "🔴"
-    assert tc._emoji_payoff(0.0) == "🟢"
-
-
-def test_punto_equilibrio_un_breakeven():
-    assert tc._punto_equilibrio([334.27]) == "$334.27"
-
-
-def test_punto_equilibrio_dos_breakevens():
-    assert tc._punto_equilibrio([90.0, 110.0]) == "$90.00 - $110.00"
-
-
-def test_punto_equilibrio_vacio():
-    assert tc._punto_equilibrio([]) == "No disponible"
-
-
-def test_precio_adverso_usa_signo_del_delta_neto():
-    assert tc._precio_adverso(100.0, delta_neto=0.5) == 85.0
-    assert tc._precio_adverso(100.0, delta_neto=-0.5) == pytest.approx(115.0)
-    assert tc._precio_adverso(100.0, delta_neto=None) == 85.0
-
-
-def test_precio_favorable_es_espejo_del_adverso():
-    assert tc._precio_favorable(100.0, delta_neto=0.5) == pytest.approx(115.0)
-    assert tc._precio_favorable(100.0, delta_neto=-0.5) == pytest.approx(85.0)
+def test_fmt_fecha_es():
+    assert tc._fmt_fecha_es("2026-08-28") == "28 de agosto"
+    assert tc._fmt_fecha_es("no-es-fecha") == "no-es-fecha"
 
 
 def test_tesis_categoria_alcista_sobrecomprado_es_esperar():
@@ -318,33 +305,109 @@ def test_conclusion_opciones_score_alto():
     assert texto == "Sí investigaría una estrategia con opciones."
 
 
+def test_explicacion_estrategia_conocida_incluye_ticker():
+    texto = tc._explicacion_estrategia("Long Call", "AAPL")
+    assert "AAPL" in texto
+    assert texto  # no vacío
+
+
+def test_explicacion_estrategia_desconocida_da_vacio():
+    assert tc._explicacion_estrategia("Estrategia Inventada", "AAPL") == ""
+
+
+def test_todas_las_9_estrategias_tienen_explicacion_y_riesgos():
+    nombres = ["Long Call", "Long Put", "Bull Call Spread", "Bear Put Spread", "Bull Put Spread",
+               "Bear Call Spread", "Covered Call", "Cash Secured Put", "Iron Condor"]
+    for nombre in nombres:
+        assert tc._explicacion_estrategia(nombre, "AAPL"), f"falta explicación para {nombre}"
+        assert tc._riesgos_estrategia(nombre, "AAPL"), f"faltan riesgos para {nombre}"
+
+
+def test_riesgos_estrategia_desconocida_da_lista_vacia():
+    assert tc._riesgos_estrategia("Estrategia Inventada", "AAPL") == []
+
+
 def test_por_que_bullets_sobrecompra():
     fund = Fundamentales("AAPL", analista_precio_objetivo=None)
-    bullets = tc._por_que_bullets(rsi=80.0, fund=fund, spot=100.0, score_100=None)
+    bullets = tc._por_que_bullets(rsi=80.0, fund=fund, spot=100.0)
     assert any("sobrecompra" in b for b in bullets)
 
 
 def test_por_que_bullets_sobreventa():
     fund = Fundamentales("AAPL", analista_precio_objetivo=None)
-    bullets = tc._por_que_bullets(rsi=20.0, fund=fund, spot=100.0, score_100=None)
+    bullets = tc._por_que_bullets(rsi=20.0, fund=fund, spot=100.0)
     assert any("sobreventa" in b for b in bullets)
 
 
 def test_por_que_bullets_precio_sobre_objetivo():
     fund = Fundamentales("AAPL", analista_precio_objetivo=90.0)
-    bullets = tc._por_que_bullets(rsi=None, fund=fund, spot=100.0, score_100=None)
+    bullets = tc._por_que_bullets(rsi=None, fund=fund, spot=100.0)
     assert any("por encima del objetivo" in b for b in bullets)
 
 
 def test_por_que_bullets_precio_bajo_objetivo():
     fund = Fundamentales("AAPL", analista_precio_objetivo=120.0)
-    bullets = tc._por_que_bullets(rsi=None, fund=fund, spot=100.0, score_100=None)
+    bullets = tc._por_que_bullets(rsi=None, fund=fund, spot=100.0)
     assert any("por debajo del objetivo" in b for b in bullets)
 
 
-def test_por_que_bullets_score_alto_y_bajo():
-    fund = Fundamentales("AAPL", analista_precio_objetivo=None)
-    altos = tc._por_que_bullets(rsi=None, fund=fund, spot=100.0, score_100=80)
-    bajos = tc._por_que_bullets(rsi=None, fund=fund, spot=100.0, score_100=10)
-    assert any("Buena relación riesgo/beneficio" in b for b in altos)
-    assert any("modesta" in b for b in bajos)
+def test_condicion_para_ganar_debito_pide_movimiento_direccional():
+    e = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=500.0,
+                           ganancia_maxima=None, breakevens=[105.0])
+    assert tc._condicion_para_ganar(e, "AAPL", "1 de enero") == "Que AAPL suba arriba de $105 antes del 1 de enero."
+
+
+def test_condicion_para_ganar_debito_bajista():
+    e = EstrategiaOpciones(nombre="Bear Put Spread", patas=[], razon="", riesgo_maximo=500.0,
+                           ganancia_maxima=300.0, breakevens=[95.0])
+    assert tc._condicion_para_ganar(e, "AAPL", "1 de enero") == "Que AAPL baje por debajo de $95 antes del 1 de enero."
+
+
+def test_condicion_para_ganar_credito_pide_mantenerse():
+    e = EstrategiaOpciones(nombre="Bull Put Spread", patas=[], razon="", riesgo_maximo=500.0,
+                           ganancia_maxima=100.0, breakevens=[95.0])
+    assert tc._condicion_para_ganar(e, "AAPL", "1 de enero") == "Que AAPL se mantenga arriba de $95 hasta el 1 de enero."
+
+
+def test_condicion_para_ganar_iron_condor_usa_rango():
+    e = EstrategiaOpciones(nombre="Iron Condor", patas=[], razon="", riesgo_maximo=500.0,
+                           ganancia_maxima=100.0, breakevens=[90.0, 110.0])
+    assert tc._condicion_para_ganar(e, "AAPL", "1 de enero") == \
+        "Que AAPL se mantenga entre $90 y $110 hasta el 1 de enero."
+
+
+def test_condicion_para_ganar_sin_breakeven():
+    e = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=500.0,
+                           ganancia_maxima=None, breakevens=[])
+    assert "No pude determinar" in tc._condicion_para_ganar(e, "AAPL", "1 de enero")
+
+
+def test_plan_de_accion_incluye_sma():
+    lineas = tc._plan_de_accion("AAPL", top=None, sma50=95.0, maximo_52s=110.0, fecha_resultados=None)
+    texto = "\n".join(lineas)
+    assert "cerca de $95" in texto
+
+
+def test_plan_de_accion_sin_top_omite_nivel_de_ruptura():
+    lineas = tc._plan_de_accion("AAPL", top=None, sma50=95.0, maximo_52s=110.0, fecha_resultados=None)
+    texto = "\n".join(lineas)
+    assert "máximo de 52 semanas" not in texto
+
+
+def test_plan_de_accion_con_top_incluye_nivel_de_ruptura():
+    e = EstrategiaOpciones(nombre="Covered Call", patas=[], razon="", riesgo_maximo=500.0,
+                           ganancia_maxima=100.0, breakevens=[95.0])
+    lineas = tc._plan_de_accion("AAPL", top=e, sma50=95.0, maximo_52s=110.0, fecha_resultados=None)
+    texto = "\n".join(lineas)
+    assert "Si rompe arriba de $110 (máximo de 52 semanas), volvería a analizar Covered Call." in texto
+
+
+def test_plan_de_accion_incluye_fecha_resultados_si_existe():
+    lineas = tc._plan_de_accion("AAPL", top=None, sma50=None, maximo_52s=None, fecha_resultados="2026-08-28")
+    texto = "\n".join(lineas)
+    assert "2 días antes de resultados (28 de agosto)" in texto
+
+
+def test_plan_de_accion_sin_datos_no_rompe():
+    lineas = tc._plan_de_accion("AAPL", top=None, sma50=None, maximo_52s=None, fecha_resultados=None)
+    assert lineas == ["📝 Plan de acción", "", "Esperaría. No abriría posición hoy."]

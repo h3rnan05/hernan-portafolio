@@ -89,6 +89,9 @@ def test_modo_simple_muestra_top4_y_footer(monkeypatch):
     assert "💬 Explicación:" in texto
     assert "Explicación de prueba" in texto
     assert oc.DISCLAIMER in texto
+    # score numérico real, no estrellas
+    assert "-- Score: " in texto
+    assert "⭐" not in texto
     # modo simple no debe mostrar el desglose completo (Greeks/breakeven detallado)
     assert "Delta neto:" not in texto
 
@@ -105,6 +108,8 @@ def test_modo_full_muestra_todas_las_estrategias_con_detalle(monkeypatch):
     assert "Probabilidad de éxito" in texto
     assert "Valor esperado:" in texto
     assert "Liquidez (aprox.):" in texto
+    assert "-- Score: " in texto
+    assert "⭐" not in texto
     assert "... y" not in texto  # full no trunca
 
 
@@ -129,15 +134,6 @@ def test_explicacion_con_lenguaje_de_recomendacion_se_descarta(monkeypatch):
     texto = oc.generar_options("AAPL")
     assert "Te recomiendo comprar" not in texto
     assert "no pasó el filtro de seguridad" in texto.lower() or "no disponible" in texto.lower()
-
-
-def test_estrellas_por_posicion_primera_es_maxima_ultima_es_minima():
-    assert oc._estrellas_por_posicion(0, 4) == "⭐⭐⭐⭐⭐"
-    assert oc._estrellas_por_posicion(3, 4) == "⭐☆☆☆☆"
-
-
-def test_estrellas_por_posicion_un_solo_elemento():
-    assert oc._estrellas_por_posicion(0, 1) == "⭐⭐⭐⭐⭐"
 
 
 def test_filtrar_explicacion_vacia_da_none():
