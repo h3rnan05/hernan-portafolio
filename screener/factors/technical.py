@@ -97,3 +97,22 @@ def dollar_volume(b: Barras, ventana: int = 21) -> float | None:
         return None
     dvs = [b.close[i] * b.volume[i] for i in range(-ventana, 0)]
     return sum(dvs) / ventana
+
+
+def atr(b: Barras, periodo: int = 20) -> float | None:
+    """Average True Range -- mismo cálculo (true range = max(high-low,
+    |high-close_previo|, |low-close_previo|), promediado sobre `periodo`
+    barras) y mismo periodo por defecto que ya usa wizards_bot.py para su
+    stop de 2×ATR en el bot de Turtle Trading. Pública porque telegram_bot/
+    trade_command.py la reutiliza como margen objetivo de volatilidad para
+    los niveles de entrada/cancelación del Plan de acción de /trade --
+    misma convención de riesgo ya validada en producción, no un margen
+    inventado."""
+    if len(b.close) < 2:
+        return None
+    trs = [
+        max(b.high[i] - b.low[i], abs(b.high[i] - b.close[i - 1]), abs(b.low[i] - b.close[i - 1]))
+        for i in range(1, len(b.close))
+    ]
+    ventana = trs[-periodo:]
+    return sum(ventana) / len(ventana) if ventana else None
