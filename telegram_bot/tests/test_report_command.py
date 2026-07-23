@@ -89,6 +89,7 @@ def test_reporte_simple_normaliza_ticker_a_mayusculas(monkeypatch, tmp_path):
 def test_reporte_simple_incluye_las_secciones_clave(monkeypatch, tmp_path):
     _mock_red_basica(monkeypatch, tmp_path=tmp_path)
     texto = rc.generar_reporte("AAPL")
+    assert "🎯 Mi plan para hoy" in texto
     assert "📌 En 20 segundos" in texto
     assert "🎯 ¿Por qué me gusta?" in texto
     assert "⚠️ ¿Qué no me gusta?" in texto
@@ -96,6 +97,8 @@ def test_reporte_simple_incluye_las_secciones_clave(monkeypatch, tmp_path):
     assert "📰 Lo que pasó esta semana" in texto
     assert "🎯 Qué haría yo" in texto
     assert "/report AAPL --full" in texto
+    # "Mi plan para hoy" es lo primero que se lee, antes de "En 20 segundos".
+    assert texto.index("🎯 Mi plan para hoy") < texto.index("📌 En 20 segundos")
 
 
 def test_reporte_simple_no_muestra_nunca_no_disponible(monkeypatch, tmp_path):
@@ -382,26 +385,91 @@ def test_lo_importante_omite_datos_no_disponibles():
     assert "Potencial" not in texto
 
 
-def test_lo_importante_muestra_todo_cuando_esta_disponible():
+def test_lo_importante_lidera_con_conclusion_en_lenguaje_llano():
+    """Pedido explícito: la conclusión en lenguaje llano va ARRIBA, el
+    dato técnico crudo va ABAJO en una sola línea compacta -- la mayoría
+    de la gente no sabe interpretar un ROE o un P/E sueltos."""
     lineas = rc._lo_importante(precio=347.79, pe=14.9, roe=0.178, crecimiento=0.30, rsi=63,
                                analista_recomendacion="buy", precio_objetivo=370.0)
     texto = "\n".join(lineas)
-    assert "P/E: 14.9 (barato)" in texto
-    assert "ROE: 17.8%" in texto
-    assert "Ingresos: +30%" in texto
-    assert "RSI: 63 (neutral)" in texto
-    assert "Analistas: Buy" in texto
-    assert "Potencial:" in texto
+    assert "Empresa rentable." in texto
+    assert "Acción barata." in texto
+    assert "No está sobrecomprada." in texto
+    assert "Creciendo rápido (+30%)." in texto
+    # el dato crudo va en una sola línea compacta, después de las conclusiones
+    idx_conclusion = texto.index("Empresa rentable.")
+    idx_datos = texto.index("P/E 14.9")
+    assert idx_conclusion < idx_datos
+    assert "ROE 17.8%" in texto
+    assert "RSI 63" in texto
+    assert "Analistas Buy" in texto
+    assert "Potencial" in texto
+
+
+def test_lo_importante_roe_bajo_y_valuacion_cara():
+    lineas = rc._lo_importante(precio=100.0, pe=45.0, roe=0.03, crecimiento=-0.05, rsi=50,
+                               analista_recomendacion=None, precio_objetivo=None)
+    texto = "\n".join(lineas)
+    assert "Rentabilidad débil." in texto
+    assert "Acción cara." in texto
+    assert "Ingresos en contracción." in texto
+
+
+def test_por_que_una_linea_compraria_usa_lo_que_gusta():
+    linea = rc._por_que_una_linea("compraria", gusta=["Tendencia alcista.", "Negocio rentable (ROE 17.8%)."],
+                                  no_gusta=["No pasó todos los filtros cuantitativos del modelo hoy."])
+    assert linea == "Porque Tendencia alcista y Negocio rentable (ROE 17.8%)."
+
+
+def test_por_que_una_linea_no_compraria_usa_lo_que_no_gusta_y_no_rompe_siglas():
+    """Regresión: minusculizar a ciegas el primer carácter rompía siglas
+    como "RSI" ("rSI en sobrecompra...")."""
+    linea = rc._por_que_una_linea("sobrecomprado", gusta=["Tendencia alcista."],
+                                  no_gusta=["RSI en sobrecompra (89) -- no hay un punto de entrada atractivo todavía."])
+    assert linea == "Porque RSI en sobrecompra (89) -- no hay un punto de entrada atractivo todavía."
+
+
+def test_por_que_una_linea_sin_hechos_da_none():
+    assert rc._por_que_una_linea("compraria", gusta=[], no_gusta=[]) is None
+    assert rc._por_que_una_linea("no_paso", gusta=["algo"], no_gusta=[]) is None
+
+
+def test_mi_plan_para_hoy_compraria():
+    lineas = rc._mi_plan_para_hoy("compraria", "Porque está barata.", {"entrada": None}, maximo_52s=350.0)
+    texto = "\n".join(lineas)
+    assert "🎯 Mi plan para hoy" in texto
+    assert "Sí, la compraría hoy." in texto
+    assert "Porque está barata." in texto
+    assert "✅ Ya puedes crear esta alerta: $350.00" in texto
+    assert "Si llega ahí, la vuelvo a analizar." in texto
+
+
+def test_mi_plan_para_hoy_no_compraria_usa_nivel_de_entrada():
+    lineas = rc._mi_plan_para_hoy("no_paso", None, {"entrada": 330.0}, maximo_52s=350.0)
+    texto = "\n".join(lineas)
+    assert "No haría nada. Esperaría." in texto
+    assert "$330.00" in texto
+    assert "$350.00" not in texto
+
+
+def test_mi_plan_para_hoy_sin_niveles_omite_alerta():
+    lineas = rc._mi_plan_para_hoy("no_paso", None, {"entrada": None}, maximo_52s=None)
+    assert "Ya puedes crear esta alerta" not in "\n".join(lineas)
 
 
 def test_que_haria_yo_compraria():
-    lineas = rc._que_haria_yo("compraria", {"entrada": None, "ideal": None}, None)
+    lineas = rc._que_haria_yo("compraria", None, {"entrada": None, "ideal": None}, None)
     assert lineas == ["🎯 Qué haría yo", "", "Sí, la compraría hoy."]
+
+
+def test_que_haria_yo_compraria_incluye_el_porque():
+    lineas = rc._que_haria_yo("compraria", "Porque está barata.", {"entrada": None, "ideal": None}, None)
+    assert "Porque está barata." in lineas
 
 
 def test_que_haria_yo_no_compraria_usa_niveles_reales():
     niveles = {"entrada": 330.0, "ideal": 325.0}
-    lineas = rc._que_haria_yo("no_paso", niveles, maximo_52s=350.0)
+    lineas = rc._que_haria_yo("no_paso", None, niveles, maximo_52s=350.0)
     texto = "\n".join(lineas)
     assert "No compraría hoy." in texto
     assert "$325.00" in texto
@@ -409,18 +477,20 @@ def test_que_haria_yo_no_compraria_usa_niveles_reales():
     assert "$350.00" in texto
 
 
-def test_alertas_reporte_incluye_los_niveles_disponibles():
+def test_alertas_reporte_muestra_condiciones_o():
     niveles = {"entrada": 335.0, "ideal": 330.0, "cancelar": 310.0}
-    lineas = rc._alertas_reporte(niveles, maximo_52s=350.0)
+    lineas = rc._alertas_reporte(niveles, maximo_52s=350.0, fecha_resultados="2026-08-15")
     texto = "\n".join(lineas)
-    assert "Comprar: $335.00" in texto
-    assert "Comprar fuerte: $330.00" in texto
-    assert "Revisar ruptura: $350.00" in texto
-    assert "Cancelar: $310.00" in texto
+    assert "🔔 Comprar si ocurre UNA de estas cosas" in texto
+    assert "Corrige hacia $335.00" in texto
+    assert "Rebota con fuerza en el soporte ($330.00)" in texto
+    assert "Rompe el máximo de 52 semanas ($350.00)" in texto
+    assert "Después de los resultados trimestrales (2026-08-15)" in texto
+    assert "❌ Cancelar la idea si cae debajo de $310.00" in texto
 
 
-def test_alertas_reporte_vacia_si_no_hay_niveles():
-    assert rc._alertas_reporte({"entrada": None, "ideal": None, "cancelar": None}, None) == []
+def test_alertas_reporte_vacia_si_no_hay_condiciones():
+    assert rc._alertas_reporte({"entrada": None, "ideal": None, "cancelar": None}, None, None) == []
 
 
 # ------------------------- resumen de noticias -------------------------

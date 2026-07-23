@@ -68,12 +68,11 @@ AYUDA = (
     "Las salidas las maneja el bot solo (trailing stop). Yo no acepto "
     "órdenes de venta: el sistema no se sobreescribe por impulso — eso "
     "también viene del libro.\n\n"
-    "/trade TICKER -- el tablero del trader: opinión con estrellas, "
-    "confianza (qué tan alineadas están las señales, no una probabilidad "
-    "de éxito), checklist de 6 señales, ranking de estrategias, un "
-    "ejemplo educativo con costo/riesgo/objetivo real, y escenarios. El "
-    "resumen ejecutivo de /report + /options en menos de 30 segundos de "
-    "lectura. Ej.: /trade AAPL\n\n"
+    "/trade TICKER -- responde 7 preguntas en menos de 20 líneas: ¿compro "
+    "o no?, ¿a qué precio?, ¿dónde el stop?, ¿cuál el objetivo?, ¿qué "
+    "estrategia?, ¿cuánto capital?, ¿qué alerta pongo? Agrega --full para "
+    "el tablero completo (Semáforo, Confianza en el plan, Plan de acción, "
+    "Qué tiene que pasar para ganar). Ej.: /trade AAPL, /trade AAPL --full\n\n"
     "/report TICKER -- ¿vale la pena investigarla? ¿comprarías hoy? qué te "
     "gusta, qué no, y a qué precio -- todo legible en menos de un minuto. "
     "Agrega --full para el memo exhaustivo (score breakdown, fundamentales "
@@ -258,13 +257,13 @@ async def _procesar_options(ticker: str, modo: str, chat_id: str) -> None:
             pass
 
 
-async def _procesar_trade(ticker: str, chat_id: str) -> None:
-    """Genera el tablero de /trade TICKER y lo manda. Corre como
-    background task; generar_trade hace llamadas de red síncronas (Yahoo/
-    yfinance/Google News/Anthropic), así que se ejecuta en un hilo aparte
-    para no bloquear el event loop del webhook."""
+async def _procesar_trade(ticker: str, modo: str, chat_id: str) -> None:
+    """Genera /trade TICKER [--full] y lo manda. Corre como background
+    task; generar_trade hace llamadas de red síncronas (Yahoo/yfinance/
+    Google News/Anthropic), así que se ejecuta en un hilo aparte para no
+    bloquear el event loop del webhook."""
     try:
-        texto = await asyncio.to_thread(generar_trade, ticker)
+        texto = await asyncio.to_thread(generar_trade, ticker, modo)
         await _telegram_send_largo(chat_id, texto)
     except Exception as e:
         log.exception("trade de %s falló", ticker)
@@ -390,9 +389,11 @@ async def telegram_webhook(
         partes = texto.split()
         if len(partes) < 2:
             background.add_task(
-                _telegram_send, chat_id, "Uso: /trade TICKER (ej. /trade AAPL)")
+                _telegram_send, chat_id,
+                "Uso: /trade TICKER (ej. /trade AAPL, o /trade AAPL --full)")
             return {"ok": True}
-        background.add_task(_procesar_trade, partes[1].upper(), chat_id)
+        modo = "full" if "--full" in partes[2:] else "simple"
+        background.add_task(_procesar_trade, partes[1].upper(), modo, chat_id)
         return {"ok": True}
 
     if texto.startswith("/report"):

@@ -8,6 +8,17 @@ qué operar (Principio #3 del AIOS, ver ROADMAP.md). Mismos guardrails que
 news_analyst/explicador.py: prompt + filtro de palabras prohibidas como
 defensa adicional al propio prompt.
 
+Coherencia con la tesis (modo simple, por defecto): antes de mostrar el
+Top N se filtran las estrategias cuya dirección
+(`options_strategies.direccion_estrategia`) contradice la tesis técnica
+-- pedido explícito tras ver un caso real donde el Top 1 era "Bear Put
+Spread" (bajista) con la tesis técnica en "Alcista" arriba del mismo
+mensaje, lo cual rompía la confianza ("¿por qué me recomiendas una
+estrategia bajista si la tesis es alcista?"). El ranking matemático
+NUNCA cambia por esto -- ver `_coincide_con_tesis` -- solo cambia qué se
+muestra por defecto. `--full` sigue mostrando las 9 estrategias sin
+filtrar, en el orden real del ranking.
+
 IV Rank: sigue sin estar disponible (no hay histórico de IV recolectado
 todavía) -- se muestra "No disponible" siempre, nunca un número
 inventado. Ver el docstring de screener/options_ideas.py para el detalle
@@ -31,6 +42,7 @@ from screener.options_ideas import DISCLAIMER, clasificar_tendencia, obtener_cad
 from screener.options_strategies import (  # noqa: E402
     EstrategiaOpciones,
     construir_estrategias,
+    direccion_estrategia,
     iv_referencia,
     puntuar,
     rankear,
@@ -77,6 +89,19 @@ corto por estrategia, en el mismo orden del ranking que se te dio."""
 def _tesis(tendencia_label: str) -> str:
     return {"alcista": "Alcista", "bajista": "Bajista", "neutral": "Neutral"}.get(
         tendencia_label, "No determinable")
+
+
+def _coincide_con_tesis(tendencia_label: str, direccion: str) -> bool:
+    """¿La dirección de esta estrategia contradice la tesis técnica? Sin
+    tesis direccional clara (neutral/no_determinable) no hay con qué
+    contradecir, así que cualquier dirección cuenta como coherente.
+    Tampoco se oculta una estrategia de dirección "neutral" (ej. Iron
+    Condor: apuesta a que el precio se quede quieto, no a una dirección)
+    porque no contradice ninguna tesis direccional -- solo se ocultan las
+    estrategias de dirección estrictamente OPUESTA a la tesis."""
+    if tendencia_label in ("neutral", "no_determinable") or direccion == "neutral":
+        return True
+    return tendencia_label == direccion
 
 
 def _mensaje_usuario(ticker: str, tesis: str, estrategias: list[EstrategiaOpciones]) -> str:
@@ -166,7 +191,10 @@ def generar_options(ticker: str, modo: str = "simple") -> str:
         return (f"No pude construir estrategias de opciones para {ticker} con los "
                 f"datos disponibles hoy -- puede que la cadena tenga muy pocos "
                 f"strikes cotizados.")
-    scores_100 = [round(s * 100) for s in puntuar(estrategias)]
+    # (estrategia, score) emparejados ANTES de filtrar/recortar nada, para
+    # que el score mostrado siempre corresponda a la estrategia correcta
+    # aunque el modo simple solo muestre un subconjunto.
+    pares = list(zip(estrategias, (round(s * 100) for s in puntuar(estrategias))))
 
     tesis = _tesis(tendencia_label)
     lineas = [f"📐 Opciones: {nombre} ({ticker})", "", f"Tesis técnica: {tesis}",
@@ -176,26 +204,37 @@ def generar_options(ticker: str, modo: str = "simple") -> str:
               ""]
 
     if modo == "full":
-        estrategias_para_llm = estrategias
-        lineas.append(f"Ranking completo ({len(estrategias)} estrategias, orden puramente cuantitativo):")
+        lineas.append(f"Ranking completo ({len(pares)} estrategias, orden puramente cuantitativo):")
         lineas.append("")
-        for i, e in enumerate(estrategias, 1):
-            lineas += _formatear_full(i, scores_100[i - 1], e)
+        for i, (e, score) in enumerate(pares, 1):
+            lineas += _formatear_full(i, score, e)
     else:
-        top = estrategias[:TOP_N_SIMPLE]
-        estrategias_para_llm = top
-        lineas.append(f"Top {len(top)} estrategias (de {len(estrategias)} calculadas):")
+        # Coherencia con la tesis: se ocultan las estrategias de dirección
+        # opuesta (ver _coincide_con_tesis) -- el ranking matemático de
+        # `pares` NUNCA se reordena, solo se filtra qué se muestra por
+        # defecto. Si ninguna coincide (tesis muy direccional y la cadena
+        # solo da lo contrario), se cae al Top N normal en vez de mostrar
+        # una lista vacía -- con una nota explícita de por qué.
+        alineadas = [(e, s) for e, s in pares if _coincide_con_tesis(tendencia_label, direccion_estrategia(e.nombre))]
+        if alineadas:
+            top = alineadas[:TOP_N_SIMPLE]
+            lineas.append(f"Estrategias que sí tienen sentido para una tesis {tesis.lower()} "
+                          f"({len(top)} de {len(alineadas)}):")
+        else:
+            top = pares[:TOP_N_SIMPLE]
+            lineas.append(f"Ninguna estrategia coincide con la tesis {tesis.lower()} -- "
+                          f"mostrando las mejores por score de todas formas:")
         lineas.append("")
-        for i, e in enumerate(top, 1):
-            lineas += _formatear_simple(i, scores_100[i - 1], e)
+        for i, (e, score) in enumerate(top, 1):
+            lineas += _formatear_simple(i, score, e)
             lineas.append("")
-        restantes = len(estrategias) - len(top)
-        if restantes > 0:
-            lineas.append(f"... y {restantes} más. Escribe /options {ticker} --full")
+        if len(pares) > len(top):
+            lineas.append(f"Ver las {len(pares)} estrategias completas (incluye las que no "
+                          f"coinciden con la tesis): /options {ticker} --full")
             lineas.append("")
 
     explicacion = _filtrar_explicacion(
-        llamar_claude(SYSTEM_PROMPT, _mensaje_usuario(ticker, tesis, estrategias_para_llm)))
+        llamar_claude(SYSTEM_PROMPT, _mensaje_usuario(ticker, tesis, [e for e, _ in (pares if modo == "full" else top)])))
     if explicacion:
         lineas.append("💬 Explicación:")
         lineas.append(explicacion)

@@ -10,6 +10,7 @@ import options_command as oc
 from screener.data.provider import Barras, Fundamentales
 from screener.options_ideas import CadenaOpciones, ContratoOpcion
 from screener.options_math import precio_black_scholes
+from screener.options_strategies import EstrategiaOpciones
 
 SPOT, DIAS, IV = 100.0, 35, 0.30
 
@@ -84,8 +85,8 @@ def test_modo_simple_muestra_top4_y_footer(monkeypatch):
     assert "Tesis técnica:" in texto
     assert "IV: " in texto
     assert "IV Rank: No disponible" in texto
-    assert f"Top {oc.TOP_N_SIMPLE} estrategias" in texto
-    assert "... y" in texto and "--full" in texto
+    assert "estrategias que sí tienen sentido para una tesis" in texto.lower()
+    assert "Ver las" in texto and "--full" in texto
     assert "💬 Explicación:" in texto
     assert "Explicación de prueba" in texto
     assert oc.DISCLAIMER in texto
@@ -144,3 +145,86 @@ def test_filtrar_explicacion_vacia_da_none():
 def test_tesis_desconocida_da_no_determinable():
     assert oc._tesis("desconocida") == "No determinable"
     assert oc._tesis("alcista") == "Alcista"
+
+
+# ------------------------- coherencia con la tesis -------------------------
+
+def test_coincide_con_tesis_neutral_y_no_determinable_siempre_coinciden():
+    assert oc._coincide_con_tesis("neutral", "alcista") is True
+    assert oc._coincide_con_tesis("neutral", "bajista") is True
+    assert oc._coincide_con_tesis("no_determinable", "bajista") is True
+
+
+def test_coincide_con_tesis_direccion_neutral_siempre_coincide():
+    """Una estrategia de dirección "neutral" (ej. Iron Condor) no
+    contradice ninguna tesis direccional -- apuesta a que el precio se
+    quede quieto, no a una dirección."""
+    assert oc._coincide_con_tesis("alcista", "neutral") is True
+    assert oc._coincide_con_tesis("bajista", "neutral") is True
+
+
+def test_coincide_con_tesis_exige_coincidencia_exacta_si_ambas_son_direccionales():
+    assert oc._coincide_con_tesis("alcista", "alcista") is True
+    assert oc._coincide_con_tesis("alcista", "bajista") is False
+    assert oc._coincide_con_tesis("bajista", "bajista") is True
+    assert oc._coincide_con_tesis("bajista", "alcista") is False
+
+
+def test_modo_simple_oculta_estrategias_de_direccion_contraria(monkeypatch):
+    """Regresión del caso real reportado: Top 1 "Bear Put Spread"
+    (bajista) con la tesis técnica en "Alcista" en el mismo mensaje
+    rompía la confianza -- el modo simple debe ocultar las estrategias
+    bajistas cuando la tesis es alcista, sin tocar el ranking."""
+    monkeypatch.setattr(oc, "YahooProvider",
+                        lambda: _FakeProvider({"AAPL": _barras()}, {"AAPL": Fundamentales("AAPL", nombre="Apple Inc.")}))
+    monkeypatch.setattr(oc, "obtener_cadena", lambda ticker: _cadena_sintetica(ticker))
+    monkeypatch.setattr(oc, "llamar_claude", lambda system, user: "Explicación.")
+    monkeypatch.setattr(oc, "clasificar_tendencia", lambda score: "alcista")
+
+    long_call = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=500.0,
+                                   ganancia_maxima=None, breakevens=[105.0])
+    bear_put = EstrategiaOpciones(nombre="Bear Put Spread", patas=[], razon="", riesgo_maximo=300.0,
+                                  ganancia_maxima=200.0, breakevens=[95.0])
+    monkeypatch.setattr(oc, "construir_estrategias", lambda cadena, spot: [bear_put, long_call])
+    monkeypatch.setattr(oc, "rankear", lambda estrategias: [bear_put, long_call])  # bajista puntúa más alto
+
+    texto = oc.generar_options("AAPL", modo="simple")
+    assert "Long Call" in texto
+    assert "Bear Put Spread" not in texto
+    assert "Ver las 2 estrategias completas" in texto
+
+
+def test_modo_full_no_filtra_por_tesis(monkeypatch):
+    monkeypatch.setattr(oc, "YahooProvider",
+                        lambda: _FakeProvider({"AAPL": _barras()}, {"AAPL": Fundamentales("AAPL", nombre="Apple Inc.")}))
+    monkeypatch.setattr(oc, "obtener_cadena", lambda ticker: _cadena_sintetica(ticker))
+    monkeypatch.setattr(oc, "llamar_claude", lambda system, user: "Explicación.")
+    monkeypatch.setattr(oc, "clasificar_tendencia", lambda score: "alcista")
+
+    long_call = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=500.0,
+                                   ganancia_maxima=None, breakevens=[105.0])
+    bear_put = EstrategiaOpciones(nombre="Bear Put Spread", patas=[], razon="", riesgo_maximo=300.0,
+                                  ganancia_maxima=200.0, breakevens=[95.0])
+    monkeypatch.setattr(oc, "construir_estrategias", lambda cadena, spot: [bear_put, long_call])
+    monkeypatch.setattr(oc, "rankear", lambda estrategias: [bear_put, long_call])
+
+    texto = oc.generar_options("AAPL", modo="full")
+    assert "Bear Put Spread" in texto
+    assert "Long Call" in texto
+
+
+def test_modo_simple_sin_ninguna_estrategia_alineada_cae_a_top_normal(monkeypatch):
+    monkeypatch.setattr(oc, "YahooProvider",
+                        lambda: _FakeProvider({"AAPL": _barras()}, {"AAPL": Fundamentales("AAPL", nombre="Apple Inc.")}))
+    monkeypatch.setattr(oc, "obtener_cadena", lambda ticker: _cadena_sintetica(ticker))
+    monkeypatch.setattr(oc, "llamar_claude", lambda system, user: "Explicación.")
+    monkeypatch.setattr(oc, "clasificar_tendencia", lambda score: "alcista")
+
+    bear_put = EstrategiaOpciones(nombre="Bear Put Spread", patas=[], razon="", riesgo_maximo=300.0,
+                                  ganancia_maxima=200.0, breakevens=[95.0])
+    monkeypatch.setattr(oc, "construir_estrategias", lambda cadena, spot: [bear_put])
+    monkeypatch.setattr(oc, "rankear", lambda estrategias: [bear_put])
+
+    texto = oc.generar_options("AAPL", modo="simple")
+    assert "Ninguna estrategia coincide con la tesis" in texto
+    assert "Bear Put Spread" in texto
