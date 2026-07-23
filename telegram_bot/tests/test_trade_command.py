@@ -95,7 +95,7 @@ def test_mensaje_basico_incluye_secciones_clave(monkeypatch):
 def test_score_no_disponible_si_no_esta_en_shortlist(monkeypatch):
     _mock_red_basica(monkeypatch)
     texto = tc.generar_trade("AAPL")
-    assert "⚪ Score cuantitativo del modelo: No disponible (no está en la shortlist de hoy)" in texto
+    assert "Score cuantitativo del modelo: No disponible (no está en la shortlist de hoy)" in texto
 
 
 def test_score_usa_score_real_del_screener(monkeypatch):
@@ -104,7 +104,7 @@ def test_score_usa_score_real_del_screener(monkeypatch):
         "score": 84.0, "sector": "Technology", "sub_scores": {"calidad": 70.0, "valor": 50.0},
     })
     texto = tc.generar_trade("AAPL")
-    assert "🟢 Score cuantitativo del modelo: 84/100" in texto
+    assert "Score cuantitativo del modelo: 🟢 84/100" in texto
 
 
 def test_cadena_none_no_rompe_y_omite_estrategias(monkeypatch):
@@ -163,15 +163,41 @@ def test_plan_de_accion_ausente_si_tesis_no_es_esperar(monkeypatch):
     assert "🔔 Alertas para Yahoo Finance" not in texto
 
 
-def test_score_de_oportunidad_siempre_presente(monkeypatch):
+def test_semaforo_del_modelo_siempre_presente(monkeypatch):
     _mock_red_basica(monkeypatch)
     texto = tc.generar_trade("AAPL")
-    assert "📊 Score de oportunidad hoy" in texto
-    assert "(% de reglas objetivas que se cumplen -- no una probabilidad de éxito)" in texto
-    assert "Comprar acciones:" in texto
-    assert "Comprar opciones:" in texto
-    assert "Esperar:" in texto
+    assert "📊 Semáforo del modelo" in texto
+    assert "Acciones:" in texto
+    assert "Opciones:" in texto
+    assert "Score cuantitativo del modelo:" in texto
     assert "Probabilidad" not in texto
+
+
+def test_semaforo_resuelve_contradiccion_opciones_vs_esperar(monkeypatch):
+    """Regresión del pedido explícito: "Comprar opciones: 75%" seguido de
+    "No abriría posición hoy" leía como contradictorio -- ahora la misma
+    línea del Semáforo dice explícitamente "pero no abriría hoy"."""
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "esperar")
+    long_call = EstrategiaOpciones(
+        nombre="Long Put", patas=[PataOpcion("put", "comprar", 100.0, 5.0)],
+        razon="", riesgo_maximo=500.0, ganancia_maxima=300.0, breakevens=[95.0],
+        probabilidad_exito=0.4, valor_esperado=50.0, delta_neto=-0.5, theta_neto=-1.0,
+        liquidez_score=80.0,
+    )
+    monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
+    monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
+    texto = tc.generar_trade("AAPL")
+    assert "Sí investigaría, pero no abriría hoy" in texto
+
+
+def test_resumen_15_segundos_al_principio(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    texto = tc.generar_trade("AAPL")
+    assert "📌 En 15 segundos" in texto
+    assert texto.index("📌 En 15 segundos") < texto.index("📊 Semáforo del modelo")
+    assert "Riesgo:" in texto
+    assert "Horizonte:" in texto
 
 
 def test_por_que_incluye_explicacion_fija_de_la_estrategia(monkeypatch):
@@ -487,38 +513,151 @@ def test_alertas_yahoo_sin_datos_da_solo_encabezado():
     assert tc._alertas_yahoo(niveles, maximo_52s=None) == ["🔔 Alertas para Yahoo Finance", ""]
 
 
-def test_pct_reglas_cuenta_solo_las_evaluables():
-    assert tc._pct_reglas([True, False, None, True]) == 67  # 2 de 3 evaluables
-    assert tc._pct_reglas([None, None]) is None
-    assert tc._pct_reglas([]) is None
+def test_emoji_opciones_sin_estrategias_es_rojo():
+    assert tc._emoji_opciones([], None) == "🔴"
 
 
-def test_reglas_comprar_acciones_todas_favorables():
-    reglas = tc._reglas_comprar_acciones("alcista", "Razonable", rsi=50.0, spot=100.0, objetivo=110.0)
-    assert reglas == [True, True, True, True]
+def test_emoji_opciones_score_bajo_es_amarillo():
+    assert tc._emoji_opciones(["placeholder"], 20) == "🟡"
 
 
-def test_reglas_comprar_acciones_sin_datos_da_none_en_esas_reglas():
-    reglas = tc._reglas_comprar_acciones("alcista", "No determinable", rsi=None, spot=100.0, objetivo=None)
-    assert reglas == [True, None, None, None]
+def test_emoji_opciones_score_alto_es_verde():
+    assert tc._emoji_opciones(["placeholder"], 80) == "🟢"
 
 
-def test_reglas_comprar_opciones_sin_estrategias():
-    assert tc._reglas_comprar_opciones([], None, None) == [False]
+def test_texto_opciones_semaforo_agrega_caveat_solo_si_espera():
+    assert tc._texto_opciones_semaforo(["e"], 80, "esperar") == "Sí investigaría, pero no abriría hoy"
+    assert tc._texto_opciones_semaforo(["e"], 80, "alcista") == "Sí investigaría"
+    assert tc._texto_opciones_semaforo([], None, "esperar") == "No hay estrategias disponibles hoy"
 
 
-def test_reglas_comprar_opciones_con_top():
-    e = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=500.0,
-                           ganancia_maxima=None, liquidez_score=80.0, probabilidad_exito=0.5)
-    reglas = tc._reglas_comprar_opciones([e], 60, e)
-    assert reglas == [True, True, True, True]
+def test_riesgo_nivel_umbrales():
+    assert tc._riesgo_nivel(0) == ("🟢", "Bajo")
+    assert tc._riesgo_nivel(1) == ("🟡", "Medio")
+    assert tc._riesgo_nivel(3) == ("🔴", "Alto")
 
 
-def test_reglas_esperar_sobrecompra_y_exigente():
-    reglas = tc._reglas_esperar("alcista", "Exigente", rsi=80.0, dias_a_resultados=5)
-    assert reglas == [True, True, True, False]
+def test_objetivo_2_es_extension_de_igual_distancia():
+    assert tc._objetivo_2(objetivo_1=110.0, entrada=100.0) == 120.0
 
 
-def test_fmt_pct():
-    assert tc._fmt_pct(62) == "62%"
-    assert tc._fmt_pct(None) == "No disponible"
+def test_objetivo_2_sin_datos_da_none():
+    assert tc._objetivo_2(None, 100.0) is None
+    assert tc._objetivo_2(110.0, None) is None
+
+
+def test_relacion_riesgo_beneficio_calculo_basico():
+    assert tc._relacion_riesgo_beneficio(entrada=100.0, objetivo_1=110.0, stop=90.0) == 1.0
+
+
+def test_relacion_riesgo_beneficio_riesgo_o_beneficio_no_positivo_da_none():
+    assert tc._relacion_riesgo_beneficio(100.0, 90.0, 90.0) is None  # sin beneficio (objetivo <= entrada)
+    assert tc._relacion_riesgo_beneficio(100.0, 110.0, 100.0) is None  # sin riesgo (stop == entrada)
+
+
+def test_fmt_objetivo_con_rr():
+    assert tc._fmt_objetivo_con_rr(110.0, 1.5) == "$110 (relación riesgo/beneficio 1.5 : 1)"
+    assert tc._fmt_objetivo_con_rr(110.0, None) == "$110"
+
+
+def test_plan_del_trade_incluye_objetivos_con_su_propia_relacion():
+    lineas = tc._plan_del_trade(entrada=100.0, objetivo_1=110.0, objetivo_2=120.0, stop=90.0)
+    texto = "\n".join(lineas)
+    assert "🧮 Plan del trade" in texto
+    assert "$110 (relación riesgo/beneficio 1.0 : 1)" in texto
+    assert "$120 (relación riesgo/beneficio 2.0 : 1)" in texto
+    assert "Stop:" in texto and "$90" in texto
+
+
+def test_plan_del_trade_sin_entrada_o_stop_da_vacio():
+    assert tc._plan_del_trade(None, 110.0, 120.0, 90.0) == []
+    assert tc._plan_del_trade(100.0, 110.0, 120.0, None) == []
+
+
+def test_alertas_yahoo_incluye_el_porque_de_cada_nivel():
+    niveles = {"entrada": 100.0, "ideal": 90.0, "cancelar": 80.0}
+    lineas = tc._alertas_yahoo(niveles, maximo_52s=110.0)
+    texto = "\n".join(lineas)
+    assert "Es un retroceso de 1×ATR desde el precio actual." in texto
+    assert "Está cerca de la media móvil de 50 días" in texto
+    assert "Es el máximo de 52 semanas." in texto
+    assert "Es 2×ATR por debajo del nivel ideal" in texto
+
+
+def test_horizonte_usa_vencimiento_real():
+    cadena = CadenaOpciones(ticker="AAPL", vencimiento="2026-08-28", dias_a_vencimiento=37, calls=[], puts=[])
+    lineas = tc._horizonte(cadena)
+    texto = "\n".join(lineas)
+    assert "⏳ Horizonte esperado" in texto
+    assert "28 de agosto (en 37 días)" in texto
+    assert "no es una inversión de largo plazo" in texto
+
+
+def test_factores_plan_tendencia_alcista_y_rsi_elevado():
+    fund = Fundamentales("AAPL", crecimiento_ingresos=None)
+    a_favor, en_contra = tc._factores_plan("alcista", 80.0, "Exigente", None, fund)
+    assert "Tendencia alcista" in a_favor
+    assert any("RSI elevado" in f for f in en_contra)
+    assert "Valuación exigente" in en_contra
+
+
+def test_factores_plan_liquidez_y_crecimiento():
+    e = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=1.0,
+                           ganancia_maxima=None, liquidez_score=70.0)
+    fund = Fundamentales("AAPL", crecimiento_ingresos=0.20)
+    a_favor, _ = tc._factores_plan("neutral", None, "Razonable", e, fund)
+    assert "Liquidez alta en las opciones" in a_favor
+    assert any("Crecimiento de ingresos fuerte" in f for f in a_favor)
+
+
+def test_confianza_plan_calcula_porcentaje():
+    assert tc._confianza_plan(["a", "b", "c"], ["d"]) == 75
+    assert tc._confianza_plan([], []) is None
+
+
+def test_seccion_confianza_plan_vacia_si_no_hay_factores():
+    assert tc._seccion_confianza_plan([], []) == []
+
+
+def test_seccion_confianza_plan_incluye_favor_y_contra():
+    lineas = tc._seccion_confianza_plan(["Tendencia alcista"], ["RSI elevado (80)"])
+    texto = "\n".join(lineas)
+    assert "📋 Confianza en este plan" in texto
+    assert "no una probabilidad de éxito" in texto
+    assert "50/100" in texto
+    assert "✔ Tendencia alcista" in texto
+    assert "✘ RSI elevado (80)" in texto
+
+
+def test_resumen_15s_esperar_menciona_correccion_y_ruptura():
+    e = EstrategiaOpciones(nombre="Covered Call", patas=[], razon="", riesgo_maximo=1.0, ganancia_maxima=None)
+    niveles = {"entrada": 321.0, "ideal": 305.0, "cancelar": 287.0}
+    lineas = tc._resumen_15s("esperar", "No compraría acciones hoy.", "Esperaría una pequeña corrección antes de entrar.",
+                             niveles, maximo_52s=334.0, top=e, dias_vencimiento=37,
+                             riesgo_emoji="🟡", riesgo_label="Medio")
+    texto = "\n".join(lineas)
+    assert "📌 En 15 segundos" in texto
+    assert "🟡 No compraría acciones hoy." in texto
+    assert "Esperaría una corrección hacia $305." in texto
+    assert "Si rompe $334 volvería a analizar." in texto
+    assert "Covered Call" in texto
+    assert "37 días (vencimiento de la opción)" in texto
+    assert "🟡 Medio" in texto
+
+
+def test_resumen_15s_sin_niveles_usa_preambulo():
+    lineas = tc._resumen_15s("bajista", "No compraría acciones hoy -- la tendencia técnica es bajista.", None,
+                             {"entrada": None, "ideal": None, "cancelar": None}, maximo_52s=None, top=None,
+                             dias_vencimiento=None, riesgo_emoji="🟢", riesgo_label="Bajo")
+    texto = "\n".join(lineas)
+    assert "❌ No compraría acciones hoy" in texto
+    assert "🟢 Bajo" in texto
+
+
+def test_resumen_15s_sin_top_omite_estrategia_y_horizonte():
+    lineas = tc._resumen_15s("neutral", "No hay una señal técnica clara para comprar acciones hoy.", None,
+                             {"entrada": None, "ideal": None, "cancelar": None}, maximo_52s=None, top=None,
+                             dias_vencimiento=None, riesgo_emoji="🟢", riesgo_label="Bajo")
+    texto = "\n".join(lineas)
+    assert "La mejor estrategia hoy:" not in texto
+    assert "Horizonte:" not in texto
