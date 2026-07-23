@@ -71,7 +71,7 @@ def test_ticker_sin_datos_de_precio_da_mensaje_claro(monkeypatch):
 
 def test_mensaje_basico_incluye_secciones_clave(monkeypatch):
     _mock_red_basica(monkeypatch)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "📊 AAPL — Apple Inc." in texto
     assert "Score cuantitativo del modelo:" in texto
     assert "Convicción" not in texto
@@ -94,7 +94,7 @@ def test_mensaje_basico_incluye_secciones_clave(monkeypatch):
 
 def test_score_no_disponible_si_no_esta_en_shortlist(monkeypatch):
     _mock_red_basica(monkeypatch)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "Score cuantitativo del modelo: No disponible (no está en la shortlist de hoy)" in texto
 
 
@@ -103,17 +103,25 @@ def test_score_usa_score_real_del_screener(monkeypatch):
     monkeypatch.setattr(tc, "_shortlist_entry", lambda ticker: {
         "score": 84.0, "sector": "Technology", "sub_scores": {"calidad": 70.0, "valor": 50.0},
     })
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "Score cuantitativo del modelo: 🟢 84/100" in texto
 
 
 def test_cadena_none_no_rompe_y_omite_estrategias(monkeypatch):
     _mock_red_basica(monkeypatch)
     monkeypatch.setattr(tc, "obtener_cadena", lambda ticker: None)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "No pude calcular estrategias de opciones para hoy" in texto
     assert "💰 Ejemplo" not in texto
     assert "¿Qué tiene que pasar" not in texto
+
+
+def test_modo_simple_cadena_none_no_rompe(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "obtener_cadena", lambda ticker: None)
+    texto = tc.generar_trade("AAPL")
+    assert "Estrategia con opciones:" in texto
+    assert "No disponible hoy (cadena insuficiente)." in texto
 
 
 def test_coherencia_estrategia_alineada_muestra_mejor_estrategia(monkeypatch):
@@ -127,7 +135,7 @@ def test_coherencia_estrategia_alineada_muestra_mejor_estrategia(monkeypatch):
     )
     monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
     monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "Mejor estrategia" in texto
     assert "Si aun así quieres operar" not in texto
 
@@ -146,7 +154,7 @@ def test_coherencia_estrategia_no_alineada_cambia_encabezado(monkeypatch):
     )
     monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
     monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "Si aun así quieres operar..." in texto
     assert "Mejor estrategia" not in texto
     assert "Long Call" in texto
@@ -158,14 +166,14 @@ def test_coherencia_estrategia_no_alineada_cambia_encabezado(monkeypatch):
 def test_plan_de_accion_ausente_si_tesis_no_es_esperar(monkeypatch):
     _mock_red_basica(monkeypatch)
     monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "alcista")
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "🎯 Plan de acción" not in texto
     assert "🔔 Alertas para Yahoo Finance" not in texto
 
 
 def test_semaforo_del_modelo_siempre_presente(monkeypatch):
     _mock_red_basica(monkeypatch)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "📊 Semáforo del modelo" in texto
     assert "Acciones:" in texto
     assert "Opciones:" in texto
@@ -187,13 +195,13 @@ def test_semaforo_resuelve_contradiccion_opciones_vs_esperar(monkeypatch):
     )
     monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
     monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "Sí investigaría, pero no abriría hoy" in texto
 
 
 def test_resumen_15_segundos_al_principio(monkeypatch):
     _mock_red_basica(monkeypatch)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "📌 En 15 segundos" in texto
     assert texto.index("📌 En 15 segundos") < texto.index("📊 Semáforo del modelo")
     assert "Riesgo:" in texto
@@ -210,7 +218,7 @@ def test_por_que_incluye_explicacion_fija_de_la_estrategia(monkeypatch):
     )
     monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
     monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "la estrategia que más gana si AAPL sigue subiendo con fuerza" in texto
 
 
@@ -224,25 +232,25 @@ def test_condicion_para_ganar_usa_breakeven_y_vencimiento_reales(monkeypatch):
     )
     monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
     monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "Que AAPL suba arriba de $105 antes del 1 de enero." in texto
 
 
 def test_por_que_usa_precio_vs_objetivo_de_analistas(monkeypatch):
     _mock_red_basica(monkeypatch, fund=Fundamentales("AAPL", nombre="Apple Inc.", analista_precio_objetivo=80.0))
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "objetivo promedio de analistas" in texto
 
 
 def test_sin_objetivo_de_analistas_no_lo_menciona(monkeypatch):
     _mock_red_basica(monkeypatch, fund=Fundamentales("AAPL", nombre="Apple Inc.", analista_precio_objetivo=None))
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "objetivo promedio de analistas" not in texto
 
 
 def test_riesgo_bajo_sin_banderas_reales(monkeypatch):
     _mock_red_basica(monkeypatch)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "Sin banderas de riesgo técnico relevantes detectadas hoy." in texto or "•" in texto
 
 
@@ -765,14 +773,14 @@ def test_mi_decision_hoy_neutral_o_no_determinable():
 
 def test_mensaje_incluye_mi_decision_hoy_antes_de_proximo_paso(monkeypatch):
     _mock_red_basica(monkeypatch)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "✅ Mi decisión hoy" in texto
     assert texto.index("✅ Mi decisión hoy") < texto.index("Próximo paso")
 
 
 def test_mensaje_incluye_capital_minimo_cuando_hay_estrategias(monkeypatch):
     _mock_red_basica(monkeypatch)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "💵 Capital mínimo recomendado" in texto
     assert "Comprar acciones (100):" in texto
 
@@ -780,14 +788,14 @@ def test_mensaje_incluye_capital_minimo_cuando_hay_estrategias(monkeypatch):
 def test_mensaje_sin_estrategias_omite_capital_minimo(monkeypatch):
     _mock_red_basica(monkeypatch)
     monkeypatch.setattr(tc, "obtener_cadena", lambda ticker: None)
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "💵 Capital mínimo recomendado" not in texto
 
 
 def test_plan_del_trade_aparece_antes_de_ejemplo_cuando_tesis_es_esperar(monkeypatch):
     _mock_red_basica(monkeypatch)
     monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "esperar")
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "🧮 Plan del trade" in texto
     assert texto.index("🧮 Plan del trade") < texto.index("💰 Ejemplo")
     # ya no debe aparecer una segunda vez más abajo, cerca de las alertas
@@ -797,5 +805,97 @@ def test_plan_del_trade_aparece_antes_de_ejemplo_cuando_tesis_es_esperar(monkeyp
 def test_plan_del_trade_ausente_si_tesis_no_es_esperar(monkeypatch):
     _mock_red_basica(monkeypatch)
     monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "alcista")
-    texto = tc.generar_trade("AAPL")
+    texto = tc.generar_trade("AAPL", modo="full")
     assert "🧮 Plan del trade" not in texto
+
+
+# ------------------------- modo simple (por defecto): 7 preguntas -------------------------
+
+def test_por_que_decision_combina_hechos_reales():
+    fund = Fundamentales("AAPL", crecimiento_ingresos=0.30, analista_precio_objetivo=400.0)
+    linea = tc._por_que_decision("AAPL", "alcista", "Atractiva", fund, rsi=50.0, spot=300.0)
+    assert linea == ("Porque AAPL está en tendencia alcista, la valuación es atractiva, "
+                     "está creciendo 30% y todavía tiene recorrido según los analistas.")
+
+
+def test_por_que_decision_sin_hechos_da_none():
+    fund = Fundamentales("AAPL")
+    assert tc._por_que_decision("AAPL", "neutral", "Razonable", fund, rsi=None, spot=100.0) is None
+
+
+def test_por_que_decision_no_rompe_siglas():
+    fund = Fundamentales("AAPL")
+    linea = tc._por_que_decision("AAPL", "neutral", "Razonable", fund, rsi=89.0, spot=100.0)
+    assert linea == "Porque AAPL el RSI está en sobrecompra (89)."
+
+
+def test_modo_simple_es_el_default_y_responde_las_7_preguntas(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    texto = tc.generar_trade("AAPL")
+    assert "🎯 Mi decisión" in texto
+    assert "Entrada ideal:" in texto or "Precio actual:" in texto
+    assert "Stop:" in texto
+    assert "Objetivo:" in texto
+    assert "Horizonte:" in texto
+    assert "Capital mínimo:" in texto
+    assert "La estrategia que usaría:" in texto
+    assert "Próximo paso:" in texto
+    assert "✅ Crear alerta en" in texto
+    assert "/trade AAPL --full" in texto
+    assert "Esto no es una recomendación de compra/venta." in texto
+    # el detalle exhaustivo del modo --full no debe aparecer por defecto
+    assert "📊 Semáforo del modelo" not in texto
+    assert "📋 Confianza en este plan" not in texto
+    assert "🎯 Plan de acción" not in texto
+
+
+def test_modo_simple_alcista_dice_si_compraria(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "alcista")
+    texto = tc.generar_trade("AAPL")
+    assert "🟢 Sí compraría hoy." in texto
+
+
+def test_modo_simple_esperar_dice_no_compraria(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "esperar")
+    texto = tc.generar_trade("AAPL")
+    assert "🟡 No compraría hoy. Esperaría." in texto
+
+
+def test_modo_simple_marca_estrategia_incoherente_con_la_tesis(monkeypatch):
+    """Regresión del caso real reportado: "Mejor estrategia: Bear Put
+    Spread" con la tesis "Alcista" en el mismo mensaje rompía la
+    confianza -- el modo simple debe señalar la incoherencia en vez de
+    presentarla sin más contexto."""
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "esperar")
+    long_call = EstrategiaOpciones(
+        nombre="Long Call", patas=[PataOpcion("call", "comprar", 100.0, 5.0)],
+        razon="", riesgo_maximo=500.0, ganancia_maxima=None, breakevens=[105.0],
+        probabilidad_exito=0.4, valor_esperado=50.0, delta_neto=0.5, theta_neto=-1.0,
+        liquidez_score=80.0,
+    )
+    monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [long_call])
+    monkeypatch.setattr(tc, "rankear", lambda estrategias: [long_call])
+    texto = tc.generar_trade("AAPL")
+    assert "Long Call" in texto
+    assert "no coincide con la tesis de hoy" in texto
+
+
+def test_mensaje_simple_capital_minimo_muestra_acciones_y_estrategia_top():
+    e = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=1272.0, ganancia_maxima=None)
+    texto = tc._mensaje_simple("AAPL", "Apple Inc.", 327.0, "alcista", None,
+                               {"entrada": 320.0, "ideal": 315.0, "cancelar": 300.0}, 350.0,
+                               None, e, True)
+    assert "Capital mínimo:" in texto
+    assert "$32,700 (comprar 100 acciones)" in texto
+    assert "$1,272 (Long Call)" in texto
+
+
+def test_mensaje_simple_sin_top_omite_capital_y_estrategia():
+    texto = tc._mensaje_simple("AAPL", "Apple Inc.", 327.0, "neutral", None,
+                               {"entrada": None, "ideal": None, "cancelar": None}, None,
+                               None, None, None)
+    assert "Estrategia con opciones:" in texto
+    assert "No disponible hoy (cadena insuficiente)." in texto

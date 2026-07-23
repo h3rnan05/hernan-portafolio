@@ -38,8 +38,14 @@ seguir investigando. Sin `--full`, cualquier dato que no esté disponible
 se **omite** en vez de mostrarse como "No disponible" — esta vista existe
 para decidir rápido, no para auditar qué faltó.
 
-- **📌 En 20 segundos** (primera sección): dos veredictos independientes,
-  cada uno con su propia pregunta. **¿Vale la pena investigarla?**
+- **🎯 Mi plan para hoy** (primerísima sección, antes de "En 20
+  segundos" -- pedido explícito: "eso resume absolutamente todo"): la
+  decisión, el porqué en una frase (`_por_que_una_linea`, ver abajo) y
+  una sola alerta ya lista para crear ("✅ Ya puedes crear esta alerta" --
+  esa es literalmente la siguiente acción). Para quien solo lee las
+  primeras líneas.
+- **📌 En 20 segundos**: dos veredictos independientes, cada uno con su
+  propia pregunta. **¿Vale la pena investigarla?**
   (`_veredicto_investigar`) se basa en calidad fundamental del negocio —
   el sub-score `calidad` de la shortlist, o si ya pasó todos los filtros
   hoy — nunca en si es buen momento para comprar. **¿Comprar hoy, esperar
@@ -56,9 +62,16 @@ para decidir rápido, no para auditar qué faltó.
   debilidades concretas, cada una con el número real que la sostiene (ej.
   "Crecimiento de ingresos de 30%.", "Valuación barata (P/E 14.9)."),
   nunca una etiqueta genérica sin verificar. 100% determinístico.
-- **📊 Lo importante**: precio, P/E, ROE, crecimiento, RSI, recomendación
-  de analistas y potencial de subida — condensado, y cada línea que no
-  tenga dato real simplemente no aparece.
+  `_por_que_una_linea` reusa estos mismos bullets (hasta 3) para componer
+  UNA frase de justificación ("Porque...") que aparece en "Mi plan para
+  hoy" y en "Qué haría yo" -- pedido explícito: "Sí la compraría hoy"
+  sin decir por qué no bastaba.
+- **📊 Lo importante**: la conclusión en lenguaje llano va ARRIBA ("Empresa
+  rentable.", "Acción barata.", "No está sobrecomprada.") y el dato
+  técnico crudo (P/E, ROE, RSI, etc.) va ABAJO en una sola línea compacta
+  — pedido explícito: la mayoría de la gente no sabe interpretar un ROE o
+  un P/E sueltos, el bot debe pensar como un asesor, no como una terminal
+  de Bloomberg. Cualquier dato no disponible se omite en ambos niveles.
 - **📰 Lo que pasó esta semana**: un resumen de una frase + hasta 3 hechos
   concretos (`news_analyst.explicador.resumir_noticias`), no una lista de
   titulares sueltos — la única sección de `/report` (modo simple) que usa
@@ -66,10 +79,15 @@ para decidir rápido, no para auditar qué faltó.
   prohibidas, nunca sugiere comprar/vender). Si el LLM no está disponible
   o su respuesta no pasa el filtro, se degrada mostrando hasta 3 titulares
   crudos en vez de dejar la sección vacía en silencio.
-- **🎯 Qué haría yo / 🔔 Alertas**: cierre determinístico y niveles de
-  precio objetivos (Comprar/Comprar fuerte/Revisar ruptura/Cancelar) —
-  mismo motor de niveles que `/trade` (ATR + SMA50 + máximo de 52
-  semanas), nunca un número inventado.
+- **🎯 Qué haría yo**: cierre determinístico con el mismo "Porque..." de
+  "Mi plan para hoy" (misma frase, no se recalcula).
+- **🔔 Comprar si ocurre UNA de estas cosas**: reencuadra los niveles de
+  precio como una lista de condiciones "o" (rebota en el soporte / rompe
+  el máximo de 52 semanas / después de los resultados trimestrales) en
+  vez de una tabla de precios sueltos sin conexión entre sí — pedido
+  explícito: así es como de verdad se piensa una alerta. "Cancelar" se
+  mantiene aparte. Mismo motor de niveles que `/trade` (ATR + SMA50 +
+  máximo de 52 semanas), nunca un número inventado.
 
 Se eliminó el "Nivel de confianza del reporte: X%" (un asesor no dice
 "tengo 57% de confianza") y la sección "Preguntas que debo responder"
@@ -136,6 +154,19 @@ traduce a lenguaje llano el ranking que el motor matemático ya calculó
   Score real (0-100, `options_strategies.puntuar()` -- no estrellas);
   `--full` muestra las ~9 completas con el desglose entero (patas,
   Greeks netos, breakeven, probabilidad, valor esperado, liquidez).
+- **Coherencia con la tesis (por defecto, no en `--full`)**: se ocultan
+  las estrategias cuya dirección (`options_strategies.
+  direccion_estrategia`) contradice la tesis técnica -- regresión de un
+  caso real donde el Top 1 era "Bear Put Spread" (bajista) con la tesis
+  técnica en "Alcista" en el mismo mensaje, lo cual rompía la confianza
+  ("¿por qué me recomiendas una estrategia bajista si la tesis es
+  alcista?"). Las estrategias de dirección "neutral" (ej. Iron Condor)
+  nunca se ocultan -- no contradicen ninguna tesis direccional, apuestan
+  a que el precio se quede quieto. El ranking matemático NUNCA cambia por
+  esto (`_coincide_con_tesis`), solo qué se muestra por defecto; si
+  ninguna estrategia coincide, se cae al Top N normal con una nota
+  explícita en vez de mostrar una lista vacía. `--full` sigue mostrando
+  las 9 sin filtrar.
 - **Explicación del LLM**: un párrafo por estrategia explicando ventajas/
   desventajas/cuándo tendría sentido/qué la invalidaría -- nunca "cuál
   operar". Mismo guardrail de belt-and-suspenders que `news_analyst/
@@ -196,10 +227,45 @@ determinístico.
 Decisión de producto: `/report` y `/options` son correctos pero son
 *reportes* -- este bot existe para ayudar a decidir, no solo para leer.
 `/trade` (`trade_command.py`) reempaqueta los mismos números que ya
-calculan `/report` y `/options` (ningún cálculo nuevo) en un formato
-legible en menos de 30 segundos, con `/report`/`/options --full` al
-final para quien quiera profundizar. Sin estrellas en ningún lado
-(tampoco en `/options`) -- solo scores numéricos reales.
+calculan `/report` y `/options` (ningún cálculo nuevo). Sin estrellas en
+ningún lado (tampoco en `/options`) -- solo scores numéricos reales.
+
+Filosofía (redefinida 2026-07-23 tras feedback directo: "no quiero leer
+60 líneas, quiero saber si compro o no, a qué precio, dónde el stop,
+cuál el objetivo, qué estrategia, cuánto capital y qué alerta pongo"):
+el modo por defecto ("simple") responde exactamente esas 7 preguntas en
+menos de 20 líneas. `/trade TICKER --full` conserva el tablero completo
+de antes para quien sí quiera profundizar -- nada de ese detalle se
+perdió, solo se dejó de mostrar por defecto.
+
+### `/trade TICKER` (modo simple, por defecto)
+
+- **🎯 Mi decisión**: un solo emoji + veredicto (🟢 Sí compraría hoy / 🟡
+  No compraría hoy, esperaría / 🔴 tendencia bajista / ⚪ sin señal clara
+  o sin información suficiente) sobre la misma `_tesis_categoria` de
+  siempre (alcista/bajista/esperar/neutral/no_determinable).
+- **Entrada ideal / Stop / Objetivo**: mismos niveles ATR/SMA50/máximo de
+  52 semanas de siempre (`screener.factors.technical.niveles_precio`),
+  con la relación riesgo/beneficio real junto al objetivo -- nunca
+  forzada a un múltiplo bonito.
+- **Horizonte**: el vencimiento REAL de la opción elegida.
+- **Capital mínimo**: solo dos cifras -- comprar 100 acciones y la
+  estrategia top (`top.riesgo_maximo`) -- no las 9 estrategias completas
+  (eso vive en `--full`).
+- **La estrategia que usaría**: el Top 1 del ranking. Si su dirección
+  (`options_strategies.direccion_estrategia`) NO coincide con la tesis
+  técnica, se marca explícitamente ("no coincide con la tesis de hoy --
+  ver --full") en vez de presentarla sin más contexto -- misma capa de
+  coherencia de siempre (`_tesis_coincide_con_estrategia`), el ranking
+  matemático nunca cambia.
+- **¿Por qué?**: una sola frase que reusa hechos ya calculados
+  (tendencia, valuación, crecimiento de ingresos, RSI, objetivo de
+  analistas) -- nunca un dato nuevo ni una llamada a Claude. Omitida por
+  completo si no hay ningún hecho real que la sostenga.
+- **Próximo paso**: la alerta concreta a crear, con el mismo nivel ya
+  mostrado en "Entrada ideal" -- ningún número nuevo.
+
+### `/trade TICKER --full`
 
 100% determinístico, sin LLM -- ninguna sección depende de una llamada a
 Claude (que podía fallar en silencio). Cada línea sale de reglas fijas

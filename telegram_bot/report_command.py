@@ -364,37 +364,115 @@ def _lo_importante(
     precio: float, pe: float | None, roe: float | None, crecimiento: float | None,
     rsi: float | None, analista_recomendacion: str | None, precio_objetivo: float | None,
 ) -> list[str]:
-    """Métricas condensadas -- a diferencia del modo --full, cualquier
-    dato que no esté disponible se OMITE (nunca se muestra "No
-    disponible"): esta sección existe para decidir rápido, no para
-    auditar qué faltó."""
-    lineas = ["📊 Lo importante", "", f"Precio: {_fmt_precio(precio)}"]
-    if pe is not None:
-        etiqueta = "barato" if pe < 15 else ("razonable" if pe <= 30 else "caro")
-        lineas.append(f"P/E: {pe:.1f} ({etiqueta})")
+    """La conclusión en lenguaje llano va ARRIBA (ej. "Empresa rentable.",
+    "Acción barata."), el dato técnico crudo (ROE/P/E/RSI) va ABAJO en una
+    sola línea compacta -- pedido explícito: la mayoría de la gente no
+    sabe interpretar un ROE o un P/E sueltos, así que el bot debe pensar
+    como un asesor, no como una terminal de Bloomberg. A diferencia del
+    modo --full, cualquier dato que no esté disponible se OMITE (nunca se
+    muestra "No disponible"): esta sección existe para decidir rápido, no
+    para auditar qué faltó."""
+    conclusiones = [f"Precio: {_fmt_precio(precio)}"]
     if roe is not None:
-        lineas.append(f"ROE: {roe:.1%}")
-    if crecimiento is not None:
-        lineas.append(f"Ingresos: {crecimiento:+.0%}")
+        if roe >= 0.15:
+            conclusiones.append("Empresa rentable.")
+        elif roe < 0.05:
+            conclusiones.append("Rentabilidad débil.")
+        else:
+            conclusiones.append("Rentabilidad moderada.")
+    if pe is not None:
+        if pe < 15:
+            conclusiones.append("Acción barata.")
+        elif pe <= 30:
+            conclusiones.append("Valuación razonable.")
+        else:
+            conclusiones.append("Acción cara.")
     if rsi is not None:
-        etiqueta_rsi = "sobrecompra" if rsi >= 70 else ("sobreventa" if rsi <= 30 else "neutral")
-        lineas.append(f"RSI: {rsi:.0f} ({etiqueta_rsi})")
+        if rsi >= 70:
+            conclusiones.append("Sobrecomprada -- cuidado con una pausa.")
+        elif rsi <= 30:
+            conclusiones.append("En sobreventa -- posible rebote.")
+        else:
+            conclusiones.append("No está sobrecomprada.")
+    if crecimiento is not None:
+        if crecimiento >= 0.10:
+            conclusiones.append(f"Creciendo rápido ({crecimiento:+.0%}).")
+        elif crecimiento < 0:
+            conclusiones.append("Ingresos en contracción.")
+
+    datos = []
+    if pe is not None:
+        datos.append(f"P/E {pe:.1f}")
+    if roe is not None:
+        datos.append(f"ROE {roe:.1%}")
+    if rsi is not None:
+        datos.append(f"RSI {rsi:.0f}")
+    if crecimiento is not None:
+        datos.append(f"Ingresos {crecimiento:+.0%}")
     if analista_recomendacion:
-        lineas.append(f"Analistas: {analista_recomendacion.capitalize()}")
+        datos.append(f"Analistas {analista_recomendacion.capitalize()}")
     if precio_objetivo is not None and precio:
-        potencial = (precio_objetivo - precio) / precio
-        lineas.append(f"Potencial: {potencial:+.0%}")
+        datos.append(f"Potencial {(precio_objetivo - precio) / precio:+.0%}")
+
+    lineas = ["📊 Lo importante", ""] + conclusiones
+    if datos:
+        lineas += ["", " · ".join(datos)]
     return lineas
 
 
-def _que_haria_yo(timing_codigo: str, niveles: dict[str, float | None], maximo_52s: float | None) -> list[str]:
+def _por_que_una_linea(timing_codigo: str, gusta: list[str], no_gusta: list[str]) -> str | None:
+    """Compone UNA frase de justificación reusando los mismos hechos ya
+    calculados en _lo_que_me_gusta()/_lo_que_no_me_gusta() -- pedido
+    explícito: "Sí la compraría hoy" sin decir por qué no basta. Ningún
+    dato nuevo ni LLM: solo une hasta 3 de los mismos bullets en una
+    frase. None si no hay ningún hecho real que la sostenga (nunca se
+    inventa una razón)."""
+    base = gusta if timing_codigo == "compraria" else no_gusta
+    if not base:
+        return None
+    # No se cambia la capitalización de cada fragmento: varios empiezan
+    # con una sigla (ej. "RSI en sobrecompra...") y minusculizar a ciegas
+    # la rompería ("rSI en sobrecompra...").
+    fragmentos = [b.rstrip(".") for b in base[:3]]
+    cuerpo = fragmentos[0] if len(fragmentos) == 1 else ", ".join(fragmentos[:-1]) + " y " + fragmentos[-1]
+    return f"Porque {cuerpo}."
+
+
+def _mi_plan_para_hoy(
+    timing_codigo: str, por_que: str | None, niveles: dict[str, float | None], maximo_52s: float | None,
+) -> list[str]:
+    """Caja resumen al INICIO del mensaje -- para quien solo lee las
+    primeras líneas: la decisión, el porqué en una frase, y una sola
+    alerta ya lista para crear ("Ya puedes crear esta alerta" -- pedido
+    explícito: esa es literalmente la siguiente acción). Reempaqueta los
+    mismos valores que _timing()/_por_que_una_linea()/niveles_precio() --
+    ningún cálculo nuevo."""
+    lineas = ["🎯 Mi plan para hoy", ""]
+    lineas.append("Sí, la compraría hoy." if timing_codigo == "compraria" else "No haría nada. Esperaría.")
+    if por_que:
+        lineas.append(por_que)
+    nivel_alerta = maximo_52s if timing_codigo == "compraria" else niveles.get("entrada")
+    if nivel_alerta is not None:
+        lineas += ["", f"✅ Ya puedes crear esta alerta: {_fmt_precio(nivel_alerta)}",
+                  "Si llega ahí, la vuelvo a analizar."]
+    return lineas
+
+
+def _que_haria_yo(
+    timing_codigo: str, por_que: str | None, niveles: dict[str, float | None], maximo_52s: float | None,
+) -> list[str]:
     """Cierre determinístico -- reusa los mismos niveles ya calculados
-    arriba, ningún número nuevo."""
+    arriba, ningún número nuevo. Incluye el mismo "Porque..." que
+    _mi_plan_para_hoy() (misma frase, no se recalcula)."""
     lineas = ["🎯 Qué haría yo", ""]
     if timing_codigo == "compraria":
         lineas.append("Sí, la compraría hoy.")
+        if por_que:
+            lineas.append(por_que)
         return lineas
     lineas.append("No compraría hoy.")
+    if por_que:
+        lineas.append(por_que)
     if niveles.get("ideal") is not None:
         lineas.append(f"Esperaría una corrección hacia {_fmt_precio(niveles['ideal'])}.")
     else:
@@ -407,25 +485,30 @@ def _que_haria_yo(timing_codigo: str, niveles: dict[str, float | None], maximo_5
     return lineas
 
 
-def _alertas_reporte(niveles: dict[str, float | None], maximo_52s: float | None) -> list[str]:
-    """Mismos 4 niveles que /trade (Comprar/Comprar fuerte/Revisar
-    ruptura/Cancelar), calculados por reglas objetivas -- ATR y SMA50,
-    ver screener.factors.technical.niveles_precio(). Vacía si no hay
-    ningún nivel disponible (nunca se muestra un encabezado sin
+def _alertas_reporte(
+    niveles: dict[str, float | None], maximo_52s: float | None, fecha_resultados: str | None,
+) -> list[str]:
+    """Reencuadra los niveles de _niveles_precio()/maximo_52s como una
+    lista de condiciones "o" -- "Comprar si ocurre UNA de estas cosas" --
+    en vez de una tabla de precios sueltos sin conexión entre sí (pedido
+    explícito: así es como de verdad se piensa una alerta). Vacía si no
+    hay ninguna condición disponible (nunca se muestra un encabezado sin
     contenido)."""
-    items = []
+    condiciones = []
     if niveles.get("entrada") is not None:
-        items.append(("Comprar", niveles["entrada"]))
+        condiciones.append(f"Corrige hacia {_fmt_precio(niveles['entrada'])}")
     if niveles.get("ideal") is not None and niveles["ideal"] != niveles.get("entrada"):
-        items.append(("Comprar fuerte", niveles["ideal"]))
+        condiciones.append(f"Rebota con fuerza en el soporte ({_fmt_precio(niveles['ideal'])})")
     if maximo_52s is not None:
-        items.append(("Revisar ruptura", maximo_52s))
-    if niveles.get("cancelar") is not None:
-        items.append(("Cancelar", niveles["cancelar"]))
-    if not items:
+        condiciones.append(f"Rompe el máximo de 52 semanas ({_fmt_precio(maximo_52s)})")
+    if fecha_resultados:
+        condiciones.append(f"Después de los resultados trimestrales ({fecha_resultados})")
+    if not condiciones:
         return []
-    lineas = ["🔔 Alertas", ""]
-    lineas += [f"{etiqueta}: {_fmt_precio(precio)}" for etiqueta, precio in items]
+    lineas = ["🔔 Comprar si ocurre UNA de estas cosas", ""]
+    lineas += [f"✅ {c}" for c in condiciones]
+    if niveles.get("cancelar") is not None:
+        lineas += ["", f"❌ Cancelar la idea si cae debajo de {_fmt_precio(niveles['cancelar'])}"]
     return lineas
 
 
@@ -694,19 +777,23 @@ def generar_reporte(ticker: str, modo: str = "simple") -> str:
 
     investigar_emoji, investigar_texto = _veredicto_investigar(calidad_score, entrada)
     timing_codigo, timing_texto = _timing(entrada, tendencia_label, rsi)
+    gusta = _lo_que_me_gusta(tendencia_label, fund.roe, fund.crecimiento_ingresos, valoracion,
+                             fund.pe, liquidez_score)
+    no_gusta = _lo_que_no_me_gusta(timing_codigo, rsi, valoracion, fund.pe, vol)
+    por_que = _por_que_una_linea(timing_codigo, gusta, no_gusta)
 
     lineas = [f"📊 {ticker} — {nombre or ticker}", "", SEP, ""]
+    lineas += _mi_plan_para_hoy(timing_codigo, por_que, niveles, maximo_52s)
+
+    lineas += ["", SEP, ""]
     lineas += _en_20_segundos(investigar_emoji, investigar_texto, timing_codigo, timing_texto,
                               precio_actual, niveles, fund.analista_precio_objetivo)
 
     lineas += ["", SEP, "", "🎯 ¿Por qué me gusta?", ""]
-    gusta = _lo_que_me_gusta(tendencia_label, fund.roe, fund.crecimiento_ingresos, valoracion,
-                             fund.pe, liquidez_score)
     lineas += [f"✅ {g}" for g in gusta] if gusta else \
         ["Sin fortalezas destacadas detectadas hoy con los datos disponibles."]
 
     lineas += ["", SEP, "", "⚠️ ¿Qué no me gusta?", ""]
-    no_gusta = _lo_que_no_me_gusta(timing_codigo, rsi, valoracion, fund.pe, vol)
     lineas += [f"⚠️ {d}" for d in no_gusta] if no_gusta else \
         ["Sin debilidades destacadas detectadas hoy con los datos disponibles."]
 
@@ -718,9 +805,9 @@ def generar_reporte(ticker: str, modo: str = "simple") -> str:
     lineas += _seccion_noticias_resumen(ticker, nombre, entrada)
 
     lineas += ["", SEP, ""]
-    lineas += _que_haria_yo(timing_codigo, niveles, maximo_52s)
+    lineas += _que_haria_yo(timing_codigo, por_que, niveles, maximo_52s)
 
-    alertas = _alertas_reporte(niveles, maximo_52s)
+    alertas = _alertas_reporte(niveles, maximo_52s, fecha_resultados)
     if alertas:
         lineas += ["", SEP, ""]
         lineas += alertas

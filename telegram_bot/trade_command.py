@@ -1,9 +1,24 @@
-"""Genera /trade TICKER -- el tablero completo de decisión: qué hacer,
-cuándo hacerlo, a qué precio, qué estrategia, qué puede salir mal y
-cuándo revisar otra vez. Empieza con un resumen de 15 segundos para
-quien tiene prisa; el resto profundiza para quien quiera seguir leyendo.
-/report y /options siguen existiendo tal cual para cuando SÍ quieras
-profundizar aún más -- /trade no los reemplaza.
+"""Genera /trade TICKER [--full].
+
+Filosofía (redefinida 2026-07-23 tras feedback directo: "no quiero leer
+60 líneas, quiero saber si compro o no, a qué precio, dónde el stop, cuál
+el objetivo, qué estrategia, cuánto capital y qué alerta pongo"): el modo
+por defecto ("simple") responde exactamente esas 7 preguntas en menos de
+20 líneas -- "🎯 Mi decisión" con un solo emoji + veredicto, Entrada
+ideal/Stop/Objetivo (mismos niveles ATR/SMA50/máximo de 52 semanas de
+siempre), Horizonte (vencimiento real), Capital mínimo (solo la acción y
+la estrategia top, no las 9), La estrategia que usaría, un "¿Por qué?" de
+una sola frase que reusa hechos ya calculados (tendencia, valuación,
+crecimiento, RSI, objetivo de analistas -- nunca un dato nuevo ni un
+LLM), y un Próximo paso con la alerta a crear.
+
+Nada del detalle anterior se perdió: `/trade TICKER --full` sigue
+mostrando el tablero completo (Semáforo del modelo, Confianza en el
+plan, Plan de acción, Qué tiene que pasar para ganar, Capital mínimo de
+las 9 estrategias, Alertas con estimado de días, etc. -- ver
+`_ensamblar_full`) para quien sí quiera profundizar. /report y /options
+siguen existiendo tal cual para cuando SÍ quieras profundizar aún más
+por ese lado -- /trade no los reemplaza.
 
 Principio #3 (igual que /report y /options): NINGÚN número de este
 comando es una predicción de resultado ni una recomendación de compra/
@@ -690,46 +705,113 @@ def _mi_decision_hoy(tesis_categoria: str, niveles: dict[str, float | None],
     return lineas
 
 
-def generar_trade(ticker: str) -> str:
-    """Punto de entrada de /trade TICKER. Nunca lanza: cualquier fallo se
-    convierte en un mensaje de error legible."""
-    ticker = ticker.upper().strip()
-    provider = YahooProvider()
-    barras_por_ticker = provider.barras([ticker], dias=400)
-    if ticker not in barras_por_ticker:
-        return (f"No pude obtener datos de precio para {ticker} -- revisa que "
-                f"el ticker esté bien escrito, o Yahoo bloqueó la consulta.")
-    barras = barras_por_ticker[ticker]
-    spot = barras.close[-1]
-    fund = provider.fundamentales([ticker]).get(ticker, Fundamentales(ticker))
-    nombre = fund.nombre or ticker
-    entrada_shortlist = _shortlist_entry(ticker)
-    score_screener = entrada_shortlist["score"] if entrada_shortlist else None
+_MI_DECISION_TEXTO = {
+    "alcista": ("🟢", "Sí compraría hoy."),
+    "esperar": ("🟡", "No compraría hoy. Esperaría."),
+    "bajista": ("🔴", "No compraría hoy -- la tendencia técnica es bajista."),
+    "neutral": ("⚪", "No compraría hoy -- no hay una señal técnica clara."),
+    "no_determinable": ("⚪", "No tengo suficiente información técnica para decidir hoy."),
+}
 
-    rsi = tech.rsi(barras)
-    vol = tech.volatilidad_anual(barras)
-    tendencia_label = clasificar_tendencia(tech.score_tendencia(barras))
-    valoracion_label = _clasificar_valoracion(
-        fund.pe, (entrada_shortlist or {}).get("sub_scores", {}).get("valor"))
-    riesgos = _riesgos(rsi, fund.pe, vol, tendencia_label)
-    riesgos_reales = [r for r in riesgos if "Sin banderas" not in r]
-    riesgo_emoji, riesgo_label = _riesgo_nivel(len(riesgos_reales))
 
-    cadena = obtener_cadena(ticker)
-    estrategias = rankear(construir_estrategias(cadena, spot)) if cadena else []
-    top = estrategias[0] if estrategias else None
-    score_100 = round(puntuar(estrategias)[0] * 100) if estrategias else None
+def _por_que_decision(ticker: str, tendencia_label: str, valoracion_label: str,
+                       fund: Fundamentales, rsi: float | None, spot: float) -> str | None:
+    """Una sola frase de justificación de "Mi decisión" -- reusa hechos ya
+    calculados (tendencia, valuación, crecimiento, RSI, objetivo de
+    analistas), nunca un dato nuevo ni un LLM. None si no hay ningún
+    hecho real que la sostenga (nunca se inventa una razón)."""
+    fragmentos = []
+    if tendencia_label == "alcista":
+        fragmentos.append("está en tendencia alcista")
+    elif tendencia_label == "bajista":
+        fragmentos.append("está en tendencia bajista")
+    if valoracion_label == "Atractiva":
+        fragmentos.append("la valuación es atractiva")
+    elif valoracion_label == "Exigente":
+        fragmentos.append("la valuación es exigente")
+    if fund.crecimiento_ingresos is not None and fund.crecimiento_ingresos >= 0.10:
+        fragmentos.append(f"está creciendo {fund.crecimiento_ingresos:.0%}")
+    if rsi is not None and rsi >= 70:
+        fragmentos.append(f"el RSI está en sobrecompra ({rsi:.0f})")
+    elif rsi is not None and rsi <= 30:
+        fragmentos.append(f"el RSI está en sobreventa ({rsi:.0f})")
+    if fund.analista_precio_objetivo is not None and spot and fund.analista_precio_objetivo > spot:
+        fragmentos.append("todavía tiene recorrido según los analistas")
+    if not fragmentos:
+        return None
+    cuerpo = fragmentos[0] if len(fragmentos) == 1 else ", ".join(fragmentos[:-1]) + " y " + fragmentos[-1]
+    return f"Porque {ticker} {cuerpo}."
 
-    tesis_categoria = _tesis_categoria(tendencia_label, valoracion_label, rsi)
-    fecha_resultados = _obtener_fecha_resultados(ticker)
 
-    sma50 = tech.sma(barras.close, 50)
-    maximo_52s = tech.maximo_52s(barras)
-    atr_val = tech.atr(barras)
-    niveles = _niveles_precio(spot, atr_val, sma50)
-    objetivo_1 = maximo_52s
-    objetivo_2 = _objetivo_2(objetivo_1, niveles["entrada"])
+def _mensaje_simple(
+    ticker: str, nombre: str, spot: float, tesis_categoria: str, por_que: str | None,
+    niveles: dict[str, float | None], objetivo_1: float | None, cadena: CadenaOpciones | None,
+    top: EstrategiaOpciones | None, direccion_top_coincide: bool | None,
+) -> str:
+    """Modo por defecto de /trade -- responde 7 preguntas en menos de 20
+    líneas: ¿compro o no?, ¿a qué precio?, ¿dónde el stop?, ¿cuál el
+    objetivo?, ¿qué estrategia?, ¿cuánto capital?, ¿qué alerta pongo?
+    Pedido explícito: el diseño anterior (Semáforo, Confianza, Plan de
+    acción, etc.) tenía demasiadas secciones para leer todos los días --
+    ese detalle sigue disponible en /trade TICKER --full, no se pierde,
+    solo se deja de mostrar por defecto."""
+    emoji, texto = _MI_DECISION_TEXTO.get(
+        tesis_categoria, ("⚪", "No tengo suficiente información técnica para decidir hoy."))
+    lineas = [f"📊 {ticker} — {nombre}", "", SEP, "", "🎯 Mi decisión", "", f"{emoji} {texto}"]
 
+    if niveles.get("entrada") is not None:
+        lineas += ["", "Entrada ideal:", _fmt_price_round(niveles["entrada"])]
+    else:
+        lineas += ["", "Precio actual:", _fmt_price_round(spot)]
+
+    if niveles.get("cancelar") is not None:
+        lineas += ["", "Stop:", _fmt_price_round(niveles["cancelar"])]
+
+    if objetivo_1 is not None:
+        rr = _relacion_riesgo_beneficio(niveles.get("entrada"), objetivo_1, niveles.get("cancelar"))
+        lineas += ["", "Objetivo:", _fmt_objetivo_con_rr(objetivo_1, rr)]
+
+    if cadena is not None:
+        lineas += ["", "Horizonte:", f"{cadena.dias_a_vencimiento} días (vencimiento de la opción elegida)"]
+
+    if top is not None:
+        lineas += ["", "Capital mínimo:", f"{_fmt_price_round(spot * 100)} (comprar 100 acciones)"]
+        if top.riesgo_maximo is not None:
+            lineas += ["o", f"{_fmt_price_round(top.riesgo_maximo)} ({top.nombre})"]
+        lineas += ["", "La estrategia que usaría:", top.nombre]
+        if direccion_top_coincide is False:
+            lineas.append("(no coincide con la tesis de hoy -- ver /trade TICKER --full)")
+    else:
+        lineas += ["", "Estrategia con opciones:", "No disponible hoy (cadena insuficiente)."]
+
+    if por_que:
+        lineas += ["", "¿Por qué?", "", por_que]
+
+    if niveles.get("entrada") is not None:
+        lineas += ["", "Próximo paso:", "", f"✅ Crear alerta en {_fmt_price_round(niveles['entrada'])}."]
+
+    lineas += ["", SEP, "",
+              f"Para el detalle completo (Semáforo, Confianza en el plan, Qué tiene que pasar "
+              f"para ganar, Plan de acción, Alertas con estimado de días, Riesgos): "
+              f"/trade {ticker} --full"]
+    lineas += ["", SEP, "", "Esto no es una recomendación de compra/venta."]
+    return "\n".join(lineas)
+
+
+def _ensamblar_full(
+    ticker: str, nombre: str, spot: float, fund: Fundamentales, score_screener: float | None,
+    rsi: float | None, tendencia_label: str, riesgos_reales: list[str], riesgo_emoji: str,
+    riesgo_label: str, cadena: CadenaOpciones | None, estrategias: list[EstrategiaOpciones],
+    top: EstrategiaOpciones | None, score_100: int | None, tesis_categoria: str,
+    fecha_resultados: str | None, valoracion_label: str, maximo_52s: float | None,
+    niveles: dict[str, float | None], objetivo_1: float | None, objetivo_2: float | None,
+    vol: float | None,
+) -> str:
+    """El tablero completo de antes (/trade TICKER --full): Semáforo,
+    Tesis + estrategia con la capa de coherencia, Plan del trade, Ejemplo,
+    Capital mínimo (las 9 estrategias), Qué tiene que pasar para ganar,
+    Horizonte, Confianza en el plan, Riesgos, Plan de acción + Alertas
+    (solo si la tesis es "esperar"), y Mi decisión hoy de cierre."""
     preambulo, veredicto_acciones = _conclusion_acciones(tesis_categoria)
 
     lineas = [f"📊 {ticker} — {nombre}", "", SEP, ""]
@@ -844,3 +926,69 @@ def generar_trade(ticker: str) -> str:
     lineas.append("Esto no es una recomendación de compra/venta.")
 
     return "\n".join(lineas)
+
+
+def generar_trade(ticker: str, modo: str = "simple") -> str:
+    """Punto de entrada de /trade TICKER [--full]. Nunca lanza: cualquier
+    fallo se convierte en un mensaje de error legible.
+
+    Modo "simple" (por defecto): responde 7 preguntas en menos de 20
+    líneas -- ¿compro o no?, ¿a qué precio?, ¿dónde pongo el stop?,
+    ¿cuál es el objetivo?, ¿qué estrategia usar?, ¿cuánto capital
+    necesito?, ¿qué alerta pongo? -- pedido explícito tras feedback de
+    que el diseño anterior (Semáforo, Confianza en el plan, Plan de
+    acción, Qué tiene que pasar para ganar, etc. -- ~12 secciones) era
+    demasiado largo para abrir todos los días.
+
+    Modo "full": el tablero completo de antes -- nada de ese detalle se
+    perdió, solo se dejó de mostrar por defecto (ver _ensamblar_full)."""
+    ticker = ticker.upper().strip()
+    provider = YahooProvider()
+    barras_por_ticker = provider.barras([ticker], dias=400)
+    if ticker not in barras_por_ticker:
+        return (f"No pude obtener datos de precio para {ticker} -- revisa que "
+                f"el ticker esté bien escrito, o Yahoo bloqueó la consulta.")
+    barras = barras_por_ticker[ticker]
+    spot = barras.close[-1]
+    fund = provider.fundamentales([ticker]).get(ticker, Fundamentales(ticker))
+    nombre = fund.nombre or ticker
+    entrada_shortlist = _shortlist_entry(ticker)
+    score_screener = entrada_shortlist["score"] if entrada_shortlist else None
+
+    rsi = tech.rsi(barras)
+    vol = tech.volatilidad_anual(barras)
+    tendencia_label = clasificar_tendencia(tech.score_tendencia(barras))
+    valoracion_label = _clasificar_valoracion(
+        fund.pe, (entrada_shortlist or {}).get("sub_scores", {}).get("valor"))
+    riesgos = _riesgos(rsi, fund.pe, vol, tendencia_label)
+    riesgos_reales = [r for r in riesgos if "Sin banderas" not in r]
+    riesgo_emoji, riesgo_label = _riesgo_nivel(len(riesgos_reales))
+
+    cadena = obtener_cadena(ticker)
+    estrategias = rankear(construir_estrategias(cadena, spot)) if cadena else []
+    top = estrategias[0] if estrategias else None
+    score_100 = round(puntuar(estrategias)[0] * 100) if estrategias else None
+
+    tesis_categoria = _tesis_categoria(tendencia_label, valoracion_label, rsi)
+    fecha_resultados = _obtener_fecha_resultados(ticker)
+
+    sma50 = tech.sma(barras.close, 50)
+    maximo_52s = tech.maximo_52s(barras)
+    atr_val = tech.atr(barras)
+    niveles = _niveles_precio(spot, atr_val, sma50)
+    objetivo_1 = maximo_52s
+    objetivo_2 = _objetivo_2(objetivo_1, niveles["entrada"])
+
+    if modo == "full":
+        return _ensamblar_full(
+            ticker, nombre, spot, fund, score_screener, rsi, tendencia_label, riesgos_reales,
+            riesgo_emoji, riesgo_label, cadena, estrategias, top, score_100, tesis_categoria,
+            fecha_resultados, valoracion_label, maximo_52s, niveles, objetivo_1, objetivo_2, vol,
+        )
+
+    por_que = _por_que_decision(ticker, tendencia_label, valoracion_label, fund, rsi, spot)
+    direccion_top_coincide = (
+        _tesis_coincide_con_estrategia(tesis_categoria, direccion_estrategia(top.nombre))
+        if top is not None else None)
+    return _mensaje_simple(ticker, nombre, spot, tesis_categoria, por_que, niveles, objetivo_1,
+                           cadena, top, direccion_top_coincide)
