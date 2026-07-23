@@ -116,10 +116,10 @@ traduce a lenguaje llano el ranking que el motor matemático ya calculó
   técnica de scoring cross-sectional que `screener/scoring.py` ya usa
   para los factores del stock screener) antes de combinarlas, para que
   ninguna domine solo por vivir en una escala distinta.
-- **`--full` vs. por defecto**: por defecto muestra el Top 4 con
-  estrellas relativas a este ranking; `--full` muestra las ~9 completas
-  con el desglose entero (patas, Greeks netos, breakeven, probabilidad,
-  valor esperado, liquidez).
+- **`--full` vs. por defecto**: por defecto muestra el Top 4 con su
+  Score real (0-100, `options_strategies.puntuar()` -- no estrellas);
+  `--full` muestra las ~9 completas con el desglose entero (patas,
+  Greeks netos, breakeven, probabilidad, valor esperado, liquidez).
 - **Explicación del LLM**: un párrafo por estrategia explicando ventajas/
   desventajas/cuándo tendría sentido/qué la invalidaría -- nunca "cuál
   operar". Mismo guardrail de belt-and-suspenders que `news_analyst/
@@ -179,43 +179,66 @@ determinístico.
 
 Decisión de producto: `/report` y `/options` son correctos pero son
 *reportes* -- este bot existe para ayudar a decidir, no solo para leer.
-`/trade` (`trade_command.py`) reempaqueta exactamente los mismos números
-que ya calculan `/report` y `/options` (ningún dato nuevo, ningún cálculo
-nuevo) en un formato legible en menos de 30 segundos, con `/report`/
-`/options --full` al final para quien quiera profundizar.
+`/trade` (`trade_command.py`) reempaqueta los mismos números que ya
+calculan `/report` y `/options` (ningún cálculo nuevo) en un formato
+legible en menos de 30 segundos, con `/report`/`/options --full` al
+final para quien quiera profundizar. Sin estrellas en ningún lado
+(tampoco en `/options`) -- solo scores numéricos reales.
 
-100% determinístico, sin LLM -- a diferencia de la primera versión de
-este comando, ninguna sección depende de una llamada a Claude (que podía
-fallar en silencio). Cada línea sale de reglas fijas sobre números ya
-reales.
+100% determinístico, sin LLM -- ninguna sección depende de una llamada a
+Claude (que podía fallar en silencio). Cada línea sale de reglas fijas
+sobre números ya reales.
 
-- **Convicción del modelo**: el score REAL del screener (0-100,
+- **Score cuantitativo del modelo**: el score REAL del screener (0-100,
   `screener.scoring.puntuar()`, el mismo que aparece en la shortlist
   diaria) con emoji 🟢/🟡/🔴 por umbral -- "No disponible" si el ticker no
-  está en la shortlist de hoy. No es una probabilidad de éxito, es la
-  calificación del modelo (Principio #3).
+  está en la shortlist de hoy. Se llama "Score cuantitativo" y no
+  "Confianza"/"Convicción" a propósito: ese nombre podía leerse como una
+  probabilidad de ganar, que no es lo que mide (Principio #3).
 - **Mi conclusión**: dos frases deterministas -- si compraría la acción
   hoy (según tendencia técnica, valoración y RSI) y si investigaría una
-  estrategia de opciones (según si el ranking pudo construirse y qué tan
-  bien calificó la mejor).
-- **Mejor estrategia**: el #1 del ranking de `/options`, con su propia
-  "Convicción" (0-100, el score compuesto de `options_strategies.
-  puntuar()` -- 50% valor esperado/riesgo, 30% probabilidad, 20%
-  liquidez) y un bloque "¿Por qué?" armado de hechos reales (RSI,
-  precio vs. objetivo de analistas, calidad de la relación
-  riesgo/beneficio) -- sin LLM, así nunca puede fallar en silencio.
-- **Ejemplo**: patas/strikes reales, costo máximo (`riesgo_maximo`),
-  ganancia máxima, y punto de equilibrio (el/los breakeven(s) reales).
-- **Escenarios**: el payoff REAL de la estrategia
-  (`options_strategies.evaluar_payoff`) en 3 precios concretos --
-  objetivo de analistas (o un movimiento del 15% si no hay objetivo),
-  precio actual sin cambios, y un movimiento del 15% adverso. El emoji
-  🟢/🔴 de cada escenario refleja el SIGNO real del payoff calculado, no
-  una dirección asumida de antemano (el objetivo de analistas puede
-  apuntar en la dirección que en realidad perjudica a la estrategia
-  elegida -- ver test de regresión en `test_trade_command.py`).
+  estrategia de opciones.
+- **Tesis del modelo vs. estrategia**: antes de presentar la estrategia
+  top se compara la tesis del screener (Alcista/Bajista/Esperar/Neutral)
+  con la dirección real de esa estrategia
+  (`options_strategies.direccion_estrategia`). Si coinciden, se muestra
+  como "Mejor estrategia"; si no, como "Si aun así quieres operar..." --
+  el ranking matemático NUNCA cambia por esto, solo cómo se presenta (ver
+  `_tesis_coincide_con_estrategia`), para no mostrar mensajes
+  contradictorios como "No compraría acciones hoy" seguido de un Long
+  Call sin más contexto.
+- **¿Por qué [estrategia]?**: combina una explicación FIJA por tipo de
+  estrategia (qué gana, qué arriesga, cuál es su problema estructural --
+  hechos sobre cómo funciona ese tipo de estrategia, iguales para
+  cualquier ticker) con hechos reales del día (RSI, precio vs. objetivo
+  de analistas).
+- **Ejemplo**: patas/strikes reales, costo máximo (`riesgo_maximo`) y
+  ganancia máxima.
+- **¿Qué tiene que pasar para que esta estrategia gane?**: reemplaza a
+  una sección anterior de "escenarios" que a veces mostraba pérdida en
+  los 3 precios evaluados (ej. un Long Call pierde tanto si el precio
+  baja como si se queda igual) y leía como contradictorio. La condición
+  de ganancia usa el breakeven y el vencimiento REALES -- estrategias de
+  crédito (Bull Put Spread, Bear Call Spread) piden que el precio se
+  "mantenga" del lado bueno; estrategias de débito (Long Call/Put, Bull
+  Call/Bear Put Spread) piden que el precio "se mueva" hasta cruzarlo.
+  "Lo que puede salir mal" es una lista fija por tipo de estrategia
+  (verdades estructurales, no una predicción sobre este ticker).
 - **Riesgos**: mismas banderas reales de `/report` (máx. 3, en orden de
   severidad).
+- **Plan de acción**: solo aparece cuando la conclusión es "esperar".
+  "Precio ideal para volver a revisar" usa la media móvil de 50 días
+  (`screener.factors.technical.sma`) y el nivel de ruptura para
+  reconsiderar usa el máximo de 52 semanas
+  (`screener.factors.technical.maximo_52s`) -- niveles técnicos reales,
+  no porcentajes inventados. El nivel de ruptura usa el máximo de 52
+  semanas y no el breakeven de la estrategia, porque el breakeven mide
+  dónde una estrategia de OPCIONES específica empieza a ganar, no dónde
+  técnicamente se confirma que la tesis alcista de la ACCIÓN se
+  reactivó (para una estrategia de ingreso como Covered Call, el
+  breakeven queda por debajo del spot y no serviría como señal de
+  ruptura al alza). Si hay fecha real de próximos resultados, también
+  recuerda revisar 2 días antes.
 
 ## Arquitectura
 
