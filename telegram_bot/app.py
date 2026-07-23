@@ -74,9 +74,11 @@ AYUDA = (
     "ejemplo educativo con costo/riesgo/objetivo real, y escenarios. El "
     "resumen ejecutivo de /report + /options en menos de 30 segundos de "
     "lectura. Ej.: /trade AAPL\n\n"
-    "/report TICKER -- memo de investigación de una empresa (técnico, "
-    "fundamentales, consenso de analistas, noticias relevantes). Ej.: "
-    "/report AAPL\n\n"
+    "/report TICKER -- ¿vale la pena investigarla? ¿comprarías hoy? qué te "
+    "gusta, qué no, y a qué precio -- todo legible en menos de un minuto. "
+    "Agrega --full para el memo exhaustivo (score breakdown, fundamentales "
+    "completos, noticias clasificadas). Ej.: /report AAPL, "
+    "/report AAPL --full\n\n"
     "/options TICKER -- ranking cuantitativo de estrategias de opciones "
     "(Greeks, probabilidad, valor esperado, liquidez -- 100% "
     "determinístico, el LLM solo lo explica). Top 4 por defecto; agrega "
@@ -220,13 +222,13 @@ async def _procesar_lista(chat_id: str) -> None:
             pass
 
 
-async def _procesar_reporte(ticker: str, chat_id: str) -> None:
-    """Genera el memo de /report TICKER y lo manda. Corre como background
-    task; generar_reporte hace llamadas de red síncronas (Yahoo/yfinance/
-    Google News/Anthropic), así que se ejecuta en un hilo aparte para no
-    bloquear el event loop del webhook."""
+async def _procesar_reporte(ticker: str, modo: str, chat_id: str) -> None:
+    """Genera el memo de /report TICKER [--full] y lo manda. Corre como
+    background task; generar_reporte hace llamadas de red síncronas
+    (Yahoo/yfinance/Google News/Anthropic), así que se ejecuta en un hilo
+    aparte para no bloquear el event loop del webhook."""
     try:
-        texto = await asyncio.to_thread(generar_reporte, ticker)
+        texto = await asyncio.to_thread(generar_reporte, ticker, modo)
         await _telegram_send_largo(chat_id, texto)
     except Exception as e:
         log.exception("reporte de %s falló", ticker)
@@ -397,9 +399,11 @@ async def telegram_webhook(
         partes = texto.split()
         if len(partes) < 2:
             background.add_task(
-                _telegram_send, chat_id, "Uso: /report TICKER (ej. /report AAPL)")
+                _telegram_send, chat_id,
+                "Uso: /report TICKER (ej. /report AAPL, o /report AAPL --full)")
             return {"ok": True}
-        background.add_task(_procesar_reporte, partes[1].upper(), chat_id)
+        modo = "full" if "--full" in partes[2:] else "simple"
+        background.add_task(_procesar_reporte, partes[1].upper(), modo, chat_id)
         return {"ok": True}
 
     if texto.startswith("/options"):

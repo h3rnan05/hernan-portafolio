@@ -116,3 +116,32 @@ def atr(b: Barras, periodo: int = 20) -> float | None:
     ]
     ventana = trs[-periodo:]
     return sum(ventana) / len(ventana) if ventana else None
+
+
+ATR_MULT_ENTRADA = 1.0
+ATR_MULT_STOP = 2.0  # misma convención de wizards_bot.py: stop = entrada - 2×ATR
+
+
+def niveles_precio(spot: float, atr_val: float | None, sma50: float | None) -> dict[str, float | None]:
+    """Niveles de precio objetivos por reglas objetivas -- ATR (misma
+    convención de wizards_bot.py) y SMA50 (soporte técnico real), nunca un
+    número inventado. Pública porque tanto telegram_bot/trade_command.py
+    como telegram_bot/report_command.py la reutilizan como el mismo motor
+    de niveles de entrada/salida (vive aquí, no en ninguno de los dos
+    comandos, para que ambos importen la misma implementación sin crear
+    un import circular entre ellos). "entrada": primer pullback
+    (spot - 1×ATR). "ideal": el más profundo entre ese pullback y la
+    media móvil de 50 días (si está disponible) -- así "ideal" nunca
+    queda por encima de "entrada". "cancelar": 2×ATR por debajo de
+    "ideal" (mismo múltiplo de stop que ya usa el bot de Turtle Trading).
+    Cualquier nivel que no se pueda calcular con los datos disponibles
+    queda en None -- nunca se rellena con un valor inventado."""
+    entrada = spot - ATR_MULT_ENTRADA * atr_val if atr_val is not None else None
+    if sma50 is not None and entrada is not None:
+        ideal = min(sma50, entrada)
+    elif sma50 is not None:
+        ideal = sma50
+    else:
+        ideal = entrada
+    cancelar = ideal - ATR_MULT_STOP * atr_val if (ideal is not None and atr_val is not None) else None
+    return {"entrada": entrada, "ideal": ideal, "cancelar": cancelar}

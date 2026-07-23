@@ -40,3 +40,13 @@ class NoticiaRelevante:
     titular: str
     mencion: Mencion
     explicacion: Explicacion | None  # None si se topó el tope de MAX_EXPLICACIONES
+
+
+@dataclass(frozen=True)
+class ResumenNoticias:
+    """Resumen agregado de varios titulares -- para telegram_bot/
+    report_command.py, que ya no muestra una lista de titulares sueltos
+    por defecto, sino este resumen de una frase + hasta 3 hechos
+    concretos (ver news_analyst.explicador.resumir_noticias)."""
+    resumen: str
+    puntos: list[str]
