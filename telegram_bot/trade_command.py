@@ -1,62 +1,53 @@
-"""Genera /trade TICKER -- la versión de bolsillo de /report + /options:
-responde en menos de 30 segundos de lectura la conclusión, la tesis del
-modelo frente a la mejor estrategia de opciones, en qué condiciones esa
-estrategia gana (no "escenarios" con números que a veces contradicen a
-la conclusión), un ejemplo educativo concreto, y un plan de acción
-cuando la conclusión es esperar. /report y /options siguen existiendo
-tal cual para cuando SÍ quieras profundizar -- /trade no los reemplaza.
+"""Genera /trade TICKER -- el tablero completo de decisión: qué hacer,
+cuándo hacerlo, a qué precio, qué estrategia, qué puede salir mal y
+cuándo revisar otra vez. Empieza con un resumen de 15 segundos para
+quien tiene prisa; el resto profundiza para quien quiera seguir leyendo.
+/report y /options siguen existiendo tal cual para cuando SÍ quieras
+profundizar aún más -- /trade no los reemplaza.
 
 Principio #3 (igual que /report y /options): NINGÚN número de este
 comando es una predicción de resultado ni una recomendación de compra/
 venta. "Score cuantitativo" (antes "Convicción") es el score real del
 screener (0-100, `screener.scoring.puntuar()`) o el score compuesto real
 del ranking de estrategias (`options_strategies.puntuar()`) -- ninguno
-de los dos es una probabilidad de éxito, son medidas de qué tan bien
-califica el activo o la estrategia según las reglas fijas del motor,
-igual que ya se muestran en el screener diario y en /options. Se
-renombró de "Convicción" a "Score cuantitativo" porque ese nombre podía
-leerse como "% de probabilidad de ganar", que no es lo que mide.
+de los dos es una probabilidad de éxito. "Semáforo del modelo" (antes
+"Score de oportunidad hoy", con un % que se prestaba a leerse como
+probabilidad de ganar -- corregido tras ver el primer output real) usa
+emoji + texto cualitativo en vez de un porcentaje, y resuelve en el
+mismo texto la aparente contradicción de "opciones sí, pero no hoy": si
+la tesis es "esperar", la línea de Opciones lo dice explícitamente en
+vez de dejarlo para que el usuario lo infiera.
 
 100% determinístico, sin LLM: ninguna sección depende de una llamada a
-Claude (que podía fallar en silencio -- ver auditoría en vivo). El
-bloque "¿Por qué?" combina una explicación FIJA por tipo de estrategia
-(qué gana, qué arriesga, cuál es el problema estructural -- son hechos
-sobre CÓMO funciona cada una de las 9 estrategias, no una síntesis
-abierta) con hechos reales del día (RSI, precio vs. objetivo de
-analistas).
+Claude. El bloque "¿Por qué [estrategia]?" combina una explicación FIJA
+por tipo de estrategia (qué gana, qué arriesga, cuál es el problema
+estructural) con hechos reales del día (RSI, precio vs. objetivo de
+analistas). "Confianza en este plan" es lo mismo en espíritu: una lista
+fija de factores reales a favor/en contra (tendencia, RSI, valuación,
+liquidez, crecimiento de ingresos) con un % de cuántos aplican -- se
+etiqueta explícitamente como eso, nunca como probabilidad de éxito.
 
 Coherencia con la tesis: antes de presentar la estrategia top se compara
 la tesis del screener (Alcista/Bajista/Esperar/Neutral) con la dirección
 real de esa estrategia (`options_strategies.direccion_estrategia`). El
 ranking matemático NUNCA cambia por esto -- ver `_tesis_coincide_con_
-estrategia`. Solo cambia cómo se presenta, para no mostrar mensajes
-contradictorios como "No compraría acciones hoy" seguido de un Long Call
-sin más contexto.
+estrategia`. Solo cambia cómo se presenta.
 
-"¿Qué tiene que pasar para ganar?" reemplaza a una sección anterior de
-"escenarios" que a veces mostraba pérdida en los 3 precios evaluados (un
-Long Call, por ejemplo, pierde tanto si el precio baja como si se queda
-igual -- solo gana si sube lo suficiente) y eso leía como contradictorio
-("¿entonces para qué me la muestras?"). La condición de ganancia usa el
-breakeven y el vencimiento REALES; "lo que puede salir mal" es una lista
-fija por tipo de estrategia (verdades estructurales, no una predicción
-sobre este ticker).
-
-Plan de acción: solo aparece cuando la conclusión es "esperar". Los 4
-niveles de precio (entrada, ideal, cancelar, ruptura) salen de reglas
+Plan de acción / Plan del trade / Alertas para Yahoo Finance: solo
+aparecen cuando la conclusión es "esperar". Los niveles de precio
+(entrada, ideal, cancelar, objetivo 1, objetivo 2) salen de reglas
 objetivas -- ATR (misma convención de 2×ATR de stop que ya usa
-wizards_bot.py para el bot de Turtle Trading), media móvil de 50 días y
-máximo de 52 semanas -- nunca un número inventado por el LLM (de hecho,
-ningún LLM interviene en absoluto en este cálculo). "Alertas para Yahoo
-Finance" reempaqueta los mismos 4 niveles, ya calculados, en formato
-listo para configurar alertas de precio.
+wizards_bot.py), media móvil de 50 días y máximo de 52 semanas -- nunca
+un número inventado. Objetivo 2 es una extensión de igual distancia más
+allá del objetivo 1 (medida desde la entrada), una convención técnica
+estándar, no un número arbitrario. Cada línea de "Alertas para Yahoo
+Finance" incluye de dónde sale ese nivel, para que quede claro que no es
+arbitrario.
 
-"Score de oportunidad": % de reglas objetivas (tendencia, RSI, valuación,
-proximidad a resultados, calidad del ranking de opciones) que se cumplen
-hoy para cada acción posible (comprar acciones / comprar opciones /
-esperar) -- se etiqueta explícitamente como eso, NUNCA como una
-probabilidad de que la operación vaya a ganar dinero (mismo cuidado que
-ya se tuvo con "Confianza" → "Score cuantitativo").
+Horizonte esperado: el vencimiento REAL de la opción elegida (nunca un
+rango de tiempo inventado como "3-6 semanas" sin base) -- el trade está
+atado a esa fecha, se dice explícitamente para que no se confunda con
+una tesis de largo plazo.
 """
 
 from __future__ import annotations
@@ -76,7 +67,7 @@ if str(_TELEGRAM_BOT_DIR) not in sys.path:
 from report_command import _clasificar_valoracion, _riesgos, _shortlist_entry  # noqa: E402
 from screener.data.provider import Fundamentales, YahooProvider  # noqa: E402
 from screener.factors import technical as tech  # noqa: E402
-from screener.options_ideas import clasificar_tendencia, obtener_cadena, proxima_fecha_resultados  # noqa: E402
+from screener.options_ideas import CadenaOpciones, clasificar_tendencia, obtener_cadena, proxima_fecha_resultados  # noqa: E402
 from screener.options_strategies import (  # noqa: E402
     EstrategiaOpciones,
     construir_estrategias,
@@ -137,6 +128,10 @@ _TESIS_EMOJI = {
     "alcista": "🟢", "bajista": "🔴", "esperar": "🟡",
     "neutral": "⚪", "no_determinable": "⚪",
 }
+_VEREDICTO_EMOJI = {
+    "alcista": "✅", "bajista": "❌", "esperar": "🟡",
+    "neutral": "⚪", "no_determinable": "⚪",
+}
 
 
 def _tesis_categoria(tendencia_label: str, valoracion_label: str, rsi: float | None) -> str:
@@ -190,6 +185,36 @@ def _conclusion_opciones(estrategias: list[EstrategiaOpciones], score_100: float
     if score_100 is not None and score_100 < 40:
         return "Investigaría con cautela una estrategia con opciones (relación riesgo/beneficio modesta hoy)."
     return "Sí investigaría una estrategia con opciones."
+
+
+def _emoji_opciones(estrategias: list[EstrategiaOpciones], score_100: float | None) -> str:
+    if not estrategias:
+        return "🔴"
+    if score_100 is not None and score_100 < 40:
+        return "🟡"
+    return "🟢"
+
+
+def _texto_opciones_semaforo(estrategias: list[EstrategiaOpciones], score_100: float | None,
+                              tesis_categoria: str) -> str:
+    """Versión corta para el Semáforo -- resuelve en la misma línea la
+    aparente contradicción "opciones sí, pero no hoy": si la tesis es
+    "esperar", lo dice explícitamente en vez de dejar que el usuario
+    infiera por qué "Sí investigaría" convive con "No abriría hoy"."""
+    if not estrategias:
+        return "No hay estrategias disponibles hoy"
+    base = "Con cautela" if (score_100 is not None and score_100 < 40) else "Sí investigaría"
+    if tesis_categoria == "esperar":
+        return f"{base}, pero no abriría hoy"
+    return base
+
+
+def _riesgo_nivel(n_riesgos_reales: int) -> tuple[str, str]:
+    if n_riesgos_reales == 0:
+        return "🟢", "Bajo"
+    if n_riesgos_reales <= 2:
+        return "🟡", "Medio"
+    return "🔴", "Alto"
 
 
 # Explicación FIJA por tipo de estrategia -- qué gana, qué arriesga y cuál
@@ -330,11 +355,11 @@ ATR_MULT_STOP = 2.0  # misma convención de wizards_bot.py: stop = entrada - 2×
 
 
 def _niveles_precio(spot: float, atr_val: float | None, sma50: float | None) -> dict[str, float | None]:
-    """Niveles de precio objetivos para el Plan de acción -- ATR (misma
-    convención de wizards_bot.py) y SMA50 (soporte técnico real), nunca un
-    número inventado. "entrada": primer pullback (spot - 1×ATR). "ideal":
-    el más profundo entre ese pullback y la media móvil de 50 días (si
-    está disponible) -- así "ideal" nunca queda por encima de "entrada".
+    """Niveles de precio objetivos -- ATR (misma convención de
+    wizards_bot.py) y SMA50 (soporte técnico real), nunca un número
+    inventado. "entrada": primer pullback (spot - 1×ATR). "ideal": el más
+    profundo entre ese pullback y la media móvil de 50 días (si está
+    disponible) -- así "ideal" nunca queda por encima de "entrada".
     "cancelar": 2×ATR por debajo de "ideal" (mismo múltiplo de stop que ya
     usa el bot de Turtle Trading). Cualquier nivel que no se pueda
     calcular con los datos disponibles queda en None -- nunca se rellena
@@ -348,6 +373,26 @@ def _niveles_precio(spot: float, atr_val: float | None, sma50: float | None) -> 
         ideal = entrada
     cancelar = ideal - ATR_MULT_STOP * atr_val if (ideal is not None and atr_val is not None) else None
     return {"entrada": entrada, "ideal": ideal, "cancelar": cancelar}
+
+
+def _objetivo_2(objetivo_1: float | None, entrada: float | None) -> float | None:
+    """Extensión de igual distancia más allá del objetivo 1, medida desde
+    la entrada -- convención técnica estándar ("measured move"), no un
+    número arbitrario."""
+    if objetivo_1 is None or entrada is None:
+        return None
+    return objetivo_1 + (objetivo_1 - entrada)
+
+
+def _relacion_riesgo_beneficio(entrada: float | None, objetivo_1: float | None,
+                               stop: float | None) -> float | None:
+    if entrada is None or objetivo_1 is None or stop is None:
+        return None
+    riesgo = entrada - stop
+    beneficio = objetivo_1 - entrada
+    if riesgo <= 0 or beneficio <= 0:
+        return None
+    return beneficio / riesgo
 
 
 def _dias_hasta(fecha_iso: str | None, hoy: date | None = None) -> int | None:
@@ -402,72 +447,163 @@ def _plan_de_accion(ticker: str, top: EstrategiaOpciones | None, niveles: dict[s
     return lineas
 
 
-def _alertas_yahoo(niveles: dict[str, float | None], maximo_52s: float | None) -> list[str]:
-    """Reempaqueta los mismos niveles ya calculados en _niveles_precio()
-    en formato listo para configurar alertas de precio -- ningún cálculo
-    nuevo, solo una presentación distinta de los mismos números."""
-    entrada, ideal, cancelar = niveles["entrada"], niveles["ideal"], niveles["cancelar"]
-    items = []
-    if entrada is not None:
-        items.append(f"🟢 Comprar si baja a: {_fmt_price_round(entrada)}")
-    if ideal is not None and ideal != entrada:
-        items.append(f"🟢 Comprar con fuerza si baja a: {_fmt_price_round(ideal)}")
-    if maximo_52s is not None:
-        items.append(f"🟡 Revisar si rompe: {_fmt_price_round(maximo_52s)}")
-    if cancelar is not None:
-        items.append(f"🔴 Cancelar la idea si cae debajo de: {_fmt_price_round(cancelar)}")
-    lineas = ["🔔 Alertas para Yahoo Finance", ""]
-    for i, item in enumerate(items):
-        if i > 0:
-            lineas.append("")
-        lineas.append(item)
+def _fmt_objetivo_con_rr(objetivo: float, rr: float | None) -> str:
+    return f"{_fmt_price_round(objetivo)} (relación riesgo/beneficio {rr:.1f} : 1)" if rr is not None \
+        else _fmt_price_round(objetivo)
+
+
+def _plan_del_trade(entrada: float | None, objetivo_1: float | None, objetivo_2: float | None,
+                     stop: float | None) -> list[str]:
+    """Tabla compacta de referencia (entrada/objetivos/stop) -- mismos
+    niveles que _plan_de_accion(), en formato numérico rápido de leer en
+    vez de narrativo. La relación riesgo/beneficio se muestra junto a
+    CADA objetivo (no como una sola línea ambigua) porque objetivo 1
+    (el máximo de 52 semanas, un nivel técnico real) puede quedar cerca
+    de la entrada justo en escenarios donde el precio ya está cerca de
+    máximos -- exactamente el caso donde esta sección se activa (tesis
+    "esperar" por sobrecompra). Mostrar la relación real de cada
+    objetivo, aunque sea modesta, es más honesto que forzar un múltiplo
+    fijo que no refleje el nivel técnico real. Vacía si no hay
+    suficientes niveles calculados (nunca rellena con un valor
+    inventado)."""
+    if entrada is None or stop is None:
+        return []
+    lineas = ["🧮 Plan del trade", "", "Entrada:", _fmt_price_round(entrada)]
+    if objetivo_1 is not None:
+        rr1 = _relacion_riesgo_beneficio(entrada, objetivo_1, stop)
+        lineas += ["", "Objetivo 1:", _fmt_objetivo_con_rr(objetivo_1, rr1)]
+    if objetivo_2 is not None:
+        rr2 = _relacion_riesgo_beneficio(entrada, objetivo_2, stop)
+        lineas += ["", "Objetivo 2:", _fmt_objetivo_con_rr(objetivo_2, rr2)]
+    lineas += ["", "Stop:", _fmt_price_round(stop)]
     return lineas
 
 
-def _pct_reglas(reglas: list[bool | None]) -> int | None:
-    """% de reglas objetivas que se cumplen -- ignora las que no se
-    pudieron evaluar por falta de datos (nunca fuerza una regla sin datos
-    reales). None si NINGUNA regla pudo evaluarse."""
-    evaluables = [r for r in reglas if r is not None]
-    if not evaluables:
-        return None
-    return round(100 * sum(1 for r in evaluables if r) / len(evaluables))
+def _alertas_yahoo(niveles: dict[str, float | None], maximo_52s: float | None) -> list[str]:
+    """Reempaqueta los mismos niveles ya calculados en _niveles_precio()
+    en formato listo para configurar alertas de precio -- ningún cálculo
+    nuevo. Cada alerta incluye de dónde sale ese nivel (ATR, media móvil
+    de 50 días, máximo de 52 semanas) para que quede claro que no es un
+    número arbitrario."""
+    entrada, ideal, cancelar = niveles["entrada"], niveles["ideal"], niveles["cancelar"]
+    items = []
+    if entrada is not None:
+        items.append((f"🟢 Comprar si baja a: {_fmt_price_round(entrada)}",
+                      "Es un retroceso de 1×ATR desde el precio actual."))
+    if ideal is not None and ideal != entrada:
+        items.append((f"🟢 Comprar con fuerza si baja a: {_fmt_price_round(ideal)}",
+                      "Está cerca de la media móvil de 50 días, un soporte técnico real."))
+    if maximo_52s is not None:
+        items.append((f"🟡 Revisar si rompe: {_fmt_price_round(maximo_52s)}",
+                      "Es el máximo de 52 semanas."))
+    if cancelar is not None:
+        items.append((f"🔴 Cancelar la idea si cae debajo de: {_fmt_price_round(cancelar)}",
+                      "Es 2×ATR por debajo del nivel ideal (mismo margen que usa el sistema para acciones)."))
+    lineas = ["🔔 Alertas para Yahoo Finance", ""]
+    for i, (item, porque) in enumerate(items):
+        if i > 0:
+            lineas.append("")
+        lineas += [item, "¿Por qué?", porque]
+    return lineas
 
 
-def _reglas_comprar_acciones(tendencia_label: str, valoracion_label: str, rsi: float | None,
-                              spot: float, objetivo: float | None) -> list[bool | None]:
+def _horizonte(cadena: CadenaOpciones) -> list[str]:
+    """El vencimiento REAL de la opción elegida -- nunca un rango de
+    tiempo inventado ("3-6 semanas" sin base). El trade está atado a esa
+    fecha, se dice explícitamente para que no se confunda con una tesis
+    de inversión de largo plazo."""
     return [
-        tendencia_label == "alcista",
-        (rsi < 70) if rsi is not None else None,
-        (valoracion_label != "Exigente") if valoracion_label != "No determinable" else None,
-        (spot <= objetivo * 1.05) if objetivo else None,
+        "⏳ Horizonte esperado", "",
+        "Este trade está atado al vencimiento de la opción elegida:",
+        f"{_fmt_fecha_es(cadena.vencimiento)} (en {cadena.dias_a_vencimiento} días) -- "
+        f"no es una inversión de largo plazo.",
     ]
 
 
-def _reglas_comprar_opciones(estrategias: list[EstrategiaOpciones], score_100: float | None,
-                              top: EstrategiaOpciones | None) -> list[bool | None]:
-    if not estrategias or top is None:
-        return [False]
-    return [
-        True,
-        (score_100 >= 50) if score_100 is not None else None,
-        (top.liquidez_score >= 50) if top.liquidez_score is not None else None,
-        (top.probabilidad_exito >= 0.4) if top.probabilidad_exito is not None else None,
+def _factores_plan(tendencia_label: str, rsi: float | None, valoracion_label: str,
+                    top: EstrategiaOpciones | None, fund: Fundamentales) -> tuple[list[str], list[str]]:
+    """Factores reales a favor/en contra del plan -- mismo criterio de
+    honestidad que el resto del motor: cada factor solo aparece si hay un
+    dato real que lo sostenga, nunca se fuerza uno neutral hacia un lado
+    u otro."""
+    a_favor: list[str] = []
+    en_contra: list[str] = []
+    if tendencia_label == "alcista":
+        a_favor.append("Tendencia alcista")
+    elif tendencia_label == "bajista":
+        en_contra.append("Tendencia bajista")
+    if rsi is not None:
+        if rsi >= 70:
+            en_contra.append(f"RSI elevado ({rsi:.0f})")
+        elif rsi <= 30:
+            a_favor.append(f"RSI bajo ({rsi:.0f}) -- posible rebote")
+    if valoracion_label == "Atractiva":
+        a_favor.append("Valuación atractiva")
+    elif valoracion_label == "Exigente":
+        en_contra.append("Valuación exigente")
+    if top is not None and top.liquidez_score is not None:
+        if top.liquidez_score >= 60:
+            a_favor.append("Liquidez alta en las opciones")
+        elif top.liquidez_score < 40:
+            en_contra.append("Liquidez baja en las opciones")
+    if fund.crecimiento_ingresos is not None:
+        if fund.crecimiento_ingresos >= 0.10:
+            a_favor.append(f"Crecimiento de ingresos fuerte ({fund.crecimiento_ingresos:.0%})")
+        elif fund.crecimiento_ingresos < 0:
+            en_contra.append("Ingresos en contracción")
+    return a_favor, en_contra
+
+
+def _confianza_plan(a_favor: list[str], en_contra: list[str]) -> int | None:
+    total = len(a_favor) + len(en_contra)
+    return round(100 * len(a_favor) / total) if total else None
+
+
+def _seccion_confianza_plan(a_favor: list[str], en_contra: list[str]) -> list[str]:
+    if not a_favor and not en_contra:
+        return []
+    confianza = _confianza_plan(a_favor, en_contra)
+    lineas = [
+        "📋 Confianza en este plan",
+        "(factores objetivos a favor vs. en contra -- no una probabilidad de éxito)",
+        "",
+        f"{confianza}/100" if confianza is not None else "No disponible",
+        "",
     ]
+    if a_favor:
+        lineas.append("Factores a favor")
+        for f in a_favor:
+            lineas.append(f"✔ {f}")
+        lineas.append("")
+    if en_contra:
+        lineas.append("Factores en contra")
+        for f in en_contra:
+            lineas.append(f"✘ {f}")
+    return lineas
 
 
-def _reglas_esperar(tendencia_label: str, valoracion_label: str, rsi: float | None,
-                    dias_a_resultados: int | None) -> list[bool | None]:
-    return [
-        (rsi >= 70 or rsi <= 30) if rsi is not None else None,
-        (valoracion_label == "Exigente") if valoracion_label != "No determinable" else None,
-        (dias_a_resultados <= 14) if dias_a_resultados is not None else None,
-        tendencia_label not in ("alcista", "bajista"),
-    ]
-
-
-def _fmt_pct(pct: int | None) -> str:
-    return f"{pct}%" if pct is not None else "No disponible"
+def _resumen_15s(tesis_categoria: str, veredicto_acciones: str, preambulo: str | None,
+                  niveles: dict[str, float | None], maximo_52s: float | None,
+                  top: EstrategiaOpciones | None, dias_vencimiento: int | None,
+                  riesgo_emoji: str, riesgo_label: str) -> list[str]:
+    """El resumen de 15 segundos -- para quien tiene prisa, lee solo esto
+    y ya sabe qué hacer, a qué precio, con qué estrategia, en qué
+    horizonte y con qué riesgo. Todo reusa valores ya calculados más
+    abajo en el mensaje -- ningún cálculo nuevo."""
+    emoji = _VEREDICTO_EMOJI.get(tesis_categoria, "⚪")
+    lineas = ["📌 En 15 segundos", "", f"{emoji} {veredicto_acciones}"]
+    if niveles.get("ideal") is not None:
+        lineas.append(f"Esperaría una corrección hacia {_fmt_price_round(niveles['ideal'])}.")
+    elif preambulo:
+        lineas.append(preambulo)
+    if maximo_52s is not None and top is not None:
+        lineas.append(f"Si rompe {_fmt_price_round(maximo_52s)} volvería a analizar.")
+    if top is not None:
+        lineas += ["", "La mejor estrategia hoy:", top.nombre]
+    if dias_vencimiento is not None:
+        lineas += ["", "Horizonte:", f"{dias_vencimiento} días (vencimiento de la opción)"]
+    lineas += ["", "Riesgo:", f"{riesgo_emoji} {riesgo_label}"]
+    return lineas
 
 
 def generar_trade(ticker: str) -> str:
@@ -493,6 +629,7 @@ def generar_trade(ticker: str) -> str:
         fund.pe, (entrada_shortlist or {}).get("sub_scores", {}).get("valor"))
     riesgos = _riesgos(rsi, fund.pe, vol, tendencia_label)
     riesgos_reales = [r for r in riesgos if "Sin banderas" not in r]
+    riesgo_emoji, riesgo_label = _riesgo_nivel(len(riesgos_reales))
 
     cadena = obtener_cadena(ticker)
     estrategias = rankear(construir_estrategias(cadena, spot)) if cadena else []
@@ -501,29 +638,27 @@ def generar_trade(ticker: str) -> str:
 
     tesis_categoria = _tesis_categoria(tendencia_label, valoracion_label, rsi)
     fecha_resultados = _obtener_fecha_resultados(ticker)
-    dias_a_resultados = _dias_hasta(fecha_resultados)
 
-    lineas = [f"📊 {ticker} — {nombre}", ""]
-    if score_screener is not None:
-        lineas.append(f"{_emoji_score(score_screener)} Score cuantitativo del modelo: {score_screener:.0f}/100")
-    else:
-        lineas.append("⚪ Score cuantitativo del modelo: No disponible (no está en la shortlist de hoy)")
-
-    score_acciones = _pct_reglas(_reglas_comprar_acciones(
-        tendencia_label, valoracion_label, rsi, spot, fund.analista_precio_objetivo))
-    score_opciones = _pct_reglas(_reglas_comprar_opciones(estrategias, score_100, top))
-    score_esperar = _pct_reglas(_reglas_esperar(tendencia_label, valoracion_label, rsi, dias_a_resultados))
-    lineas += [
-        "", SEP, "",
-        "📊 Score de oportunidad hoy",
-        "(% de reglas objetivas que se cumplen -- no una probabilidad de éxito)", "",
-        f"Comprar acciones: {_fmt_pct(score_acciones)}",
-        f"Comprar opciones: {_fmt_pct(score_opciones)}",
-        f"Esperar: {_fmt_pct(score_esperar)}",
-    ]
-    lineas += ["", SEP, "", "📌 Mi conclusión", ""]
+    sma50 = tech.sma(barras.close, 50)
+    maximo_52s = tech.maximo_52s(barras)
+    atr_val = tech.atr(barras)
+    niveles = _niveles_precio(spot, atr_val, sma50)
 
     preambulo, veredicto_acciones = _conclusion_acciones(tesis_categoria)
+
+    lineas = [f"📊 {ticker} — {nombre}", "", SEP, ""]
+    lineas += _resumen_15s(tesis_categoria, veredicto_acciones, preambulo, niveles, maximo_52s,
+                           top, cadena.dias_a_vencimiento if cadena else None, riesgo_emoji, riesgo_label)
+    lineas += ["", SEP, "", "📊 Semáforo del modelo", "",
+               f"Acciones: {_TESIS_EMOJI[tesis_categoria]} {_TESIS_DISPLAY[tesis_categoria]}",
+               f"Opciones: {_emoji_opciones(estrategias, score_100)} "
+               f"{_texto_opciones_semaforo(estrategias, score_100, tesis_categoria)}"]
+    if score_screener is not None:
+        lineas.append(f"Score cuantitativo del modelo: {_emoji_score(score_screener)} {score_screener:.0f}/100")
+    else:
+        lineas.append("Score cuantitativo del modelo: No disponible (no está en la shortlist de hoy)")
+
+    lineas += ["", SEP, "", "📌 Mi conclusión", ""]
     if preambulo:
         lineas.append(preambulo)
         lineas.append("")
@@ -573,6 +708,17 @@ def generar_trade(ticker: str) -> str:
                 lineas.append(f"• {r}")
         lineas.append("")
 
+        lineas += [SEP, ""]
+        lineas += _horizonte(cadena)
+        lineas.append("")
+
+        a_favor, en_contra = _factores_plan(tendencia_label, rsi, valoracion_label, top, fund)
+        seccion_confianza = _seccion_confianza_plan(a_favor, en_contra)
+        if seccion_confianza:
+            lineas += [SEP, ""]
+            lineas += seccion_confianza
+            lineas.append("")
+
     lineas += [SEP, "", "⚠️ Riesgos", ""]
     if riesgos_reales:
         for r in riesgos_reales:
@@ -582,13 +728,18 @@ def generar_trade(ticker: str) -> str:
     lineas.append("")
 
     if tesis_categoria == "esperar":
-        sma50 = tech.sma(barras.close, 50)
-        maximo_52s = tech.maximo_52s(barras)
-        atr_val = tech.atr(barras)
-        niveles = _niveles_precio(spot, atr_val, sma50)
         lineas += [SEP, ""]
         lineas += _plan_de_accion(ticker, top, niveles, maximo_52s, fecha_resultados)
         lineas.append("")
+
+        objetivo_1 = maximo_52s
+        objetivo_2 = _objetivo_2(objetivo_1, niveles["entrada"])
+        plan_trade = _plan_del_trade(niveles["entrada"], objetivo_1, objetivo_2, niveles["cancelar"])
+        if plan_trade:
+            lineas += [SEP, ""]
+            lineas += plan_trade
+            lineas.append("")
+
         if any(v is not None for v in niveles.values()) or maximo_52s is not None:
             lineas += [SEP, ""]
             lineas += _alertas_yahoo(niveles, maximo_52s)

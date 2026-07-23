@@ -189,22 +189,29 @@ final para quien quiera profundizar. Sin estrellas en ningún lado
 Claude (que podía fallar en silencio). Cada línea sale de reglas fijas
 sobre números ya reales.
 
+- **En 15 segundos** (primera sección del mensaje): para quien tiene
+  prisa -- el veredicto sobre acciones, hacia dónde esperaría una
+  corrección (si aplica), qué ruptura haría reconsiderar, la mejor
+  estrategia de hoy, el horizonte real (vencimiento de la opción) y el
+  nivel de riesgo. Todo reusa valores ya calculados más abajo -- ningún
+  cálculo nuevo, es solo el resumen ejecutivo del resto del mensaje.
+- **Semáforo del modelo**: reemplaza a una versión anterior ("Score de
+  oportunidad hoy") que mostraba un % por acción posible (Comprar
+  acciones/Comprar opciones/Esperar) -- se retiró porque un usuario lee
+  naturalmente un % como "probabilidad de ganar", aunque la etiqueta
+  dijera "% de reglas objetivas". El Semáforo usa emoji + texto
+  cualitativo en su lugar (🟢/🟡/🔴 por tendencia/valoración/RSI para
+  Acciones; 🟢/🟡/🔴 por el score del ranking para Opciones), y resuelve
+  en la misma línea la contradicción "Comprar opciones: sí, pero no
+  abriría hoy" en vez de dejar que el usuario la infiera -- si la
+  conclusión es "esperar", la línea de Opciones lo dice explícitamente
+  ("Sí investigaría, pero no abriría hoy").
 - **Score cuantitativo del modelo**: el score REAL del screener (0-100,
   `screener.scoring.puntuar()`, el mismo que aparece en la shortlist
   diaria) con emoji 🟢/🟡/🔴 por umbral -- "No disponible" si el ticker no
   está en la shortlist de hoy. Se llama "Score cuantitativo" y no
   "Confianza"/"Convicción" a propósito: ese nombre podía leerse como una
   probabilidad de ganar, que no es lo que mide (Principio #3).
-- **Score de oportunidad hoy**: % de reglas objetivas que se cumplen hoy
-  para cada acción posible -- Comprar acciones (tendencia, RSI, valuación,
-  precio vs. objetivo de analistas), Comprar opciones (reusa
-  `options_strategies.puntuar()`, liquidez, probabilidad de éxito), y
-  Esperar (RSI extremo, valuación exigente, proximidad a resultados,
-  tendencia poco clara). Cada regla sin datos reales para evaluarla se
-  ignora (nunca se fuerza) -- ver `_pct_reglas`. Se etiqueta explícitamente
-  como "% de reglas objetivas", NUNCA como una probabilidad de que la
-  operación vaya a ganar dinero (mismo cuidado que "Confianza" →
-  "Score cuantitativo").
 - **Mi conclusión**: dos frases deterministas -- si compraría la acción
   hoy (según tendencia técnica, valoración y RSI) y si investigaría una
   estrategia de opciones.
@@ -234,6 +241,16 @@ sobre números ya reales.
   Call/Bear Put Spread) piden que el precio "se mueva" hasta cruzarlo.
   "Lo que puede salir mal" es una lista fija por tipo de estrategia
   (verdades estructurales, no una predicción sobre este ticker).
+- **Horizonte esperado**: el vencimiento REAL de la opción elegida
+  (nunca un rango inventado como "3-6 semanas" sin base) -- se dice
+  explícitamente que el trade está atado a esa fecha, para que no se
+  confunda con una tesis de inversión de largo plazo.
+- **Confianza en este plan**: lista fija de factores reales a favor/en
+  contra (tendencia, RSI, valuación, liquidez de las opciones,
+  crecimiento de ingresos) con un % de cuántos aplican -- cada factor
+  solo aparece si hay un dato real que lo sostenga (nunca se fuerza uno
+  neutral hacia un lado). Se etiqueta explícitamente como "factores
+  objetivos a favor vs. en contra", nunca como probabilidad de éxito.
 - **Riesgos**: mismas banderas reales de `/report` (máx. 3, en orden de
   severidad).
 - **Plan de acción** (solo cuando la conclusión es "esperar"): responde 4
@@ -259,9 +276,23 @@ sobre números ya reales.
   Si hay fecha real de próximos resultados, también recuerda revisar 2
   días antes. Cualquier nivel que no se pueda calcular con los datos
   disponibles simplemente no aparece.
+- **Plan del trade** (misma condición que el Plan de acción): tabla
+  compacta Entrada/Objetivo 1/Objetivo 2/Stop. Objetivo 1 es el máximo
+  de 52 semanas (mismo nivel real de "ruptura para reconsiderar");
+  Objetivo 2 es una extensión de igual distancia más allá del objetivo 1
+  ("measured move", convención técnica estándar, no un número
+  arbitrario). La relación riesgo/beneficio se muestra junto a CADA
+  objetivo (no como una sola línea) porque el objetivo 1 puede quedar
+  cerca de la entrada justo cuando el precio ya está cerca de máximos --
+  exactamente el escenario donde esta sección se activa (tesis "esperar"
+  por sobrecompra). Mostrar la relación real, aunque sea modesta, es más
+  honesto que forzar un múltiplo fijo que no refleje el nivel técnico
+  real.
 - **Alertas para Yahoo Finance** (misma condición que el Plan de acción):
   reempaqueta los mismos 4 niveles ya calculados en formato listo para
-  configurar alertas de precio -- ningún cálculo nuevo.
+  configurar alertas de precio, cada uno con una línea "¿Por qué?"
+  (de dónde sale ese nivel: ATR, media móvil de 50 días, o máximo de 52
+  semanas) -- ningún cálculo nuevo.
 
 ## Arquitectura
 
