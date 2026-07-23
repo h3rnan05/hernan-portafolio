@@ -69,3 +69,29 @@ def test_atr_usa_solo_la_ventana_pedida():
 def test_atr_menos_de_dos_barras_da_none():
     assert tech.atr(_barras([100.0])) is None
     assert tech.atr(_barras([])) is None
+
+
+def test_niveles_precio_entrada_es_spot_menos_1atr():
+    niveles = tech.niveles_precio(spot=100.0, atr_val=5.0, sma50=None)
+    assert niveles["entrada"] == 95.0
+    assert niveles["ideal"] == 95.0  # sin sma50, ideal cae al mismo valor de entrada
+    assert niveles["cancelar"] == 85.0  # ideal - 2xATR
+
+
+def test_niveles_precio_ideal_es_el_mas_profundo_entre_sma50_y_entrada():
+    niveles = tech.niveles_precio(spot=100.0, atr_val=2.0, sma50=90.0)
+    assert niveles["entrada"] == 98.0
+    assert niveles["ideal"] == 90.0
+    assert niveles["cancelar"] == 86.0  # 90 - 2*2
+
+
+def test_niveles_precio_sma50_por_encima_de_entrada_usa_entrada():
+    # "ideal" nunca debe quedar por ENCIMA de "entrada".
+    niveles = tech.niveles_precio(spot=100.0, atr_val=2.0, sma50=99.0)
+    assert niveles["ideal"] == 98.0
+    assert niveles["ideal"] <= niveles["entrada"]
+
+
+def test_niveles_precio_sin_atr_da_todo_none():
+    niveles = tech.niveles_precio(spot=100.0, atr_val=None, sma50=90.0)
+    assert niveles == {"entrada": None, "ideal": 90.0, "cancelar": None}

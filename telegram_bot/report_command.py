@@ -1,5 +1,21 @@
 """Genera el memo de /report TICKER bajo demanda.
 
+Filosofía (redefinida tras feedback directo del dueño del producto,
+2026-07-23): el objetivo de /report NO es mostrar todos los datos
+disponibles -- es ayudar a un inversionista a decidir en menos de un
+minuto si vale la pena seguir investigando esa empresa. El modo por
+defecto ("simple") responde, en este orden: (1) ¿vale la pena
+investigarla?, (2) ¿comprar hoy, esperar o descartarla?, (3) ¿qué me
+gusta?, (4) ¿qué no me gusta?, (5) ¿qué es lo importante ahora mismo?,
+(6) ¿qué pasó esta semana? (resumen, nunca una lista de titulares suelta),
+(7) qué haría yo y a qué precio. Ningún dato faltante se muestra como
+"No disponible" en este modo -- si no está, se omite. Solo con
+`/report TICKER --full` se despliega el memo exhaustivo de antes (score
+breakdown, técnico/fundamentales completos, consenso de analistas
+detallado, noticias clasificadas por relevancia) para quien sí quiera
+profundizar -- ahí "No disponible" sigue siendo honesto porque esa vista
+existe justamente para mostrar TODO lo que se intentó obtener.
+
 Esta es la investigación profunda que el mensaje diario del screener YA NO
 manda automáticamente (ver screener/report.texto_telegram_corto): se pide
 explícitamente, para un ticker a la vez. Reutiliza los mismos módulos
@@ -9,13 +25,20 @@ universo completo, así que es rápido y barato de correr on-demand.
 Honestidad de los datos: solo se muestra lo que de verdad se pudo obtener.
 yfinance da un snapshot real de consenso de analistas y % de tenencia
 institucional/insider (no el detalle de transacciones ni el histórico
-13F -- eso no está disponible gratis, así que no se inventa). El Executive
-Summary y los Riesgos/Catalizadores son texto DETERMINÍSTICO armado con
-plantillas sobre números reales -- ningún LLM interviene en esta parte
-(no hace falta: son solo reglas fijas sobre datos ya calculados). El LLM
-solo se usa para explicar noticias (news_analyst.explicador), con los
-mismos guardrails de siempre. Ver telegram_bot/README.md para el detalle
-de qué es real y qué quedó fuera.
+13F -- eso no está disponible gratis, así que no se inventa).
+
+100% determinístico salvo el resumen de noticias: el veredicto (¿vale la
+pena investigar? ¿comprar hoy?), "Lo que me gusta"/"Lo que no me gusta" y
+los niveles de precio son texto DETERMINÍSTICO armado con plantillas
+sobre números ya calculados -- ningún LLM interviene ahí (no hace falta:
+son solo reglas fijas). El LLM SOLO se usa para resumir noticias
+(news_analyst.explicador.resumir_noticias/generar_explicacion), con los
+mismos guardrails de siempre (prompt + filtro de palabras prohibidas) --
+nunca decide si comprar o vender (Principio #3, ver ROADMAP.md). Si el
+LLM no está disponible o su respuesta no pasa el filtro, se degrada
+mostrando los titulares crudos en vez de dejar la sección vacía en
+silencio. Ver telegram_bot/README.md para el detalle de qué es real y qué
+quedó fuera.
 """
 
 from __future__ import annotations
@@ -29,7 +52,7 @@ _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from news_analyst.explicador import generar_explicacion  # noqa: E402
+from news_analyst.explicador import generar_explicacion, resumir_noticias  # noqa: E402
 from news_analyst.models import EntradaShortlist, Explicacion  # noqa: E402
 from screener.config import CONFIG  # noqa: E402
 from screener.data.provider import Barras, Fundamentales, YahooProvider  # noqa: E402
@@ -44,6 +67,8 @@ log = logging.getLogger("telegram_bot.report_command")
 SHORTLIST_PATH = _REPO_ROOT / "screener" / "shortlist_hoy.json"
 MAX_TITULARES_REPORTE = 5
 
+SEP = "━━━━━━━━━━━━━━━━━━"
+
 _NOMBRE_FACTOR = {
     "momentum": "Momentum", "tendencia": "Tendencia", "baja_vol": "Volatilidad",
     "liquidez": "Liquidez", "calidad": "Calidad", "valor": "Valor",
@@ -57,6 +82,10 @@ DISCLAIMER = (
 
 def _fmt_pct(x: float | None) -> str:
     return f"{x:.1%}" if x is not None else "No disponible"
+
+
+def _fmt_precio(x: float | None) -> str:
+    return f"${x:,.2f}" if x is not None else "No disponible"
 
 
 def _shortlist_entry(ticker: str) -> dict | None:
@@ -233,6 +262,209 @@ def _catalizadores(fecha_resultados: str | None) -> list[str]:
     ]
 
 
+# ------------------------- veredicto conciso (modo "simple", por defecto) -------------------------
+
+def _veredicto_investigar(calidad_score: float | None, entrada: dict | None) -> tuple[str, str]:
+    """(emoji, texto) -- ¿vale la pena investigar el NEGOCIO? Se basa en
+    calidad fundamental (el factor "calidad" del screener, o si ya pasó
+    todos los filtros hoy), NO en si es un buen momento para comprar --
+    eso es una pregunta de timing separada (ver _timing). Un negocio
+    puede valer la pena investigar incluso el día que no pasa el
+    screener (ranking relativo contra el resto del mercado ese día en
+    particular), como puede no valerlo aunque hoy sí haya pasado."""
+    if entrada is not None or (calidad_score is not None and calidad_score >= 60):
+        return "🟢", "Sí la investigaría."
+    if calidad_score is not None and calidad_score < 30:
+        return "🔴", "No la investigaría por ahora."
+    return "🟡", "La investigaría con cautela."
+
+
+def _timing(entrada: dict | None, tendencia_label: str, rsi: float | None) -> tuple[str, str]:
+    """(código, texto) -- ¿comprar hoy, esperar o no por ahora? Puramente
+    determinístico sobre si pasó el screener hoy (todos los filtros
+    cuantitativos), la tendencia técnica y el RSI. El código se reutiliza
+    después para decidir qué mostrar en "Qué no me gusta" y "Qué haría
+    yo" sin repetir esta misma lógica dos veces."""
+    if tendencia_label == "bajista":
+        return "bajista", "🔴 No compraría hoy -- la tendencia técnica es bajista."
+    if rsi is not None and rsi >= 70:
+        return "sobrecomprado", f"🟡 No compraría hoy -- RSI en sobrecompra ({rsi:.0f}). Esperaría una corrección."
+    if entrada is None:
+        return "no_paso", "🟡 No compraría hoy porque no pasó el screener."
+    return "compraria", "🟢 Sí, la compraría hoy."
+
+
+def _en_20_segundos(
+    investigar_emoji: str, investigar_texto: str, timing_codigo: str, timing_texto: str,
+    precio_actual: float, niveles: dict[str, float | None], precio_objetivo: float | None,
+) -> list[str]:
+    """El resumen ejecutivo -- para quien tiene prisa, lee solo esto y ya
+    sabe si vale la pena seguir, si compraría hoy, a qué precio le
+    interesaría y contra qué objetivo de analistas lo mide. Ningún dato
+    faltante se rellena: los niveles que no se pudieron calcular
+    simplemente no aparecen."""
+    lineas = ["📌 En 20 segundos", "", f"{investigar_emoji} {investigar_texto}", "", timing_texto]
+    if timing_codigo != "compraria":
+        lineas.append("La tendría en mi lista de seguimiento.")
+    lineas += ["", "Precio actual:", _fmt_precio(precio_actual)]
+
+    entrada_nivel, ideal_nivel = niveles.get("entrada"), niveles.get("ideal")
+    if entrada_nivel is not None and ideal_nivel is not None and entrada_nivel != ideal_nivel:
+        lo, hi = sorted((entrada_nivel, ideal_nivel))
+        lineas += ["", "Me interesaría cerca de:", f"{_fmt_precio(lo)}-{_fmt_precio(hi)}"]
+    elif entrada_nivel is not None:
+        lineas += ["", "Me interesaría cerca de:", _fmt_precio(entrada_nivel)]
+
+    if precio_objetivo is not None:
+        lineas += ["", "Objetivo de analistas:", _fmt_precio(precio_objetivo)]
+    return lineas
+
+
+def _lo_que_me_gusta(
+    tendencia_label: str, roe: float | None, crecimiento: float | None,
+    valoracion: str, pe: float | None, liquidez_score: float | None,
+) -> list[str]:
+    """Fortalezas concretas -- cada bullet lleva el número real que lo
+    sostiene (no una etiqueta genérica como "negocio de calidad"), para
+    que la razón sea verificable de un vistazo."""
+    items = []
+    if tendencia_label == "alcista":
+        items.append("Tendencia alcista.")
+    if roe is not None and roe >= 0.15:
+        items.append(f"Negocio rentable (ROE {roe:.1%}).")
+    if crecimiento is not None and crecimiento >= 0.10:
+        items.append(f"Crecimiento de ingresos de {crecimiento:.0%}.")
+    if valoracion == "Atractiva" and pe is not None:
+        items.append(f"Valuación barata (P/E {pe:.1f}).")
+    if liquidez_score is not None and liquidez_score >= 70:
+        items.append("Alta liquidez.")
+    return items
+
+
+def _lo_que_no_me_gusta(
+    timing_codigo: str, rsi: float | None, valoracion: str, pe: float | None, vol: float | None,
+) -> list[str]:
+    """Debilidades concretas -- igual criterio que _lo_que_me_gusta: solo
+    aparece lo que hay un dato real detrás, con el número incluido."""
+    items = []
+    if timing_codigo == "no_paso":
+        items.append("No pasó todos los filtros cuantitativos del modelo hoy.")
+    elif timing_codigo == "sobrecomprado":
+        items.append(f"RSI en sobrecompra ({rsi:.0f}) -- no hay un punto de entrada atractivo todavía.")
+    elif timing_codigo == "bajista":
+        items.append("Tendencia técnica bajista.")
+    if valoracion == "Exigente" and pe is not None:
+        items.append(f"Valuación elevada (P/E {pe:.1f}).")
+    if vol is not None and vol >= 0.40:
+        items.append(f"Volatilidad histórica alta ({vol:.0%}).")
+    return items
+
+
+def _lo_importante(
+    precio: float, pe: float | None, roe: float | None, crecimiento: float | None,
+    rsi: float | None, analista_recomendacion: str | None, precio_objetivo: float | None,
+) -> list[str]:
+    """Métricas condensadas -- a diferencia del modo --full, cualquier
+    dato que no esté disponible se OMITE (nunca se muestra "No
+    disponible"): esta sección existe para decidir rápido, no para
+    auditar qué faltó."""
+    lineas = ["📊 Lo importante", "", f"Precio: {_fmt_precio(precio)}"]
+    if pe is not None:
+        etiqueta = "barato" if pe < 15 else ("razonable" if pe <= 30 else "caro")
+        lineas.append(f"P/E: {pe:.1f} ({etiqueta})")
+    if roe is not None:
+        lineas.append(f"ROE: {roe:.1%}")
+    if crecimiento is not None:
+        lineas.append(f"Ingresos: {crecimiento:+.0%}")
+    if rsi is not None:
+        etiqueta_rsi = "sobrecompra" if rsi >= 70 else ("sobreventa" if rsi <= 30 else "neutral")
+        lineas.append(f"RSI: {rsi:.0f} ({etiqueta_rsi})")
+    if analista_recomendacion:
+        lineas.append(f"Analistas: {analista_recomendacion.capitalize()}")
+    if precio_objetivo is not None and precio:
+        potencial = (precio_objetivo - precio) / precio
+        lineas.append(f"Potencial: {potencial:+.0%}")
+    return lineas
+
+
+def _que_haria_yo(timing_codigo: str, niveles: dict[str, float | None], maximo_52s: float | None) -> list[str]:
+    """Cierre determinístico -- reusa los mismos niveles ya calculados
+    arriba, ningún número nuevo."""
+    lineas = ["🎯 Qué haría yo", ""]
+    if timing_codigo == "compraria":
+        lineas.append("Sí, la compraría hoy.")
+        return lineas
+    lineas.append("No compraría hoy.")
+    if niveles.get("ideal") is not None:
+        lineas.append(f"Esperaría una corrección hacia {_fmt_precio(niveles['ideal'])}.")
+    else:
+        lineas.append("Esperaría una mejor entrada.")
+    if niveles.get("entrada") is not None:
+        lineas.append(f"Si baja hacia {_fmt_precio(niveles['entrada'])} volvería a analizar.")
+    if maximo_52s is not None:
+        lineas.append(f"Si rompe nuevos máximos con fuerza (arriba de {_fmt_precio(maximo_52s)}) "
+                      f"también volvería a revisar.")
+    return lineas
+
+
+def _alertas_reporte(niveles: dict[str, float | None], maximo_52s: float | None) -> list[str]:
+    """Mismos 4 niveles que /trade (Comprar/Comprar fuerte/Revisar
+    ruptura/Cancelar), calculados por reglas objetivas -- ATR y SMA50,
+    ver screener.factors.technical.niveles_precio(). Vacía si no hay
+    ningún nivel disponible (nunca se muestra un encabezado sin
+    contenido)."""
+    items = []
+    if niveles.get("entrada") is not None:
+        items.append(("Comprar", niveles["entrada"]))
+    if niveles.get("ideal") is not None and niveles["ideal"] != niveles.get("entrada"):
+        items.append(("Comprar fuerte", niveles["ideal"]))
+    if maximo_52s is not None:
+        items.append(("Revisar ruptura", maximo_52s))
+    if niveles.get("cancelar") is not None:
+        items.append(("Cancelar", niveles["cancelar"]))
+    if not items:
+        return []
+    lineas = ["🔔 Alertas", ""]
+    lineas += [f"{etiqueta}: {_fmt_precio(precio)}" for etiqueta, precio in items]
+    return lineas
+
+
+def _seccion_noticias_resumen(ticker: str, nombre: str | None, entrada: dict | None) -> list[str]:
+    """El resumen de noticias que se muestra por defecto -- una frase de
+    tono general + hasta 3 hechos concretos (news_analyst.explicador.
+    resumir_noticias), no una lista de titulares sueltos. Si el LLM no
+    está disponible o su respuesta no pasa el filtro de seguridad, se
+    degrada mostrando los titulares crudos en vez de dejar la sección
+    vacía en silencio."""
+    query = f"{nombre or ticker} stock"
+    titulares = titulares_google_news(query, maximo=MAX_TITULARES_REPORTE)
+    lineas = ["📰 Lo que pasó esta semana", ""]
+    if not titulares:
+        lineas.append("No encontré noticias recientes.")
+        return lineas
+
+    contexto = None
+    if entrada:
+        contexto = EntradaShortlist(
+            ticker=ticker, posicion=entrada["posicion"], score=entrada["score"],
+            sector=entrada.get("sector"), nombre=nombre, industria=entrada.get("industria"),
+            sub_scores=entrada.get("sub_scores", {}))
+
+    resumen = resumir_noticias(titulares, contexto)
+    if resumen:
+        lineas.append(resumen.resumen)
+        if resumen.puntos:
+            lineas.append("")
+            lineas += [f"• {p}" for p in resumen.puntos]
+    else:
+        lineas.append("No pude generar un resumen (requiere ANTHROPIC_API_KEY, o la "
+                      "respuesta no pasó el filtro de seguridad). Titulares recientes:")
+        lineas += [f'• "{t}"' for t in titulares[:3]]
+    return lineas
+
+
+# ------------------------- secciones del modo --full -------------------------
+
 def _resumen_ejecutivo(
     entrada: dict | None, pe: float | None, tendencia_label: str, riesgos: list[str],
 ) -> list[str]:
@@ -241,18 +473,16 @@ def _resumen_ejecutivo(
     valoracion = _clasificar_valoracion(pe, valor_score)
     detalle_pe = f" (P/E {pe:.1f})" if pe is not None else ""
 
-    conclusion = (
-        f"Negocio de calidad {_texto_calidad(calidad_score)}, tendencia técnica "
-        f"{tendencia_label}, valoración {valoracion.lower()}. {riesgos[0]}"
-    )
-    return [
-        "📋 Executive Summary",
-        f"  Calidad del negocio: {_estrellas_100(calidad_score)}",
-        f"  Tendencia: {tendencia_label.capitalize()}",
-        f"  Valoración: {valoracion}{detalle_pe}",
-        f"  Riesgo principal: {riesgos[0]}",
-        f"  Conclusión: {conclusion}",
-    ]
+    lineas = ["📋 Executive Summary"]
+    if calidad_score is not None:
+        lineas.append(f"  Calidad del negocio: {_estrellas_100(calidad_score)}")
+    lineas.append(f"  Tendencia: {tendencia_label.capitalize()}")
+    lineas.append(f"  Valoración: {valoracion}{detalle_pe}")
+    lineas.append(f"  Riesgo principal: {riesgos[0]}")
+    lineas.append(
+        f"  Conclusión: Negocio de calidad {_texto_calidad(calidad_score)}, tendencia técnica "
+        f"{tendencia_label}, valoración {valoracion.lower()}. {riesgos[0]}")
+    return lineas
 
 
 def _score_breakdown(entrada: dict) -> list[str]:
@@ -273,99 +503,6 @@ def _score_breakdown(entrada: dict) -> list[str]:
     lineas.append(f"  TOTAL: {entrada['score']:.0f}/100")
     return lineas
 
-
-# ------------------------- veredicto (deterministas) -------------------------
-
-def _fortalezas(
-    tendencia_label: str, calidad_score: float | None, liquidez_score: float | None,
-    crecimiento: float | None,
-) -> list[str]:
-    items = []
-    if tendencia_label == "alcista":
-        items.append("Tendencia alcista muy sólida.")
-    if calidad_score is not None and calidad_score >= 70:
-        items.append("Negocio de buena calidad.")
-    if liquidez_score is not None and liquidez_score >= 70:
-        items.append("Alta liquidez.")
-    if crecimiento is not None and crecimiento >= 0.10:
-        items.append("Crecimiento de ingresos saludable.")
-    return items or ["Sin fortalezas destacadas detectadas hoy con los datos disponibles."]
-
-
-def _debilidades(
-    valoracion: str, rsi: float | None, vol: float | None, tendencia_label: str,
-) -> list[str]:
-    items = []
-    if valoracion == "Exigente":
-        items.append("Valuación elevada.")
-    if rsi is not None and rsi >= 70:
-        items.append("RSI en zona de sobrecompra.")
-    if rsi is not None and rsi <= 30:
-        items.append("RSI en zona de sobreventa.")
-    if vol is not None and vol >= 0.40:
-        items.append("Volatilidad histórica alta.")
-    if tendencia_label == "bajista":
-        items.append("Tendencia técnica bajista.")
-    return items or ["Sin debilidades destacadas detectadas hoy con los datos disponibles."]
-
-
-def _preguntas_pendientes(fecha_resultados: str | None, valoracion: str) -> list[str]:
-    """Preguntas genuinamente abiertas -- si ya tenemos el dato (ej. la
-    fecha de resultados), no se pregunta lo que ya se respondió."""
-    preguntas = []
-    if not fecha_resultados:
-        preguntas.append("¿Cuándo son los próximos earnings?")
-    if valoracion == "Exigente":
-        preguntas.append("¿La valuación está justificada por el crecimiento esperado?")
-    preguntas.append("¿Los analistas están revisando al alza o a la baja sus estimaciones?")
-    return preguntas
-
-
-def _confianza_reporte(
-    entrada: dict | None, fund: Fundamentales, fecha_resultados: str | None, hubo_noticias_explicadas: bool,
-) -> int:
-    """Cobertura real de datos: de todo lo que este reporte INTENTA
-    obtener, ¿cuánto sí llegó? No es un juicio de calidad del análisis --
-    es una medida honesta de cuántos huecos de 'No disponible' tiene este
-    reporte en particular."""
-    checks = [
-        entrada is not None,
-        fund.pe is not None,
-        fund.roe is not None,
-        fund.analista_recomendacion is not None,
-        fund.pct_institucional is not None,
-        fecha_resultados is not None,
-        hubo_noticias_explicadas,
-    ]
-    return round(100 * sum(checks) / len(checks))
-
-
-def _veredicto(
-    entrada: dict | None, fund: Fundamentales, tendencia_label: str, rsi: float | None,
-    vol: float | None, valoracion: str, fecha_resultados: str | None, hubo_noticias_explicadas: bool,
-) -> list[str]:
-    calidad_score = (entrada or {}).get("sub_scores", {}).get("calidad")
-    liquidez_score = (entrada or {}).get("sub_scores", {}).get("liquidez")
-    fortalezas = _fortalezas(tendencia_label, calidad_score, liquidez_score, fund.crecimiento_ingresos)
-    debilidades = _debilidades(valoracion, rsi, vol, tendencia_label)
-    preguntas = _preguntas_pendientes(fecha_resultados, valoracion)
-    confianza = _confianza_reporte(entrada, fund, fecha_resultados, hubo_noticias_explicadas)
-
-    lineas = ["🎯 Veredicto", "", "Fortalezas:"]
-    lineas += [f"✅ {f}" for f in fortalezas]
-    lineas.append("")
-    lineas.append("Debilidades:")
-    lineas += [f"⚠️ {d}" for d in debilidades]
-    lineas.append("")
-    lineas.append("Preguntas que aún debo responder antes de invertir:")
-    lineas += [f"☐ {p}" for p in preguntas]
-    lineas.append("")
-    lineas.append(f"Nivel de confianza del reporte: {confianza}% (cuántos de los datos que "
-                  f"se intentaron obtener sí estuvieron disponibles hoy)")
-    return lineas
-
-
-# ------------------------- secciones -------------------------
 
 def _seccion_shortlist(entrada: dict | None) -> list[str]:
     if not entrada:
@@ -444,13 +581,15 @@ def _bloque_noticias(titulo: str, items: list[tuple[str, Explicacion]]) -> list[
     return out
 
 
-def _seccion_noticias(ticker: str, nombre: str | None, entrada: dict | None) -> tuple[list[str], bool]:
-    """Devuelve (líneas, hubo_al_menos_una_explicada) -- lo segundo
-    alimenta la confianza del reporte en _veredicto()."""
+def _seccion_noticias(ticker: str, nombre: str | None, entrada: dict | None) -> list[str]:
+    """Vista exhaustiva de noticias (modo --full): cada titular clasificado
+    por relevancia, con su explicación individual -- a diferencia de
+    _seccion_noticias_resumen(), que es la vista condensada del modo
+    simple."""
     query = f"{nombre or ticker} stock"
     titulares = titulares_google_news(query, maximo=MAX_TITULARES_REPORTE)
     if not titulares:
-        return ["Noticias: no se encontraron titulares recientes."], False
+        return ["Noticias: no se encontraron titulares recientes."]
 
     lineas = ["Noticias recientes:"]
     if not entrada:
@@ -458,7 +597,7 @@ def _seccion_noticias(ticker: str, nombre: str | None, entrada: dict | None) -> 
         # explicación honesta del LLM -- se listan los titulares crudos
         # en vez de forzar una conexión que no existe.
         lineas += [f'  📰 "{t}"' for t in titulares]
-        return lineas, False
+        return lineas
 
     contexto = EntradaShortlist(
         ticker=ticker, posicion=entrada["posicion"], score=entrada["score"],
@@ -484,35 +623,18 @@ def _seccion_noticias(ticker: str, nombre: str | None, entrada: dict | None) -> 
         lineas.append("  Estado: ⚠️ Las noticias se encontraron correctamente, pero aún no "
                       "se pudieron clasificar por impacto. Mostrando solo titulares.")
         lineas += [f'    📰 "{t}"' for t in sin_explicar]
-    return lineas, bool(altas or medias or bajas)
+    return lineas
 
 
-def generar_reporte(ticker: str) -> str:
-    """Punto de entrada de /report TICKER. Nunca lanza: cualquier fallo se
-    convierte en un mensaje de error legible para el usuario."""
-    ticker = ticker.upper().strip()
-    provider = YahooProvider()
-    barras_por_ticker = provider.barras([ticker], dias=400)
-    if ticker not in barras_por_ticker:
-        return (f"No pude obtener datos de precio para {ticker} -- revisa que "
-                f"el ticker esté bien escrito, o Yahoo bloqueó la consulta. "
-                f"Intenta de nuevo en un momento.")
-    barras = barras_por_ticker[ticker]
-
-    fund = provider.fundamentales([ticker]).get(ticker, Fundamentales(ticker))
-    entrada = _shortlist_entry(ticker)
-    nombre = fund.nombre or ((entrada or {}).get("nombre"))
-
-    tendencia_label = clasificar_tendencia(tech.score_tendencia(barras))
-    rsi = tech.rsi(barras)
-    vol = tech.volatilidad_anual(barras)
-    precio_actual = barras.close[-1]
-    riesgos = _riesgos(rsi, fund.pe, vol, tendencia_label)
-    fecha_resultados = _obtener_fecha_resultados(ticker)
-    valoracion = _clasificar_valoracion(fund.pe, (entrada or {}).get("sub_scores", {}).get("valor"))
-    lineas_noticias, hubo_noticias_explicadas = _seccion_noticias(ticker, nombre, entrada)
-
-    lineas = [f"📊 Reporte: {nombre or ticker} ({ticker})", ""]
+def _seccion_full(
+    ticker: str, nombre: str | None, entrada: dict | None, fund: Fundamentales, barras: Barras,
+    precio_actual: float, tendencia_label: str, riesgos: list[str], fecha_resultados: str | None,
+) -> list[str]:
+    """Todo lo que el modo simple omite a propósito -- se llama solo con
+    /report TICKER --full. Aquí "No disponible" sigue siendo honesto: esta
+    vista existe para mostrar TODO lo que se intentó obtener, no para
+    decidir rápido."""
+    lineas = [SEP, "", "Si quieres profundizar", "", "📋 Todos los fundamentales", ""]
     lineas += _resumen_ejecutivo(entrada, fund.pe, tendencia_label, riesgos)
     lineas.append("")
     lineas += _seccion_shortlist(entrada)
@@ -532,11 +654,87 @@ def generar_reporte(ticker: str) -> str:
     lineas.append("Catalizadores:")
     lineas += [f"  • {c}" for c in _catalizadores(fecha_resultados)]
     lineas.append("")
-    lineas += lineas_noticias
-    lineas.append("")
-    lineas += _veredicto(entrada, fund, tendencia_label, rsi, vol, valoracion, fecha_resultados, hubo_noticias_explicadas)
-    lineas.append("")
-    lineas.append(DISCLAIMER)
+    lineas += _seccion_noticias(ticker, nombre, entrada)
+    return lineas
+
+
+# ------------------------- punto de entrada -------------------------
+
+def generar_reporte(ticker: str, modo: str = "simple") -> str:
+    """Punto de entrada de /report TICKER [--full]. Nunca lanza: cualquier
+    fallo se convierte en un mensaje de error legible para el usuario."""
+    ticker = ticker.upper().strip()
+    provider = YahooProvider()
+    barras_por_ticker = provider.barras([ticker], dias=400)
+    if ticker not in barras_por_ticker:
+        return (f"No pude obtener datos de precio para {ticker} -- revisa que "
+                f"el ticker esté bien escrito, o Yahoo bloqueó la consulta. "
+                f"Intenta de nuevo en un momento.")
+    barras = barras_por_ticker[ticker]
+    precio_actual = barras.close[-1]
+
+    fund = provider.fundamentales([ticker]).get(ticker, Fundamentales(ticker))
+    entrada = _shortlist_entry(ticker)
+    nombre = fund.nombre or ((entrada or {}).get("nombre"))
+
+    tendencia_label = clasificar_tendencia(tech.score_tendencia(barras))
+    rsi = tech.rsi(barras)
+    vol = tech.volatilidad_anual(barras)
+    sma50 = tech.sma(barras.close, 50)
+    maximo_52s = tech.maximo_52s(barras)
+    atr_val = tech.atr(barras)
+    niveles = tech.niveles_precio(precio_actual, atr_val, sma50)
+
+    calidad_score = (entrada or {}).get("sub_scores", {}).get("calidad")
+    valor_score = (entrada or {}).get("sub_scores", {}).get("valor")
+    liquidez_score = (entrada or {}).get("sub_scores", {}).get("liquidez")
+    valoracion = _clasificar_valoracion(fund.pe, valor_score)
+    riesgos = _riesgos(rsi, fund.pe, vol, tendencia_label)
+    fecha_resultados = _obtener_fecha_resultados(ticker)
+
+    investigar_emoji, investigar_texto = _veredicto_investigar(calidad_score, entrada)
+    timing_codigo, timing_texto = _timing(entrada, tendencia_label, rsi)
+
+    lineas = [f"📊 {ticker} — {nombre or ticker}", "", SEP, ""]
+    lineas += _en_20_segundos(investigar_emoji, investigar_texto, timing_codigo, timing_texto,
+                              precio_actual, niveles, fund.analista_precio_objetivo)
+
+    lineas += ["", SEP, "", "🎯 ¿Por qué me gusta?", ""]
+    gusta = _lo_que_me_gusta(tendencia_label, fund.roe, fund.crecimiento_ingresos, valoracion,
+                             fund.pe, liquidez_score)
+    lineas += [f"✅ {g}" for g in gusta] if gusta else \
+        ["Sin fortalezas destacadas detectadas hoy con los datos disponibles."]
+
+    lineas += ["", SEP, "", "⚠️ ¿Qué no me gusta?", ""]
+    no_gusta = _lo_que_no_me_gusta(timing_codigo, rsi, valoracion, fund.pe, vol)
+    lineas += [f"⚠️ {d}" for d in no_gusta] if no_gusta else \
+        ["Sin debilidades destacadas detectadas hoy con los datos disponibles."]
+
+    lineas += ["", SEP, ""]
+    lineas += _lo_importante(precio_actual, fund.pe, fund.roe, fund.crecimiento_ingresos, rsi,
+                             fund.analista_recomendacion, fund.analista_precio_objetivo)
+
+    lineas += ["", SEP, ""]
+    lineas += _seccion_noticias_resumen(ticker, nombre, entrada)
+
+    lineas += ["", SEP, ""]
+    lineas += _que_haria_yo(timing_codigo, niveles, maximo_52s)
+
+    alertas = _alertas_reporte(niveles, maximo_52s)
+    if alertas:
+        lineas += ["", SEP, ""]
+        lineas += alertas
+
+    if modo == "full":
+        lineas.append("")
+        lineas += _seccion_full(ticker, nombre, entrada, fund, barras, precio_actual,
+                                tendencia_label, riesgos, fecha_resultados)
+    else:
+        lineas += ["", SEP, "",
+                  f"Para ver todos los fundamentales, score breakdown y consenso de "
+                  f"analistas detallado: /report {ticker} --full"]
+
+    lineas += ["", SEP, "", DISCLAIMER]
     return "\n".join(lineas)
 
 

@@ -7,11 +7,12 @@ despliegue). Dos funciones separadas:
    evalúa si merece una posición, con el criterio Market Wizards. Si el
    veredicto es INVERTIR, encola la idea para que `wizards_bot.py` la
    ejecute en su siguiente corrida (sujeta a sus límites de riesgo en código).
-2. **`/report TICKER`** (`report_command.py`): memo de investigación
-   bajo demanda para una empresa. Nuevo — nace de separar el mensaje
-   diario del screener (que ahora es corto, ver `screener/report.
-   texto_telegram_corto`) de la investigación profunda (que ahora se pide
-   explícitamente, no se manda automáticamente todos los días).
+2. **`/report TICKER`** (`report_command.py`): decide en menos de un
+   minuto si vale la pena investigar la empresa. `--full` para el memo
+   exhaustivo. Nace de separar el mensaje diario del screener (que ahora
+   es corto, ver `screener/report.texto_telegram_corto`) de la
+   investigación profunda (que ahora se pide explícitamente, no se manda
+   automáticamente todos los días). Ver la sección dedicada más abajo.
 3. **`/list`** (`report_command.generar_lista_completa`): la shortlist
    completa de hoy. El mensaje diario automático solo muestra el Top 10
    (`cfg.top_n_mensaje_diario`) para que sea corto y legible en segundos;
@@ -29,51 +30,66 @@ despliegue). Dos funciones separadas:
 
 ## Qué trae `/report TICKER`
 
-- **Executive Summary**: calidad del negocio (⭐ desde el sub-score
-  `calidad` de la shortlist), tendencia, valoración (Atractiva/Razonable/
-  Exigente), riesgo principal y una conclusión de una frase. **100%
-  determinístico** — plantillas de texto sobre números ya calculados,
-  sin LLM (no hace falta: son solo reglas fijas, no una síntesis abierta).
-- **Shortlist**: si el ticker pasó el screener hoy, su posición, score y
-  por qué (reutiliza `screener.report.razones()`). Si no pasó, lo dice
-  explícitamente — no pasar el screener hoy no significa que sea mala
-  empresa, solo que no está en la shortlist de hoy.
-- **Score breakdown**: el desglose factor por factor (peso × sub-score)
-  que arma el score total — la misma fórmula exacta de
-  `screener.scoring.puntuar()`, no una aproximación. Solo si el ticker
-  está en la shortlist de hoy (si no, no hay sub-scores que desglosar).
-- **Técnico**: precio actual, tendencia (medias móviles), volatilidad
-  histórica anual, % del máximo de 52 semanas, RSI **con interpretación en
-  lenguaje llano** (ej. "zona de sobrecompra"). Todo real, calculado al
-  momento con `screener.factors.technical`.
-- **Fundamentales**: P/E, P/B, ROE, margen operativo, crecimiento de
-  ingresos (yfinance, best-effort), cada uno con su interpretación
-  (rangos fijos, ej. P/E > 30 = "valuación exigente").
-- **Consenso de analistas y tenencia**: recomendación, precio objetivo
-  promedio, % en manos institucionales, % en manos de insiders. Son
-  **snapshots reales de yfinance del día** (`recommendationKey`,
-  `targetMeanPrice`, `heldPercentInstitutions`, `heldPercentInsiders`) —
-  no el detalle de transacciones de insiders (Form 4) ni el histórico
-  13F institucional: eso no está disponible gratis, así que no se inventa
-  ni se aproxima. Si yfinance no responde, dice "No disponible", nunca un
-  número inventado.
-- **Riesgos principales** (máx. 3): banderas por reglas fijas y en orden
-  de severidad — RSI extremo, valuación exigente, volatilidad alta,
-  tendencia bajista. Si ninguna aplica, lo dice explícitamente en vez de
-  forzar un riesgo que no existe.
-- **Catalizadores**: solo lo que se puede confirmar con datos reales (hoy:
-  la próxima fecha de resultados, vía `screener.options_ideas.
-  proxima_fecha_resultados`). No se inventan lanzamientos de producto ni
-  recompras de acciones sin una fuente real que los sostenga.
-- **Noticias**: titulares reales (Google News RSS) sobre la empresa,
-  **ordenados por relevancia** (Alta/Media/Baja, según
-  `nivel_importancia` del LLM), no por fecha. Si el ticker está en la
-  shortlist de hoy, cada titular se explica con LLM usando el mismo
-  módulo y los mismos guardrails que `news_analyst` (nunca sugiere
-  comprar/vender — ver `news_analyst/README.md`). Si no está en la
-  shortlist, o si no hay `ANTHROPIC_API_KEY`/la llamada falla, los
-  titulares van en un bloque "sin explicar" — nunca se fuerza una
-  explicación sin contexto real que la sostenga.
+Filosofía (redefinida 2026-07-23 tras feedback directo: el reporte
+anterior parecía una hoja de datos para un analista, no la opinión de un
+gestor para un inversionista): el objetivo NO es mostrar todos los datos
+disponibles. Es ayudar a decidir en menos de un minuto si vale la pena
+seguir investigando. Sin `--full`, cualquier dato que no esté disponible
+se **omite** en vez de mostrarse como "No disponible" — esta vista existe
+para decidir rápido, no para auditar qué faltó.
+
+- **📌 En 20 segundos** (primera sección): dos veredictos independientes,
+  cada uno con su propia pregunta. **¿Vale la pena investigarla?**
+  (`_veredicto_investigar`) se basa en calidad fundamental del negocio —
+  el sub-score `calidad` de la shortlist, o si ya pasó todos los filtros
+  hoy — nunca en si es buen momento para comprar. **¿Comprar hoy, esperar
+  o descartarla?** (`_timing`) es una pregunta de timing separada: pasó
+  el screener hoy + tendencia técnica + RSI. Un negocio puede valer la
+  pena investigar el mismo día que no es buen momento para comprar (y
+  viceversa) — separar ambas preguntas evita el problema del diseño
+  anterior, donde el reporte nunca respondía "¿la compro o no?" de forma
+  directa. También muestra precio actual, el rango de entrada que sí
+  interesaría (mismos niveles ATR/SMA50 que ya usa `/trade`, vía
+  `screener.factors.technical.niveles_precio`) y el objetivo de
+  analistas.
+- **🎯 ¿Por qué me gusta? / ⚠️ ¿Qué no me gusta?**: fortalezas y
+  debilidades concretas, cada una con el número real que la sostiene (ej.
+  "Crecimiento de ingresos de 30%.", "Valuación barata (P/E 14.9)."),
+  nunca una etiqueta genérica sin verificar. 100% determinístico.
+- **📊 Lo importante**: precio, P/E, ROE, crecimiento, RSI, recomendación
+  de analistas y potencial de subida — condensado, y cada línea que no
+  tenga dato real simplemente no aparece.
+- **📰 Lo que pasó esta semana**: un resumen de una frase + hasta 3 hechos
+  concretos (`news_analyst.explicador.resumir_noticias`), no una lista de
+  titulares sueltos — la única sección de `/report` (modo simple) que usa
+  LLM, con los mismos guardrails de siempre (prompt + filtro de palabras
+  prohibidas, nunca sugiere comprar/vender). Si el LLM no está disponible
+  o su respuesta no pasa el filtro, se degrada mostrando hasta 3 titulares
+  crudos en vez de dejar la sección vacía en silencio.
+- **🎯 Qué haría yo / 🔔 Alertas**: cierre determinístico y niveles de
+  precio objetivos (Comprar/Comprar fuerte/Revisar ruptura/Cancelar) —
+  mismo motor de niveles que `/trade` (ATR + SMA50 + máximo de 52
+  semanas), nunca un número inventado.
+
+Se eliminó el "Nivel de confianza del reporte: X%" (un asesor no dice
+"tengo 57% de confianza") y la sección "Preguntas que debo responder"
+(el bot debe responderlas, no dejarlas de tarea al usuario).
+
+### `/report TICKER --full`
+
+El memo exhaustivo de antes, debajo de las mismas secciones de arriba:
+Executive Summary (con estrellas de calidad **solo si el dato existe** —
+ya no se muestra "Calidad del negocio: No disponible"), posición en la
+shortlist y por qué (`screener.report.razones()`), score breakdown
+factor por factor (misma fórmula exacta de `screener.scoring.puntuar()`),
+técnico y fundamentales completos con interpretación en lenguaje llano,
+consenso de analistas y tenencia (snapshot real de yfinance — no el
+detalle de transacciones de insiders ni el histórico 13F institucional,
+eso no está disponible gratis), riesgos y catalizadores, y noticias
+clasificadas por relevancia (Alta/Media/Baja según `nivel_importancia`
+del LLM, cada titular explicado individualmente). Aquí "No disponible"
+sigue siendo honesto: esta vista existe para mostrar TODO lo que se
+intentó obtener.
 
 ## Por qué NO están (todavía) en `/report`
 

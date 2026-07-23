@@ -370,29 +370,15 @@ def _por_que_bullets(rsi: float | None, fund: Fundamentales, spot: float) -> lis
     return bullets
 
 
-ATR_MULT_ENTRADA = 1.0
-ATR_MULT_STOP = 2.0  # misma convención de wizards_bot.py: stop = entrada - 2×ATR
-
-
-def _niveles_precio(spot: float, atr_val: float | None, sma50: float | None) -> dict[str, float | None]:
-    """Niveles de precio objetivos -- ATR (misma convención de
-    wizards_bot.py) y SMA50 (soporte técnico real), nunca un número
-    inventado. "entrada": primer pullback (spot - 1×ATR). "ideal": el más
-    profundo entre ese pullback y la media móvil de 50 días (si está
-    disponible) -- así "ideal" nunca queda por encima de "entrada".
-    "cancelar": 2×ATR por debajo de "ideal" (mismo múltiplo de stop que ya
-    usa el bot de Turtle Trading). Cualquier nivel que no se pueda
-    calcular con los datos disponibles queda en None -- nunca se rellena
-    con un valor inventado."""
-    entrada = spot - ATR_MULT_ENTRADA * atr_val if atr_val is not None else None
-    if sma50 is not None and entrada is not None:
-        ideal = min(sma50, entrada)
-    elif sma50 is not None:
-        ideal = sma50
-    else:
-        ideal = entrada
-    cancelar = ideal - ATR_MULT_STOP * atr_val if (ideal is not None and atr_val is not None) else None
-    return {"entrada": entrada, "ideal": ideal, "cancelar": cancelar}
+# ATR_MULT_ENTRADA/ATR_MULT_STOP/_niveles_precio ahora viven en
+# screener.factors.technical (niveles_precio) porque telegram_bot/
+# report_command.py también los reutiliza -- report_command.py ya importa
+# de este módulo, así que moverlos ahí evita un import circular. Se
+# mantienen estos nombres localmente para no tocar los ~90 usos/tests
+# existentes en este archivo.
+ATR_MULT_ENTRADA = tech.ATR_MULT_ENTRADA
+ATR_MULT_STOP = tech.ATR_MULT_STOP
+_niveles_precio = tech.niveles_precio
 
 
 def _objetivo_2(objetivo_1: float | None, entrada: float | None) -> float | None:
