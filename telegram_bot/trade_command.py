@@ -4,13 +4,30 @@ Filosofía (redefinida 2026-07-23 tras feedback directo: "no quiero leer
 60 líneas, quiero saber si compro o no, a qué precio, dónde el stop, cuál
 el objetivo, qué estrategia, cuánto capital y qué alerta pongo"): el modo
 por defecto ("simple") responde exactamente esas 7 preguntas en menos de
-20 líneas -- "🎯 Mi decisión" con un solo emoji + veredicto, Entrada
-ideal/Stop/Objetivo (mismos niveles ATR/SMA50/máximo de 52 semanas de
-siempre), Horizonte (vencimiento real), Capital mínimo (solo la acción y
-la estrategia top, no las 9), La estrategia que usaría, un "¿Por qué?" de
-una sola frase que reusa hechos ya calculados (tendencia, valuación,
-crecimiento, RSI, objetivo de analistas -- nunca un dato nuevo ni un
-LLM), y un Próximo paso con la alerta a crear.
+20 líneas.
+
+Dos preguntas distintas, explícitamente separadas (pedido explícito de
+seguimiento: mostrar "La estrategia que usaría: Long Call" justo debajo
+del veredicto mezclaba dos decisiones diferentes -- "¿vale la pena
+invertir en la empresa?" no es lo mismo que "¿con qué estructura la
+operarías?", y "Long Call" nunca significó "cómpralo ya", sino "si
+decidieras abrir una posición hoy, esta es la forma más eficiente"):
+
+1. "🎯 ¿Vale la pena invertir en {ticker}?" (`_seccion_vale_la_pena`) --
+   SOLO la tesis: veredicto + niveles de precio (Entrada ideal/Stop/
+   Objetivo/Horizonte) + un "Porque..." de una sola frase que reusa
+   hechos ya calculados (tendencia, valuación, crecimiento, RSI, objetivo
+   de analistas -- nunca un dato nuevo ni LLM). Nunca menciona una
+   estrategia de opciones.
+2. "💰 ¿Cómo lo haría?" (`_seccion_como_lo_haria`) -- SOLO la estructura,
+   condicionada a la primera pregunta: la estrategia top, un ranking
+   corto comparándola contra "Comprar acciones" (y la segunda mejor
+   estrategia, si también coincide con la tesis -- nunca una de dirección
+   opuesta, misma lógica de coherencia que ya existe para la top) y un
+   "¿Por qué {estrategia}?" con ventajas/desventajas REALES frente a
+   comprar la acción directamente (capital, tope de pérdida, potencial de
+   rendimiento -- `_VS_ACCIONES`, un diccionario fijo por tipo de
+   estrategia con los números reales insertados, no un texto genérico).
 
 Nada del detalle anterior se perdió: `/trade TICKER --full` sigue
 mostrando el tablero completo (Semáforo del modelo, Confianza en el
@@ -19,6 +36,12 @@ las 9 estrategias, Alertas con estimado de días, etc. -- ver
 `_ensamblar_full`) para quien sí quiera profundizar. /report y /options
 siguen existiendo tal cual para cuando SÍ quieras profundizar aún más
 por ese lado -- /trade no los reemplaza.
+
+Idea pendiente (NO implementada todavía, solo anotada): adaptar la
+recomendación al capital real disponible del usuario (ej. "tengo $1,000"
+-> sugerir solo lo que alcanza). Requiere una nueva forma de capturar ese
+dato en la conversación de Telegram -- fuera del alcance de este cambio,
+que solo reordena/explica mejor lo que el motor ya calcula.
 
 Principio #3 (igual que /report y /options): NINGÚN número de este
 comando es una predicción de resultado ni una recomendación de compra/
@@ -743,52 +766,160 @@ def _por_que_decision(ticker: str, tendencia_label: str, valoracion_label: str,
     return f"Porque {ticker} {cuerpo}."
 
 
-def _mensaje_simple(
-    ticker: str, nombre: str, spot: float, tesis_categoria: str, por_que: str | None,
-    niveles: dict[str, float | None], objetivo_1: float | None, cadena: CadenaOpciones | None,
-    top: EstrategiaOpciones | None, direccion_top_coincide: bool | None,
-) -> str:
-    """Modo por defecto de /trade -- responde 7 preguntas en menos de 20
-    líneas: ¿compro o no?, ¿a qué precio?, ¿dónde el stop?, ¿cuál el
-    objetivo?, ¿qué estrategia?, ¿cuánto capital?, ¿qué alerta pongo?
-    Pedido explícito: el diseño anterior (Semáforo, Confianza, Plan de
-    acción, etc.) tenía demasiadas secciones para leer todos los días --
-    ese detalle sigue disponible en /trade TICKER --full, no se pierde,
-    solo se deja de mostrar por defecto."""
+# "¿Cómo lo haría?" vs. simplemente comprar/vender las acciones -- bullets
+# FIJOS por tipo de estrategia (verdades estructurales del tipo, iguales
+# para cualquier ticker), con los números reales de capital insertados
+# por _vs_acciones_bullets(). Pedido explícito: "Long Call" no significa
+# "cómpralo ya" -- significa "si decidieras abrir una posición hoy, esta
+# es la estructura más eficiente" frente a comprar la acción directamente
+# (o venderla en corto, para las bajistas). Separar esta pregunta ("¿cómo
+# lo haría?") de la tesis ("¿vale la pena invertir?") es justo lo que
+# evita la confusión.
+_VS_ACCIONES = {
+    "Long Call": [
+        "Necesita mucho menos capital que comprar {ticker} directamente (${capital_estrategia} vs. ${capital_acciones}).",
+        "La pérdida máxima está limitada a la prima pagada.",
+        "Si {ticker} sube con fuerza, el rendimiento puede ser proporcionalmente mayor que comprando acciones.",
+    ],
+    "Bull Call Spread": [
+        "Necesita menos capital que comprar {ticker} directamente (${capital_estrategia} vs. ${capital_acciones}).",
+        "La pérdida máxima está limitada a lo que se paga por el spread.",
+        "A cambio, la ganancia también tiene un techo -- no participa de una subida ilimitada como las acciones.",
+    ],
+    "Bull Put Spread": [
+        "No requiere comprar acciones -- cobras una prima al abrir en vez de pagarla.",
+        "Gana incluso si {ticker} se queda igual o sube, no solo si sube con fuerza.",
+        "El riesgo máximo (${capital_estrategia}) puede superar varias veces la prima cobrada si {ticker} cae con fuerza.",
+    ],
+    "Covered Call": [
+        "Requiere poseer (o comprar) 100 acciones -- capital similar a comprarlas directamente (${capital_acciones}).",
+        "Genera ingreso extra (la prima cobrada) mientras esperas.",
+        "A cambio, limita cuánto puedes ganar si {ticker} sube con fuerza -- comprar acciones sin vender la call no tiene ese techo.",
+    ],
+    "Cash Secured Put": [
+        "Requiere reservar casi el mismo capital que comprar las acciones (${capital_estrategia} vs. ${capital_acciones}).",
+        "Cobras una prima incluso si {ticker} no se mueve o sube.",
+        "Si {ticker} cae con fuerza, terminas comprando por encima del precio de mercado -- riesgo direccional similar al de tener las acciones, con un colchón parcial de la prima.",
+    ],
+    "Long Put": [
+        "Necesita mucho menos capital que vender {ticker} en corto.",
+        "La pérdida máxima está limitada a la prima pagada (vender en corto tiene riesgo ilimitado).",
+        "Si {ticker} cae con fuerza, el rendimiento puede ser proporcionalmente mayor.",
+    ],
+    "Bear Put Spread": [
+        "Necesita menos capital y menos riesgo que vender {ticker} en corto.",
+        "La pérdida máxima está limitada a lo que se paga por el spread.",
+        "A cambio, la ganancia también tiene un techo.",
+    ],
+    "Bear Call Spread": [
+        "No requiere vender acciones en corto -- cobras una prima al abrir.",
+        "Gana incluso si {ticker} se queda igual o baja, no solo si baja con fuerza.",
+        "El riesgo máximo (${capital_estrategia}) puede superar varias veces la prima cobrada si {ticker} sube con fuerza.",
+    ],
+    "Iron Condor": [
+        "No requiere tener una posición direccional en {ticker} -- cobra una prima apostando a que se quede en rango.",
+        "Gana con tranquilidad si no hay movimiento fuerte en ninguna dirección.",
+        "El riesgo máximo (${capital_estrategia}) puede superar varias veces la prima cobrada si {ticker} se mueve fuerte en cualquier dirección.",
+    ],
+}
+
+
+def _vs_acciones_bullets(nombre: str, ticker: str, riesgo_maximo: float | None, capital_acciones: float) -> list[str]:
+    plantillas = _VS_ACCIONES.get(nombre)
+    if not plantillas or riesgo_maximo is None:
+        return []
+    return [p.format(ticker=ticker, capital_estrategia=f"{riesgo_maximo:,.0f}",
+                     capital_acciones=f"{capital_acciones:,.0f}") for p in plantillas]
+
+
+def _seccion_vale_la_pena(
+    ticker: str, spot: float, tesis_categoria: str, por_que: str | None, niveles: dict[str, float | None],
+    objetivo_1: float | None, cadena: CadenaOpciones | None,
+) -> list[str]:
+    """Responde SOLO la primera pregunta: ¿vale la pena invertir en
+    {ticker} hoy? -- la tesis. Nunca menciona una estrategia de opciones
+    específica (eso es la segunda pregunta, ver _seccion_como_lo_haria)."""
     emoji, texto = _MI_DECISION_TEXTO.get(
         tesis_categoria, ("⚪", "No tengo suficiente información técnica para decidir hoy."))
-    lineas = [f"📊 {ticker} — {nombre}", "", SEP, "", "🎯 Mi decisión", "", f"{emoji} {texto}"]
+    lineas = [f"🎯 ¿Vale la pena invertir en {ticker}?", "", f"{emoji} {texto}"]
+    if por_que:
+        lineas.append(por_que)
 
     if niveles.get("entrada") is not None:
         lineas += ["", "Entrada ideal:", _fmt_price_round(niveles["entrada"])]
     else:
         lineas += ["", "Precio actual:", _fmt_price_round(spot)]
-
     if niveles.get("cancelar") is not None:
         lineas += ["", "Stop:", _fmt_price_round(niveles["cancelar"])]
-
     if objetivo_1 is not None:
         rr = _relacion_riesgo_beneficio(niveles.get("entrada"), objetivo_1, niveles.get("cancelar"))
         lineas += ["", "Objetivo:", _fmt_objetivo_con_rr(objetivo_1, rr)]
-
     if cadena is not None:
         lineas += ["", "Horizonte:", f"{cadena.dias_a_vencimiento} días (vencimiento de la opción elegida)"]
+    return lineas
 
-    if top is not None:
-        lineas += ["", "Capital mínimo:", f"{_fmt_price_round(spot * 100)} (comprar 100 acciones)"]
-        if top.riesgo_maximo is not None:
-            lineas += ["o", f"{_fmt_price_round(top.riesgo_maximo)} ({top.nombre})"]
-        lineas += ["", "La estrategia que usaría:", top.nombre]
-        if direccion_top_coincide is False:
-            lineas.append("(no coincide con la tesis de hoy -- ver /trade TICKER --full)")
-    else:
-        lineas += ["", "Estrategia con opciones:", "No disponible hoy (cadena insuficiente)."]
 
-    if por_que:
-        lineas += ["", "¿Por qué?", "", por_que]
+def _seccion_como_lo_haria(
+    ticker: str, spot: float, top: EstrategiaOpciones | None, segunda: EstrategiaOpciones | None,
+    direccion_top_coincide: bool | None,
+) -> list[str]:
+    """Responde SOLO la segunda pregunta: SI decidieras abrir una
+    posición hoy, ¿cómo la estructurarías? -- "Long Call" no significa
+    "compra ya", significa "esta es la forma más eficiente de expresar
+    esa idea frente a comprar la acción directamente". Muestra un ranking
+    corto (la estrategia top, comprar acciones, la segunda mejor) y por
+    qué la top le gana a simplemente comprar/vender la acción, con
+    números reales -- nunca un dato inventado."""
+    capital_acciones = spot * 100
+    if top is None:
+        return ["💰 ¿Cómo lo haría?", "",
+               "No pude calcular estrategias de opciones para hoy (cadena insuficiente).",
+               f"La alternativa directa sería comprar acciones: {_fmt_price_round(capital_acciones)} (100 acciones)."]
+
+    lineas = ["💰 ¿Cómo lo haría?", "",
+             "Si decidieras abrir una posición hoy, la forma que el modelo",
+             "considera más eficiente es:", "", f"➡️ {top.nombre}"]
+    if direccion_top_coincide is False:
+        lineas += ["", "(Es la más eficiente matemáticamente, pero no coincide con la tesis "
+                  "de hoy -- ver /trade TICKER --full antes de usarla.)"]
+
+    opciones = [top.nombre, "Comprar acciones"]
+    if segunda is not None and segunda.nombre != top.nombre:
+        opciones.append(segunda.nombre)
+    lineas += ["", "Otras formas de expresar la misma idea:", ""]
+    lineas += [f"{i}. {o}" + (" ← más eficiente" if i == 1 else "") for i, o in enumerate(opciones, 1)]
+
+    bullets = _vs_acciones_bullets(top.nombre, ticker, top.riesgo_maximo, capital_acciones)
+    if bullets:
+        lineas += ["", f"¿Por qué {top.nombre}?", ""]
+        lineas += [f"✔ {b}" for b in bullets]
+
+    lineas += ["", "Capital necesario:", f"{_fmt_price_round(capital_acciones)} (comprar 100 acciones)"]
+    if top.riesgo_maximo is not None:
+        lineas += ["o", f"{_fmt_price_round(top.riesgo_maximo)} ({top.nombre})"]
+    return lineas
+
+
+def _mensaje_simple(
+    ticker: str, nombre: str, spot: float, tesis_categoria: str, por_que: str | None,
+    niveles: dict[str, float | None], objetivo_1: float | None, cadena: CadenaOpciones | None,
+    top: EstrategiaOpciones | None, segunda: EstrategiaOpciones | None, direccion_top_coincide: bool | None,
+) -> str:
+    """Modo por defecto de /trade -- responde 7 preguntas en menos de 20
+    líneas, divididas EXPLÍCITAMENTE en dos preguntas distintas (pedido
+    explícito tras feedback de que mezclarlas confundía): (1) ¿vale la
+    pena invertir en {ticker}? -- la tesis, y (2) ¿cómo lo haría? -- qué
+    estructura es más eficiente SI decides invertir hoy. "Long Call" no
+    es "compra ya", es la respuesta a la segunda pregunta, condicionada
+    a la primera. El diseño anterior (Semáforo, Confianza, Plan de
+    acción, etc.) sigue disponible en /trade TICKER --full."""
+    lineas = [f"📊 {ticker} — {nombre}", "", SEP, ""]
+    lineas += _seccion_vale_la_pena(ticker, spot, tesis_categoria, por_que, niveles, objetivo_1, cadena)
+    lineas += ["", SEP, ""]
+    lineas += _seccion_como_lo_haria(ticker, spot, top, segunda, direccion_top_coincide)
 
     if niveles.get("entrada") is not None:
-        lineas += ["", "Próximo paso:", "", f"✅ Crear alerta en {_fmt_price_round(niveles['entrada'])}."]
+        lineas += ["", SEP, "", "Próximo paso:", "", f"✅ Crear alerta en {_fmt_price_round(niveles['entrada'])}."]
 
     lineas += ["", SEP, "",
               f"Para el detalle completo (Semáforo, Confianza en el plan, Qué tiene que pasar "
@@ -990,5 +1121,14 @@ def generar_trade(ticker: str, modo: str = "simple") -> str:
     direccion_top_coincide = (
         _tesis_coincide_con_estrategia(tesis_categoria, direccion_estrategia(top.nombre))
         if top is not None else None)
+    # La "segunda" alternativa del ranking comparativo también debe
+    # coincidir con la tesis -- mostrarla como "otra forma de expresar la
+    # misma idea" cuando en realidad es de dirección opuesta sería
+    # exactamente la misma contradicción que ya se corrigió para la
+    # estrategia top.
+    segunda = next(
+        (e for e in estrategias if e is not top
+         and _tesis_coincide_con_estrategia(tesis_categoria, direccion_estrategia(e.nombre))),
+        None)
     return _mensaje_simple(ticker, nombre, spot, tesis_categoria, por_que, niveles, objetivo_1,
-                           cadena, top, direccion_top_coincide)
+                           cadena, top, segunda, direccion_top_coincide)

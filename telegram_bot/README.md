@@ -240,30 +240,46 @@ perdió, solo se dejó de mostrar por defecto.
 
 ### `/trade TICKER` (modo simple, por defecto)
 
-- **🎯 Mi decisión**: un solo emoji + veredicto (🟢 Sí compraría hoy / 🟡
-  No compraría hoy, esperaría / 🔴 tendencia bajista / ⚪ sin señal clara
-  o sin información suficiente) sobre la misma `_tesis_categoria` de
-  siempre (alcista/bajista/esperar/neutral/no_determinable).
-- **Entrada ideal / Stop / Objetivo**: mismos niveles ATR/SMA50/máximo de
-  52 semanas de siempre (`screener.factors.technical.niveles_precio`),
-  con la relación riesgo/beneficio real junto al objetivo -- nunca
-  forzada a un múltiplo bonito.
-- **Horizonte**: el vencimiento REAL de la opción elegida.
-- **Capital mínimo**: solo dos cifras -- comprar 100 acciones y la
-  estrategia top (`top.riesgo_maximo`) -- no las 9 estrategias completas
-  (eso vive en `--full`).
-- **La estrategia que usaría**: el Top 1 del ranking. Si su dirección
-  (`options_strategies.direccion_estrategia`) NO coincide con la tesis
-  técnica, se marca explícitamente ("no coincide con la tesis de hoy --
-  ver --full") en vez de presentarla sin más contexto -- misma capa de
-  coherencia de siempre (`_tesis_coincide_con_estrategia`), el ranking
-  matemático nunca cambia.
-- **¿Por qué?**: una sola frase que reusa hechos ya calculados
-  (tendencia, valuación, crecimiento de ingresos, RSI, objetivo de
-  analistas) -- nunca un dato nuevo ni una llamada a Claude. Omitida por
-  completo si no hay ningún hecho real que la sostenga.
+Dos preguntas distintas, explícitamente separadas (pedido explícito de
+seguimiento: "La estrategia que usaría: Long Call" justo debajo del
+veredicto mezclaba "¿vale la pena invertir en la empresa?" con "¿con qué
+estructura la operarías?" -- "Long Call" nunca significó "cómpralo ya",
+sino "si decidieras abrir una posición hoy, esta es la forma más
+eficiente"):
+
+- **🎯 ¿Vale la pena invertir en {ticker}?** (`_seccion_vale_la_pena`) --
+  SOLO la tesis. Un solo emoji + veredicto (🟢 Sí compraría hoy / 🟡 No
+  compraría hoy, esperaría / 🔴 tendencia bajista / ⚪ sin señal clara o
+  sin información suficiente) sobre la misma `_tesis_categoria` de
+  siempre, un "Porque..." de una sola frase que reusa hechos ya
+  calculados (tendencia, valuación, crecimiento, RSI, objetivo de
+  analistas -- nunca un dato nuevo ni LLM), y los niveles Entrada ideal/
+  Stop/Objetivo/Horizonte (mismos de siempre). Nunca menciona una
+  estrategia de opciones.
+- **💰 ¿Cómo lo haría?** (`_seccion_como_lo_haria`) -- SOLO la estructura,
+  condicionada a la pregunta anterior. Muestra la estrategia top con un
+  ranking corto comparándola contra "Comprar acciones" (y la segunda
+  mejor estrategia, si también coincide con la tesis -- mostrar una de
+  dirección opuesta como "otra forma de expresar la misma idea" sería la
+  misma contradicción que ya se corrigió para la top), y un
+  "¿Por qué {estrategia}?" con ventajas/desventajas REALES frente a
+  comprar la acción directamente -- capital (números reales, ej. "$980
+  vs. $32,700"), tope de pérdida, potencial de rendimiento -- desde un
+  diccionario fijo por tipo de estrategia (`_VS_ACCIONES`) con los
+  números insertados, nunca un texto genérico. Si la dirección de la
+  estrategia top NO coincide con la tesis, se marca explícitamente ("no
+  coincide con la tesis de hoy -- ver --full") en vez de presentarla sin
+  más contexto -- misma capa de coherencia de siempre
+  (`_tesis_coincide_con_estrategia`), el ranking matemático nunca cambia.
+  Termina con "Capital necesario" (comprar acciones vs. la estrategia
+  top).
 - **Próximo paso**: la alerta concreta a crear, con el mismo nivel ya
   mostrado en "Entrada ideal" -- ningún número nuevo.
+
+Idea pendiente (anotada, no implementada): adaptar la recomendación al
+capital real disponible del usuario -- requiere una nueva forma de
+capturar ese dato en la conversación de Telegram, fuera del alcance de
+este cambio.
 
 ### `/trade TICKER --full`
 

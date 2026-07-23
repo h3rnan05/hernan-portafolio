@@ -120,8 +120,8 @@ def test_modo_simple_cadena_none_no_rompe(monkeypatch):
     _mock_red_basica(monkeypatch)
     monkeypatch.setattr(tc, "obtener_cadena", lambda ticker: None)
     texto = tc.generar_trade("AAPL")
-    assert "Estrategia con opciones:" in texto
-    assert "No disponible hoy (cadena insuficiente)." in texto
+    assert "No pude calcular estrategias de opciones para hoy (cadena insuficiente)." in texto
+    assert "La alternativa directa sería comprar acciones:" in texto
 
 
 def test_coherencia_estrategia_alineada_muestra_mejor_estrategia(monkeypatch):
@@ -832,13 +832,14 @@ def test_por_que_decision_no_rompe_siglas():
 def test_modo_simple_es_el_default_y_responde_las_7_preguntas(monkeypatch):
     _mock_red_basica(monkeypatch)
     texto = tc.generar_trade("AAPL")
-    assert "🎯 Mi decisión" in texto
+    assert "🎯 ¿Vale la pena invertir en AAPL?" in texto
+    assert "💰 ¿Cómo lo haría?" in texto
     assert "Entrada ideal:" in texto or "Precio actual:" in texto
     assert "Stop:" in texto
     assert "Objetivo:" in texto
     assert "Horizonte:" in texto
-    assert "Capital mínimo:" in texto
-    assert "La estrategia que usaría:" in texto
+    assert "Capital necesario:" in texto
+    assert "Otras formas de expresar la misma idea:" in texto
     assert "Próximo paso:" in texto
     assert "✅ Crear alerta en" in texto
     assert "/trade AAPL --full" in texto
@@ -847,6 +848,8 @@ def test_modo_simple_es_el_default_y_responde_las_7_preguntas(monkeypatch):
     assert "📊 Semáforo del modelo" not in texto
     assert "📋 Confianza en este plan" not in texto
     assert "🎯 Plan de acción" not in texto
+    # "Long Call" es la respuesta a "¿cómo lo haría?", no a "¿vale la pena?"
+    assert texto.index("🎯 ¿Vale la pena invertir en AAPL?") < texto.index("💰 ¿Cómo lo haría?")
 
 
 def test_modo_simple_alcista_dice_si_compraria(monkeypatch):
@@ -887,8 +890,8 @@ def test_mensaje_simple_capital_minimo_muestra_acciones_y_estrategia_top():
     e = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=1272.0, ganancia_maxima=None)
     texto = tc._mensaje_simple("AAPL", "Apple Inc.", 327.0, "alcista", None,
                                {"entrada": 320.0, "ideal": 315.0, "cancelar": 300.0}, 350.0,
-                               None, e, True)
-    assert "Capital mínimo:" in texto
+                               None, e, None, True)
+    assert "Capital necesario:" in texto
     assert "$32,700 (comprar 100 acciones)" in texto
     assert "$1,272 (Long Call)" in texto
 
@@ -896,6 +899,103 @@ def test_mensaje_simple_capital_minimo_muestra_acciones_y_estrategia_top():
 def test_mensaje_simple_sin_top_omite_capital_y_estrategia():
     texto = tc._mensaje_simple("AAPL", "Apple Inc.", 327.0, "neutral", None,
                                {"entrada": None, "ideal": None, "cancelar": None}, None,
-                               None, None, None)
-    assert "Estrategia con opciones:" in texto
-    assert "No disponible hoy (cadena insuficiente)." in texto
+                               None, None, None, None)
+    assert "No pude calcular estrategias de opciones para hoy (cadena insuficiente)." in texto
+    assert "La alternativa directa sería comprar acciones:" in texto
+
+
+# ------------------------- separar "¿vale la pena?" de "¿cómo lo haría?" -------------------------
+
+def test_seccion_vale_la_pena_nunca_menciona_una_estrategia():
+    """Regresión del pedido explícito: "Long Call" no es la respuesta a
+    "¿vale la pena invertir?" -- es la respuesta a "¿cómo lo haría?". La
+    sección de la tesis no debe mencionar ninguna estrategia."""
+    lineas = tc._seccion_vale_la_pena("AAPL", 327.0, "alcista", None,
+                                      {"entrada": 320.0, "ideal": 315.0, "cancelar": 300.0}, 350.0, None)
+    texto = "\n".join(lineas)
+    assert "🎯 ¿Vale la pena invertir en AAPL?" in texto
+    assert "Call" not in texto and "Spread" not in texto and "Put" not in texto
+
+
+def test_seccion_como_lo_haria_encabeza_con_la_pregunta_condicional():
+    e = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=980.0, ganancia_maxima=None)
+    lineas = tc._seccion_como_lo_haria("AAPL", 327.0, e, None, True)
+    texto = "\n".join(lineas)
+    assert "💰 ¿Cómo lo haría?" in texto
+    assert "Si decidieras abrir una posición hoy" in texto
+    assert "➡️ Long Call" in texto
+
+
+def test_seccion_como_lo_haria_incluye_ranking_con_comprar_acciones():
+    top = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=980.0, ganancia_maxima=None)
+    segunda = EstrategiaOpciones(nombre="Bull Call Spread", patas=[], razon="", riesgo_maximo=430.0, ganancia_maxima=500.0)
+    lineas = tc._seccion_como_lo_haria("AAPL", 327.0, top, segunda, True)
+    texto = "\n".join(lineas)
+    assert "Otras formas de expresar la misma idea:" in texto
+    assert "1. Long Call ← más eficiente" in texto
+    assert "2. Comprar acciones" in texto
+    assert "3. Bull Call Spread" in texto
+
+
+def test_seccion_como_lo_haria_nota_incoherencia_si_no_coincide():
+    e = EstrategiaOpciones(nombre="Bear Put Spread", patas=[], razon="", riesgo_maximo=365.0, ganancia_maxima=200.0)
+    lineas = tc._seccion_como_lo_haria("AAPL", 327.0, e, None, False)
+    texto = "\n".join(lineas)
+    assert "no coincide con la tesis de hoy" in texto
+
+
+def test_seccion_como_lo_haria_sin_top_ofrece_comprar_acciones():
+    lineas = tc._seccion_como_lo_haria("AAPL", 327.0, None, None, None)
+    texto = "\n".join(lineas)
+    assert "No pude calcular estrategias de opciones para hoy (cadena insuficiente)." in texto
+    assert "La alternativa directa sería comprar acciones: $32,700 (100 acciones)." in texto
+
+
+def test_vs_acciones_bullets_long_call_compara_capital_real():
+    bullets = tc._vs_acciones_bullets("Long Call", "AAPL", riesgo_maximo=980.0, capital_acciones=32700.0)
+    assert any("980" in b and "32,700" in b for b in bullets)
+    assert any("pérdida máxima" in b.lower() for b in bullets)
+
+
+def test_vs_acciones_bullets_estrategia_desconocida_da_vacio():
+    assert tc._vs_acciones_bullets("Estrategia Inventada", "AAPL", 100.0, 1000.0) == []
+
+
+def test_vs_acciones_bullets_sin_riesgo_maximo_da_vacio():
+    assert tc._vs_acciones_bullets("Long Call", "AAPL", None, 1000.0) == []
+
+
+def test_todas_las_9_estrategias_tienen_comparacion_vs_acciones():
+    nombres = ["Long Call", "Long Put", "Bull Call Spread", "Bear Put Spread", "Bull Put Spread",
+              "Bear Call Spread", "Covered Call", "Cash Secured Put", "Iron Condor"]
+    for nombre in nombres:
+        assert tc._vs_acciones_bullets(nombre, "AAPL", 100.0, 1000.0), f"falta comparación vs. acciones para {nombre}"
+
+
+def test_generar_trade_simple_pasa_la_segunda_estrategia_al_ranking(monkeypatch):
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "alcista")
+    top = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=980.0, ganancia_maxima=None)
+    segunda = EstrategiaOpciones(nombre="Bull Call Spread", patas=[], razon="", riesgo_maximo=430.0, ganancia_maxima=500.0)
+    monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [top, segunda])
+    monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
+    texto = tc.generar_trade("AAPL")
+    assert "3. Bull Call Spread" in texto
+
+
+def test_generar_trade_simple_omite_segunda_estrategia_de_direccion_opuesta(monkeypatch):
+    """Regresión: mostrar una estrategia bajista como "otra forma de
+    expresar la misma idea" bajo una tesis alcista sería la misma
+    contradicción que ya se corrigió para la estrategia top -- la
+    segunda alternativa del ranking también debe coincidir con la
+    tesis."""
+    _mock_red_basica(monkeypatch)
+    monkeypatch.setattr(tc, "_tesis_categoria", lambda *a, **k: "alcista")
+    top = EstrategiaOpciones(nombre="Long Call", patas=[], razon="", riesgo_maximo=980.0, ganancia_maxima=None)
+    bajista = EstrategiaOpciones(nombre="Bear Put Spread", patas=[], razon="", riesgo_maximo=365.0, ganancia_maxima=200.0)
+    monkeypatch.setattr(tc, "construir_estrategias", lambda cadena, spot: [top, bajista])
+    monkeypatch.setattr(tc, "rankear", lambda estrategias: estrategias)
+    texto = tc.generar_trade("AAPL")
+    assert "Bear Put Spread" not in texto
+    assert "2. Comprar acciones" in texto
+    assert "3." not in texto
