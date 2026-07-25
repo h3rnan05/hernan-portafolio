@@ -80,60 +80,39 @@ estructurado de guidance) y volumen de opciones inusual acompañado de
 tesis fundamental (sin histórico de IV/volumen de opciones -- misma
 limitación ya documentada para "IV Rank" en `screener/options_ideas.py`).
 
-Cada oportunidad detectada se manda con: **Convicción del modelo**
-(0-100, reusa los mismos sub_scores reales del día, ponderados distinto
-por patrón -- nunca un número inventado), **Mi decisión** (🟢 Comprar
-hoy/🟡 Esperar/❌ No operar -- reglas fijas: liquidez cross-sectional <20 →
-No operar, earnings en ≤5 días → Esperar; "No operar"/"Esperar" explican
-el motivo en prosa, ej. "las opciones tienen poca liquidez... puede
-hacer difícil entrar o salir sin pagar un spread alto"), **¿Por qué?**
-(qué ocurrió, qué la invalidaría y qué está esperando confirmar el
-modelo -- 3 líneas, con números reales), **Qué cambió hoy** (deltas
-reales de RSI/distancia a la SMA50/tendencia contra las mismas barras
-sin el último día, y si entró al Top 20 -- se omite la sección entera si
-no hay nada real que reportar, nunca se inventa un cambio), **Precio
-actual/Stop/Objetivo** (mismo motor ATR/SMA50 de `/trade` y `/report`,
-`screener.factors.technical.niveles_precio`; "Comprar hoy" siempre deja
-explícito que el precio de hoy ya está dentro de la zona que activó el
-patrón -- eso solo es honesto porque hoy es una sola corrida diaria que
-calcula y envía en el mismo paso, ver el docstring del módulo), **Capital
-mínimo**, **Estrategia recomendada** (cadena de opciones real solo para
-ese ticker, filtrada a direcciones no-bajistas, mejor por el ranking de
-`options_strategies.rankear()` -- se degrada a "comprar acciones
-directamente" si la cadena falla) con **"Elegí X porque"** (ventajas
-reales frente a comprar la acción directamente, con los números de
-capital de ese día -- nunca deja el nombre de la estrategia sin
-explicar), y **Nivel de urgencia** con el motivo (por qué esa urgencia,
-no solo la etiqueta). El mensaje diario ahora también tiene un tope real
-de `LIMITE_DIARIO=3` oportunidades por día (las de mayor Convicción, si
-un día detecta más) -- pedido explícito: "prefiero 2-3 excelentes por
-semana, no 20 mediocres por día" (todavía un tope DIARIO, no semanal --
-ver más abajo). Para "Comprar hoy" el mensaje cierra con **"🎯 Mi plan"**
-(tipo de estrategia, precio máximo que pagaría -- spot + 1/4 del ATR
-real del papel, nunca un $ fijo -- y qué haría si abre por encima
-mañana; "Riesgo por operación" reusa el 1% ya configurado en
-`risk_manager.config.RiskLimits`, no un monto atado a un capital
-específico) y un **"Checklist antes de comprar"** que es un RESUMEN de
-lo que la detección del patrón y la decisión YA verificaron -- nunca un
-filtro paralelo con criterios nuevos (por eso es específico por patrón:
-exigir "valoración atractiva" de forma universal rechazaría rupturas
-legítimas, que no tienen por qué ser baratas). "Sin noticias negativas
-de alta relevancia" siempre aparece marcado como no disponible todavía
--- verificarlo de verdad requeriría un clasificador de sentimiento
-no-LLM (no existe) o invocar `news_analyst` (que sí usa LLM) por
-oportunidad, rompiendo la garantía de este pipeline de correr 100% sin
-LLM. 100% determinístico en todo lo demás -- `.github/workflows/screener.yml`
-ni siquiera le pasa `ANTHROPIC_API_KEY`.
+**El mensaje diario es SOLO el resumen/ranking** (`_resumen_del_dia`,
+título "🏁 Mercado de hoy") -- pedido explícito, quinta ronda de
+feedback: "no quiero leer cinco reportes completos todos los días".
+Dice cuántas empresas se analizaron, cuántas oportunidades se
+detectaron en total, y muestra hasta `LIMITE_DIARIO=3` con medallas
+🥇🥈🥉 y una letra fija (`_grado`: A+/A/B+/B/C sobre la misma Convicción
+0-100 -- pedido explícito: "más fácil recordar A+ que 85"); si detectó
+más de las que caben en el tope, las nombra explícitamente ("Las otras
+N (...) las dejaría en vigilancia") en vez de descartarlas en silencio,
+y cierra apuntando a `/trade {ticker}` para el plan completo.
 
-El mensaje cierra con un **"🏁 Resumen del día"** (`_resumen_del_dia`):
-cuántas empresas se analizaron, cuántas oportunidades se detectaron en
-total, y cuáles de esas son las que de verdad se muestran en detalle
-(con medallas 🥇🥈🥉) -- si el tope diario dejó alguna afuera, el resumen
-la nombra explícitamente ("Las demás (...) las vigilaría, pero no
-abriría posición hoy") en vez de descartarla en silencio. "Qué cambió
-hoy" ahora aparece SIEMPRE (con "Sin cambios importantes" cuando no hay
-deltas reales) y el emoji de urgencia baja es ⚪ en vez de 🟢 (verde
-sugería "actúa ya", justo lo contrario de "Baja").
+El detalle rico por oportunidad (Convicción, Mi decisión con motivo en
+prosa, ¿Por qué?/Qué está esperando confirmar el modelo, Qué cambió
+hoy, Precio actual/Stop/Objetivo, Capital, Estrategia recomendada con
+"Elegí X porque", Nivel de urgencia con motivo, y para "Comprar hoy" un
+"🎯 Mi plan" con precio máximo que pagaría -- justificado por el ATR
+real del papel -- y un "Checklist antes de comprar" que resume lo que
+la detección del patrón y la decisión YA verificaron, nunca un filtro
+paralelo) sigue existiendo y probado en `formatear_oportunidad` -- es
+lo que el dueño del producto calificó como "lo mejor" -- pero ya **no**
+se manda automáticamente. Queda reservado para cuando `/trade TICKER`
+se conecte a reutilizar este mismo razonamiento cuando el ticker
+consultado sea una de las oportunidades del día (pendiente, no
+implementado: requeriría persistir las oportunidades detectadas como ya
+se hace con `shortlist_hoy.json`). "Sin noticias negativas de alta
+relevancia" sigue marcado ahí como no disponible: verificarlo de verdad
+requeriría un clasificador de sentimiento no-LLM (no existe) o invocar
+`news_analyst` (que sí usa LLM), rompiendo la garantía de correr 100%
+sin LLM. "Horizonte esperado" se separó en `horizonte_tesis` (rango
+fijo por patrón, independiente de cualquier vencimiento de opción) y,
+solo si aplica una estrategia de opciones, la fecha calendario real de
+vencimiento. 100% determinístico -- `.github/workflows/screener.yml` ni
+siquiera le pasa `ANTHROPIC_API_KEY`.
 
 `/report`, `/options`, `/trade` y `/list` no cambian: siguen leyendo
 `shortlist_hoy.json`/`.md`, que se sigue persistiendo exactamente igual
@@ -148,16 +127,17 @@ diaria. Un tope SEMANAL real ("si solo hicieras dos trades esta semana,
 serían estos") también queda pendiente -- hoy el tope es solo diario;
 uno semanal de verdad necesitaría persistir qué tickers ya se mandaron
 esa semana, y encajaría naturalmente junto al proceso de vigilancia en
-vivo de arriba. Deliberadamente NO implementado (pedido explícito del
-dueño del producto de dejar de agregar indicadores nuevos): un índice
-de calidad con letras (A/B/C) por oportunidad -- sería redundante con
-Convicción + el checklist, que ya muestran los mismos factores. La
-prioridad real que describió para lo que sigue es medir el desempeño
-del sistema (cuántas oportunidades del Opportunity Hunter llegan a su
-objetivo, cuántas activan su stop, rendimiento por estrategia) --
-distinto del `/journal` manual actual, que solo registra lo que el
-usuario decide operar; medir las alertas EN SÍ MISMAS es una pieza de
-tracking nueva, no diseñada ni construida todavía.
+vivo de arriba. La prioridad real que describió para lo que sigue es
+medir el desempeño del sistema (cuántas oportunidades del Opportunity
+Hunter llegan a su objetivo, cuántas activan su stop, rendimiento por
+estrategia) -- distinto del `/journal` manual actual, que solo registra
+lo que el usuario decide operar; medir las alertas EN SÍ MISMAS es una
+pieza de tracking nueva, no diseñada ni construida todavía. También
+reiteró el interés en patrones de fase 2 (gap alcista tras earnings con
+guía positiva, bull flags/consolidaciones cerca de romper, cambios en
+estimaciones de analistas, volumen de opciones inusual) -- siguen
+bloqueados por la misma razón de siempre: no hay historial estructurado
+de esos datos recolectado todavía.
 
 ## Qué trae `/report TICKER`
 

@@ -272,6 +272,29 @@ def test_precio_maximo_sin_atr_da_none():
     assert oh._precio_maximo(spot=100.0, atr_val=None) is None
 
 
+def test_grado_traduce_conviccion_a_letra():
+    assert oh._grado(95) == "A+"
+    assert oh._grado(90) == "A+"
+    assert oh._grado(89) == "A"
+    assert oh._grado(80) == "A"
+    assert oh._grado(79) == "B+"
+    assert oh._grado(70) == "B+"
+    assert oh._grado(69) == "B"
+    assert oh._grado(60) == "B"
+    assert oh._grado(59) == "C"
+    assert oh._grado(0) == "C"
+
+
+def test_fecha_vencimiento_texto_usa_dias_reales():
+    from datetime import date, timedelta
+    esperado = date.today() + timedelta(days=30)
+    assert oh._fecha_vencimiento_texto(30) == f"{esperado.day} de {oh._MESES[esperado.month - 1]} de {esperado.year}"
+
+
+def test_fecha_vencimiento_texto_sin_horizonte_da_none():
+    assert oh._fecha_vencimiento_texto(None) is None
+
+
 # ------------------------- construcción + formato del mensaje -------------------------
 
 def test_construir_oportunidad_ruptura_de_extremo_a_extremo(monkeypatch):
@@ -314,7 +337,7 @@ def test_formatear_oportunidad_comprar_hoy_reconcilia_precio_y_decision():
         que_ocurrio="JPM rompe su máximo de 52 semanas.", que_invalida="Si vuelve a caer, se invalida.",
         que_espero="Que se mantenga sobre el máximo.", que_cambio=["El RSI bajó de 55 a 42."],
         entrada=349.76, precio_actual_texto="$350 (+0.3% sobre su máximo de 52 semanas anterior de $349)",
-        stop=306.15, objetivo=370.0, horizonte_dias=36,
+        stop=306.15, objetivo=370.0, horizonte_dias=36, horizonte_tesis="1-3 semanas",
         capital_acciones=34976.0, capital_estrategia=980.0, estrategia_nombre="Long Call",
         estrategia_por_que=["Necesita menos capital que comprar JPM directamente ($980 vs. $34,976)."],
         precio_maximo=352.6, checklist=oh._checklist("ruptura"),
@@ -333,7 +356,8 @@ def test_formatear_oportunidad_comprar_hoy_reconcilia_precio_y_decision():
     assert "Precio actual: $350 (+0.3% sobre su máximo de 52 semanas anterior de $349)" in texto
     assert "Stop: $306" in texto
     assert "Objetivo: $370" in texto
-    assert "Horizonte esperado: 36 días" in texto
+    assert "Horizonte esperado de la tesis: 1-3 semanas" in texto
+    assert f"vencimiento sugerido: {oh._fecha_vencimiento_texto(36)}" in texto
     assert "💰 Capital" in texto
     assert "Acciones: $34,976" in texto
     assert "Opciones: Desde $980" in texto
@@ -347,6 +371,7 @@ def test_formatear_oportunidad_comprar_hoy_reconcilia_precio_y_decision():
     assert "✅ Abriría posición hoy." in texto
     assert "Tipo: Long Call" in texto
     assert "Precio máximo que pagaría: $353" in texto
+    assert "¿Por qué? Está dentro del rango de entrada calculado por el ATR real del papel." in texto
     assert "Si mañana abre arriba de $353: esperaría otro retroceso antes de entrar." in texto
     assert "Riesgo por operación: no más del 1% del portafolio" in texto
     assert "Checklist antes de comprar:" in texto
@@ -362,7 +387,7 @@ def test_formatear_oportunidad_esperar_muestra_motivo_en_vez_de_reconciliacion()
         decision="Esperar", motivo_decision="Resultados en 2 días -- prefiero evitar la volatilidad.",
         que_ocurrio="ocurrió algo", que_invalida="se invalida si...", que_espero="que confirme el soporte.",
         que_cambio=[], entrada=100.0, precio_actual_texto="$100 (+1.0% vs. su media de 50 días, $99)",
-        stop=90.0, objetivo=110.0, horizonte_dias=None,
+        stop=90.0, objetivo=110.0, horizonte_dias=None, horizonte_tesis="2-6 semanas",
         capital_acciones=10000.0, capital_estrategia=None, estrategia_nombre=None, estrategia_por_que=[],
         precio_maximo=None, checklist=[],
     )
@@ -385,7 +410,7 @@ def test_formatear_oportunidad_no_operar():
         decision="No operar", motivo_decision="Aunque la empresa parece atractiva, las opciones tienen poca liquidez.",
         que_ocurrio="ocurrió algo", que_invalida="se invalida si...", que_espero="que se mantenga.",
         que_cambio=[], entrada=100.0, precio_actual_texto="$100",
-        stop=None, objetivo=None, horizonte_dias=None,
+        stop=None, objetivo=None, horizonte_dias=None, horizonte_tesis="1-3 meses",
         capital_acciones=10000.0, capital_estrategia=None, estrategia_nombre=None, estrategia_por_que=[],
         precio_maximo=None, checklist=[],
     )
@@ -464,39 +489,45 @@ def _oportunidad_minima(ticker: str, conviccion: int) -> oh.Oportunidad:
         urgencia="Baja", decision="Comprar hoy", motivo_decision=None,
         que_ocurrio="ocurrió algo", que_invalida="se invalida si...", que_espero="que se mantenga.",
         que_cambio=[], entrada=100.0, precio_actual_texto="$100",
-        stop=90.0, objetivo=110.0, horizonte_dias=None,
+        stop=90.0, objetivo=110.0, horizonte_dias=None, horizonte_tesis="1-3 meses",
         capital_acciones=10000.0, capital_estrategia=None, estrategia_nombre=None, estrategia_por_que=[],
         precio_maximo=None, checklist=oh._checklist("valor_impulso"),
     )
 
 
-def test_mensaje_oportunidades_aplica_el_tope_diario_en_el_detalle():
+def test_mensaje_oportunidades_es_solo_el_resumen_nunca_el_detalle_completo():
     oportunidades = [_oportunidad_minima(t, c) for t, c in [("A", 90), ("B", 85), ("C", 80), ("D", 75), ("E", 70)]]
     texto = oh.mensaje_oportunidades(oportunidades, universo_n=480)
-    # solo las top LIMITE_DIARIO tienen bloque de detalle
-    for t in ("A", "B", "C"):
-        assert f"🚨 Oportunidad detectada\n\n{t}" in texto
-    for t in ("D", "E"):
-        assert f"🚨 Oportunidad detectada\n\n{t}" not in texto
+    # nunca el detalle completo -- pedido explícito: "no quiero leer
+    # cinco reportes completos todos los días"
+    assert "🚨 Oportunidad detectada" not in texto
+    assert "Checklist antes de comprar" not in texto
+    assert "🏁 Mercado de hoy" in texto
+    assert "🥇 A -- A+ (90/100)" in texto
+    assert "🥈 B -- A (85/100)" in texto
+    assert "🥉 C -- A (80/100)" in texto
+    assert "Las otras 2 (D, E) las dejaría en vigilancia." in texto
+    assert "Escribe /trade A para ver el plan completo" in texto
 
 
 def test_resumen_del_dia_menciona_las_que_no_entraron_en_el_detalle():
     todas = [_oportunidad_minima(t, c) for t, c in [("A", 90), ("B", 85), ("C", 80), ("D", 75), ("E", 70)]]
     mostradas = todas[:3]
     resumen = oh._resumen_del_dia(todas, mostradas, universo_n=480)
-    assert "🏁 Resumen del día" in resumen
+    assert "🏁 Mercado de hoy" in resumen
     assert "Analicé 480 empresas." in resumen
     assert "Encontré 5 oportunidades." in resumen
-    assert "Pero solo compraría estas 3:" in resumen
-    assert "🥇 A (90/100)" in resumen
-    assert "🥈 B (85/100)" in resumen
-    assert "🥉 C (80/100)" in resumen
-    assert "Las demás (D, E) las vigilaría, pero no abriría posición hoy." in resumen
+    assert "Solo ejecutaría:" in resumen
+    assert "🥇 A -- A+ (90/100)" in resumen
+    assert "🥈 B -- A (85/100)" in resumen
+    assert "🥉 C -- A (80/100)" in resumen
+    assert "Las otras 2 (D, E) las dejaría en vigilancia." in resumen
+    assert "Escribe /trade A para ver el plan completo" in resumen
 
 
 def test_resumen_del_dia_sin_sobrantes_no_menciona_las_demas():
     todas = [_oportunidad_minima("A", 90)]
     resumen = oh._resumen_del_dia(todas, todas, universo_n=480)
     assert "Encontré 1 oportunidad." in resumen
-    assert "Estas son las que sí compraría:" in resumen
-    assert "Las demás" not in resumen
+    assert "Estas son las que sí ejecutaría:" in resumen
+    assert "las dejaría en vigilancia" not in resumen
