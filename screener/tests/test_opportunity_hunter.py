@@ -303,7 +303,7 @@ def test_construir_oportunidad_usa_tickers_shortlist_anterior(monkeypatch):
 
 
 def test_mensaje_oportunidades_vacio_da_texto_explicito():
-    assert oh.mensaje_oportunidades([]) == oh.SIN_OPORTUNIDADES
+    assert oh.mensaje_oportunidades([], universo_n=480) == oh.SIN_OPORTUNIDADES
     assert "no encontré ninguna oportunidad" in oh.SIN_OPORTUNIDADES.lower()
 
 
@@ -334,7 +334,9 @@ def test_formatear_oportunidad_comprar_hoy_reconcilia_precio_y_decision():
     assert "Stop: $306" in texto
     assert "Objetivo: $370" in texto
     assert "Horizonte esperado: 36 días" in texto
-    assert "Capital mínimo recomendado: $34,976" in texto
+    assert "💰 Capital" in texto
+    assert "Acciones: $34,976" in texto
+    assert "Opciones: Desde $980" in texto
     assert "Estrategia recomendada: Long Call" in texto
     assert "Elegí Long Call porque:" in texto
     assert "✔ Necesita menos capital que comprar JPM directamente ($980 vs. $34,976)." in texto
@@ -368,7 +370,8 @@ def test_formatear_oportunidad_esperar_muestra_motivo_en_vez_de_reconciliacion()
     assert "Mi decisión: 🟡 Esperar" in texto
     assert "Resultados en 2 días -- prefiero evitar la volatilidad." in texto
     assert "Precio actual dentro de la zona" not in texto
-    assert "Qué cambió hoy:" not in texto
+    assert "Qué cambió hoy:" in texto
+    assert "Sin cambios importantes. La tesis sigue intacta." in texto
     assert "Estrategia recomendada: Comprar acciones directamente (opciones no disponibles hoy)" in texto
     assert "Elegí" not in texto
     assert "🎯 Mi plan" in texto
@@ -438,7 +441,7 @@ def test_buscar_oportunidades_propaga_tickers_shortlist_anterior(monkeypatch):
     assert any("Top 20" in c for c in oportunidades[0].que_cambio)
 
 
-def test_buscar_oportunidades_limita_al_tope_diario_ordenado_por_conviccion(monkeypatch):
+def test_buscar_oportunidades_devuelve_todas_ordenadas_por_conviccion(monkeypatch):
     monkeypatch.setattr(oh, "_estrategia_recomendada", lambda ticker, spot: (None, None, None))
     monkeypatch.setattr(oh, "_dias_a_resultados", lambda ticker: None)
     tickers = ["A", "B", "C", "D", "E"]
@@ -447,6 +450,53 @@ def test_buscar_oportunidades_limita_al_tope_diario_ordenado_por_conviccion(monk
     barras = {t: _barras_planas(precio=100.0) for t in tickers}
     fund = {t: Fundamentales(t) for t in tickers}
     oportunidades = oh.buscar_oportunidades(ranking, barras, fund)
-    assert len(oportunidades) == oh.LIMITE_DIARIO
-    esperado_top3 = sorted(tickers, key=lambda t: oh._conviccion("valor_impulso", subs[t]), reverse=True)[:3]
-    assert [o.ticker for o in oportunidades] == esperado_top3
+    # el tope diario ya NO se aplica aquí -- se mueve a mensaje_oportunidades
+    assert len(oportunidades) == len(tickers)
+    esperado_orden = sorted(tickers, key=lambda t: oh._conviccion("valor_impulso", subs[t]), reverse=True)
+    assert [o.ticker for o in oportunidades] == esperado_orden
+
+
+# ------------------------- mensaje_oportunidades / resumen del día -------------------------
+
+def _oportunidad_minima(ticker: str, conviccion: int) -> oh.Oportunidad:
+    return oh.Oportunidad(
+        ticker=ticker, nombre=None, patron="valor_impulso", conviccion=conviccion,
+        urgencia="Baja", decision="Comprar hoy", motivo_decision=None,
+        que_ocurrio="ocurrió algo", que_invalida="se invalida si...", que_espero="que se mantenga.",
+        que_cambio=[], entrada=100.0, precio_actual_texto="$100",
+        stop=90.0, objetivo=110.0, horizonte_dias=None,
+        capital_acciones=10000.0, capital_estrategia=None, estrategia_nombre=None, estrategia_por_que=[],
+        precio_maximo=None, checklist=oh._checklist("valor_impulso"),
+    )
+
+
+def test_mensaje_oportunidades_aplica_el_tope_diario_en_el_detalle():
+    oportunidades = [_oportunidad_minima(t, c) for t, c in [("A", 90), ("B", 85), ("C", 80), ("D", 75), ("E", 70)]]
+    texto = oh.mensaje_oportunidades(oportunidades, universo_n=480)
+    # solo las top LIMITE_DIARIO tienen bloque de detalle
+    for t in ("A", "B", "C"):
+        assert f"🚨 Oportunidad detectada\n\n{t}" in texto
+    for t in ("D", "E"):
+        assert f"🚨 Oportunidad detectada\n\n{t}" not in texto
+
+
+def test_resumen_del_dia_menciona_las_que_no_entraron_en_el_detalle():
+    todas = [_oportunidad_minima(t, c) for t, c in [("A", 90), ("B", 85), ("C", 80), ("D", 75), ("E", 70)]]
+    mostradas = todas[:3]
+    resumen = oh._resumen_del_dia(todas, mostradas, universo_n=480)
+    assert "🏁 Resumen del día" in resumen
+    assert "Analicé 480 empresas." in resumen
+    assert "Encontré 5 oportunidades." in resumen
+    assert "Pero solo compraría estas 3:" in resumen
+    assert "🥇 A (90/100)" in resumen
+    assert "🥈 B (85/100)" in resumen
+    assert "🥉 C (80/100)" in resumen
+    assert "Las demás (D, E) las vigilaría, pero no abriría posición hoy." in resumen
+
+
+def test_resumen_del_dia_sin_sobrantes_no_menciona_las_demas():
+    todas = [_oportunidad_minima("A", 90)]
+    resumen = oh._resumen_del_dia(todas, todas, universo_n=480)
+    assert "Encontré 1 oportunidad." in resumen
+    assert "Estas son las que sí compraría:" in resumen
+    assert "Las demás" not in resumen

@@ -97,7 +97,26 @@ en `risk_manager.config.RiskLimits.riesgo_por_trade_pct` (el mismo
 límite real del Risk Manager) en vez de calcular un monto en dólares
 atado a un capital específico -- la idea de adaptar montos al capital
 real del usuario sigue explícitamente fuera de alcance (ver
-`telegram_bot/trade_command.py`)."""
+`telegram_bot/trade_command.py`).
+
+Tercer refinamiento (feedback directo, 2026-07-25): el tope diario se
+movió de `buscar_oportunidades` (que ahora devuelve TODAS las
+detectadas, ordenadas por Convicción, sin recortar) a
+`mensaje_oportunidades` -- separa detección/ranking de presentación, y
+permite que el "🏁 Resumen del día" final mencione las oportunidades que
+no entraron en el detalle en vez de descartarlas en silencio ("Las
+demás las vigilaría, pero no abriría posición hoy"). "Qué cambió hoy"
+ahora aparece SIEMPRE (con "Sin cambios importantes. La tesis sigue
+intacta." cuando no hay deltas reales que reportar) en vez de omitirse
+-- pedido explícito: "así sabes inmediatamente por qué apareció". El
+emoji de urgencia baja pasó de 🟢 a ⚪: verde sugería "alta urgencia,
+actúa ya" (como un semáforo), justo lo contrario de lo que "Baja"
+significa aquí. "Capital" se reorganizó en Acciones/Opciones en vez de
+"Capital mínimo... o $X". Deliberadamente NO implementado (pedido
+explícito del dueño del producto de dejar de agregar indicadores y
+enfocarse en calidad de señal + medir desempeño): un índice de
+calidad/ranking con letras (A/B/C) -- sería redundante con Convicción +
+el checklist, que ya muestran exactamente los mismos factores."""
 
 from __future__ import annotations
 
@@ -139,7 +158,7 @@ BUFFER_PRECIO_MAXIMO_ATR = 0.25         # un cuarto del ATR real del papel, no u
 LIMITE_DIARIO = 3                       # tope diario -- "2-3 excelentes, no 20 mediocres"
 
 _URGENCIA = {"ruptura": "Alta", "pullback": "Media", "valor_impulso": "Baja"}
-_URGENCIA_EMOJI = {"Alta": "🔴", "Media": "🟡", "Baja": "🟢"}
+_URGENCIA_EMOJI = {"Alta": "🔴", "Media": "🟡", "Baja": "⚪"}
 _URGENCIA_MOTIVO = {
     "ruptura": "Los breakouts con volumen fuerte tienden a extenderse rápido -- "
                "esperar unos días podría significar perderse la mayor parte del movimiento.",
@@ -570,11 +589,11 @@ def buscar_oportunidades(
     COMPLETO ya validado (no solo el Top N de la shortlist, que es la
     limitación real de shortlist_hoy.json: solo persiste el Top N).
     Nunca lanza por un ticker individual -- un fallo aislado no debe
-    tumbar la corrida completa. Tope diario a `LIMITE_DIARIO` por
-    Convicción -- "prefiero 2-3 excelentes por semana que 20 mediocres
-    por día" aplicado como un techo real cuando el día detecta más de
-    las que vale la pena mandar (ver docstring del módulo sobre por qué
-    esto es un tope DIARIO y no semanal todavía)."""
+    tumbar la corrida completa. Devuelve TODAS las detectadas, ordenadas
+    por Convicción -- el tope diario a `LIMITE_DIARIO` se aplica en
+    `mensaje_oportunidades` (capa de presentación), no aquí, para que el
+    resumen final pueda mencionar las que no entraron en el detalle en
+    vez de descartarlas en silencio."""
     encontradas = []
     for p in ranking:
         b = barras_por_ticker.get(p.ticker)
@@ -589,7 +608,7 @@ def buscar_oportunidades(
         except Exception as e:
             log.warning("detección de oportunidad falló para %s: %s", p.ticker, e)
     encontradas.sort(key=lambda o: o.conviccion, reverse=True)
-    return encontradas[:LIMITE_DIARIO]
+    return encontradas
 
 
 def _fmt(x: float) -> str:
@@ -609,9 +628,11 @@ def formatear_oportunidad(o: Oportunidad) -> str:
 
     lineas += ["", "¿Por qué?", "", o.que_ocurrio, o.que_invalida, f"Lo que estoy esperando: {o.que_espero}"]
 
+    lineas += ["", "Qué cambió hoy:"]
     if o.que_cambio:
-        lineas += ["", "Qué cambió hoy:"]
         lineas += [f"✔ {c}" for c in o.que_cambio]
+    else:
+        lineas.append("Sin cambios importantes. La tesis sigue intacta.")
 
     lineas += ["", f"Precio actual: {o.precio_actual_texto}"]
     if o.stop is not None:
@@ -621,15 +642,15 @@ def formatear_oportunidad(o: Oportunidad) -> str:
     if o.horizonte_dias is not None:
         lineas.append(f"Horizonte esperado: {o.horizonte_dias} días (vencimiento de la opción elegida)")
 
-    lineas += ["", f"Capital mínimo recomendado: {_fmt(o.capital_acciones)} (comprar 100 acciones)"]
+    lineas += ["", "💰 Capital", f"Acciones: {_fmt(o.capital_acciones)}"]
     if o.capital_estrategia is not None and o.estrategia_nombre:
-        lineas.append(f"o {_fmt(o.capital_estrategia)} ({o.estrategia_nombre})")
-        lineas.append(f"Estrategia recomendada: {o.estrategia_nombre}")
+        lineas.append(f"Opciones: Desde {_fmt(o.capital_estrategia)}")
+        lineas += ["", f"Estrategia recomendada: {o.estrategia_nombre}"]
         if o.estrategia_por_que:
             lineas += ["", f"Elegí {o.estrategia_nombre} porque:"]
             lineas += [f"✔ {bullet}" for bullet in o.estrategia_por_que]
     else:
-        lineas.append("Estrategia recomendada: Comprar acciones directamente (opciones no disponibles hoy)")
+        lineas += ["", "Estrategia recomendada: Comprar acciones directamente (opciones no disponibles hoy)"]
 
     niveles_alerta = sorted({round(x) for x in (o.entrada, o.stop, o.objetivo) if x is not None})
     if niveles_alerta:
@@ -666,9 +687,41 @@ def formatear_oportunidad(o: Oportunidad) -> str:
     return "\n".join(lineas)
 
 
-def mensaje_oportunidades(oportunidades: list[Oportunidad]) -> str:
+def _resumen_del_dia(todas: list[Oportunidad], mostradas: list[Oportunidad], universo_n: int) -> str:
+    """Cierre del mensaje -- pedido explícito: "eso te obliga a
+    priorizar". Menciona TODAS las detectadas (no solo las mostradas en
+    detalle), para no descartar en silencio las que el tope diario dejó
+    afuera."""
+    medallas = ["🥇", "🥈", "🥉"]
+    plural = "oportunidad" if len(todas) == 1 else "oportunidades"
+    lineas = [SEP, "", "🏁 Resumen del día", f"Analicé {universo_n} empresas.", f"Encontré {len(todas)} {plural}."]
+    lineas.append(
+        f"Pero solo compraría estas {len(mostradas)}:" if len(todas) > len(mostradas)
+        else "Estas son las que sí compraría:"
+    )
+    for i, o in enumerate(mostradas):
+        medalla = medallas[i] if i < len(medallas) else "•"
+        lineas.append(f"{medalla} {o.ticker} ({o.conviccion}/100)")
+    restantes = todas[len(mostradas):]
+    if restantes:
+        lineas.append(
+            f"Las demás ({', '.join(o.ticker for o in restantes)}) las vigilaría, "
+            "pero no abriría posición hoy."
+        )
+    lineas += ["", SEP]
+    return "\n".join(lineas)
+
+
+def mensaje_oportunidades(oportunidades: list[Oportunidad], universo_n: int) -> str:
     """Texto final a mandar por Telegram -- el no-resultado
-    (SIN_OPORTUNIDADES) es una salida tan válida como encontrar varias."""
+    (SIN_OPORTUNIDADES) es una salida tan válida como encontrar varias.
+    `oportunidades` ya viene ordenada por Convicción (ver
+    buscar_oportunidades); el tope diario (mostrar el detalle de solo
+    las mejores `LIMITE_DIARIO`) se aplica aquí, en la capa de
+    presentación."""
     if not oportunidades:
         return SIN_OPORTUNIDADES
-    return "\n\n".join(formatear_oportunidad(o) for o in oportunidades)
+    mostrar = oportunidades[:LIMITE_DIARIO]
+    cuerpo = "\n\n".join(formatear_oportunidad(o) for o in mostrar)
+    resumen = _resumen_del_dia(oportunidades, mostrar, universo_n)
+    return f"{cuerpo}\n\n{resumen}"
