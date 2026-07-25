@@ -116,13 +116,39 @@ significa aquí. "Capital" se reorganizó en Acciones/Opciones en vez de
 explícito del dueño del producto de dejar de agregar indicadores y
 enfocarse en calidad de señal + medir desempeño): un índice de
 calidad/ranking con letras (A/B/C) -- sería redundante con Convicción +
-el checklist, que ya muestran exactamente los mismos factores."""
+el checklist, que ya muestran exactamente los mismos factores.
+
+Cuarto refinamiento (feedback directo, 2026-07-25): "no quiero leer
+cinco reportes completos todos los días" -- el mensaje diario que
+`mensaje_oportunidades` arma ahora es SOLO el resumen/ranking
+(`_resumen_del_dia`, renombrado "🏁 Mercado de hoy"), nunca el detalle
+completo por ticker. `formatear_oportunidad` sigue existiendo, probado
+y completo (checklist, plan, por qué la estrategia, etc. -- todo lo que
+el dueño del producto calificó como "lo mejor") pero ya NO se llama
+automáticamente aquí: la idea es que ese detalle se pida bajo demanda
+con `/trade TICKER` (comando ya existente, con su propio motor de plan)
+en vez de mandarse sin pedir. Conectar `/trade` para que reutilice
+específicamente el POR QUÉ de este módulo cuando el ticker consultado
+es una de las oportunidades de hoy queda pendiente -- no implementado
+todavía, requeriría persistir las oportunidades detectadas (como ya se
+hace con `shortlist_hoy.json`) y leerlas desde `telegram_bot/
+trade_command.py`. El resumen ahora también traduce Convicción (0-100)
+a una letra fija (`_grado`: A+/A/B+/B/C) -- pedido explícito, "más fácil
+recordar A+ que 85" -- son los mismos buckets sobre el mismo número real,
+nunca un cálculo nuevo. Se separó "Horizonte esperado" en dos conceptos
+reales y distintos: `horizonte_tesis` (rango fijo por patrón -- la tesis
+de inversión no depende de qué vencimiento de opción se haya elegido) y,
+solo si se recomienda una estrategia de opciones, la fecha calendario
+real de vencimiento (hoy + los días reales que ya calcula
+`options_ideas`, nunca inventada). "Precio máximo que pagaría" ahora
+dice explícitamente que sale del ATR real del papel, para que no
+parezca un número arbitrario."""
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta
 
 from risk_manager.config import RiskLimits
 from screener.data.provider import Barras, Fundamentales
@@ -168,6 +194,45 @@ _URGENCIA_MOTIVO = {
                      "de un día para otro.",
 }
 _DECISION_EMOJI = {"Comprar hoy": "🟢", "Esperar": "🟡", "No operar": "❌"}
+
+# El horizonte de la TESIS es independiente del vencimiento de cualquier
+# opción -- rango fijo por patrón, editorial y documentado, nunca
+# calculado por ticker (eso sería inventar precisión que no existe).
+_HORIZONTE_TESIS = {
+    "ruptura": "1-3 semanas",
+    "pullback": "2-6 semanas",
+    "valor_impulso": "1-3 meses",
+}
+
+_MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio",
+         "agosto", "septiembre", "octubre", "noviembre", "diciembre"]
+
+
+def _fecha_vencimiento_texto(horizonte_dias: int | None) -> str | None:
+    """Fecha calendario real de vencimiento -- hoy + los días reales que
+    ya calculó `options_ideas` sobre la cadena de opciones, nunca
+    inventada. None si no hay estrategia de opciones (se omite en vez de
+    mostrar una fecha falsa)."""
+    if horizonte_dias is None:
+        return None
+    fecha = date.today() + timedelta(days=horizonte_dias)
+    return f"{fecha.day} de {_MESES[fecha.month - 1]} de {fecha.year}"
+
+
+def _grado(conviccion: int) -> str:
+    """Traduce Convicción (0-100, el mismo número real ya mostrado) a
+    una letra -- pedido explícito: "psicológicamente es más fácil
+    recordar A+, A, B que 85, 79 y 77". Buckets fijos sobre el mismo
+    dato, nunca un cálculo nuevo."""
+    if conviccion >= 90:
+        return "A+"
+    if conviccion >= 80:
+        return "A"
+    if conviccion >= 70:
+        return "B+"
+    if conviccion >= 60:
+        return "B"
+    return "C"
 
 # Por qué esta estrategia de opciones y no otra -- mismo espíritu que
 # `telegram_bot/trade_command._VS_ACCIONES` (ventajas/desventajas reales
@@ -235,6 +300,7 @@ class Oportunidad:
     stop: float | None
     objetivo: float | None
     horizonte_dias: int | None
+    horizonte_tesis: str
     capital_acciones: float
     capital_estrategia: float | None
     estrategia_nombre: str | None
@@ -575,6 +641,7 @@ def construir_oportunidad(
         que_ocurrio=que_ocurrio, que_invalida=que_invalida, que_espero=que_espero,
         que_cambio=que_cambio, entrada=spot, precio_actual_texto=precio_actual_texto,
         stop=niveles.get("cancelar"), objetivo=objetivo, horizonte_dias=horizonte_dias,
+        horizonte_tesis=_HORIZONTE_TESIS[patron],
         capital_acciones=capital_acciones, capital_estrategia=capital_estrategia,
         estrategia_nombre=estrategia_nombre, estrategia_por_que=estrategia_por_que,
         precio_maximo=precio_maximo, checklist=checklist,
@@ -639,8 +706,10 @@ def formatear_oportunidad(o: Oportunidad) -> str:
         lineas.append(f"Stop: {_fmt(o.stop)}")
     if o.objetivo is not None:
         lineas.append(f"Objetivo: {_fmt(o.objetivo)}")
-    if o.horizonte_dias is not None:
-        lineas.append(f"Horizonte esperado: {o.horizonte_dias} días (vencimiento de la opción elegida)")
+    lineas.append(f"Horizonte esperado de la tesis: {o.horizonte_tesis}")
+    vencimiento_texto = _fecha_vencimiento_texto(o.horizonte_dias)
+    if vencimiento_texto is not None:
+        lineas.append(f"Si usas opciones -- vencimiento sugerido: {vencimiento_texto}")
 
     lineas += ["", "💰 Capital", f"Acciones: {_fmt(o.capital_acciones)}"]
     if o.capital_estrategia is not None and o.estrategia_nombre:
@@ -666,6 +735,10 @@ def formatear_oportunidad(o: Oportunidad) -> str:
         if o.precio_maximo is not None:
             lineas.append(f"Precio máximo que pagaría: {_fmt(o.precio_maximo)}")
             lineas.append(
+                "¿Por qué? Está dentro del rango de entrada calculado por el ATR "
+                "real del papel."
+            )
+            lineas.append(
                 f"Si mañana abre arriba de {_fmt(o.precio_maximo)}: esperaría otro "
                 "retroceso antes de entrar."
             )
@@ -688,26 +761,28 @@ def formatear_oportunidad(o: Oportunidad) -> str:
 
 
 def _resumen_del_dia(todas: list[Oportunidad], mostradas: list[Oportunidad], universo_n: int) -> str:
-    """Cierre del mensaje -- pedido explícito: "eso te obliga a
-    priorizar". Menciona TODAS las detectadas (no solo las mostradas en
-    detalle), para no descartar en silencio las que el tope diario dejó
-    afuera."""
+    """El mensaje diario ENTERO (feedback 2026-07-25, quinta ronda: "no
+    quiero leer cinco reportes completos todos los días") -- solo el
+    ranking, nunca el detalle de `formatear_oportunidad`. Menciona TODAS
+    las detectadas (no solo las mostradas), para no descartar en
+    silencio las que el tope diario dejó afuera."""
     medallas = ["🥇", "🥈", "🥉"]
     plural = "oportunidad" if len(todas) == 1 else "oportunidades"
-    lineas = [SEP, "", "🏁 Resumen del día", f"Analicé {universo_n} empresas.", f"Encontré {len(todas)} {plural}."]
+    lineas = [SEP, "", "🏁 Mercado de hoy", f"Analicé {universo_n} empresas.", f"Encontré {len(todas)} {plural}."]
     lineas.append(
-        f"Pero solo compraría estas {len(mostradas)}:" if len(todas) > len(mostradas)
-        else "Estas son las que sí compraría:"
+        "Solo ejecutaría:" if len(todas) > len(mostradas)
+        else "Estas son las que sí ejecutaría:"
     )
     for i, o in enumerate(mostradas):
         medalla = medallas[i] if i < len(medallas) else "•"
-        lineas.append(f"{medalla} {o.ticker} ({o.conviccion}/100)")
+        lineas.append(f"{medalla} {o.ticker} -- {_grado(o.conviccion)} ({o.conviccion}/100)")
     restantes = todas[len(mostradas):]
     if restantes:
         lineas.append(
-            f"Las demás ({', '.join(o.ticker for o in restantes)}) las vigilaría, "
-            "pero no abriría posición hoy."
+            f"Las otras {len(restantes)} ({', '.join(o.ticker for o in restantes)}) las "
+            "dejaría en vigilancia."
         )
+    lineas.append(f"Escribe /trade {mostradas[0].ticker} para ver el plan completo (o cualquier otro ticker de arriba).")
     lineas += ["", SEP]
     return "\n".join(lineas)
 
@@ -716,12 +791,10 @@ def mensaje_oportunidades(oportunidades: list[Oportunidad], universo_n: int) -> 
     """Texto final a mandar por Telegram -- el no-resultado
     (SIN_OPORTUNIDADES) es una salida tan válida como encontrar varias.
     `oportunidades` ya viene ordenada por Convicción (ver
-    buscar_oportunidades); el tope diario (mostrar el detalle de solo
-    las mejores `LIMITE_DIARIO`) se aplica aquí, en la capa de
-    presentación."""
+    buscar_oportunidades). El mensaje diario es SOLO el resumen/ranking
+    (`_resumen_del_dia`) -- el detalle completo de `formatear_oportunidad`
+    ya no se envía automáticamente, se pide con `/trade TICKER`."""
     if not oportunidades:
         return SIN_OPORTUNIDADES
     mostrar = oportunidades[:LIMITE_DIARIO]
-    cuerpo = "\n\n".join(formatear_oportunidad(o) for o in mostrar)
-    resumen = _resumen_del_dia(oportunidades, mostrar, universo_n)
-    return f"{cuerpo}\n\n{resumen}"
+    return _resumen_del_dia(oportunidades, mostrar, universo_n)
