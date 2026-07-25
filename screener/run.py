@@ -148,7 +148,13 @@ def main() -> None:
     # completo, no para esto). Si la cadena de un ticker puntual falla,
     # se degrada con gracia a "Comprar acciones directamente" (ver
     # opportunity_hunter._estrategia_recomendada), nunca revienta la corrida.
-    oportunidades = buscar_oportunidades(ranking, barras_validas, fund)
+    # tickers_anteriores viene del mismo `anterior` que ya se leyó arriba
+    # para el diff -- ningún dato nuevo, solo se reutiliza para que el
+    # Opportunity Hunter pueda decir "entró al Top 20 hoy" cuando aplica.
+    tickers_anteriores = (
+        {d["ticker"] for d in anterior["shortlist"]} if anterior else None
+    )
+    oportunidades = buscar_oportunidades(ranking, barras_validas, fund, tickers_anteriores)
     txt_oportunidades = mensaje_oportunidades(oportunidades)
     log.info("Opportunity Hunter: %d oportunidad(es) detectada(s)", len(oportunidades))
     print("\n" + txt_oportunidades)

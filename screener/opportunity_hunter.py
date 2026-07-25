@@ -43,7 +43,29 @@ histórico de IV/volumen de opciones recolectado -- ver el docstring de
 Cada ticker dispara COMO MÁXIMO un patrón (el primero que aplica, en
 orden ruptura > pullback > valor_impulso) para no mandar dos alertas del
 mismo ticker el mismo día.
-"""
+
+Refinamiento tras el primer envío real (feedback directo, 2026-07-25):
+"Comprar hoy" ya no puede quedar sin explicar su relación con el precio
+-- el mensaje ahora dice explícitamente que el precio de hoy YA está
+dentro de la zona que activó el patrón (ver `_precio_actual_texto` y el
+bloque de decisión en `formatear_oportunidad`); esa reconciliación es
+posible porque, en el pipeline actual (una sola corrida por día que
+calcula y envía en el mismo paso), el precio con el que se detectó el
+patrón es siempre el mismo que se muestra en el mensaje. Si en el futuro
+existe un segundo proceso que vigile el mercado en vivo (alertas
+intradía, explícitamente NO construido todavía -- ver el "próximo gran
+paso" que describió el dueño del producto), ahí sí puede haber una
+brecha real entre "cuándo se detectó" y "cuándo se lee el mensaje", y
+esta lógica tendría que revisarse. "Liquidez baja" y "esperar por
+resultados" ahora explican el POR QUÉ en prosa en vez de una frase
+telegráfica. Cada oportunidad también dice qué está esperando el modelo
+para confirmar la tesis (`que_espero`), qué cambió desde ayer usando las
+mismas barras ya descargadas menos el último día (`_que_cambio` -- nunca
+un dato nuevo), y por qué eligió esa estrategia de opciones sobre
+comprar acciones directamente (`_por_que_estrategia`, mismo espíritu que
+el diccionario fijo `_VS_ACCIONES` de `telegram_bot/trade_command.py`,
+pero definido aquí mismo para no invertir la dependencia natural
+screener → telegram_bot)."""
 
 from __future__ import annotations
 
@@ -78,8 +100,67 @@ UMBRAL_CALIDAD_SOLIDA = 60.0
 UMBRAL_MOMENTUM_FUERTE = 70.0
 UMBRAL_LIQUIDEZ_MINIMA = 20.0
 DIAS_EARNINGS_EVITAR = 5
+UMBRAL_CAMBIO_RSI = 3.0                 # puntos de RSI para considerarlo "cambió"
+UMBRAL_CAMBIO_DISTANCIA_SMA50 = 0.002   # 0.2pp de acercamiento mínimo para reportarlo
 
 _URGENCIA = {"ruptura": "Alta", "pullback": "Media", "valor_impulso": "Baja"}
+_URGENCIA_EMOJI = {"Alta": "🔴", "Media": "🟡", "Baja": "🟢"}
+_URGENCIA_MOTIVO = {
+    "ruptura": "Los breakouts con volumen fuerte tienden a extenderse rápido -- "
+               "esperar unos días podría significar perderse la mayor parte del movimiento.",
+    "pullback": "Una corrección sana suele dar unos días de margen antes de que la "
+                "tendencia retome fuerza.",
+    "valor_impulso": "Una acción barata con momentum ya positivo no suele revertirse "
+                     "de un día para otro.",
+}
+_DECISION_EMOJI = {"Comprar hoy": "🟢", "Esperar": "🟡", "No operar": "❌"}
+
+# Por qué esta estrategia de opciones y no otra -- mismo espíritu que
+# `telegram_bot/trade_command._VS_ACCIONES` (ventajas/desventajas reales
+# frente a comprar la acción directamente), copia local para no invertir
+# la dependencia natural screener → telegram_bot. Solo cubre estrategias
+# no-bajistas: son las únicas que `_estrategia_recomendada` puede elegir
+# (los 3 patrones de fase 1 son estructuralmente alcistas).
+_POR_QUE_ESTRATEGIA = {
+    "Long Call": [
+        "Necesita mucho menos capital que comprar {ticker} directamente "
+        "(${capital_estrategia} vs. ${capital_acciones}).",
+        "La pérdida máxima está limitada a la prima pagada.",
+        "Si {ticker} sube con fuerza, el rendimiento puede ser proporcionalmente "
+        "mayor que comprando acciones.",
+    ],
+    "Bull Call Spread": [
+        "Necesita menos capital que comprar {ticker} directamente "
+        "(${capital_estrategia} vs. ${capital_acciones}).",
+        "La pérdida máxima está limitada a lo que se paga por el spread.",
+        "El objetivo esperado no requiere una subida enorme para que el spread "
+        "gane el máximo.",
+    ],
+    "Bull Put Spread": [
+        "No requiere comprar acciones -- cobras una prima al abrir en vez de pagarla.",
+        "Gana incluso si {ticker} se queda igual o sube, no solo si sube con fuerza.",
+        "El riesgo máximo (${capital_estrategia}) puede superar varias veces la "
+        "prima cobrada si {ticker} cae con fuerza.",
+    ],
+    "Covered Call": [
+        "Requiere poseer (o comprar) 100 acciones -- capital similar a comprarlas "
+        "directamente (${capital_acciones}).",
+        "Genera ingreso extra (la prima cobrada) mientras esperas.",
+        "Limita cuánto puedes ganar si {ticker} sube con mucha fuerza.",
+    ],
+    "Cash Secured Put": [
+        "Requiere reservar casi el mismo capital que comprar las acciones "
+        "(${capital_estrategia} vs. ${capital_acciones}).",
+        "Cobras una prima incluso si {ticker} no se mueve o sube.",
+        "Si {ticker} cae con fuerza, terminas comprando por encima del precio de mercado.",
+    ],
+    "Iron Condor": [
+        "No requiere tener una posición direccional en {ticker}.",
+        "Gana si {ticker} se queda dentro de un rango en vez de necesitar que suba.",
+        "El riesgo máximo (${capital_estrategia}) puede superar varias veces la "
+        "prima cobrada si se mueve fuerte en cualquier dirección.",
+    ],
+}
 
 
 @dataclass(frozen=True)
@@ -93,13 +174,17 @@ class Oportunidad:
     motivo_decision: str | None
     que_ocurrio: str
     que_invalida: str
+    que_espero: str
+    que_cambio: list[str]
     entrada: float
+    precio_actual_texto: str
     stop: float | None
     objetivo: float | None
     horizonte_dias: int | None
     capital_acciones: float
     capital_estrategia: float | None
     estrategia_nombre: str | None
+    estrategia_por_que: list[str]
 
 
 def _volumen_ratio(b: Barras, ventana: int = 20) -> float | None:
@@ -110,6 +195,15 @@ def _volumen_ratio(b: Barras, ventana: int = 20) -> float | None:
     anteriores = b.volume[-ventana - 1:-1]
     promedio = sum(anteriores) / len(anteriores)
     return b.volume[-1] / promedio if promedio > 0 else None
+
+
+def _bars_sin_ultima(b: Barras) -> Barras | None:
+    """Las mismas barras ya descargadas, sin el último día -- una
+    aproximación honesta de "cómo se veía esto ayer" sin pedir ningún
+    dato nuevo. None si no hay suficiente historia para que tenga sentido."""
+    if len(b.close) < 20:
+        return None
+    return Barras(b.ticker, b.fechas[:-1], b.close[:-1], b.high[:-1], b.low[:-1], b.volume[:-1])
 
 
 def _detectar_ruptura(b: Barras) -> bool:
@@ -176,7 +270,12 @@ def _conviccion(patron: str, sub: dict[str, float]) -> int:
     return round(sum(v * w for v, w in disponibles) / peso_total)
 
 
-def _que_ocurrio_y_invalida(patron: str, ticker: str, b: Barras, sub: dict[str, float]) -> tuple[str, str]:
+def _que_ocurrio_invalida_y_espero(
+    patron: str, ticker: str, b: Barras, sub: dict[str, float],
+) -> tuple[str, str, str]:
+    """Tercer elemento nuevo (feedback 2026-07-25): "que_espero" -- qué
+    confirmación concreta busca el modelo para creer que la tesis sigue
+    viva, distinto de "que_invalida" (qué la mataría)."""
     if patron == "ruptura":
         max52 = tech.maximo_52s(b)
         vol_ratio = _volumen_ratio(b)
@@ -185,6 +284,8 @@ def _que_ocurrio_y_invalida(patron: str, ticker: str, b: Barras, sub: dict[str, 
             f"{vol_ratio:.1f}x el promedio de los últimos 20 días, dentro de una tendencia "
             f"alcista confirmada.",
             f"Si vuelve a cerrar debajo de ${max52:,.0f} en los próximos días, la ruptura se invalida.",
+            f"Que {ticker} se mantenga sobre ${max52:,.0f} en los próximos días, confirmando "
+            "que la ruptura tiene fuerza real y no es una falsa alarma.",
         )
     if patron == "pullback":
         sma50 = tech.sma(b.close, 50)
@@ -194,6 +295,7 @@ def _que_ocurrio_y_invalida(patron: str, ticker: str, b: Barras, sub: dict[str, 
             f"tendencia alcista fuerte, con RSI en zona saludable ({rsi:.0f}).",
             f"Si rompe con fuerza por debajo de ${sma50:,.0f}, o el RSI cae debajo de 30, "
             f"la corrección deja de ser sana.",
+            "Que el rebote confirme el soporte de la media de 50 días en vez de romperla.",
         )
     valor, calidad, momentum = sub.get("valor"), sub.get("calidad"), sub.get("momentum")
     return (
@@ -202,7 +304,41 @@ def _que_ocurrio_y_invalida(patron: str, ticker: str, b: Barras, sub: dict[str, 
         f"ya positivo (percentil {momentum:.0f}/100).",
         "Si el momentum se revierte o deja de estar entre las más baratas del universo, "
         "la tesis pierde base.",
+        "Que el momentum se mantenga mientras siga entre las más baratas del universo.",
     )
+
+
+def _que_cambio(
+    b: Barras, ayer: Barras | None, en_shortlist_ayer: bool | None,
+) -> list[str]:
+    """Por qué apareció HOY y no otro día -- deltas reales contra "ayer"
+    (las mismas barras sin el último día, ver `_bars_sin_ultima`; y la
+    shortlist persistida del día anterior para "entró al Top 20", cuando
+    se conoce). Nunca inventa un cambio: cada línea exige una diferencia
+    numérica real por encima de un umbral mínimo, y si no hay suficiente
+    historia para comparar, la lista queda vacía (se omite la sección
+    entera en el mensaje, nunca se rellena)."""
+    cambios: list[str] = []
+    if en_shortlist_ayer is False:
+        cambios.append("Entró al Top 20 del screener hoy.")
+    if ayer is None:
+        return cambios
+    rsi_hoy, rsi_ayer = tech.rsi(b), tech.rsi(ayer)
+    if rsi_hoy is not None and rsi_ayer is not None and abs(rsi_hoy - rsi_ayer) >= UMBRAL_CAMBIO_RSI:
+        direccion = "bajó" if rsi_hoy < rsi_ayer else "subió"
+        cambios.append(f"El RSI {direccion} de {rsi_ayer:.0f} a {rsi_hoy:.0f}.")
+    sma50_hoy, sma50_ayer = tech.sma(b.close, 50), tech.sma(ayer.close, 50)
+    if sma50_hoy and sma50_ayer and sma50_hoy > 0 and sma50_ayer > 0:
+        dist_hoy = abs(b.close[-1] - sma50_hoy) / sma50_hoy
+        dist_ayer = abs(ayer.close[-1] - sma50_ayer) / sma50_ayer
+        if dist_hoy < dist_ayer - UMBRAL_CAMBIO_DISTANCIA_SMA50:
+            cambios.append("Se acercó a su media de 50 días.")
+    tendencia_hoy, tendencia_ayer = tech.score_tendencia(b), tech.score_tendencia(ayer)
+    if tendencia_hoy == 3.0 and tendencia_ayer == 3.0:
+        cambios.append("La tendencia de fondo se mantiene fuerte.")
+    elif tendencia_hoy == 3.0 and tendencia_ayer != 3.0:
+        cambios.append("La tendencia de fondo se confirmó hoy.")
+    return cambios
 
 
 def _objetivo(spot: float, max52: float | None, cancelar: float | None) -> float | None:
@@ -221,10 +357,18 @@ def _objetivo(spot: float, max52: float | None, cancelar: float | None) -> float
 
 
 def _decision(sub_liquidez: float | None, dias_a_resultados: int | None) -> tuple[str, str | None]:
+    """Explica el POR QUÉ en prosa (feedback 2026-07-25: "así entiendes
+    inmediatamente por qué la descarta"), no una frase telegráfica."""
     if sub_liquidez is not None and sub_liquidez < UMBRAL_LIQUIDEZ_MINIMA:
-        return "No operar", "Liquidez muy baja -- dificulta entrar o salir a buen precio."
+        return "No operar", (
+            "Aunque la empresa parece atractiva, las opciones tienen poca liquidez. "
+            "Eso puede hacer difícil entrar o salir sin pagar un spread alto."
+        )
     if dias_a_resultados is not None and 0 <= dias_a_resultados <= DIAS_EARNINGS_EVITAR:
-        return "Esperar", f"Resultados en {dias_a_resultados} días -- prefiero evitar la volatilidad de earnings."
+        return "Esperar", (
+            f"Resultados en {dias_a_resultados} días -- prefiero evitar la volatilidad "
+            "que trae el reporte antes de abrir la posición."
+        )
     return "Comprar hoy", None
 
 
@@ -264,35 +408,89 @@ def _estrategia_recomendada(ticker: str, spot: float) -> tuple[str | None, float
     return top.nombre, top.riesgo_maximo, cadena.dias_a_vencimiento
 
 
-def construir_oportunidad(p: Puntuacion, b: Barras, fund: Fundamentales, patron: str) -> Oportunidad:
+def _por_que_estrategia(
+    nombre: str | None, ticker: str, capital_estrategia: float | None, capital_acciones: float,
+) -> list[str]:
+    """Ventajas reales de la estrategia elegida frente a comprar la
+    acción directamente -- responde "¿por qué esta y no otra?" en vez de
+    dejar el nombre de la estrategia parado sin explicación (feedback
+    2026-07-25: "eso hace que la estrategia deje de parecer arbitraria")."""
+    if not nombre or capital_estrategia is None:
+        return []
+    plantillas = _POR_QUE_ESTRATEGIA.get(nombre)
+    if not plantillas:
+        return []
+    return [p.format(ticker=ticker, capital_estrategia=f"{capital_estrategia:,.0f}",
+                     capital_acciones=f"{capital_acciones:,.0f}") for p in plantillas]
+
+
+def _precio_actual_texto(patron: str, spot: float, ayer: Barras | None, sma50: float | None) -> str:
+    """El precio de hoy, con la distancia a un ancla real y no inventada
+    cuando existe una que tenga sentido para el patrón: para "ruptura",
+    cuánto superó su máximo de 52 semanas ANTERIOR (excluyendo la barra de
+    hoy, si no siempre daría ~0% porque hoy mismo es el máximo); para
+    "pullback", la distancia a la media de 50 días que definió la
+    corrección. "valor_impulso" no tiene un ancla de precio natural (es
+    una señal de valuación, no técnica) -- se omite en vez de inventar
+    una."""
+    if patron == "ruptura" and ayer is not None:
+        max52_previo = tech.maximo_52s(ayer)
+        if max52_previo and max52_previo > 0:
+            pct = (spot - max52_previo) / max52_previo * 100
+            return (f"${spot:,.0f} ({pct:+.1f}% sobre su máximo de 52 semanas "
+                    f"anterior de ${max52_previo:,.0f})")
+    if patron == "pullback" and sma50 and sma50 > 0:
+        pct = (spot - sma50) / sma50 * 100
+        return f"${spot:,.0f} ({pct:+.1f}% vs. su media de 50 días, ${sma50:,.0f})"
+    return f"${spot:,.0f}"
+
+
+def construir_oportunidad(
+    p: Puntuacion, b: Barras, fund: Fundamentales, patron: str,
+    tickers_shortlist_anterior: set[str] | None = None,
+) -> Oportunidad:
     """Ensambla una Oportunidad ya detectada -- reutiliza los mismos
     niveles de precio (ATR/SMA50) que /trade y /report
     (`screener.factors.technical.niveles_precio`), nunca un cálculo
-    paralelo."""
+    paralelo. `tickers_shortlist_anterior` (los tickers del Top N de
+    AYER, ya persistidos en shortlist_hoy.json antes de sobrescribirlo)
+    es opcional -- si no se pasa, simplemente se omite el dato de "entró
+    al Top 20 hoy" en vez de asumir nada."""
     spot = b.close[-1]
     sma50 = tech.sma(b.close, 50)
     atr_val = tech.atr(b)
     niveles = tech.niveles_precio(spot, atr_val, sma50)
     max52 = tech.maximo_52s(b)
     objetivo = _objetivo(spot, max52, niveles.get("cancelar"))
-    que_ocurrio, que_invalida = _que_ocurrio_y_invalida(patron, p.ticker, b, p.sub)
+    que_ocurrio, que_invalida, que_espero = _que_ocurrio_invalida_y_espero(patron, p.ticker, b, p.sub)
     conviccion = _conviccion(patron, p.sub)
     dias_resultados = _dias_a_resultados(p.ticker)
     decision, motivo_decision = _decision(p.sub.get("liquidez"), dias_resultados)
     estrategia_nombre, capital_estrategia, horizonte_dias = _estrategia_recomendada(p.ticker, spot)
+    capital_acciones = spot * 100
+    estrategia_por_que = _por_que_estrategia(estrategia_nombre, p.ticker, capital_estrategia, capital_acciones)
+
+    ayer = _bars_sin_ultima(b)
+    precio_actual_texto = _precio_actual_texto(patron, spot, ayer, sma50)
+    en_shortlist_ayer = (
+        p.ticker in tickers_shortlist_anterior if tickers_shortlist_anterior is not None else None
+    )
+    que_cambio = _que_cambio(b, ayer, en_shortlist_ayer)
 
     return Oportunidad(
         ticker=p.ticker, nombre=p.nombre, patron=patron, conviccion=conviccion,
         urgencia=_URGENCIA[patron], decision=decision, motivo_decision=motivo_decision,
-        que_ocurrio=que_ocurrio, que_invalida=que_invalida, entrada=spot,
+        que_ocurrio=que_ocurrio, que_invalida=que_invalida, que_espero=que_espero,
+        que_cambio=que_cambio, entrada=spot, precio_actual_texto=precio_actual_texto,
         stop=niveles.get("cancelar"), objetivo=objetivo, horizonte_dias=horizonte_dias,
-        capital_acciones=spot * 100, capital_estrategia=capital_estrategia,
-        estrategia_nombre=estrategia_nombre,
+        capital_acciones=capital_acciones, capital_estrategia=capital_estrategia,
+        estrategia_nombre=estrategia_nombre, estrategia_por_que=estrategia_por_que,
     )
 
 
 def buscar_oportunidades(
     ranking: list[Puntuacion], barras_por_ticker: dict[str, Barras], fund_por_ticker: dict[str, Fundamentales],
+    tickers_shortlist_anterior: set[str] | None = None,
 ) -> list[Oportunidad]:
     """Punto de entrada del pipeline diario -- escanea el universo
     COMPLETO ya validado (no solo el Top N de la shortlist, que es la
@@ -309,7 +507,7 @@ def buscar_oportunidades(
             patron = detectar_patron(b, p.sub, fund)
             if patron is None:
                 continue
-            encontradas.append(construir_oportunidad(p, b, fund, patron))
+            encontradas.append(construir_oportunidad(p, b, fund, patron, tickers_shortlist_anterior))
         except Exception as e:
             log.warning("detección de oportunidad falló para %s: %s", p.ticker, e)
     return encontradas
@@ -323,13 +521,20 @@ def formatear_oportunidad(o: Oportunidad) -> str:
     lineas = [SEP, "", "🚨 Oportunidad detectada", "", o.ticker]
     if o.nombre:
         lineas.append(o.nombre)
-    lineas += ["", f"Convicción del modelo: {o.conviccion}/100", "", f"Mi decisión: {o.decision}"]
+    lineas += ["", f"Convicción del modelo: {o.conviccion}/100", "",
+              f"Mi decisión: {_DECISION_EMOJI[o.decision]} {o.decision}"]
     if o.motivo_decision:
         lineas.append(o.motivo_decision)
+    elif o.decision == "Comprar hoy":
+        lineas.append(f"Precio actual dentro de la zona que activó este patrón ({_fmt(o.entrada)}).")
 
-    lineas += ["", "¿Por qué?", "", o.que_ocurrio, o.que_invalida]
+    lineas += ["", "¿Por qué?", "", o.que_ocurrio, o.que_invalida, f"Lo que estoy esperando: {o.que_espero}"]
 
-    lineas += ["", f"Entrada ideal: {_fmt(o.entrada)}"]
+    if o.que_cambio:
+        lineas += ["", "Qué cambió hoy:"]
+        lineas += [f"✔ {c}" for c in o.que_cambio]
+
+    lineas += ["", f"Precio actual: {o.precio_actual_texto}"]
     if o.stop is not None:
         lineas.append(f"Stop: {_fmt(o.stop)}")
     if o.objetivo is not None:
@@ -341,6 +546,9 @@ def formatear_oportunidad(o: Oportunidad) -> str:
     if o.capital_estrategia is not None and o.estrategia_nombre:
         lineas.append(f"o {_fmt(o.capital_estrategia)} ({o.estrategia_nombre})")
         lineas.append(f"Estrategia recomendada: {o.estrategia_nombre}")
+        if o.estrategia_por_que:
+            lineas += ["", f"Elegí {o.estrategia_nombre} porque:"]
+            lineas += [f"✔ {bullet}" for bullet in o.estrategia_por_que]
     else:
         lineas.append("Estrategia recomendada: Comprar acciones directamente (opciones no disponibles hoy)")
 
@@ -348,7 +556,8 @@ def formatear_oportunidad(o: Oportunidad) -> str:
     if niveles_alerta:
         lineas += ["", f"Crear alertas en estos niveles: {', '.join(_fmt(x) for x in niveles_alerta)}"]
 
-    lineas += ["", f"Nivel de urgencia: {o.urgencia}"]
+    lineas += ["", f"Nivel de urgencia: {_URGENCIA_EMOJI[o.urgencia]} {o.urgencia}"]
+    lineas.append(_URGENCIA_MOTIVO[o.patron])
     accion = {"Comprar hoy": "Comprar hoy", "Esperar": "Crear alertas y esperar confirmación",
              "No operar": "No abrir posición hoy"}[o.decision]
     lineas += ["", f"Acción siguiente: {accion}", "", SEP]
