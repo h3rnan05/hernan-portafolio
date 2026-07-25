@@ -65,7 +65,39 @@ un dato nuevo), y por qué eligió esa estrategia de opciones sobre
 comprar acciones directamente (`_por_que_estrategia`, mismo espíritu que
 el diccionario fijo `_VS_ACCIONES` de `telegram_bot/trade_command.py`,
 pero definido aquí mismo para no invertir la dependencia natural
-screener → telegram_bot)."""
+screener → telegram_bot).
+
+Segundo refinamiento (feedback directo, 2026-07-25): un tope diario de
+`LIMITE_DIARIO` oportunidades (las de mayor Convicción, si hubiera más
+detectadas) -- pedido explícito: "prefiero recibir 2 oportunidades
+excelentes por semana que 20 mediocres por día", y en la práctica un
+día llegó a mandar 4. Esto es un tope DIARIO, no semanal: un tope
+semanal de verdad requeriría persistir qué tickers ya se mandaron esta
+semana para no repetirlos -- explícitamente NO construido todavía (el
+"próximo gran paso" que describió el dueño del producto es un segundo
+proceso que vigile el mercado en vivo; un tracking semanal iría de la
+mano de eso). Para "Comprar hoy" el mensaje ahora incluye un plan
+ejecutable ("🎯 Mi plan": tipo de estrategia, precio máximo que pagaría
+-- spot + un cuarto del ATR real del papel, nunca un número fijo en
+dólares -- y qué haría si mañana abre por encima, ver `_precio_maximo`)
+y un checklist de confirmación (`_checklist`). El checklist es
+DELIBERADAMENTE un resumen de lo que la detección del patrón y
+`_decision()` YA verificaron -- nunca un filtro paralelo con sus
+propios criterios. Aplicar, por ejemplo, "valoración atractiva" como
+condición universal habría rechazado rupturas legítimas (un breakout
+fuerte no tiene por qué ser barato) -- por eso el checklist es
+específico por patrón. "Sin noticias negativas de alta relevancia"
+aparece siempre marcado como no disponible: verificarlo de verdad
+exigiría o bien un clasificador de sentimiento no-LLM (no existe) o
+invocar el `news_analyst` existente (que SÍ usa LLM) por cada
+oportunidad, lo que rompería la garantía de este pipeline de correr
+100% sin LLM -- deliberadamente no implementado, anotado en vez de
+fingir que se revisó. "Riesgo por operación" reusa el 1% ya configurado
+en `risk_manager.config.RiskLimits.riesgo_por_trade_pct` (el mismo
+límite real del Risk Manager) en vez de calcular un monto en dólares
+atado a un capital específico -- la idea de adaptar montos al capital
+real del usuario sigue explícitamente fuera de alcance (ver
+`telegram_bot/trade_command.py`)."""
 
 from __future__ import annotations
 
@@ -73,6 +105,7 @@ import logging
 from dataclasses import dataclass
 from datetime import date
 
+from risk_manager.config import RiskLimits
 from screener.data.provider import Barras, Fundamentales
 from screener.factors import technical as tech
 from screener.options_ideas import obtener_cadena, proxima_fecha_resultados
@@ -99,9 +132,11 @@ UMBRAL_VALOR_BARATA = 70.0              # percentil cross-sectional
 UMBRAL_CALIDAD_SOLIDA = 60.0
 UMBRAL_MOMENTUM_FUERTE = 70.0
 UMBRAL_LIQUIDEZ_MINIMA = 20.0
-DIAS_EARNINGS_EVITAR = 5
+DIAS_EARNINGS_EVITAR = 7
 UMBRAL_CAMBIO_RSI = 3.0                 # puntos de RSI para considerarlo "cambió"
 UMBRAL_CAMBIO_DISTANCIA_SMA50 = 0.002   # 0.2pp de acercamiento mínimo para reportarlo
+BUFFER_PRECIO_MAXIMO_ATR = 0.25         # un cuarto del ATR real del papel, no un $ fijo
+LIMITE_DIARIO = 3                       # tope diario -- "2-3 excelentes, no 20 mediocres"
 
 _URGENCIA = {"ruptura": "Alta", "pullback": "Media", "valor_impulso": "Baja"}
 _URGENCIA_EMOJI = {"Alta": "🔴", "Media": "🟡", "Baja": "🟢"}
@@ -185,6 +220,8 @@ class Oportunidad:
     capital_estrategia: float | None
     estrategia_nombre: str | None
     estrategia_por_que: list[str]
+    precio_maximo: float | None
+    checklist: list[str]
 
 
 def _volumen_ratio(b: Barras, ventana: int = 20) -> float | None:
@@ -424,6 +461,40 @@ def _por_que_estrategia(
                      capital_acciones=f"{capital_acciones:,.0f}") for p in plantillas]
 
 
+_CHECKLIST_PATRON = {
+    "ruptura": ["Tendencia alcista fuerte confirmada", "Volumen inusual confirmando la ruptura"],
+    "pullback": ["Tendencia alcista fuerte de fondo", "Negocio de calidad o creciendo ingresos"],
+    "valor_impulso": ["Valoración atractiva frente al universo", "Negocio de calidad", "Momentum ya positivo"],
+}
+
+
+def _checklist(patron: str) -> list[str]:
+    """Solo se arma para "Comprar hoy". Cada ítem ya fue exigido por la
+    detección del patrón (los específicos, distintos por patrón) o por
+    `_decision()` (liquidez, earnings, universales para los 3) ANTES de
+    llegar aquí -- nunca puede aparecer una casilla sin marcar junto a
+    "Comprar hoy". Es un resumen honesto de lo ya verificado, no un
+    filtro paralelo con sus propios criterios: aplicar "valoración
+    atractiva" como condición universal, por ejemplo, rechazaría rupturas
+    legítimas -- un breakout fuerte no tiene por qué ser barato."""
+    return (
+        ["Precio dentro de la zona de entrada"]
+        + _CHECKLIST_PATRON[patron]
+        + ["Liquidez suficiente", f"Sin earnings en los próximos {DIAS_EARNINGS_EVITAR} días"]
+    )
+
+
+def _precio_maximo(spot: float, atr_val: float | None) -> float | None:
+    """Hasta dónde pagaría por esta misma oportunidad si el precio se
+    mueve antes de poder entrar -- un cuarto del ATR diario REAL del
+    papel (más volátil = más margen, menos volátil = menos), nunca un
+    número fijo en dólares. None si no hay ATR disponible (se omite en
+    vez de inventar)."""
+    if atr_val is None:
+        return None
+    return spot + BUFFER_PRECIO_MAXIMO_ATR * atr_val
+
+
 def _precio_actual_texto(patron: str, spot: float, ayer: Barras | None, sma50: float | None) -> str:
     """El precio de hoy, con la distancia a un ancla real y no inventada
     cuando existe una que tenga sentido para el patrón: para "ruptura",
@@ -476,6 +547,8 @@ def construir_oportunidad(
         p.ticker in tickers_shortlist_anterior if tickers_shortlist_anterior is not None else None
     )
     que_cambio = _que_cambio(b, ayer, en_shortlist_ayer)
+    precio_maximo = _precio_maximo(spot, atr_val)
+    checklist = _checklist(patron) if decision == "Comprar hoy" else []
 
     return Oportunidad(
         ticker=p.ticker, nombre=p.nombre, patron=patron, conviccion=conviccion,
@@ -485,6 +558,7 @@ def construir_oportunidad(
         stop=niveles.get("cancelar"), objetivo=objetivo, horizonte_dias=horizonte_dias,
         capital_acciones=capital_acciones, capital_estrategia=capital_estrategia,
         estrategia_nombre=estrategia_nombre, estrategia_por_que=estrategia_por_que,
+        precio_maximo=precio_maximo, checklist=checklist,
     )
 
 
@@ -496,7 +570,11 @@ def buscar_oportunidades(
     COMPLETO ya validado (no solo el Top N de la shortlist, que es la
     limitación real de shortlist_hoy.json: solo persiste el Top N).
     Nunca lanza por un ticker individual -- un fallo aislado no debe
-    tumbar la corrida completa."""
+    tumbar la corrida completa. Tope diario a `LIMITE_DIARIO` por
+    Convicción -- "prefiero 2-3 excelentes por semana que 20 mediocres
+    por día" aplicado como un techo real cuando el día detecta más de
+    las que vale la pena mandar (ver docstring del módulo sobre por qué
+    esto es un tope DIARIO y no semanal todavía)."""
     encontradas = []
     for p in ranking:
         b = barras_por_ticker.get(p.ticker)
@@ -510,7 +588,8 @@ def buscar_oportunidades(
             encontradas.append(construir_oportunidad(p, b, fund, patron, tickers_shortlist_anterior))
         except Exception as e:
             log.warning("detección de oportunidad falló para %s: %s", p.ticker, e)
-    return encontradas
+    encontradas.sort(key=lambda o: o.conviccion, reverse=True)
+    return encontradas[:LIMITE_DIARIO]
 
 
 def _fmt(x: float) -> str:
@@ -558,9 +637,32 @@ def formatear_oportunidad(o: Oportunidad) -> str:
 
     lineas += ["", f"Nivel de urgencia: {_URGENCIA_EMOJI[o.urgencia]} {o.urgencia}"]
     lineas.append(_URGENCIA_MOTIVO[o.patron])
-    accion = {"Comprar hoy": "Comprar hoy", "Esperar": "Crear alertas y esperar confirmación",
-             "No operar": "No abrir posición hoy"}[o.decision]
-    lineas += ["", f"Acción siguiente: {accion}", "", SEP]
+
+    lineas += ["", "🎯 Mi plan"]
+    if o.decision == "Comprar hoy":
+        lineas.append("✅ Abriría posición hoy.")
+        lineas.append(f"Tipo: {o.estrategia_nombre or 'Comprar acciones directamente'}")
+        if o.precio_maximo is not None:
+            lineas.append(f"Precio máximo que pagaría: {_fmt(o.precio_maximo)}")
+            lineas.append(
+                f"Si mañana abre arriba de {_fmt(o.precio_maximo)}: esperaría otro "
+                "retroceso antes de entrar."
+            )
+        lineas.append(
+            f"Riesgo por operación: no más del {RiskLimits().riesgo_por_trade_pct:.0%} del "
+            "portafolio (regla fija del Risk Manager, no ajustada a tu capital real)."
+        )
+        if o.checklist:
+            lineas += ["", "Checklist antes de comprar:"]
+            lineas += [f"☑ {c}" for c in o.checklist]
+            lineas.append("◻ Sin noticias negativas de alta relevancia (no disponible todavía)")
+            lineas += ["", "🟢 Todo lo que puedo verificar está en orden -- ejecutaría la operación."]
+    elif o.decision == "Esperar":
+        lineas.append("🟡 Crearía la alerta y esperaría confirmación antes de entrar.")
+    else:
+        lineas.append("❌ No abriría posición hoy.")
+
+    lineas += ["", SEP]
     return "\n".join(lineas)
 
 

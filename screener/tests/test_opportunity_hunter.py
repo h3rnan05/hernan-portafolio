@@ -244,6 +244,34 @@ def test_por_que_estrategia_sin_nombre_da_lista_vacia():
     assert oh._por_que_estrategia(None, "X", 100.0, 1000.0) == []
 
 
+# ------------------------- checklist / precio máximo -------------------------
+
+def test_checklist_es_especifica_por_patron():
+    ruptura = oh._checklist("ruptura")
+    valor = oh._checklist("valor_impulso")
+    assert "Volumen inusual confirmando la ruptura" in ruptura
+    assert "Volumen inusual confirmando la ruptura" not in valor
+    assert "Valoración atractiva frente al universo" in valor
+    assert "Valoración atractiva frente al universo" not in ruptura
+
+
+def test_checklist_incluye_los_universales():
+    for patron in ("ruptura", "pullback", "valor_impulso"):
+        checklist = oh._checklist(patron)
+        assert "Precio dentro de la zona de entrada" in checklist
+        assert "Liquidez suficiente" in checklist
+        assert any("earnings" in c.lower() for c in checklist)
+
+
+def test_precio_maximo_usa_una_fraccion_del_atr_real():
+    # 0.25 * ATR=4.0 -> +1.0 sobre el spot
+    assert oh._precio_maximo(spot=100.0, atr_val=4.0) == 101.0
+
+
+def test_precio_maximo_sin_atr_da_none():
+    assert oh._precio_maximo(spot=100.0, atr_val=None) is None
+
+
 # ------------------------- construcción + formato del mensaje -------------------------
 
 def test_construir_oportunidad_ruptura_de_extremo_a_extremo(monkeypatch):
@@ -261,6 +289,8 @@ def test_construir_oportunidad_ruptura_de_extremo_a_extremo(monkeypatch):
     assert o.stop is not None and o.stop < o.entrada
     assert o.que_espero
     assert "máximo de 52 semanas anterior" in o.precio_actual_texto
+    assert o.precio_maximo is not None and o.precio_maximo > o.entrada
+    assert o.checklist == oh._checklist("ruptura")
 
 
 def test_construir_oportunidad_usa_tickers_shortlist_anterior(monkeypatch):
@@ -287,6 +317,7 @@ def test_formatear_oportunidad_comprar_hoy_reconcilia_precio_y_decision():
         stop=306.15, objetivo=370.0, horizonte_dias=36,
         capital_acciones=34976.0, capital_estrategia=980.0, estrategia_nombre="Long Call",
         estrategia_por_que=["Necesita menos capital que comprar JPM directamente ($980 vs. $34,976)."],
+        precio_maximo=352.6, checklist=oh._checklist("ruptura"),
     )
     texto = oh.formatear_oportunidad(o)
     assert "🚨 Oportunidad detectada" in texto
@@ -310,7 +341,17 @@ def test_formatear_oportunidad_comprar_hoy_reconcilia_precio_y_decision():
     assert "Crear alertas en estos niveles:" in texto
     assert "Nivel de urgencia: 🔴 Alta" in texto
     assert oh._URGENCIA_MOTIVO["ruptura"] in texto
-    assert "Acción siguiente: Comprar hoy" in texto
+    assert "🎯 Mi plan" in texto
+    assert "✅ Abriría posición hoy." in texto
+    assert "Tipo: Long Call" in texto
+    assert "Precio máximo que pagaría: $353" in texto
+    assert "Si mañana abre arriba de $353: esperaría otro retroceso antes de entrar." in texto
+    assert "Riesgo por operación: no más del 1% del portafolio" in texto
+    assert "Checklist antes de comprar:" in texto
+    assert "☑ Precio dentro de la zona de entrada" in texto
+    assert "☑ Tendencia alcista fuerte confirmada" in texto
+    assert "◻ Sin noticias negativas de alta relevancia (no disponible todavía)" in texto
+    assert "🟢 Todo lo que puedo verificar está en orden -- ejecutaría la operación." in texto
 
 
 def test_formatear_oportunidad_esperar_muestra_motivo_en_vez_de_reconciliacion():
@@ -321,15 +362,18 @@ def test_formatear_oportunidad_esperar_muestra_motivo_en_vez_de_reconciliacion()
         que_cambio=[], entrada=100.0, precio_actual_texto="$100 (+1.0% vs. su media de 50 días, $99)",
         stop=90.0, objetivo=110.0, horizonte_dias=None,
         capital_acciones=10000.0, capital_estrategia=None, estrategia_nombre=None, estrategia_por_que=[],
+        precio_maximo=None, checklist=[],
     )
     texto = oh.formatear_oportunidad(o)
     assert "Mi decisión: 🟡 Esperar" in texto
     assert "Resultados en 2 días -- prefiero evitar la volatilidad." in texto
     assert "Precio actual dentro de la zona" not in texto
     assert "Qué cambió hoy:" not in texto
-    assert "Acción siguiente: Crear alertas y esperar confirmación" in texto
     assert "Estrategia recomendada: Comprar acciones directamente (opciones no disponibles hoy)" in texto
     assert "Elegí" not in texto
+    assert "🎯 Mi plan" in texto
+    assert "🟡 Crearía la alerta y esperaría confirmación antes de entrar." in texto
+    assert "Checklist antes de comprar:" not in texto
 
 
 def test_formatear_oportunidad_no_operar():
@@ -340,11 +384,13 @@ def test_formatear_oportunidad_no_operar():
         que_cambio=[], entrada=100.0, precio_actual_texto="$100",
         stop=None, objetivo=None, horizonte_dias=None,
         capital_acciones=10000.0, capital_estrategia=None, estrategia_nombre=None, estrategia_por_que=[],
+        precio_maximo=None, checklist=[],
     )
     texto = oh.formatear_oportunidad(o)
     assert "Mi decisión: ❌ No operar" in texto
     assert "poca liquidez" in texto
-    assert "Acción siguiente: No abrir posición hoy" in texto
+    assert "🎯 Mi plan" in texto
+    assert "❌ No abriría posición hoy." in texto
 
 
 # ------------------------- buscar_oportunidades (integración sin red) -------------------------
@@ -390,3 +436,17 @@ def test_buscar_oportunidades_propaga_tickers_shortlist_anterior(monkeypatch):
     fund = {"RUP": Fundamentales("RUP")}
     oportunidades = oh.buscar_oportunidades(ranking, barras, fund, tickers_shortlist_anterior=set())
     assert any("Top 20" in c for c in oportunidades[0].que_cambio)
+
+
+def test_buscar_oportunidades_limita_al_tope_diario_ordenado_por_conviccion(monkeypatch):
+    monkeypatch.setattr(oh, "_estrategia_recomendada", lambda ticker, spot: (None, None, None))
+    monkeypatch.setattr(oh, "_dias_a_resultados", lambda ticker: None)
+    tickers = ["A", "B", "C", "D", "E"]
+    subs = {t: {"valor": 70.0 + 5 * i, "calidad": 60.0, "momentum": 70.0 + 5 * i} for i, t in enumerate(tickers)}
+    ranking = [Puntuacion(ticker=t, score_total=50.0, sub=subs[t]) for t in tickers]
+    barras = {t: _barras_planas(precio=100.0) for t in tickers}
+    fund = {t: Fundamentales(t) for t in tickers}
+    oportunidades = oh.buscar_oportunidades(ranking, barras, fund)
+    assert len(oportunidades) == oh.LIMITE_DIARIO
+    esperado_top3 = sorted(tickers, key=lambda t: oh._conviccion("valor_impulso", subs[t]), reverse=True)[:3]
+    assert [o.ticker for o in oportunidades] == esperado_top3
