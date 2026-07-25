@@ -104,8 +104,26 @@ directamente" si la cadena falla) con **"Elegí X porque"** (ventajas
 reales frente a comprar la acción directamente, con los números de
 capital de ese día -- nunca deja el nombre de la estrategia sin
 explicar), y **Nivel de urgencia** con el motivo (por qué esa urgencia,
-no solo la etiqueta). 100% determinístico, sin LLM --
-`.github/workflows/screener.yml` ni siquiera le pasa `ANTHROPIC_API_KEY`.
+no solo la etiqueta). El mensaje diario ahora también tiene un tope real
+de `LIMITE_DIARIO=3` oportunidades por día (las de mayor Convicción, si
+un día detecta más) -- pedido explícito: "prefiero 2-3 excelentes por
+semana, no 20 mediocres por día" (todavía un tope DIARIO, no semanal --
+ver más abajo). Para "Comprar hoy" el mensaje cierra con **"🎯 Mi plan"**
+(tipo de estrategia, precio máximo que pagaría -- spot + 1/4 del ATR
+real del papel, nunca un $ fijo -- y qué haría si abre por encima
+mañana; "Riesgo por operación" reusa el 1% ya configurado en
+`risk_manager.config.RiskLimits`, no un monto atado a un capital
+específico) y un **"Checklist antes de comprar"** que es un RESUMEN de
+lo que la detección del patrón y la decisión YA verificaron -- nunca un
+filtro paralelo con criterios nuevos (por eso es específico por patrón:
+exigir "valoración atractiva" de forma universal rechazaría rupturas
+legítimas, que no tienen por qué ser baratas). "Sin noticias negativas
+de alta relevancia" siempre aparece marcado como no disponible todavía
+-- verificarlo de verdad requeriría un clasificador de sentimiento
+no-LLM (no existe) o invocar `news_analyst` (que sí usa LLM) por
+oportunidad, rompiendo la garantía de este pipeline de correr 100% sin
+LLM. 100% determinístico en todo lo demás -- `.github/workflows/screener.yml`
+ni siquiera le pasa `ANTHROPIC_API_KEY`.
 
 `/report`, `/options`, `/trade` y `/list` no cambian: siguen leyendo
 `shortlist_hoy.json`/`.md`, que se sigue persistiendo exactamente igual
@@ -116,7 +134,11 @@ siguiente gran paso" y NO construido todavía**: un segundo proceso que
 vigile el mercado en horario de mercado (no solo una vez al día tras el
 screener) y solo avise cuando algo cambie de verdad -- "entró a tu zona
 de compra" o "la tesis se invalidó" -- en vez de depender de la corrida
-diaria.
+diaria. Un tope SEMANAL real ("si solo hicieras dos trades esta semana,
+serían estos") también queda pendiente -- hoy el tope es solo diario;
+uno semanal de verdad necesitaría persistir qué tickers ya se mandaron
+esa semana, y encajaría naturalmente junto al proceso de vigilancia en
+vivo de arriba.
 
 ## Qué trae `/report TICKER`
 
