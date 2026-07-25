@@ -82,22 +82,41 @@ limitación ya documentada para "IV Rank" en `screener/options_ideas.py`).
 
 Cada oportunidad detectada se manda con: **Convicción del modelo**
 (0-100, reusa los mismos sub_scores reales del día, ponderados distinto
-por patrón -- nunca un número inventado), **Mi decisión** (Comprar
-hoy/Esperar/No operar -- reglas fijas: liquidez cross-sectional <20 →
-No operar, earnings en ≤5 días → Esperar), **¿Por qué?** (qué ocurrió y
-qué la invalidaría, máximo 4 líneas, con números reales), **Entrada
-ideal/Stop/Objetivo** (mismo motor ATR/SMA50 de `/trade` y `/report`,
-`screener.factors.technical.niveles_precio`), **Capital mínimo** y
-**Estrategia recomendada** (cadena de opciones real solo para ese
-ticker, filtrada a direcciones no-bajistas, mejor por el ranking de
+por patrón -- nunca un número inventado), **Mi decisión** (🟢 Comprar
+hoy/🟡 Esperar/❌ No operar -- reglas fijas: liquidez cross-sectional <20 →
+No operar, earnings en ≤5 días → Esperar; "No operar"/"Esperar" explican
+el motivo en prosa, ej. "las opciones tienen poca liquidez... puede
+hacer difícil entrar o salir sin pagar un spread alto"), **¿Por qué?**
+(qué ocurrió, qué la invalidaría y qué está esperando confirmar el
+modelo -- 3 líneas, con números reales), **Qué cambió hoy** (deltas
+reales de RSI/distancia a la SMA50/tendencia contra las mismas barras
+sin el último día, y si entró al Top 20 -- se omite la sección entera si
+no hay nada real que reportar, nunca se inventa un cambio), **Precio
+actual/Stop/Objetivo** (mismo motor ATR/SMA50 de `/trade` y `/report`,
+`screener.factors.technical.niveles_precio`; "Comprar hoy" siempre deja
+explícito que el precio de hoy ya está dentro de la zona que activó el
+patrón -- eso solo es honesto porque hoy es una sola corrida diaria que
+calcula y envía en el mismo paso, ver el docstring del módulo), **Capital
+mínimo**, **Estrategia recomendada** (cadena de opciones real solo para
+ese ticker, filtrada a direcciones no-bajistas, mejor por el ranking de
 `options_strategies.rankear()` -- se degrada a "comprar acciones
-directamente" si la cadena falla), y **Nivel de urgencia**. 100%
-determinístico, sin LLM -- `.github/workflows/screener.yml` ni siquiera
-le pasa `ANTHROPIC_API_KEY`.
+directamente" si la cadena falla) con **"Elegí X porque"** (ventajas
+reales frente a comprar la acción directamente, con los números de
+capital de ese día -- nunca deja el nombre de la estrategia sin
+explicar), y **Nivel de urgencia** con el motivo (por qué esa urgencia,
+no solo la etiqueta). 100% determinístico, sin LLM --
+`.github/workflows/screener.yml` ni siquiera le pasa `ANTHROPIC_API_KEY`.
 
 `/report`, `/options`, `/trade` y `/list` no cambian: siguen leyendo
 `shortlist_hoy.json`/`.md`, que se sigue persistiendo exactamente igual
 que antes.
+
+**Pendiente, descrito explícitamente por el dueño del producto como "el
+siguiente gran paso" y NO construido todavía**: un segundo proceso que
+vigile el mercado en horario de mercado (no solo una vez al día tras el
+screener) y solo avise cuando algo cambie de verdad -- "entró a tu zona
+de compra" o "la tesis se invalidó" -- en vez de depender de la corrida
+diaria.
 
 ## Qué trae `/report TICKER`
 
