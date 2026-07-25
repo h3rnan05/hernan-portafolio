@@ -125,6 +125,16 @@ oportunidad, rompiendo la garantía de este pipeline de correr 100% sin
 LLM. 100% determinístico en todo lo demás -- `.github/workflows/screener.yml`
 ni siquiera le pasa `ANTHROPIC_API_KEY`.
 
+El mensaje cierra con un **"🏁 Resumen del día"** (`_resumen_del_dia`):
+cuántas empresas se analizaron, cuántas oportunidades se detectaron en
+total, y cuáles de esas son las que de verdad se muestran en detalle
+(con medallas 🥇🥈🥉) -- si el tope diario dejó alguna afuera, el resumen
+la nombra explícitamente ("Las demás (...) las vigilaría, pero no
+abriría posición hoy") en vez de descartarla en silencio. "Qué cambió
+hoy" ahora aparece SIEMPRE (con "Sin cambios importantes" cuando no hay
+deltas reales) y el emoji de urgencia baja es ⚪ en vez de 🟢 (verde
+sugería "actúa ya", justo lo contrario de "Baja").
+
 `/report`, `/options`, `/trade` y `/list` no cambian: siguen leyendo
 `shortlist_hoy.json`/`.md`, que se sigue persistiendo exactamente igual
 que antes.
@@ -138,7 +148,16 @@ diaria. Un tope SEMANAL real ("si solo hicieras dos trades esta semana,
 serían estos") también queda pendiente -- hoy el tope es solo diario;
 uno semanal de verdad necesitaría persistir qué tickers ya se mandaron
 esa semana, y encajaría naturalmente junto al proceso de vigilancia en
-vivo de arriba.
+vivo de arriba. Deliberadamente NO implementado (pedido explícito del
+dueño del producto de dejar de agregar indicadores nuevos): un índice
+de calidad con letras (A/B/C) por oportunidad -- sería redundante con
+Convicción + el checklist, que ya muestran los mismos factores. La
+prioridad real que describió para lo que sigue es medir el desempeño
+del sistema (cuántas oportunidades del Opportunity Hunter llegan a su
+objetivo, cuántas activan su stop, rendimiento por estrategia) --
+distinto del `/journal` manual actual, que solo registra lo que el
+usuario decide operar; medir las alertas EN SÍ MISMAS es una pieza de
+tracking nueva, no diseñada ni construida todavía.
 
 ## Qué trae `/report TICKER`
 

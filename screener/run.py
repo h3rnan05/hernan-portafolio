@@ -155,7 +155,7 @@ def main() -> None:
         {d["ticker"] for d in anterior["shortlist"]} if anterior else None
     )
     oportunidades = buscar_oportunidades(ranking, barras_validas, fund, tickers_anteriores)
-    txt_oportunidades = mensaje_oportunidades(oportunidades)
+    txt_oportunidades = mensaje_oportunidades(oportunidades, universo_n)
     log.info("Opportunity Hunter: %d oportunidad(es) detectada(s)", len(oportunidades))
     print("\n" + txt_oportunidades)
 
