@@ -47,6 +47,9 @@ class _FakeProvider(DataProvider):
     def metadata(self, tickers: list[str]) -> dict[str, Metadata]:
         return {t: Metadata(t) for t in tickers}
 
+    def barras_intradia(self, tickers, intervalo="1m", periodo="5d"):
+        return {}
+
 
 def _alerta() -> AlertaRegistrada:
     fecha_alerta = FECHA_INICIO + timedelta(days=IDX_ENTRADA)

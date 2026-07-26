@@ -35,3 +35,21 @@ def test_limite_diario_debe_ser_al_menos_uno():
     cfg = MomentumConfig(limite_diario_alertas=0)
     with pytest.raises(ValueError):
         cfg.validar()
+
+
+def test_max_candidatos_intradia_debe_ser_al_menos_uno():
+    cfg = MomentumConfig(max_candidatos_intradia=0)
+    with pytest.raises(ValueError):
+        cfg.validar()
+
+
+def test_extension_maxima_debe_ser_positiva():
+    cfg = MomentumConfig(extension_maxima_pct=0.0)
+    with pytest.raises(ValueError):
+        cfg.validar()
+
+
+def test_velas_maximas_desde_patron_debe_ser_al_menos_uno():
+    cfg = MomentumConfig(velas_maximas_desde_patron=0)
+    with pytest.raises(ValueError):
+        cfg.validar()

@@ -18,7 +18,18 @@ honestas (mismo espíritu que screener/README.md):
   forma confiable; SPAC y closed-end fund se detectan con heurísticas de
   nombre (`_parece_spac`, `_parece_cef`) porque Yahoo no expone un flag
   dedicado -- pueden fallar en casos raros, documentado como best-effort.
-"""
+
+`barras_intradia` (Yahoo temporal, pedido explícito del dueño del
+producto 2026-07-26: "el algoritmo nunca debe depender de Yahoo
+específicamente") -- la interfaz `DataProvider` es la única frontera que
+conoce la palabra "Yahoo". `factors/intradia.py`, `classification.py`,
+`early_opportunity.py` y `evaluator.py` solo importan `BarraIntradia`
+(genérica, en `models.py`). Conectar Polygon/Alpaca/Tradier más adelante
+es escribir OTRA clase que herede de `DataProvider`, nunca tocar esos
+cuatro módulos. `intervalo`/`periodo` son strings genéricos ("1m"/"5m",
+"1d"/"5d") que cada implementación traduce a su propia API -- Yahoo los
+usa tal cual porque así los espera su endpoint de chart, pero eso es un
+detalle de `YahooProvider`, no del contrato."""
 
 from __future__ import annotations
 
@@ -26,11 +37,12 @@ import logging
 import re
 import time
 from abc import ABC, abstractmethod
+from datetime import UTC, datetime
 from typing import ClassVar
 
 import requests
 
-from momentum_hunter.models import Barras, Metadata
+from momentum_hunter.models import Barras, BarraIntradia, Metadata
 
 log = logging.getLogger("momentum_hunter.data")
 
@@ -61,6 +73,10 @@ _EXCHANGE_MAP = {
 }
 
 
+def _epoch_a_iso(epoch: int) -> str:
+    return datetime.fromtimestamp(int(epoch), tz=UTC).isoformat(timespec="seconds")
+
+
 def _num(v: object) -> float | None:
     try:
         f = float(v)  # type: ignore[arg-type]
@@ -79,6 +95,16 @@ class DataProvider(ABC):
     @abstractmethod
     def metadata(self, tickers: list[str]) -> dict[str, Metadata]:
         """Snapshot no-técnico por ticker (best-effort)."""
+
+    @abstractmethod
+    def barras_intradia(
+        self, tickers: list[str], intervalo: str = "1m", periodo: str = "5d",
+    ) -> dict[str, BarraIntradia]:
+        """Velas intradía recientes, incluyendo pre-market cuando el
+        proveedor lo soporte. Se llama SOLO sobre el puñado de candidatos
+        que ya pasaron el filtro grueso diario (ver `run.py`) -- pedir
+        esto para el universo completo no es viable con ningún proveedor
+        gratis. Omite los tickers que fallen."""
 
 
 class YahooProvider(DataProvider):
@@ -134,6 +160,54 @@ class YahooProvider(DataProvider):
             except Exception as e:
                 if intento == self.reintentos - 1:
                     log.debug("barras %s falló: %s", ticker, e)
+                time.sleep(1.5 * (intento + 1))
+        return None
+
+    def barras_intradia(
+        self, tickers: list[str], intervalo: str = "1m", periodo: str = "5d",
+    ) -> dict[str, BarraIntradia]:
+        out: dict[str, BarraIntradia] = {}
+        for t in tickers:
+            b = self._intradia_una(t, intervalo, periodo)
+            if b and len(b) >= 5:
+                out[t] = b
+            time.sleep(self.pausa)
+        log.info("barras intradía obtenidas: %d/%d tickers", len(out), len(tickers))
+        return out
+
+    def _intradia_una(self, ticker: str, intervalo: str, periodo: str) -> BarraIntradia | None:
+        for intento in range(self.reintentos):
+            try:
+                r = requests.get(
+                    self.CHART.format(t=ticker),
+                    # includePrePost=true: sin esto, Yahoo solo devuelve la
+                    # sesión regular -- y el pre-market high es un nivel
+                    # clave para Gap and Go / Opening Range Breakout.
+                    params={"interval": intervalo, "range": periodo, "includePrePost": "true"},
+                    headers=self.HEADERS, timeout=15,
+                )
+                res = r.json()["chart"]["result"][0]
+                ts = res["timestamp"]
+                q = res["indicators"]["quote"][0]
+                marcas, o, c, h, lo, vol = [], [], [], [], [], []
+                for i, epoch in enumerate(ts):
+                    op, cl, hi, low, v = (
+                        q["open"][i], q["close"][i], q["high"][i], q["low"][i], q["volume"][i]
+                    )
+                    if None in (op, cl, hi, low):
+                        continue
+                    marcas.append(_epoch_a_iso(epoch))
+                    o.append(float(op))
+                    c.append(float(cl))
+                    h.append(float(hi))
+                    lo.append(float(low))
+                    vol.append(float(v or 0))
+                if c:
+                    return BarraIntradia(ticker, marcas, o, c, h, lo, vol)
+                return None
+            except Exception as e:
+                if intento == self.reintentos - 1:
+                    log.debug("barras intradía %s falló: %s", ticker, e)
                 time.sleep(1.5 * (intento + 1))
         return None
 

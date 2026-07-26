@@ -1,17 +1,25 @@
-"""Filtro de envío -- Prompt 7: "Solo enviar Telegram cuando: Score > 85
-Y Catalizador confirmado Y Volumen mayor a 4 veces el promedio Y Liquidez
-suficiente para entrar. No enviar más de cinco alertas por día. Calidad
-antes que cantidad."
+"""Filtro de envío -- ahora en dos etapas, siguiendo el pivote de
+"screener" a "trader" (Prompt 1):
 
-Deliberadamente NO manda un mensaje de "no encontré nada" cuando ningún
-candidato califica -- eso sí lo hace `screener/opportunity_hunter.py`
-(`SIN_OPORTUNIDADES`), pero ese bot corre UNA VEZ al día y ese mensaje
-es la confirmación de que sí corrió. Este bot puede correr varias veces
-al día (Prompt 5-7 describen un scanner, no una corrida diaria única);
-mandar "nada hoy" cada vez que no hay una señal de score>85 sería
-exactamente el ruido que Prompt 2 pide evitar ("prefiero perder
-oportunidades que recibir demasiadas falsas alarmas"). El silencio es el
-resultado esperado y normal, no un fallo que haya que reportar."""
+**Etapa 1 (diaria/gruesa)**: `CandidatoDiario` es el mismo filtro de
+siempre sobre barras diarias (precio, cap, RVOL de 20 días, catalizador,
+`scoring.puntuar`) -- pero ya NO decide si se alerta. Solo decide qué
+tickers son lo bastante interesantes como para gastar una llamada de
+datos INTRADÍA en ellos (`run.py` los recorta a
+`cfg.max_candidatos_intradia`).
+
+**Etapa 2 (intradía/fina)**: `CandidatoIntradia` es el resultado de
+`evaluator.evaluar()` -- el árbol de las 5 preguntas de Prompt 4. Una
+alerta se manda SOLO si `resultado.accionable` es `True`: catalizador
+confirmado, patrón claro detectado, y el Early Opportunity Engine dice
+"temprano" (Prompt 2: un score alto nunca rescata una entrada tardía o
+sin patrón).
+
+Se mantiene el silencio cuando nada calFica -- este bot puede correr
+varias veces al día, y repetir "nada hoy" sería el mismo ruido que
+Prompt 1/2 piden evitar. El "casi" (catalizador + volumen pero sin
+patrón o ya tarde) no se descarta en silencio: alimenta el Market Radar
+(`radar.py`), no una alerta de entrada."""
 
 from __future__ import annotations
 
@@ -19,15 +27,16 @@ from dataclasses import dataclass
 
 from momentum_hunter.catalysts.detector import Catalizador
 from momentum_hunter.config import MomentumConfig
-from momentum_hunter.models import FactoresMomentum, Metadata
+from momentum_hunter.evaluator import ResultadoEvaluacion
+from momentum_hunter.models import BarraIntradia, FactoresIntradia, FactoresMomentum, Metadata
 from momentum_hunter.scoring import Puntuacion
 
 
 @dataclass(frozen=True)
-class Candidato:
-    """Todo lo que ya se calculó para un ticker en una corrida -- el
-    objeto que viaja entre `run.py`, `alerts.py`, `classification.py`,
-    `strategy.py` y `report.py` sin que ninguno recalcule nada."""
+class CandidatoDiario:
+    """Salida de la etapa 1 -- sobre barras diarias, mismo motor de
+    siempre (`scoring.puntuar`). Ya no decide si se alerta: solo si
+    vale la pena pedir datos intradía para este ticker."""
     ticker: str
     nombre: str | None
     precio: float
@@ -38,24 +47,42 @@ class Candidato:
     puntuacion: Puntuacion
 
 
-def califica_para_alerta(c: Candidato, cfg: MomentumConfig) -> bool:
-    """Las CUATRO condiciones del Prompt 7, todas obligatorias -- ninguna
-    combinación parcial dispara una alerta."""
-    if c.puntuacion.score_total <= cfg.score_minimo_alerta:
-        return False
-    if cfg.requiere_catalizador_confirmado and (c.catalizador is None or not c.catalizador.confirmado):
-        return False
-    if c.factores.rvol is None or c.factores.rvol < cfg.rvol_minimo_alerta:
-        return False
-    if c.volumen_promedio is None or c.volumen_promedio < cfg.volumen_promedio_min:
-        return False
-    return True
+@dataclass(frozen=True)
+class CandidatoIntradia:
+    """Salida de la etapa 2 -- todo lo que `evaluator.evaluar()` y
+    `report.py` necesitan, ya calculado una sola vez."""
+    ticker: str
+    nombre: str | None
+    catalizador: Catalizador | None
+    minutos_desde_catalizador: float | None
+    factores: FactoresIntradia
+    bi_hoy: BarraIntradia
+    meta: Metadata
+    atr_diario: float | None          # de la etapa 1 -- fallback si no hay VWAP/EMA9 para el stop
+    resultado: ResultadoEvaluacion
 
 
-def filtrar_alertas(candidatos: list[Candidato], cfg: MomentumConfig) -> list[Candidato]:
-    """Todos los que califican, ordenados por score y recortados al tope
-    diario -- "2-3 excelentes, no 20 mediocres" es el mismo espíritu que
-    ya adoptó `screener/opportunity_hunter.py` para el bot hermano."""
-    calificados = [c for c in candidatos if califica_para_alerta(c, cfg)]
-    calificados.sort(key=lambda c: c.puntuacion.score_total, reverse=True)
-    return calificados[: cfg.limite_diario_alertas]
+def candidatos_para_etapa_intradia(
+    candidatos: list[CandidatoDiario], cfg: MomentumConfig,
+) -> list[CandidatoDiario]:
+    """Recorta a los `cfg.max_candidatos_intradia` mejores -- pedir velas
+    intradía para todo el universo diario no es viable (ver
+    `data/provider.py`). Exige catalizador confirmado (pregunta 1 de
+    Prompt 4 de todas formas lo va a cortar si no lo hay, así que no
+    tiene sentido gastar la llamada intradía en tickers que ya sabemos
+    que van a terminar ahí)."""
+    con_catalizador = [
+        c for c in candidatos if c.catalizador is not None and c.catalizador.confirmado
+    ]
+    con_catalizador.sort(key=lambda c: c.puntuacion.score_total, reverse=True)
+    return con_catalizador[: cfg.max_candidatos_intradia]
+
+
+def filtrar_alertas(candidatos: list[CandidatoIntradia], cfg: MomentumConfig) -> list[CandidatoIntradia]:
+    """Todos los `accionable` (ya decidido por `evaluator.evaluar`),
+    ordenados por score ajustado y recortados al techo de seguridad
+    `cfg.limite_diario_alertas` -- la selectividad real ya la hizo el
+    árbol de decisión, esto es solo un tope de emergencia."""
+    accionables = [c for c in candidatos if c.resultado.accionable]
+    accionables.sort(key=lambda c: c.resultado.score_ajustado, reverse=True)
+    return accionables[: cfg.limite_diario_alertas]

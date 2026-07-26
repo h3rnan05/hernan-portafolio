@@ -42,11 +42,16 @@ class AlertaRegistrada:
 
 
 def desde_oportunidad(o: Oportunidad) -> AlertaRegistrada:
+    """`AlertaRegistrada` conserva el esquema de dos objetivos/estrategia
+    de antes del pivote a formato trader (2026-07-26) para no romper
+    `outcomes.py`/`stats.py` ni el historial ya persistido -- pero el
+    nuevo `Oportunidad` solo tiene un objetivo y ya no decide una
+    estrategia de opciones por alerta (ver `report.py`), así que
+    `objetivo2` y `estrategia` quedan vacíos aquí a propósito."""
     return AlertaRegistrada(
         id=uuid.uuid4().hex[:10], ticker=o.ticker, fecha=o.fecha,
-        precio_entrada=o.entrada, stop=o.stop, objetivo1=o.primer_objetivo,
-        objetivo2=o.segundo_objetivo, clasificacion=o.clasificacion,
-        estrategia=o.estrategia_nombre, score=o.score,
+        precio_entrada=o.entrada, stop=o.stop, objetivo1=o.objetivo,
+        objetivo2=None, clasificacion=o.patron, estrategia="", score=o.score,
     )
 
 

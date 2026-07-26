@@ -15,13 +15,19 @@ confiables"): un rumor solo se confirma si aparece en
 `cfg.fuentes_minimas_rumor` fuentes DISTINTAS dentro de la ventana de
 `cfg.dias_ventana_catalizador` días. El resto de tipos de catalizador se
 confirman con un solo titular -- son, por naturaleza, anuncios
-verificables (un comunicado de la FDA no necesita una segunda fuente)."""
+verificables (un comunicado de la FDA no necesita una segunda fuente).
+
+`Titular.fecha` guarda el timestamp COMPLETO cuando la fuente lo da (no
+solo la fecha) -- lo necesita `minutos_desde_catalizador` para el "hace
+X minutos" del Early Opportunity Engine (Prompt 2/5). `_dentro_de_ventana`
+sigue comparando solo por fecha (`fecha[:10]`), así que esto no cambia
+ningún comportamiento de la ventana de días."""
 
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import date
+from datetime import UTC, date, datetime
 
 from momentum_hunter.config import MomentumConfig
 from momentum_hunter.models import Catalizador
@@ -193,10 +199,26 @@ class YahooNewsProvider(NewsProvider):
         fecha = None
         pub = contenido.get("pubDate") or item.get("providerPublishTime")
         if isinstance(pub, str):
-            fecha = pub[:10]
+            fecha = pub  # timestamp completo (ISO), no solo la fecha
         elif isinstance(pub, int | float):
             try:
-                fecha = date.fromtimestamp(pub).isoformat()
+                fecha = datetime.fromtimestamp(pub, tz=UTC).isoformat(timespec="seconds")
             except (OSError, OverflowError, ValueError):
                 fecha = None
         return Titular(titulo, fuente, fecha)
+
+
+def minutos_desde_catalizador(catalizador: Catalizador | None, ahora: datetime | None = None) -> float | None:
+    """Minutos entre `catalizador.fecha` y `ahora` -- None si no hay
+    catalizador o si la fuente solo dio una fecha sin hora (no se puede
+    inventar la precisión que la fuente no dio)."""
+    if catalizador is None or catalizador.fecha is None or "T" not in catalizador.fecha:
+        return None
+    try:
+        momento = datetime.fromisoformat(catalizador.fecha)
+    except ValueError:
+        return None
+    if momento.tzinfo is None:
+        momento = momento.replace(tzinfo=UTC)
+    ahora = ahora or datetime.now(UTC)
+    return (ahora - momento).total_seconds() / 60.0

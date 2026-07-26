@@ -127,3 +127,62 @@ opciones de compra reales por debajo del vehículo elegido (hoy
 opciones como sí hace `screener/options_math.py` para el otro bot —
 deliberado, ver `momentum_hunter/README.md`), y conectar
 `risk_manager/` para sizing real de posición.
+
+### Pivote (2026-07-26): de "screener" a "trader de momentum"
+
+Pedido explícito del dueño del producto, el mismo día: "todavía piensa
+demasiado como un screener... quiero que piense exactamente como un
+trader profesional de momentum (Ross Cameron, Warrior Trading)". El
+diagnóstico: TODO el pipeline de arriba corría sobre barras DIARIAS —
+suficiente para decidir un universo candidato, pero varios patrones
+reales de momentum (Micro Pullback, Bull Flag, Gap and Go, Opening Range
+Breakout) son formas del precio en los últimos MINUTOS, imposibles de
+ver con un cierre diario. Se rediseñó el pipeline en dos etapas
+(detalle completo en `momentum_hunter/README.md`, sección "Pivote"):
+
+1. **Etapa 1 (sin cambios de fondo)**: el filtro diario de arriba sigue
+   igual, pero ya NO decide si se alerta — solo recorta a los
+   `max_candidatos_intradia` (50) mejores para no pedir datos intradía
+   sobre miles de tickers (mismo tipo de límite de datos gratis que ya
+   aceptaba este bot).
+2. **Etapa 2 (nueva)**: `data/provider.barras_intradia` (Yahoo,
+   temporal — "el algoritmo nunca debe depender de Yahoo
+   específicamente", diseñado detrás de la misma interfaz
+   `DataProvider` para poder cambiar a Polygon/Alpaca/Tradier sin tocar
+   lógica) trae velas de 1 minuto. `factors/intradia.py` calcula VWAP
+   REAL (ya no una aproximación), EMA9, RVOL inmediato y aceleración de
+   volumen. `classification.py` se reescribió por completo: las
+   categorías genéricas anteriores (breakout/news momentum/earnings
+   play/reversal/short squeeze) se reemplazaron por los seis patrones
+   reales de Ross Cameron. El desequilibrio oferta/demanda (antes la
+   categoría "short squeeze") dejó de ser un patrón y pasó a ser un GATE
+   que aplica a cualquier patrón (más fiel a cómo un trader de momentum
+   realmente piensa: float bajo es un multiplicador, no una entrada en
+   sí misma).
+3. **Early Opportunity Engine** (`early_opportunity.py`, nuevo):
+   responde "¿llegamos a tiempo?" como una pregunta SEPARADA de "¿qué
+   tan buena es la señal?" — el veredicto temprano/tarde sale de dos
+   reglas duras (extensión desde VWAP/EMA9, velas desde el patrón), no
+   del score compuesto, precisamente para que un score alto nunca pueda
+   rescatar una entrada tardía (pedido explícito).
+4. **`evaluator.py`** (nuevo) reemplaza el promedio ponderado como lo
+   que decide alertar: las 5 preguntas en orden estricto (catalizador →
+   corte duro; dinero entrando, desequilibrio, patrón, temprano →
+   penalización, deliberadamente grande en patrón/temprano porque en la
+   práctica no hay alerta accionable sin ninguno de los dos).
+5. **Formato del mensaje reescrito por completo** (`report.py`): de un
+   reporte con campos etiquetados a un mensaje de trader de 7 preguntas
+   (por qué apareció/por qué ahora/qué patrón/qué espero/dónde
+   entro/dónde salgo/qué invalida), urgencia calculada objetivamente
+   desde la frescura del patrón (no un valor fijo por tipo), y voz en
+   primera persona de operador.
+6. **Market Radar** (`radar.py`, idea del dueño del producto, no pedida
+   explícitamente en los prompts numerados): agrupa lo que quedó "cerca"
+   pero no accionable (patrón aún sin confirmar, o ya tarde) en un
+   resumen corto separado de las alertas de entrada — antes esos
+   candidatos desaparecían en silencio sin dejar rastro.
+
+`strategy.py` (selección de vehículo de opciones, Prompt 9 del pedido
+original) quedó desacoplado del mensaje nuevo — el mockup de formato de
+trader no incluye esa sección todavía; anotado como pendiente en
+`momentum_hunter/README.md`, no se eliminó el módulo ni sus pruebas.

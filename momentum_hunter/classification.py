@@ -1,143 +1,164 @@
-"""Clasifica QUÉ TIPO de oportunidad es -- la idea explícita del dueño
-del producto de no limitarse a "compra XYZ" sino decir también "esto es
-un short squeeze" o "esto es un breakout", porque como trader no todas
-las oportunidades se operan igual.
+"""Detección de patrones -- Prompt 4, pregunta 4: "¿Está formando un
+patrón claro?" Los seis patrones son el vocabulario real de un trader de
+momentum (Ross Cameron / Warrior Trading), no las categorías genéricas
+que tenía este módulo antes de 2026-07-26 (breakout/news momentum/
+earnings play/reversal/short squeeze).
 
-Como máximo una etiqueta por ticker, en un orden de prioridad fijo
-(short squeeze > earnings play > breakout > news momentum > reversal >
-trend continuation) -- mismo principio que `screener/opportunity_hunter.
-detectar_patron`: nunca se mezclan dos etiquetas para el mismo ticker el
-mismo día.
+Pivote deliberado: ese vocabulario anterior describía RESULTADOS ("la
+acción subió con volumen") sobre barras DIARIAS -- pensaba como
+screener. Estos seis patrones describen FORMAS de la acción del precio
+en los últimos minutos, y solo se pueden ver con velas intradía
+(`BarraIntradia`) -- es la pieza central del pivote de "screener" a
+"trader" (ver el análisis de Prompt 1). El desequilibrio oferta/demanda
+(float bajo + interés en corto -- lo que antes era la categoría
+"short_squeeze") ya NO es un patrón aparte: es la pregunta 3 del
+evaluador (`evaluator.py`), porque en la mentalidad de Ross Cameron el
+float bajo es un MULTIPLICADOR de cualquier patrón, no un patrón en sí
+mismo.
 
-`breakout` va ANTES que el `news_momentum` genérico a propósito: como
-Prompt 4 exige un catalizador confirmado para CUALQUIER alerta (incluida
-una ruptura técnica), casi cualquier breakout real también tendría un
-catalizador detrás -- si `news_momentum` fuera más prioritario, la
-etiqueta "breakout" casi nunca aparecería, aunque la estructura técnica
-(nuevo máximo + volumen) sea la señal más específica y accionable de las
-dos. `news_momentum` queda como el catch-all para catalizadores
-confirmados que NO muestran esa estructura técnica limpia.
+Como máximo un patrón por ticker, en orden de prioridad fijo (el más
+específico/explosivo primero) -- mismo principio que la versión anterior
+de este módulo: nunca se mezclan dos etiquetas el mismo día.
 
-`clasificar()` se llama SOLO sobre oportunidades que ya pasaron el
-filtro de alertas (`alerts.py`: catalizador confirmado + RVOL alto) --
-por eso el fallback final es "news momentum" (siempre hay al menos un
-catalizador real disponible en ese punto), nunca un patrón inventado.
-
-Limitación honesta: `_es_reversal` verifica el ESTADO actual del cruce
-MACD (línea por encima de la señal) porque este proyecto no conserva la
-serie histórica completa de MACD -- solo el punto final que calcula
-`factors/momentum.py`. Es una aproximación razonable ("el cruce ya
-ocurrió recientemente y sigue vigente"), no una detección exacta del
-momento exacto del cruce."""
+Limitación honesta: son aproximaciones deterministas sobre velas de 1
+minuto gratis (ruidosas) -- no el reconocimiento visual que hace un
+trader humano viendo el gráfico. Cada función exige condiciones
+numéricas explícitas y documentadas, nunca "se ve parecido a")."""
 
 from __future__ import annotations
 
-from momentum_hunter.catalysts.detector import Catalizador
-from momentum_hunter.models import FactoresMomentum, Metadata
+from momentum_hunter.models import BarraIntradia, FactoresIntradia
 
 ETIQUETAS: dict[str, str] = {
-    "short_squeeze": "🚀 SHORT SQUEEZE",
-    "earnings_play": "💰 EARNINGS PLAY",
-    "news_momentum": "⚡ NEWS MOMENTUM",
-    "breakout": "🔥 BREAKOUT",
-    "reversal": "🔄 REVERSAL",
+    "high_tight_flag": "🚩 HIGH TIGHT FLAG",
+    "gap_and_go": "🚀 GAP AND GO",
+    "opening_range_breakout": "📊 OPENING RANGE BREAKOUT",
+    "bull_flag": "🏁 BULL FLAG",
+    "micro_pullback": "🔁 MICRO PULLBACK",
     "trend_continuation": "📈 TREND CONTINUATION",
 }
 
+# Más específico/explosivo primero -- un High Tight Flag real también
+# cumpliría las condiciones de un Bull Flag genérico, así que tiene que
+# evaluarse antes para no perder la etiqueta más informativa.
 ORDEN_PRIORIDAD: tuple[str, ...] = (
-    "short_squeeze", "earnings_play", "breakout",
-    "news_momentum", "reversal", "trend_continuation",
+    "high_tight_flag", "gap_and_go", "opening_range_breakout",
+    "bull_flag", "micro_pullback", "trend_continuation",
 )
 
-# Umbrales fijos y documentados -- decisiones editoriales, nunca
-# ajustados por ticker ni "aprendidos" por un modelo.
-UMBRAL_FLOAT_BAJO = 20_000_000          # acciones -- low float clásico
-UMBRAL_SHORT_INTERES_ALTO = 0.20        # 20% del float en corto
-UMBRAL_RVOL_SQUEEZE = 3.0
-UMBRAL_GAP_EARNINGS = 0.05              # 5% de gap el día del reporte
-UMBRAL_RVOL_NOTICIA = 3.0
-UMBRAL_RVOL_BREAKOUT = 2.0
-UMBRAL_PROXIMIDAD_52S_BREAKOUT = 0.98
-RSI_REVERSAL_MIN, RSI_REVERSAL_MAX = 30.0, 50.0
-RSI_SANO_MIN, RSI_SANO_MAX = 40.0, 65.0
-BANDA_PULLBACK_EMA20 = 0.05              # ±5% de la EMA20
-
-_TIPOS_CATALIZADOR_NOTICIA = {
-    "fda", "adquisicion", "contrato", "regulatorio", "guidance",
-    "nuevo_cliente", "patente", "buyback", "insider_buying",
-    "upgrade_analista", "rumor",
-}
+UMBRAL_GAP_MINIMO = 0.08            # 8%+ de gap para Gap and Go
+UMBRAL_RVOL_PATRON = 2.0            # confirmación mínima de volumen para cualquier ruptura
+UMBRAL_IMPULSO_BULL_FLAG = 0.05     # 5%+ de impulso en 3 velas antes de la bandera
+UMBRAL_IMPULSO_HTF = 0.50           # 50%+ de impulso reciente -- lo que hace "tight" al high
+BANDA_BULL_FLAG_PCT = 0.03          # rango de la bandera <= 3% del precio
+BANDA_HTF_PCT = 0.015               # HTF: consolidación todavía más angosta
 
 
-def _es_short_squeeze(meta: Metadata, factores: FactoresMomentum) -> bool:
-    return (
-        meta.shares_float is not None and meta.shares_float <= UMBRAL_FLOAT_BAJO
-        and meta.short_pct_float is not None and meta.short_pct_float >= UMBRAL_SHORT_INTERES_ALTO
-        and factores.rvol is not None and factores.rvol >= UMBRAL_RVOL_SQUEEZE
-    )
+def _rango_relativo(bi: BarraIntradia, n: int) -> float | None:
+    if len(bi.close) < n or bi.close[-1] <= 0:
+        return None
+    ventana_high = bi.high[-n:]
+    ventana_low = bi.low[-n:]
+    return (max(ventana_high) - min(ventana_low)) / bi.close[-1]
 
 
-def _es_earnings_play(catalizador: Catalizador | None, factores: FactoresMomentum) -> bool:
-    return (
-        catalizador is not None and catalizador.tipo == "earnings"
-        and factores.gap_pct is not None and abs(factores.gap_pct) >= UMBRAL_GAP_EARNINGS
-    )
+def _impulso(bi: BarraIntradia, inicio: int, fin: int) -> float | None:
+    """Retorno entre `bi.close[-inicio]` y `bi.close[-fin]` (índices
+    negativos, `inicio` más lejano que `fin`)."""
+    if len(bi.close) < inicio:
+        return None
+    base = bi.close[-inicio]
+    if base <= 0:
+        return None
+    return (bi.close[-fin] - base) / base
 
 
-def _es_news_momentum(catalizador: Catalizador | None, factores: FactoresMomentum) -> bool:
-    return (
-        catalizador is not None and catalizador.tipo in _TIPOS_CATALIZADOR_NOTICIA
-        and factores.rvol is not None and factores.rvol >= UMBRAL_RVOL_NOTICIA
-    )
-
-
-def _es_breakout(factores: FactoresMomentum) -> bool:
-    return (
-        factores.breakout_20d
-        and factores.distancia_max_52s is not None
-        and factores.distancia_max_52s >= UMBRAL_PROXIMIDAD_52S_BREAKOUT
-        and factores.rvol is not None and factores.rvol >= UMBRAL_RVOL_BREAKOUT
-    )
-
-
-def _es_reversal(factores: FactoresMomentum) -> bool:
-    return (
-        factores.rsi is not None and RSI_REVERSAL_MIN <= factores.rsi <= RSI_REVERSAL_MAX
-        and factores.macd is not None and factores.macd_signal is not None
-        and factores.macd > factores.macd_signal
-    )
-
-
-def _es_trend_continuation(spot: float, factores: FactoresMomentum) -> bool:
-    if factores.ema20 is None or factores.ema50 is None or factores.rsi is None or factores.ema20 <= 0:
+def _es_high_tight_flag(bi: BarraIntradia) -> bool:
+    if len(bi.close) < 11:
         return False
-    tendencia_alcista = factores.ema20 > factores.ema50
-    dentro_de_banda = abs(spot - factores.ema20) / factores.ema20 <= BANDA_PULLBACK_EMA20
-    rsi_sano = RSI_SANO_MIN <= factores.rsi <= RSI_SANO_MAX
-    return tendencia_alcista and dentro_de_banda and rsi_sano
+    impulso = _impulso(bi, 11, 4)   # impulso de las velas -11..-4
+    banda = _rango_relativo(bi, 3)  # bandera: últimas 3 velas
+    if impulso is None or banda is None:
+        return False
+    return impulso >= UMBRAL_IMPULSO_HTF and banda <= BANDA_HTF_PCT
 
 
-def tipo_oportunidad(
-    spot: float, factores: FactoresMomentum, catalizador: Catalizador | None, meta: Metadata,
-) -> str:
-    """Clave interna (ver ETIQUETAS para el texto con emoji). Único punto
-    de entrada de clasificación -- como máximo un tipo por ticker."""
-    if _es_short_squeeze(meta, factores):
-        return "short_squeeze"
-    if _es_earnings_play(catalizador, factores):
-        return "earnings_play"
-    if _es_breakout(factores):
-        return "breakout"
-    if _es_news_momentum(catalizador, factores):
-        return "news_momentum"
-    if _es_reversal(factores):
-        return "reversal"
-    if _es_trend_continuation(spot, factores):
+def _es_gap_and_go(factores: FactoresIntradia) -> bool:
+    return (
+        factores.gap_pct is not None and factores.gap_pct >= UMBRAL_GAP_MINIMO
+        and factores.maximo_premarket is not None and factores.precio_actual is not None
+        and factores.precio_actual > factores.maximo_premarket
+        and factores.rvol_actual is not None and factores.rvol_actual >= UMBRAL_RVOL_PATRON
+    )
+
+
+def _es_opening_range_breakout(factores: FactoresIntradia) -> bool:
+    return (
+        factores.rango_apertura_max is not None and factores.precio_actual is not None
+        and factores.precio_actual > factores.rango_apertura_max
+        and factores.rvol_actual is not None and factores.rvol_actual >= UMBRAL_RVOL_PATRON
+    )
+
+
+def _es_bull_flag(bi: BarraIntradia) -> bool:
+    if len(bi.close) < 8:
+        return False
+    impulso = _impulso(bi, 8, 5)    # impulso de las velas -8..-5
+    banda = _rango_relativo(bi, 3)  # bandera: últimas 3 velas
+    if impulso is None or banda is None:
+        return False
+    volumen_bandera = sum(bi.volume[-3:]) / 3
+    volumen_impulso = sum(bi.volume[-6:-3]) / 3 if len(bi.volume) >= 6 else None
+    volumen_decae = volumen_impulso is None or volumen_bandera < volumen_impulso
+    return impulso >= UMBRAL_IMPULSO_BULL_FLAG and banda <= BANDA_BULL_FLAG_PCT and volumen_decae
+
+
+def _es_micro_pullback(bi: BarraIntradia, factores: FactoresIntradia) -> bool:
+    """Impulso de dos velas -> una vela de pullback con menos volumen ->
+    la vela actual ya recupera, todo sin perder la EMA9 -- la entrada
+    clásica de Ross Cameron dentro de una tendencia ya en marcha."""
+    if len(bi.close) < 5 or factores.ema9 is None:
+        return False
+    c, v = bi.close, bi.volume
+    impulso_previo = c[-5] < c[-4] < c[-3]
+    vela_pullback = c[-3] > c[-2]
+    volumen_pullback_bajo = v[-2] < v[-3]
+    recuperando = c[-1] > c[-2]
+    sobre_ema9 = c[-1] >= factores.ema9 * 0.995
+    return impulso_previo and vela_pullback and volumen_pullback_bajo and recuperando and sobre_ema9
+
+
+def _es_trend_continuation(bi: BarraIntradia, factores: FactoresIntradia) -> bool:
+    """Catch-all: la tendencia sigue intacta (sobre VWAP y EMA9 en las
+    últimas velas) aunque no haya una forma más específica -- la señal
+    más débil de las seis, por eso va última en la prioridad."""
+    if len(bi.close) < 6 or factores.vwap is None or factores.ema9 is None:
+        return False
+    ventana = bi.close[-6:]
+    sobre_vwap = all(x >= factores.vwap * 0.995 for x in ventana)
+    sobre_ema9 = all(x >= factores.ema9 * 0.99 for x in ventana)
+    tendencia_al_alza = ventana[-1] > ventana[0]
+    return sobre_vwap and sobre_ema9 and tendencia_al_alza
+
+
+def detectar_patron(bi_hoy: BarraIntradia, factores: FactoresIntradia) -> str | None:
+    """Único punto de entrada -- como máximo un patrón por ticker, en
+    orden de prioridad. None si ninguno aplica (evaluator.py lo trata
+    como una respuesta negativa a la pregunta 4, penalización fuerte)."""
+    if _es_high_tight_flag(bi_hoy):
+        return "high_tight_flag"
+    if _es_gap_and_go(factores):
+        return "gap_and_go"
+    if _es_opening_range_breakout(factores):
+        return "opening_range_breakout"
+    if _es_bull_flag(bi_hoy):
+        return "bull_flag"
+    if _es_micro_pullback(bi_hoy, factores):
+        return "micro_pullback"
+    if _es_trend_continuation(bi_hoy, factores):
         return "trend_continuation"
-    return "news_momentum"  # ver docstring del módulo: siempre hay catalizador confirmado aquí
+    return None
 
 
-def clasificar(
-    spot: float, factores: FactoresMomentum, catalizador: Catalizador | None, meta: Metadata,
-) -> str:
-    return ETIQUETAS[tipo_oportunidad(spot, factores, catalizador, meta)]
+def etiqueta(clave: str) -> str:
+    return ETIQUETAS[clave]

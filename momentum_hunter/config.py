@@ -14,7 +14,20 @@ Nota sobre `market_cap_max`: el pedido original decía "menor a 2
 billones" -- en el uso real de un Opportunity Hunter de small/micro caps
 eso solo tiene sentido como 2,000 millones de dólares (small-cap, no
 mega-cap), así que el default es 2e9 USD. Queda como parámetro explícito
-por si se quisiera ajustar."""
+por si se quisiera ajustar.
+
+Pivote 2026-07-26 (pedido explícito: "quiero que piense como un trader
+de momentum, no como un screener"): la etapa 2 del pipeline (`run.py`)
+ya no evalúa con barras diarias -- pide velas intradía SOLO para los
+`max_candidatos_intradia` mejores candidatos de la etapa 1 (evitar pedir
+esto para miles de tickers, ver `data/provider.py`). `umbral_rvol_intradia`
+es una lectura de "¿está entrando dinero AHORA?" (vela actual vs. las
+últimas 5), distinta de `rvol_minimo_alerta` (que compara contra el
+promedio de 20 DÍAS -- sigue existiendo como filtro grueso de la etapa 1).
+`extension_maxima_pct`/`velas_maximas_desde_patron` son los umbrales
+duros del Early Opportunity Engine (`early_opportunity.py`) para decidir
+"temprano" vs. "tarde" -- un veredicto que puede bajar una alerta aunque
+el score compuesto sea alto (Prompt 2)."""
 
 from __future__ import annotations
 
@@ -46,13 +59,29 @@ class MomentumConfig:
 
     # --- Umbrales de alerta (Prompt 7: calidad antes que cantidad) ---
     score_minimo_alerta: float = 85.0
-    rvol_minimo_alerta: float = 4.0           # volumen actual / promedio 20 sesiones
+    rvol_minimo_alerta: float = 4.0           # volumen actual / promedio 20 sesiones (filtro grueso, etapa 1)
     requiere_catalizador_confirmado: bool = True
-    limite_diario_alertas: int = 5
+    # Techo de seguridad, no un objetivo -- la selectividad real la hace
+    # el evaluator (5 preguntas secuenciales) y el veredicto de "temprano"
+    # del Early Opportunity Engine. Bajado de 5 a 3 (pedido explícito,
+    # 2026-07-26: "prefiero una sola oportunidad excelente que veinte
+    # promedio").
+    limite_diario_alertas: int = 3
 
     # --- Catalizadores ---
     fuentes_minimas_rumor: int = 2            # un rumor solo cuenta si aparece en >=N fuentes
     dias_ventana_catalizador: int = 3         # noticia debe ser de los últimos N días
+
+    # --- Etapa 2: datos intradía (solo sobre los mejores candidatos) ---
+    intervalo_intradia: str = "1m"
+    periodo_intradia: str = "5d"               # margen para tener el cierre de ayer disponible
+    max_candidatos_intradia: int = 50          # tope duro -- ver data/provider.py
+    umbral_rvol_intradia: float = 3.0          # "¿está entrando dinero AHORA?" (Prompt 4, pregunta 2)
+    minutos_rango_apertura: int = 5            # ventana del Opening Range Breakout
+
+    # --- Early Opportunity Engine (Prompt 2) ---
+    extension_maxima_pct: float = 0.12         # >12% lejos de VWAP/EMA9 -> "ya vamos tarde"
+    velas_maximas_desde_patron: int = 8        # más de 8 velas desde la ruptura -> "ya vamos tarde"
 
     # --- Aprendizaje / tracking ---
     horizontes_seguimiento: tuple[int, ...] = (1, 3, 5, 10)  # días hábiles de seguimiento
@@ -67,6 +96,12 @@ class MomentumConfig:
             raise ValueError("score_minimo_alerta debe estar en [0, 100]")
         if self.limite_diario_alertas < 1:
             raise ValueError("limite_diario_alertas debe ser >= 1")
+        if self.max_candidatos_intradia < 1:
+            raise ValueError("max_candidatos_intradia debe ser >= 1")
+        if self.extension_maxima_pct <= 0:
+            raise ValueError("extension_maxima_pct debe ser > 0")
+        if self.velas_maximas_desde_patron < 1:
+            raise ValueError("velas_maximas_desde_patron debe ser >= 1")
 
 
 CONFIG = MomentumConfig()

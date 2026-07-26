@@ -1,7 +1,10 @@
-# Momentum Opportunity Hunter -- escanea NYSE/NASDAQ/AMEX buscando
-# momentum de corto plazo (1-10 días) en penny stocks/small caps/low
-# float, y manda alertas a Telegram cuando califican (ver
-# momentum_hunter/alerts.py). Proyecto completamente independiente del
+# Momentum Opportunity Hunter -- pipeline en dos etapas (pivote
+# 2026-07-26: "pensar como trader, no como screener"): etapa 1 escanea
+# NYSE/NASDAQ/AMEX con barras diarias para recortar a un puñado de
+# candidatos con catalizador; etapa 2 pide velas de 1 minuto SOLO para
+# esos candidatos, detecta patrones de Ross Cameron y corre el árbol de
+# decisión de 5 preguntas (ver momentum_hunter/evaluator.py) antes de
+# mandar una alerta a Telegram. Proyecto completamente independiente del
 # quant-screener (Investment Analyst del S&P 500): no comparte config,
 # universo ni criterios.
 #

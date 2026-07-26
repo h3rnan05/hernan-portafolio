@@ -25,6 +25,48 @@ class Barras:
 
 
 @dataclass
+class BarraIntradia:
+    """Velas intradía (1m/5m) de un ticker -- listas paralelas, orden
+    cronológico, timestamps en ISO 8601 UTC. Deliberadamente genérica:
+    NINGÚN campo aquí es específico de Yahoo. `data/provider.py` es la
+    única pieza que sabe de dónde salieron estos números; el resto del
+    pipeline (factors/intradia.py, patterns, early_opportunity,
+    evaluator) solo conoce esta forma, así que cambiar de proveedor
+    (Polygon, Alpaca, Tradier) es escribir OTRA implementación de
+    `DataProvider.barras_intradia`, nunca tocar la lógica de trading."""
+    ticker: str
+    timestamps: list[str]     # ISO 8601 UTC, una por vela
+    open: list[float]
+    close: list[float]
+    high: list[float]
+    low: list[float]
+    volume: list[float]
+
+    def __len__(self) -> int:
+        return len(self.close)
+
+
+@dataclass
+class FactoresIntradia:
+    """Lo que un trader mira en la pantalla en tiempo real -- calculado
+    una sola vez por ticker desde `BarraIntradia` (ver
+    `factors/intradia.py`) y reutilizado por `classification.py`
+    (patrones), `early_opportunity.py` y `evaluator.py`. Ningún campo
+    aquí depende de barras diarias."""
+    precio_actual: float | None = None
+    vwap: float | None = None                  # VWAP real de la sesión de hoy (no un proxy)
+    ema9: float | None = None
+    rvol_actual: float | None = None           # volumen de la vela actual / promedio de las N anteriores
+    aceleracion_volumen: float | None = None   # promedio de las últimas 3 velas / promedio de las 3 previas
+    gap_pct: float | None = None               # apertura regular de hoy vs. cierre regular de ayer
+    maximo_dia: float | None = None            # incluye premarket
+    maximo_premarket: float | None = None
+    rango_apertura_max: float | None = None    # high de los primeros N minutos de sesión regular
+    rango_apertura_min: float | None = None
+    velas_desde_ruptura: int | None = None     # velas desde que cerró por primera vez sobre el nivel relevante
+
+
+@dataclass
 class Metadata:
     """Snapshot no-técnico de un ticker -- lo que se necesita para el
     filtro de universo y para el sub-score de riesgo/liquidez. Todo
@@ -83,27 +125,25 @@ class FactoresMomentum:
 
 @dataclass(frozen=True)
 class Oportunidad:
-    """Una alerta lista para el mensaje final -- todos los campos del
-    Prompt 8, más la clasificación (Prompt "lo que construiría después")
-    y la estrategia (Prompt 9)."""
+    """Una alerta lista para el mensaje final -- rediseñada para leerse
+    como la mandaría un trader por Telegram, no como un reporte (ver
+    `report.py`). Cada campo responde a UNA de las preguntas que pide el
+    dueño del producto: por qué apareció, por qué ahora, qué patrón,
+    dónde entro/salgo, qué invalida, qué espero."""
     ticker: str
     nombre: str | None
-    clasificacion: str                # emoji + etiqueta, ver classification.py
-    score: float
-    catalizador: Catalizador | None
-    que_ocurrio: str
-    por_que_puede_seguir: str
+    urgencia: str                     # "Muy Alta" | "Alta" | "Media" | "Baja"
+    urgencia_emoji: str
+    titular_corto: str                 # ej. "rompiendo AHORA", "formando Micro Pullback"
+    por_que_aparecio: list[str]         # 3-5 líneas, cronológicas, con minutos reales
+    patron: str                          # etiqueta del patrón (ver classification.py)
+    veredicto_temprano: bool             # Early Opportunity Engine -- ¿llegamos a tiempo?
+    veredicto_texto: str
     entrada: float
     stop: float | None
-    primer_objetivo: float | None
-    segundo_objetivo: float | None
-    riesgo_texto: str
-    capital_minimo: float
-    urgencia: str                      # "Alta" | "Media" | "Baja"
+    objetivo: float | None
+    invalidacion: str
     que_espero: str
-    que_invalida: str
-    tiempo_esperado: str
-    niveles_alerta: list[float]
-    estrategia_nombre: str
-    estrategia_justificacion: list[str]
+    score: float                          # Convicción base (scoring.puntuar) -- referencia, no protagonista
+    catalizador: Catalizador | None
     fecha: str

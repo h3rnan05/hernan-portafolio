@@ -6,15 +6,19 @@ DISTINTAS; el resto de tipos se confirma con un solo titular."""
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
+
+import pytest
 
 from momentum_hunter.catalysts.detector import (
     Titular,
     YahooNewsProvider,
     clasificar_titular,
     detectar_catalizador,
+    minutos_desde_catalizador,
 )
 from momentum_hunter.config import CONFIG
+from momentum_hunter.models import Catalizador
 
 HOY = date(2026, 7, 26)
 
@@ -90,7 +94,26 @@ def test_yahoo_news_provider_parsea_formato_anidado_en_content():
     t = YahooNewsProvider._parsear(item)
     assert t is not None
     assert t.fuente == "Reuters"
-    assert t.fecha == "2026-07-20"
+    # Guarda el timestamp COMPLETO (no solo la fecha) -- lo necesita
+    # minutos_desde_catalizador para el "hace X minutos" de Prompt 5.
+    assert t.fecha == "2026-07-20T10:00:00Z"
+    assert t.fecha.startswith("2026-07-20")
+
+
+def test_minutos_desde_catalizador_con_timestamp_completo():
+    hace_18_min = datetime(2026, 7, 26, 13, 42, tzinfo=UTC)
+    ahora = datetime(2026, 7, 26, 14, 0, tzinfo=UTC)
+    c = Catalizador(tipo="fda", titular="x", fuente="Reuters", fecha=hace_18_min.isoformat())
+    assert minutos_desde_catalizador(c, ahora=ahora) == pytest.approx(18.0)
+
+
+def test_minutos_desde_catalizador_none_sin_hora():
+    c = Catalizador(tipo="fda", titular="x", fuente="Reuters", fecha="2026-07-26")
+    assert minutos_desde_catalizador(c) is None
+
+
+def test_minutos_desde_catalizador_none_sin_catalizador():
+    assert minutos_desde_catalizador(None) is None
 
 
 def test_yahoo_news_provider_sin_titulo_devuelve_none():

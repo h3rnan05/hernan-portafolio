@@ -4,24 +4,20 @@ temporal (nunca toca `alertas_enviadas.json` real del repo)."""
 from __future__ import annotations
 
 from momentum_hunter.catalysts.detector import Catalizador
-from momentum_hunter.config import CONFIG
-from momentum_hunter.models import FactoresMomentum, Metadata, Oportunidad
-from momentum_hunter.report import construir_oportunidad
+from momentum_hunter.models import Oportunidad
 from momentum_hunter.tracker import cargar, desde_oportunidad, guardar, registrar
 
 
 def _oportunidad(ticker="ACME") -> Oportunidad:
-    from momentum_hunter.alerts import Candidato
-    from momentum_hunter.scoring import Puntuacion
-
-    c = Candidato(
-        ticker=ticker, nombre="Acme Corp", precio=10.0, volumen_promedio=2_000_000.0,
-        factores=FactoresMomentum(rvol=6.0, breakout_20d=True, distancia_max_52s=0.99, atr=0.5),
+    return Oportunidad(
+        ticker=ticker, nombre="Acme Corp", urgencia="Muy Alta", urgencia_emoji="🔴",
+        titular_corto="rompiendo AHORA", por_que_aparecio=["Hace 5 min: fda -- x (Reuters)."],
+        patron="🚀 GAP AND GO", veredicto_temprano=True, veredicto_texto="Vamos temprano: x.",
+        entrada=5.20, stop=5.00, objetivo=5.60, invalidacion="Se cancela si pierde $5.00.",
+        que_espero="Que aguante sobre VWAP.", score=92.0,
         catalizador=Catalizador(tipo="fda", titular="x", fuente="Reuters"),
-        meta=Metadata(ticker=ticker),
-        puntuacion=Puntuacion(ticker=ticker, score_total=92.0, sub={}),
+        fecha="2026-07-26T13:35:00+00:00",
     )
-    return construir_oportunidad(c, CONFIG, tiene_opciones_fn=lambda t: False)
 
 
 def test_desde_oportunidad_copia_los_niveles():
@@ -30,6 +26,8 @@ def test_desde_oportunidad_copia_los_niveles():
     assert a.ticker == o.ticker
     assert a.precio_entrada == o.entrada
     assert a.stop == o.stop
+    assert a.objetivo1 == o.objetivo
+    assert a.clasificacion == o.patron
     assert a.resultados_pct == {}
     assert a.resuelta is False
 
