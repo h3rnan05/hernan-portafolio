@@ -1,0 +1,83 @@
+# Momentum Opportunity Hunter -- escanea NYSE/NASDAQ/AMEX buscando
+# momentum de corto plazo (1-10 días) en penny stocks/small caps/low
+# float, y manda alertas a Telegram cuando califican (ver
+# momentum_hunter/alerts.py). Proyecto completamente independiente del
+# quant-screener (Investment Analyst del S&P 500): no comparte config,
+# universo ni criterios.
+#
+# Corre varias veces al día en horario de mercado (aprox. 9:30am-4:00pm
+# ET, ajustar el cron en horario de invierno) -- a diferencia del
+# screener, que corre una vez antes de la apertura.
+#
+# `--limit 500` por defecto (también en corridas programadas): escanear
+# TODO el universo NYSE+NASDAQ+AMEX con Yahoo por-ticker en cada corrida
+# es lento y arriesga que Yahoo bloquee la IP del runner (ver la
+# limitación documentada en momentum_hunter/universe.py). Para producción
+# real varias veces por hora, hay que inyectar un DataProvider de pago
+# con cotizaciones masivas -- la abstracción ya lo permite.
+#
+# Secrets (opcionales): MOMENTUM_TELEGRAM_BOT_TOKEN/_CHAT_ID (chat
+# dedicado, recomendado) o, si no existen, cae a TELEGRAM_BOT_TOKEN/
+# TELEGRAM_CHAT_ID (el mismo chat del Investment Analyst).
+
+name: momentum-opportunity-hunter
+
+on:
+  schedule:
+    - cron: "*/30 13-20 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Escanear solo los primeros N tickers (vacío = universo completo, lento)"
+        required: false
+        default: "500"
+      universo:
+        description: "Ruta a un archivo de watchlist propio (vacío = NYSE+NASDAQ+AMEX completo)"
+        required: false
+        default: ""
+
+concurrency:
+  group: momentum-opportunity-hunter
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  cazar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q -r momentum_hunter/requirements.txt
+
+      - name: Correr Momentum Opportunity Hunter
+        env:
+          MOMENTUM_TELEGRAM_BOT_TOKEN: ${{ secrets.MOMENTUM_TELEGRAM_BOT_TOKEN }}
+          MOMENTUM_TELEGRAM_CHAT_ID: ${{ secrets.MOMENTUM_TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          LIMIT="${{ github.event.inputs.limit || '500' }}"
+          UNIVERSO="${{ github.event.inputs.universo }}"
+          ARGS=""
+          [ -n "$LIMIT" ] && ARGS="$ARGS --limit $LIMIT"
+          [ -n "$UNIVERSO" ] && ARGS="$ARGS --universo $UNIVERSO"
+          python -m momentum_hunter.run $ARGS
+
+      - name: Persistir universo/tracker
+        run: |
+          git config user.name "momentum-opportunity-hunter"
+          git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
+          for f in momentum_hunter/universo_cache.json momentum_hunter/alertas_enviadas.json; do
+            [ -f "$f" ] && git add "$f" || true
+          done
+          git diff --cached --quiet || git commit -m "momentum_hunter: alertas del día [skip ci]"
+          git pull --rebase origin main || true
+          git push

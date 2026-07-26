@@ -1,0 +1,5 @@
+# Dependencias del Momentum Opportunity Hunter -- misma filosofía que
+# screener/requirements.txt: sin pandas/numpy, corre ligero. yfinance es
+# OPCIONAL (metadata/catalizadores/opciones degradan con gracia sin él).
+requests>=2.31.0
+yfinance>=0.2.40

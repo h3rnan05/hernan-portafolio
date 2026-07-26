@@ -77,3 +77,53 @@ Engine → Validation Pipeline completo.
 
 **Siguiente parte a construir: por decidir con el dueño del proyecto en cada
 sesión — ver la conversación para la elección más reciente.**
+
+## Segundo sistema, deliberadamente independiente: Momentum Opportunity Hunter
+
+Pedido explícito del dueño del producto (2026-07-26): "no copies el bot
+actual... el nuevo debe ser un Opportunity Hunter" — el Investment
+Analyst de arriba (agentes 1-11, `screener/`) responde "¿vale la pena
+invertir en esta empresa?" sobre el S&P 500 con un horizonte de semanas
+o meses; `momentum_hunter/` responde una pregunta completamente distinta
+— "¿qué acción puede moverse fuerte HOY o en los próximos días?" — sobre
+penny stocks/small caps/low float con un horizonte de 1 a 10 días. Son
+problemas distintos a propósito, así que **no comparten universo,
+`DataProvider`, factores, scoring, ni código de valoración/calidad**:
+`momentum_hunter/` es un paquete nuevo, standalone, con su propia
+arquitectura de principio a fin (ver `momentum_hunter/README.md` para el
+detalle completo).
+
+100% determinístico, mismo Principio #3 de arriba (sin LLM decidiendo
+qué comprar). Score 0-100 = 40% momentum + 25% catalizador + 20%
+liquidez + 15% gestión del riesgo (cero P/E, cero ROE, cero dividendos).
+Solo manda alerta a Telegram cuando las cuatro condiciones del Prompt 7
+se cumplen a la vez (score > 85, catalizador confirmado, RVOL > 4x,
+liquidez suficiente), con un tope de 5 alertas/día — y se queda en
+silencio cuando nada califica, en vez de anunciar "no encontré nada"
+(esa es la convención del Investment Analyst, que corre una vez al día;
+este bot puede correr varias veces al día, así que repetir el
+no-resultado sería el mismo ruido que Prompt 2 pide evitar).
+
+Clasifica cada oportunidad por tipo (🔥 Breakout / ⚡ News Momentum /
+🚀 Short Squeeze / 💰 Earnings Play / 📈 Trend Continuation / 🔄
+Reversal) y decide el vehículo de entrada (Comprar acciones/Long
+Call/Bull Call Spread/Cash Secured Put/No Operar) con justificación —
+nunca se limita a decir "comprar". Incluye su propio Learning Engine
+(`tracker.py`/`outcomes.py`/`stats.py`): cada alerta se guarda y se mide
+su resultado real a 1/3/5/10 días (win rate, retorno promedio, drawdown
+máximo, expectancy, Sharpe — global y por tipo de oportunidad), la misma
+pieza de "medir el desempeño de las alertas EN SÍ MISMAS" que el
+Investment Analyst todavía tiene pendiente (agente 11, arriba).
+
+Limitación honesta compartida con `screener/`: escanear TODO
+NYSE+NASDAQ+AMEX (~8,000-11,000 símbolos) varias veces al día con datos
+gratis por-ticker no es viable sin arriesgar que Yahoo bloquee el
+runner — `run.py` opera por defecto sobre un subconjunto acotado
+(`--limit`/`--universo`); producción real de alta frecuencia necesitaría
+un `DataProvider` de pago con cotizaciones masivas, sin tocar el resto
+del pipeline (la interfaz ya lo permite). Pendiente, no construido:
+opciones de compra reales por debajo del vehículo elegido (hoy
+`strategy.py` decide QUÉ vehículo usar pero no cotiza la cadena de
+opciones como sí hace `screener/options_math.py` para el otro bot —
+deliberado, ver `momentum_hunter/README.md`), y conectar
+`risk_manager/` para sizing real de posición.
