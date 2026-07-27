@@ -56,18 +56,21 @@ def test_construir_resumen_agrupa_por_patron():
     dos_pullback = [_candidato(f"T{i}", patron="micro_pullback") for i in range(2)]
     resumen = construir_resumen(dos_pullback)
     assert resumen is not None
-    assert "2 acciones están formando 🔁 MICRO PULLBACK: T0, T1." in resumen
+    # Lenguaje humano (pivote 2026-07-26) -- nunca el nombre técnico del patrón.
+    assert "2 acciones están recuperando tras un respiro corto: T0, T1." in resumen
+    assert "MICRO PULLBACK" not in resumen.upper()
 
 
 def test_construir_resumen_incluye_volumen_sin_patron():
     c = _candidato("VOL", dinero_entrando=True, patron=None)
     resumen = construir_resumen([c])
-    assert "sin patrón claro" in resumen
+    assert "sin nada claro que operar" in resumen
     assert "VOL" in resumen
 
 
 def test_construir_resumen_marca_oportunidades_tarde():
     c = _candidato("TARDE", patron="bull_flag", temprano=False)
     resumen = construir_resumen([c])
-    assert "ya se ve tarde" in resumen
+    assert "ya se movió demasiado" in resumen
     assert "TARDE" in resumen
+    assert "BULL FLAG" not in resumen.upper()

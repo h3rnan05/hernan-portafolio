@@ -38,6 +38,21 @@ ETIQUETAS: dict[str, str] = {
     "trend_continuation": "📈 TREND CONTINUATION",
 }
 
+# Pivote 2026-07-26 (pedido explícito: "el usuario nunca debería sentir
+# que necesita saber análisis técnico"): `ETIQUETAS` (nombre en inglés,
+# jerga de trading) queda solo para logs/depuración -- todo lo que se
+# manda a Telegram (`report.py`, `radar.py`) usa esta traducción a
+# lenguaje llano en su lugar. Frases cortas, en minúscula (se insertan
+# dentro de una oración), sin nombrar el patrón técnico.
+DESCRIPCION_HUMANA: dict[str, str] = {
+    "high_tight_flag": "subiendo muy rápido y haciendo una pausa mínima",
+    "gap_and_go": "rompiendo con fuerza justo al abrir",
+    "opening_range_breakout": "rompiendo el techo de los primeros minutos",
+    "bull_flag": "tomando un respiro después de subir fuerte",
+    "micro_pullback": "recuperando tras un respiro corto",
+    "trend_continuation": "subiendo de forma constante",
+}
+
 # Más específico/explosivo primero -- un High Tight Flag real también
 # cumpliría las condiciones de un Bull Flag genérico, así que tiene que
 # evaluarse antes para no perder la etiqueta más informativa.

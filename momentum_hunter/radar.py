@@ -51,18 +51,17 @@ def construir_resumen(candidatos: list[CandidatoIntradia]) -> str | None:
 
     lineas = ["📡 Market Radar", ""]
     for patron, tickers in por_patron.items():
-        etiqueta = classification.etiqueta(patron)
+        descripcion = classification.DESCRIPCION_HUMANA.get(patron, "en movimiento")
         sustantivo = "acción" if len(tickers) == 1 else "acciones"
         verbo = "está" if len(tickers) == 1 else "están"
-        lineas.append(f"🔥 {len(tickers)} {sustantivo} {verbo} formando {etiqueta}: {', '.join(tickers)}.")
+        lineas.append(f"🔥 {len(tickers)} {sustantivo} {verbo} {descripcion}: {', '.join(tickers)}.")
 
     if sin_patron:
         sustantivo = "acción" if len(sin_patron) == 1 else "acciones"
         tickers = ", ".join(c.ticker for c in sin_patron)
-        lineas.append(f"👀 {len(sin_patron)} {sustantivo} con volumen entrando, todavía sin patrón claro: {tickers}.")
+        lineas.append(f"👀 {len(sin_patron)} {sustantivo} con dinero entrando, todavía sin nada claro que operar: {tickers}.")
 
     for c in tarde[: max(0, TOPE_RADAR - len(lineas))]:
-        etiqueta = classification.etiqueta(c.resultado.patron)
-        lineas.append(f"⚠️ {c.ticker}: la oportunidad de {etiqueta} ya se ve tarde -- en observación.")
+        lineas.append(f"⚠️ {c.ticker}: ya se movió demasiado -- en observación, no para entrar.")
 
     return "\n".join(lineas)

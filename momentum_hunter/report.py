@@ -1,16 +1,21 @@
-"""Formato de alerta -- rediseño completo (Prompts 3, 5, 6, 7). Ya no es
-un reporte con campos etiquetados: es el mensaje que mandaría un trader
-de momentum por Telegram, pensado para leerse en menos de 20 segundos.
+"""Formato de alerta -- pivote 2026-07-26: "cuando yo abra Telegram no
+quiero recibir un reporte técnico... quiero recibir la misma
+información que me daría un trader experimentado". Prohibido mostrar
+cualquier indicador crudo (RVOL, EMA9, VWAP, ATR, MACD, RSI) o el nombre
+del patrón en jerga -- todo se calcula igual que antes
+(`factors/intradia.py`, `classification.py`, `early_opportunity.py`,
+`evaluator.py`), pero esta capa lo TRADUCE a una historia de 4 pasos:
 
-Siete preguntas, en este orden, nunca más:
-¿Por qué apareció? ¿Por qué ahora? ¿Qué patrón? ¿Qué espero?
-¿Dónde entro? ¿Dónde salgo? ¿Qué invalida la operación?
+  1) ¿Qué pasó?              -- el catalizador, en una frase.
+  2) ¿Qué hizo el mercado?    -- volumen/gap, sin números de indicadores.
+  3) ¿Qué está pasando ahora? -- el patrón, descrito en lenguaje llano.
+  4) ¿Todavía vale la pena?   -- el veredicto del Early Opportunity Engine.
 
-Voz (Prompt 7): primera persona, presente, sin jerga de Wall Street.
-"Entraría en...", "Cancelo si...", nunca "El precio presenta una
-estructura técnica que sugiere...". Todo lo que se dice sale de datos ya
-calculados en `evaluator.py`/`early_opportunity.py`/`factors/intradia.py`
--- nunca se inventa un número ni una razón."""
+Más "¿qué cancelaría la idea?" y "¿por qué esta alerta y no otra?" --
+las cinco preguntas que pidió el dueño del producto. Prueba antes de
+escribir cualquier frase nueva aquí: "si mi papá, que nunca ha hecho
+trading, leyera esto, ¿entendería por qué vale la pena?" -- si la
+respuesta es no, la frase está mal escrita, no le faltan más datos."""
 
 from __future__ import annotations
 
@@ -20,64 +25,88 @@ from momentum_hunter import classification
 from momentum_hunter.alerts import CandidatoIntradia
 from momentum_hunter.models import FactoresIntradia, Oportunidad
 
-# Prompt 6: la urgencia depende de qué tan fresco sigue el patrón, no del
-# tipo de patrón -- se calcula desde `velas_desde_ruptura`, la misma
-# métrica que ya usa `early_opportunity.py` para "frescura". Los cortes
-# son fracciones del techo configurado (`cfg.velas_maximas_desde_patron`)
-# para que ambos módulos midan "tarde" con la misma vara.
-_MOTIVO_URGENCIA = {
-    "muy_alta": "El patrón acaba de activarse -- probablemente tengas pocos minutos.",
-    "alta": "La entrada sigue siendo válida.",
-    "media": "Todavía puede esperar, pero se está acercando el límite.",
-    "baja": "Ya pasó la ventana en la que esta entrada tenía sentido -- solo para watchlist.",
-}
 _EMOJI_URGENCIA = {"muy_alta": "🔴", "alta": "🟠", "media": "🟡", "baja": "⚪"}
 _NOMBRE_URGENCIA = {"muy_alta": "Muy Alta", "alta": "Alta", "media": "Media", "baja": "Baja"}
 
-_TITULAR_CORTO = {
-    "high_tight_flag": "bandera muy angosta -- movimiento explosivo",
-    "gap_and_go": "rompiendo AHORA",
-    "opening_range_breakout": "rompiendo el rango de apertura",
-    "bull_flag": "rompiendo la bandera",
-    "micro_pullback": "recuperando tras el pullback",
-    "trend_continuation": "la tendencia sigue intacta",
+# --- 1) ¿Qué pasó? -- el catalizador, sin el nombre técnico del tipo ---
+_CATALIZADOR_HUMANO = {
+    "earnings": "Reportó resultados y el mercado reaccionó fuerte.",
+    "fda": "La FDA le aprobó algo importante.",
+    "contrato": "Ganó un contrato importante.",
+    "nuevo_cliente": "Consiguió un cliente nuevo importante.",
+    "guidance": "La empresa dijo que le va a ir mejor de lo que se esperaba.",
+    "adquisicion": "Anunciaron una compra o fusión importante.",
+    "patente": "Le aprobaron una patente importante.",
+    "buyback": "La empresa anunció que va a recomprar sus propias acciones.",
+    "insider_buying": "Alguien de adentro de la empresa está comprando acciones -- suelen saber algo que el resto no.",
+    "regulatorio": "Un regulador le dio luz verde a algo importante para el negocio.",
+    "upgrade_analista": "Un analista importante dijo que la acción debería subir.",
+    "rumor": "Corre un rumor fuerte sobre la empresa, y ya lo confirmaron varias fuentes.",
 }
 
-_LINEA_PATRON = {
-    "high_tight_flag": "Formó una bandera muy angosta después de un impulso fuerte -- consolidación mínima.",
-    "gap_and_go": "Gap de apertura y ya está extendiendo el movimiento.",
-    "opening_range_breakout": "Rompió el rango de los primeros minutos de la sesión.",
-    "bull_flag": "Hizo una bandera alcista: impulso, pausa, y ahora vuelve a intentar romper.",
-    "micro_pullback": "Hizo un Micro Pullback y ya está recuperando.",
-    "trend_continuation": "La tendencia de las últimas velas se mantiene intacta.",
+# --- 3) ¿Qué está pasando ahora? -- el patrón, en una oración completa ---
+_QUE_PASA_AHORA = {
+    "high_tight_flag": "Subió muy rápido y ahora casi no se mueve -- está tomando aire antes de "
+                       "decidir para dónde sigue.",
+    "gap_and_go": "Sigue subiendo sin parar desde que abrió el mercado.",
+    "opening_range_breakout": "Acaba de romper el techo que tenía en los primeros minutos de la sesión.",
+    "bull_flag": "Subió fuerte, descansó un poco, y está a punto de intentarlo de nuevo.",
+    "micro_pullback": "Está haciendo su primer descanso antes de intentar subir otra vez.",
+    "trend_continuation": "Sigue subiendo de forma constante, sin señales de que se esté deteniendo.",
 }
 
-_QUE_ESPERO = {
-    "high_tight_flag": "Que rompa el máximo de la bandera sin perder la parte alta de la consolidación.",
-    "gap_and_go": "Que aguante sobre el máximo del premarket en el próximo respiro.",
-    "opening_range_breakout": "Que no vuelva a meterse dentro del rango de apertura.",
-    "bull_flag": "Que rompa el máximo de la bandera con volumen.",
-    "micro_pullback": "Que aguante sobre la EMA9 en el próximo pullback.",
-    "trend_continuation": "Que se mantenga sobre VWAP y EMA9.",
+# --- 4) ¿Todavía vale la pena? -- según early_opportunity.razon. Sin el
+# "Sí"/"No" al inicio: `formatear()` ya antepone esa respuesta, así que
+# aquí solo va la razón (si no, queda "Sí. Sí. Apenas..." duplicado). ---
+_VALE_LA_PENA = {
+    "ok": "Apenas lleva unos minutos formando este movimiento -- todavía se puede entrar a buen precio.",
+    "extension": "Ya subió demasiado rápido -- entrar ahora sería perseguir el precio.",
+    "velas": "El movimiento principal ya pasó hace rato.",
 }
 
+# --- ¿Por qué esta alerta y no otra? -- por nivel de exigencia cumplido ---
+def _por_que_esta_alerta(score_ajustado: float) -> str:
+    if score_ajustado >= 95.0:
+        return "De todo lo que vi hoy, esta es de las mejores oportunidades."
+    if score_ajustado >= 90.0:
+        return "Es una oportunidad sólida -- cumple todo lo que exijo antes de avisarte."
+    return "Cumple lo mínimo que exijo para avisarte, pero no es excepcional."
 
-def _nivel_invalidacion(candidato: CandidatoIntradia) -> tuple[float | None, str]:
-    """El nivel que, de perderse, cancela la tesis -- el máximo del
-    premarket para patrones de ruptura de apertura, el rango de apertura
-    para ORB, VWAP/EMA9 para el resto. Nunca un número inventado: sale
-    de los mismos factores ya calculados."""
+
+def _que_paso(candidato: CandidatoIntradia) -> str:
+    c = candidato.catalizador
+    if c is None:
+        return "Algo llamó la atención del mercado."
+    frase = _CATALIZADOR_HUMANO.get(c.tipo, "Pasó algo importante con la empresa.")
+    if candidato.minutos_desde_catalizador is not None:
+        return f"Hace {int(candidato.minutos_desde_catalizador)} min: {frase}"
+    return frase
+
+
+def _que_hizo_mercado(f: FactoresIntradia) -> str:
+    if f.gap_pct is not None and f.gap_pct >= 0.08:
+        base = "Abrió mucho más arriba de lo normal"
+    else:
+        base = "Empezaron a entrar compradores"
+    if f.aceleracion_volumen is not None and f.aceleracion_volumen >= 1.3:
+        return f"{base} y el dinero está entrando cada vez con más fuerza."
+    if f.rvol_actual is not None and f.rvol_actual >= 3.0:
+        return f"{base} con muchísimo más volumen de lo normal."
+    return f"{base}."
+
+
+def _nivel_invalidacion(candidato: CandidatoIntradia) -> float | None:
+    """El precio que, de perderse, cancela la tesis -- solo el número,
+    nunca el nombre técnico del nivel (VWAP/EMA9/etc.)."""
     f = candidato.factores
     patron = candidato.resultado.patron
-    if patron in ("gap_and_go",) and f.maximo_premarket is not None:
-        return f.maximo_premarket, "el máximo del premarket"
+    if patron == "gap_and_go" and f.maximo_premarket is not None:
+        return f.maximo_premarket
     if patron == "opening_range_breakout" and f.rango_apertura_max is not None:
-        return f.rango_apertura_max, "el rango de apertura"
+        return f.rango_apertura_max
     if f.ema9 is not None:
-        return f.ema9, "la EMA9"
-    if f.vwap is not None:
-        return f.vwap, "el VWAP"
-    return None, "el nivel de entrada"
+        return f.ema9
+    return f.vwap
 
 
 def niveles_entrada_salida(factores: FactoresIntradia, atr_diario: float | None) -> dict[str, float | None]:
@@ -88,8 +117,7 @@ def niveles_entrada_salida(factores: FactoresIntradia, atr_diario: float | None)
     `early_opportunity._score_riesgo_recompensa`. Pública porque
     `run.py` necesita estos mismos niveles ANTES de construir la
     `Oportunidad` final -- para pasárselos a `evaluator.evaluar` (la
-    pregunta 5 los usa para calcular riesgo/recompensa) -- y no debe
-    haber dos fórmulas de niveles distintas en el pipeline."""
+    pregunta 5 los usa para calcular riesgo/recompensa)."""
     precio = factores.precio_actual
     if precio is None:
         return {"entrada": None, "stop": None, "objetivo": None}
@@ -119,66 +147,41 @@ def _urgencia(candidato: CandidatoIntradia, techo_velas: int) -> str:
     return "media"
 
 
-def _por_que_aparecio(candidato: CandidatoIntradia) -> list[str]:
-    """Prompt 5: la secuencia cronológica de por qué esta alerta aparece
-    AHORA -- máximo 5 líneas, cada una trazable a un dato real."""
-    lineas: list[str] = []
-    c = candidato.catalizador
-    if c is not None:
-        resumen = c.tipo.replace("_", " ")
-        if candidato.minutos_desde_catalizador is not None:
-            lineas.append(
-                f"Hace {int(candidato.minutos_desde_catalizador)} min: {resumen} -- "
-                f'"{c.titular}" ({c.fuente}).'
-            )
-        else:
-            lineas.append(f'Catalizador: {resumen} -- "{c.titular}" ({c.fuente}).')
-
-    f = candidato.factores
-    if f.rvol_actual is not None:
-        lineas.append(f"El volumen se aceleró: RVOL de {f.rvol_actual:.1f}x ahora mismo.")
-    if f.maximo_premarket is not None and f.precio_actual is not None and f.precio_actual > f.maximo_premarket:
-        lineas.append(f"Rompió el máximo del premarket (${f.maximo_premarket:.2f}).")
-
-    patron = candidato.resultado.patron
-    if patron in _LINEA_PATRON:
-        lineas.append(_LINEA_PATRON[patron])
-
-    return lineas[:5]
-
-
 def construir_oportunidad(candidato: CandidatoIntradia, techo_velas: int) -> Oportunidad:
     """Ensambla la `Oportunidad` final -- ya se decidió que se manda
     (`candidato.resultado.accionable`); esto solo decide CÓMO se
-    presenta."""
+    presenta, traduciendo todo a lenguaje humano."""
     patron = candidato.resultado.patron or "trend_continuation"
     urgencia_clave = _urgencia(candidato, techo_velas)
     niveles = niveles_entrada_salida(candidato.factores, candidato.atr_diario)
-    nivel_inval, nombre_nivel_inval = _nivel_invalidacion(candidato)
-
-    invalidacion = (
-        f"Se cancela si vuelve a meterse debajo de ${nivel_inval:.2f} ({nombre_nivel_inval})."
-        if nivel_inval is not None
-        else "Se cancela si pierde el nivel que activó la entrada."
-    )
+    nivel_inval = _nivel_invalidacion(candidato)
 
     early = candidato.resultado.early
-    veredicto_texto = ""
-    if early is not None:
-        prefijo = "temprano" if candidato.resultado.temprano else "tarde"
-        veredicto_texto = f"Vamos {prefijo}: {early.motivo_veredicto}"
+    razon = early.razon if early is not None else "ok"
 
+    invalidacion = (
+        f"Si vuelve a caer por debajo de ${nivel_inval:.2f}, se cancela la idea."
+        if nivel_inval is not None
+        else "Si pierde el nivel que activó la entrada, se cancela la idea."
+    )
+
+    ahora = datetime.now(UTC)
     return Oportunidad(
         ticker=candidato.ticker, nombre=candidato.nombre,
         urgencia=_NOMBRE_URGENCIA[urgencia_clave], urgencia_emoji=_EMOJI_URGENCIA[urgencia_clave],
-        titular_corto=_TITULAR_CORTO.get(patron, "en movimiento"),
-        por_que_aparecio=_por_que_aparecio(candidato),
-        patron=classification.etiqueta(patron),
-        veredicto_temprano=candidato.resultado.temprano, veredicto_texto=veredicto_texto,
+        titular_corto=classification.DESCRIPCION_HUMANA.get(patron, "en movimiento"),
+        que_paso=_que_paso(candidato), que_hizo_mercado=_que_hizo_mercado(candidato.factores),
+        que_pasa_ahora=_QUE_PASA_AHORA.get(patron, "Sigue moviéndose con fuerza."),
+        vale_la_pena=candidato.resultado.temprano,
+        por_que_vale_la_pena=_VALE_LA_PENA.get(razon, _VALE_LA_PENA["ok"]),
+        por_que_esta_alerta=_por_que_esta_alerta(candidato.resultado.score_ajustado),
         entrada=niveles["entrada"] or 0.0, stop=niveles["stop"], objetivo=niveles["objetivo"],
-        invalidacion=invalidacion, que_espero=_QUE_ESPERO.get(patron, "Que confirme la tesis en las próximas velas."),
-        score=candidato.resultado.score_ajustado, catalizador=candidato.catalizador,
-        fecha=datetime.now(UTC).isoformat(timespec="seconds"),
+        invalidacion=invalidacion, catalizador=candidato.catalizador,
+        score=candidato.resultado.score_ajustado, fecha=ahora.isoformat(timespec="seconds"),
+        patron_clave=patron, hora_utc=ahora.hour,
+        catalizador_tipo=candidato.catalizador.tipo if candidato.catalizador else None,
+        float_acciones=candidato.meta.shares_float, gap_pct=candidato.factores.gap_pct,
+        rvol=candidato.factores.rvol_actual,
     )
 
 
@@ -188,18 +191,23 @@ def formatear(o: Oportunidad) -> str:
         lineas.append(o.nombre)
         lineas.append("")
 
-    lineas += o.por_que_aparecio
-    lineas.append("")
-    lineas.append(f"Patrón: {o.patron}")
-    lineas.append(o.veredicto_texto)
+    lineas.append(f"1) {o.que_paso}")
+    lineas.append(f"2) {o.que_hizo_mercado}")
+    lineas.append(f"3) {o.que_pasa_ahora}")
+    respuesta = "Sí" if o.vale_la_pena else "No"
+    lineas.append(f"4) ¿Todavía vale la pena? {respuesta}. {o.por_que_vale_la_pena}")
 
-    lineas += ["", f"Entro: ${o.entrada:,.2f}"]
+    lineas += ["", o.por_que_esta_alerta]
+
+    lineas += ["", f"Si decides entrar: cerca de ${o.entrada:,.2f}."]
     if o.stop is not None:
-        lineas.append(f"Salgo (stop): ${o.stop:,.2f}")
+        lineas.append(f"Si te equivocas, sal cerca de ${o.stop:,.2f}.")
     if o.objetivo is not None:
-        lineas.append(f"Objetivo: ${o.objetivo:,.2f} -- reevalúo ahí, no es venta automática.")
+        lineas.append(f"Si funciona, la primera meta es ${o.objetivo:,.2f}.")
 
-    lineas += ["", f"Qué invalida esto: {o.invalidacion}"]
-    lineas.append(f"Qué espero: {o.que_espero}")
+    lineas += ["", o.invalidacion]
 
-    return "\n".join(l for l in lineas if l is not None)
+    if o.catalizador is not None:
+        lineas += ["", f'Fuente: "{o.catalizador.titular}" ({o.catalizador.fuente})']
+
+    return "\n".join(lineas)

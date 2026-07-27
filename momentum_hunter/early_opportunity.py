@@ -37,7 +37,10 @@ RR_MINIMO_ACEPTABLE = 0.5
 class EarlyOpportunity:
     score: float                    # 0-100, informativo -- no decide el veredicto
     veredicto: str                   # "temprano" | "tarde"
-    motivo_veredicto: str
+    razon: str                        # "extension" | "velas" | "ok" -- clave estable para
+                                       # traducir a lenguaje humano en report.py, nunca se
+                                       # parsea el texto de motivo_veredicto
+    motivo_veredicto: str             # explicación técnica -- logs/debug, NUNCA se manda al usuario
     sub: dict[str, float] = field(default_factory=dict)
 
 
@@ -154,20 +157,20 @@ def calcular(
     # decir "tarde", sin importar qué tan bien se vean las demás.
     if ext is not None and ext > cfg.extension_maxima_pct:
         return EarlyOpportunity(
-            score=score, veredicto="tarde",
+            score=score, veredicto="tarde", razon="extension",
             motivo_veredicto=f"El precio ya está {ext:.0%} lejos de VWAP/EMA9 -- "
                              f"perseguirlo ahora es mal riesgo/recompensa.",
             sub=sub,
         )
     if factores.velas_desde_ruptura is not None and factores.velas_desde_ruptura > cfg.velas_maximas_desde_patron:
         return EarlyOpportunity(
-            score=score, veredicto="tarde",
+            score=score, veredicto="tarde", razon="velas",
             motivo_veredicto=f"El patrón se activó hace {factores.velas_desde_ruptura} velas -- "
                              "ya pasó la ventana en la que esta entrada tenía sentido.",
             sub=sub,
         )
     return EarlyOpportunity(
-        score=score, veredicto="temprano",
+        score=score, veredicto="temprano", razon="ok",
         motivo_veredicto="El precio sigue cerca de sus anclas de corto plazo y el patrón "
                          "se activó hace pocas velas -- todavía hay margen real para entrar.",
         sub=sub,

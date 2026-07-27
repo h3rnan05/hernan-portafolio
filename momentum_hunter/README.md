@@ -67,6 +67,38 @@ tickers no es viable con ningún proveedor gratis.
    "cerca" pero no accionable alimenta el **Market Radar**
    (`radar.py`) en vez de desaparecer en silencio.
 
+## Segundo pivote 2026-07-26: cero jerga, solo lenguaje humano
+
+Pedido explícito del dueño del producto, el mismo día: "el usuario nunca
+debería sentir que necesita saber análisis técnico... si mi papá, que
+nunca ha hecho trading, leyera este mensaje, ¿entendería exactamente por
+qué vale la pena esta oportunidad?" Esto NO cambió ningún cálculo -- todo
+lo de arriba (RVOL, EMA9, VWAP, ATR, MACD, RSI, patrones) se sigue
+calculando exactamente igual. Lo que cambió es que **ningún indicador
+crudo ni nombre técnico de patrón llega al mensaje**: `report.py` los
+traduce a una historia de cuatro pasos (qué pasó -> qué hizo el mercado
+-> qué está pasando ahora -> ¿todavía vale la pena?), más por qué llegó
+esta alerta y qué la cancelaría. Ver el ejemplo abajo.
+
+## Memoria para aprendizaje futuro (sin optimizar todavía)
+
+Pedido explícito, mismo día: "quiero que el sistema tenga MEMORIA...
+qué patrón gana más, qué horario funciona mejor, qué tipo de noticia
+funciona mejor, qué float funciona mejor, qué gap funciona mejor, qué
+RVOL termina siendo el más rentable... no quiero optimizar eso todavía,
+solo quiero que la arquitectura quede preparada." Por eso cada alerta
+guarda (en `Oportunidad`/`AlertaRegistrada`, nunca en el mensaje) el
+patrón, la hora UTC, el tipo de catalizador, el float, el gap y el RVOL
+del momento en que se mandó. `stats.py` ya sabe agrupar los resultados
+por cualquiera de esas dimensiones (`calcular_por_clasificacion`,
+`calcular_por_hora`, `calcular_por_catalizador`, `calcular_por_float`,
+`calcular_por_gap`, `calcular_por_rvol`) -- pero ninguna de esas
+funciones ajusta `scoring.py` ni `config.py` sola. Es la mitad de
+"medir", deliberadamente no la de "decidir": ese ajuste, cuando haya
+suficientes alertas resueltas para que signifique algo, sigue siendo una
+decisión humana explícita (mismo Validation Pipeline del `ROADMAP.md`
+raíz).
+
 ## Filosofía
 
 > "Si solamente pudiera hacer una operación hoy, ¿esta sería una de
@@ -98,7 +130,8 @@ factors/intradia.py     Etapa 2: VWAP real, EMA9, RVOL inmediato, aceleración d
                        volumen, máximo premarket, rango de apertura, gap real.
 catalysts/detector.py   Clasificador de catalizadores por keywords + minutos
                        transcurridos (para el Early Opportunity Engine).
-classification.py      Los seis patrones de Ross Cameron -- pregunta 4 del evaluador.
+classification.py      Los seis patrones de Ross Cameron (pregunta 4 del evaluador) +
+                       DESCRIPCION_HUMANA (traducción sin jerga para Telegram).
 early_opportunity.py    Early Opportunity Engine (Prompt 2): "¿llegamos a tiempo?".
 evaluator.py            Árbol de 5 preguntas (Prompt 4) -- decide "accionable".
 scoring.py              Score base 0-100 (etapa 1) -- 40% momentum + 25% catalizador +
@@ -106,14 +139,17 @@ scoring.py              Score base 0-100 (etapa 1) -- 40% momentum + 25% cataliz
 strategy.py             Selección de vehículo de opciones (Prompt 9) -- no conectado
                        todavía al mensaje nuevo, ver "Roadmap" abajo.
 alerts.py               Recorte a la etapa 2 + filtro final por "accionable".
-report.py               Mensaje de trader (Prompts 3/5/6/7): por qué apareció, por
-                       qué ahora, qué patrón, dónde entro/salgo, qué invalida.
-radar.py                Market Radar -- resumen de lo que quedó cerca pero no
-                       accionable, agrupado por patrón.
-tracker.py              Persiste cada alerta enviada (sin red).
+report.py               Traduce todo a lenguaje humano (cero indicadores/jerga) y arma
+                       la historia de 4 pasos: qué pasó/qué hizo el mercado/qué está
+                       pasando ahora/¿todavía vale la pena?
+radar.py                Market Radar -- resumen en lenguaje humano de lo que quedó
+                       cerca pero no accionable.
+tracker.py              Persiste cada alerta enviada (sin red) -- incluye la materia
+                       prima para el aprendizaje futuro (patrón, hora, catalizador,
+                       float, gap, RVOL), nunca mostrada en el mensaje.
 outcomes.py             Actualiza resultados a 1/3/5/10 días con datos de mercado reales.
-stats.py                Win rate, retorno promedio, drawdown máximo, expectancy,
-                       Sharpe -- global y por tipo de oportunidad (Prompt 10).
+stats.py                Win rate, retorno promedio, drawdown máximo, expectancy, Sharpe
+                       -- global y agrupado por patrón/hora/catalizador/float/gap/RVOL.
 run.py                  Orchestrator de las dos etapas -> alertas + radar -> Telegram -> tracker.
 ```
 
@@ -136,26 +172,35 @@ el escaneo varias veces al día en horario de mercado;
 `.github/workflows/momentum_hunter_outcomes.yml` corre una vez al día
 después del cierre para actualizar el tracking de resultados.
 
-## Ejemplo de alerta (formato de trader, Prompt 3)
+## Ejemplo de alerta (lenguaje humano, cero jerga)
 
 ```
-🔴 ACME -- rompiendo AHORA
+🔴 ACME -- rompiendo con fuerza justo al abrir
 
-Hace 12 min: fda -- "Company Receives FDA Approval" (Reuters).
-El volumen se aceleró: RVOL de 4.0x ahora mismo.
-Rompió el máximo del premarket ($5.00).
-Gap de apertura y ya está extendiendo el movimiento.
+Acme Corp
 
-Patrón: 🚀 GAP AND GO
-Vamos temprano: el precio sigue cerca de sus anclas de corto plazo.
+1) Hace 12 min: La FDA le aprobó algo importante.
+2) Abrió mucho más arriba de lo normal y el dinero está entrando cada vez con más fuerza.
+3) Sigue subiendo sin parar desde que abrió el mercado.
+4) ¿Todavía vale la pena? Sí. Apenas lleva unos minutos formando este movimiento -- todavía se puede entrar a buen precio.
 
-Entro: $5.20
-Salgo (stop): $5.08
-Objetivo: $5.44 -- reevalúo ahí, no es venta automática.
+De todo lo que vi hoy, esta es de las mejores oportunidades.
 
-Qué invalida esto: Se cancela si vuelve a meterse debajo de $5.00 (el máximo del premarket).
-Qué espero: Que aguante sobre el máximo del premarket en el próximo respiro.
+Si decides entrar: cerca de $5.20.
+Si te equivocas, sal cerca de $5.07.
+Si funciona, la primera meta es $5.45.
+
+Si vuelve a caer por debajo de $5.00, se cancela la idea.
+
+Fuente: "Company Receives FDA Approval" (Reuters)
 ```
+
+Ni "RVOL", ni "EMA9", ni "VWAP", ni el nombre del patrón ("Gap and Go")
+aparecen en el texto -- se calculan igual que siempre, pero el mensaje
+solo muestra la traducción a lenguaje humano (`classification.
+DESCRIPCION_HUMANA`, `report._CATALIZADOR_HUMANO`, `report.
+_QUE_PASA_AHORA`). `test_report.py` verifica automáticamente que
+ninguna de esas palabras pueda colarse en un mensaje real.
 
 ## Filtros de universo (etapa 1)
 
@@ -210,3 +255,9 @@ Qué espero: Que aguante sobre el máximo del premarket en el próximo respiro.
   `outcomes.py`.
 - Enviar el resumen de `stats.py` y el Market Radar por Telegram bajo
   demanda (comando, mismo espíritu que `/journal stats` del otro bot).
+- **Aprendizaje real** (explícitamente NO construido todavía, ver
+  "Memoria para aprendizaje futuro" arriba): una vez que haya
+  suficientes alertas resueltas, usar `stats.calcular_por_*` para
+  proponer ajustes a `config.MomentumConfig` (ej. subir el umbral de
+  RVOL si las bandas bajas nunca ganan) -- siempre como una decisión
+  humana explícita y documentada, nunca un ajuste automático silencioso.

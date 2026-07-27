@@ -125,25 +125,44 @@ class FactoresMomentum:
 
 @dataclass(frozen=True)
 class Oportunidad:
-    """Una alerta lista para el mensaje final -- rediseñada para leerse
-    como la mandaría un trader por Telegram, no como un reporte (ver
-    `report.py`). Cada campo responde a UNA de las preguntas que pide el
-    dueño del producto: por qué apareció, por qué ahora, qué patrón,
-    dónde entro/salgo, qué invalida, qué espero."""
+    """Una alerta lista para el mensaje final -- pivote 2026-07-26
+    ("quiero que piense como un operador profesional... el usuario
+    nunca debería sentir que necesita saber análisis técnico"). Ya NO
+    guarda indicadores para mostrar (RVOL/EMA9/VWAP/etc.) ni una
+    etiqueta de patrón visible -- todo eso se traduce a lenguaje humano
+    en `report.py` ANTES de llegar aquí. Los cuatro campos `que_*`
+    responden, en orden, la secuencia mental que pidió el dueño del
+    producto: qué pasó -> qué hizo el mercado -> qué está pasando ahora
+    -> ¿todavía vale la pena?
+
+    `patron_clave`/`hora_utc`/`catalizador_tipo`/`float_acciones`/
+    `gap_pct`/`rvol` NO se muestran en el mensaje -- son la materia
+    prima que `tracker.py` persiste para el aprendizaje futuro ("qué
+    patrón gana más, qué horario funciona mejor..."): la arquitectura
+    queda lista para esa pregunta, aunque todavía no se optimiza nada
+    con ella (pedido explícito: "no quiero optimizar eso todavía")."""
     ticker: str
     nombre: str | None
     urgencia: str                     # "Muy Alta" | "Alta" | "Media" | "Baja"
     urgencia_emoji: str
-    titular_corto: str                 # ej. "rompiendo AHORA", "formando Micro Pullback"
-    por_que_aparecio: list[str]         # 3-5 líneas, cronológicas, con minutos reales
-    patron: str                          # etiqueta del patrón (ver classification.py)
-    veredicto_temprano: bool             # Early Opportunity Engine -- ¿llegamos a tiempo?
-    veredicto_texto: str
+    titular_corto: str                 # frase corta en lenguaje llano para el encabezado
+    que_paso: str                       # 1) el catalizador, en lenguaje llano
+    que_hizo_mercado: str               # 2) volumen/gap, en lenguaje llano
+    que_pasa_ahora: str                 # 3) el patrón, en lenguaje llano
+    vale_la_pena: bool                   # 4) Early Opportunity Engine -- ¿llegamos a tiempo?
+    por_que_vale_la_pena: str
+    por_que_esta_alerta: str             # "¿por qué esta y no otra?"
     entrada: float
     stop: float | None
     objetivo: float | None
-    invalidacion: str
-    que_espero: str
-    score: float                          # Convicción base (scoring.puntuar) -- referencia, no protagonista
-    catalizador: Catalizador | None
+    invalidacion: str                    # sin nombrar el nivel técnico, solo el precio
+    catalizador: Catalizador | None      # se cita la fuente al final, trazabilidad
+    score: float                          # Convicción base (scoring.puntuar) -- nunca se muestra
     fecha: str
+    # -- Sin mostrar en el mensaje: materia prima para el aprendizaje futuro (ver docstring) --
+    patron_clave: str = ""
+    hora_utc: int = 0
+    catalizador_tipo: str | None = None
+    float_acciones: float | None = None
+    gap_pct: float | None = None
+    rvol: float | None = None

@@ -186,3 +186,32 @@ ver con un cierre diario. Se rediseñó el pipeline en dos etapas
 original) quedó desacoplado del mensaje nuevo — el mockup de formato de
 trader no incluye esa sección todavía; anotado como pendiente en
 `momentum_hunter/README.md`, no se eliminó el módulo ni sus pruebas.
+
+### Segundo pivote, mismo día: cero jerga + memoria para aprendizaje
+
+Pedido explícito, después de ver el formato de trader de arriba: "el
+usuario nunca debería sentir que necesita saber análisis técnico...
+si mi papá, que nunca ha hecho trading, leyera este mensaje, ¿entendería
+exactamente por qué vale la pena esta oportunidad?" Ningún cálculo
+cambió (RVOL/EMA9/VWAP/ATR/MACD/RSI/patrones siguen siendo exactamente
+los mismos) — lo que cambió es que `report.py` ya NO deja pasar ni un
+indicador crudo ni el nombre técnico de un patrón al mensaje: todo se
+traduce a una historia de 4 pasos (qué pasó → qué hizo el mercado → qué
+está pasando ahora → ¿todavía vale la pena?), más por qué llegó esta
+alerta y qué la cancelaría. `test_report.py` verifica automáticamente
+que palabras como "RVOL"/"EMA9"/"VWAP" nunca aparezcan en un mensaje
+real — la prueba es parte del código, no solo una intención.
+
+Segundo pedido explícito, mismo día: "quiero que el sistema tenga
+MEMORIA... no quiero optimizar eso todavía, solo quiero que la
+arquitectura quede preparada." Cada alerta ahora guarda (nunca en el
+mensaje, solo en `tracker.AlertaRegistrada`) el patrón, la hora UTC, el
+tipo de catalizador, el float, el gap y el RVOL del momento en que se
+mandó. `stats.py` ganó `calcular_por_hora`/`calcular_por_catalizador`/
+`calcular_por_float`/`calcular_por_gap`/`calcular_por_rvol` (mismo
+`EstadisticasHorizonte` de siempre, agrupado por cada dimensión) — pero
+deliberadamente ninguna de esas funciones toca `scoring.py` ni
+`config.py`: es la mitad de "medir", no la de "decidir". Ese ajuste,
+cuando haya suficiente historia real, sigue siendo una decisión humana
+explícita — mismo principio del Validation Pipeline de arriba ("nadie
+salta pasos por prisa").

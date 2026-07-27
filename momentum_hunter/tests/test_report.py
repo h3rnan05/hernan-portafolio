@@ -1,7 +1,7 @@
-"""Pruebas del nuevo formato de mensaje (Prompts 3/5/6/7) -- verifica
-niveles de entrada/salida, la secuencia "por qué apareció" (máximo 5
-líneas, todas trazables a datos reales), la urgencia calculada, y que
-las 7 preguntas del Prompt 3 estén presentes en el texto final."""
+"""Pruebas del mensaje en lenguaje humano (pivote 2026-07-26) --
+verifica que NINGÚN indicador crudo (RVOL/EMA9/VWAP/ATR/MACD/RSI) ni
+nombre de patrón en jerga aparezca en el texto final, que las 4
+preguntas de la narrativa estén presentes, y que el mensaje sea corto."""
 
 from __future__ import annotations
 
@@ -13,18 +13,23 @@ from momentum_hunter.evaluator import ResultadoEvaluacion
 from momentum_hunter.models import BarraIntradia, FactoresIntradia, Metadata
 from momentum_hunter.report import construir_oportunidad, formatear, niveles_entrada_salida
 
+# Palabras que NUNCA deben aparecer en un mensaje enviado a Telegram --
+# la prueba central del pivote ("el usuario nunca debería sentir que
+# necesita saber análisis técnico").
+JERGA_PROHIBIDA = ["RVOL", "EMA9", "VWAP", "ATR", "MACD", "RSI"]
+
 
 def _bi() -> BarraIntradia:
     return BarraIntradia("ACME", ["2026-07-26T13:33:00+00:00"], [5.20], [5.20], [5.25], [5.15], [5_000.0])
 
 
-def _candidato(patron="gap_and_go", temprano=True, accionable=True) -> CandidatoIntradia:
+def _candidato(patron="gap_and_go", temprano=True, razon="ok", accionable=True) -> CandidatoIntradia:
     factores = FactoresIntradia(
         precio_actual=5.20, vwap=5.10, ema9=5.10, rvol_actual=4.0, gap_pct=0.10,
-        maximo_premarket=5.00, maximo_dia=5.25, velas_desde_ruptura=1,
+        aceleracion_volumen=1.5, maximo_premarket=5.00, maximo_dia=5.25, velas_desde_ruptura=1,
     )
     early = EarlyOpportunity(
-        score=90.0, veredicto="temprano" if temprano else "tarde",
+        score=90.0, veredicto="temprano" if temprano else "tarde", razon=razon,
         motivo_veredicto="El precio sigue cerca de sus anclas de corto plazo.",
     )
     resultado = ResultadoEvaluacion(
@@ -36,7 +41,7 @@ def _candidato(patron="gap_and_go", temprano=True, accionable=True) -> Candidato
         ticker="ACME", nombre="Acme Corp",
         catalizador=Catalizador(tipo="fda", titular="Company Receives FDA Approval", fuente="Reuters"),
         minutos_desde_catalizador=12.0, factores=factores, bi_hoy=_bi(),
-        meta=Metadata(ticker="ACME"), atr_diario=0.30, resultado=resultado,
+        meta=Metadata(ticker="ACME", shares_float=12_000_000), atr_diario=0.30, resultado=resultado,
     )
 
 
@@ -59,46 +64,78 @@ def test_niveles_none_sin_precio():
     assert niveles == {"entrada": None, "stop": None, "objetivo": None}
 
 
-def test_construir_oportunidad_clasificacion_y_urgencia():
+def test_construir_oportunidad_guarda_materia_prima_para_aprendizaje():
+    c = _candidato(patron="gap_and_go")
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
+    # No se muestra en el mensaje, pero debe quedar disponible para stats.py.
+    assert o.patron_clave == "gap_and_go"
+    assert o.catalizador_tipo == "fda"
+    assert o.float_acciones == 12_000_000
+    assert o.gap_pct == 0.10
+    assert o.rvol == 4.0
+    assert 0 <= o.hora_utc <= 23
+
+
+def test_construir_oportunidad_urgencia_muy_alta_con_patron_recien_activado():
     c = _candidato(patron="gap_and_go", temprano=True)
     o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
-    assert o.ticker == "ACME"
-    assert o.patron == "🚀 GAP AND GO"
-    assert o.veredicto_temprano is True
     assert o.urgencia == "Muy Alta"   # velas_desde_ruptura=1
 
 
-def test_construir_oportunidad_no_temprano_es_urgencia_baja():
-    c = _candidato(patron="gap_and_go", temprano=False)
+def test_construir_oportunidad_no_vale_la_pena_si_no_temprano():
+    c = _candidato(patron="gap_and_go", temprano=False, razon="extension")
     o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
+    assert o.vale_la_pena is False
     assert o.urgencia == "Baja"
+    assert "Ya subió demasiado rápido" in o.por_que_vale_la_pena
 
 
-def test_por_que_aparecio_maximo_cinco_lineas_y_menciona_minutos():
+def test_que_paso_menciona_minutos_reales():
     c = _candidato()
     o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
-    assert len(o.por_que_aparecio) <= 5
-    assert any("Hace 12 min" in linea for linea in o.por_que_aparecio)
+    assert "Hace 12 min" in o.que_paso
 
 
-def test_formatear_incluye_las_siete_preguntas_del_prompt_3():
+def test_formatear_responde_las_cuatro_preguntas_de_la_narrativa():
     c = _candidato()
     o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
     texto = formatear(o)
-    assert "ACME" in texto
-    assert "Patrón:" in texto
-    assert "Vamos temprano" in texto
-    assert "Entro:" in texto
-    assert "Salgo (stop):" in texto
-    assert "Objetivo:" in texto
-    assert "Qué invalida esto:" in texto
-    assert "Qué espero:" in texto
+    assert "1)" in texto and "2)" in texto and "3)" in texto
+    assert "¿Todavía vale la pena?" in texto
+
+
+def test_formatear_incluye_por_que_esta_alerta_niveles_e_invalidacion():
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
+    texto = formatear(o)
+    assert "oportunidad" in texto.lower() or "exijo" in texto.lower()  # "por qué esta alerta"
+    assert "Si decides entrar" in texto
+    assert "se cancela la idea" in texto
+    assert 'Fuente: "Company Receives FDA Approval" (Reuters)' in texto
+
+
+def test_formatear_nunca_muestra_jerga_de_indicadores():
+    """El corazón del pivote: ningún indicador crudo llega al usuario."""
+    for patron in ("gap_and_go", "opening_range_breakout", "bull_flag",
+                   "micro_pullback", "high_tight_flag", "trend_continuation"):
+        c = _candidato(patron=patron)
+        o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
+        texto = formatear(o)
+        for palabra in JERGA_PROHIBIDA:
+            assert palabra not in texto, f"'{palabra}' apareció en el mensaje de {patron}"
+
+
+def test_formatear_nunca_muestra_el_nombre_tecnico_del_patron():
+    c = _candidato(patron="high_tight_flag")
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
+    texto = formatear(o)
+    assert "high tight flag" not in texto.lower()
 
 
 def test_formatear_se_lee_corto():
     c = _candidato()
     o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
     texto = formatear(o)
-    # Prompt 3: "cada alerta debe poder leerse en menos de 20 segundos" --
-    # un límite generoso mucho menor que el formato anterior tipo reporte.
-    assert len(texto) < 900
+    # "Debe poder leerse en menos de 15 segundos" -- límite generoso pero
+    # mucho más chico que el formato de reporte de antes del pivote.
+    assert len(texto) < 800
