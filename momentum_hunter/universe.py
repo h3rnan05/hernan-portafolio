@@ -40,6 +40,14 @@ CACHE = Path(__file__).resolve().parent / "universo_cache.json"
 NASDAQ_LISTED = "https://www.nasdaqtrader.com/dynamic/SymDirectory/nasdaqlisted.txt"
 OTHER_LISTED = "https://www.nasdaqtrader.com/dynamic/SymDirectory/otherlisted.txt"
 
+# Respaldo -- descubierto el 2026-07-27: NASDAQ Trader empezó a devolver
+# 404 en los .txt de arriba (confirmado en la corrida real de GitHub
+# Actions, no solo localmente), y sin caché en disco el pipeline caía
+# derecho a la semilla de 16 tickers. El screener de nasdaq.com expone
+# el mismo universo de acciones (ETFs ya excluidos por el propio
+# endpoint) por bolsa, en JSON.
+NASDAQ_API_SCREENER = "https://api.nasdaq.com/api/screener/stocks"
+
 # Código de bolsa de otherlisted.txt -> nuestro nombre. Solo se conservan
 # NYSE (N) y NYSE American / AMEX (A); NYSE Arca (P) y el resto de tapes
 # (BATS, IEX...) son casi enteramente ETFs y quedan fuera del universo
@@ -104,6 +112,54 @@ def _descargar() -> list[Simbolo]:
     return simbolos
 
 
+def _parsear_nasdaq_api(payload: dict, bolsa: str) -> list[Simbolo]:
+    filas = (payload.get("data") or {}).get("rows") or []
+    out = []
+    for fila in filas:
+        simbolo = (fila.get("symbol") or "").strip().upper()
+        if not simbolo:
+            continue
+        out.append(Simbolo(simbolo, (fila.get("name") or "").strip() or None, bolsa, False))
+    return out
+
+
+def _descargar_respaldo() -> list[Simbolo]:
+    """Fuente de respaldo cuando los .txt de NASDAQ Trader fallan (ver
+    NASDAQ_API_SCREENER arriba). Ya viene sin ETFs (endpoint /stocks, no
+    /etf), así que es_etf queda siempre False."""
+    simbolos = []
+    for bolsa in ("nasdaq", "nyse", "amex"):
+        r = requests.get(
+            NASDAQ_API_SCREENER,
+            params={"tableonly": "true", "limit": 10000, "offset": 0,
+                     "exchange": bolsa, "download": "true"},
+            headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"},
+            timeout=20,
+        )
+        r.raise_for_status()
+        simbolos.extend(_parsear_nasdaq_api(r.json(), bolsa.upper()))
+    if len(simbolos) < 3000:
+        raise ValueError(f"nasdaq.com screener devolvió solo {len(simbolos)} símbolos")
+    return simbolos
+
+
+def _descargar_con_respaldo() -> list[Simbolo]:
+    """Intenta NASDAQ Trader primero; si falla (por ejemplo el 404 visto
+    el 2026-07-27), intenta el respaldo antes de rendirse. Propaga el
+    error del respaldo si ambos fallan -- `cargar()` decide ahí si cae a
+    caché o a la semilla."""
+    try:
+        simbolos = _descargar()
+        log.info("universo NYSE+NASDAQ+AMEX: %d símbolos (%d ETFs excluidos por defecto)",
+                  len(simbolos), sum(s.es_etf for s in simbolos))
+        return simbolos
+    except Exception as e_primario:
+        simbolos = _descargar_respaldo()
+        log.warning("NASDAQ Trader falló (%s); uso respaldo nasdaq.com screener -- %d símbolos",
+                    e_primario, len(simbolos))
+        return simbolos
+
+
 def cargar(refrescar: bool = False, excluir_etf: bool = True) -> list[Simbolo]:
     """Universo completo NYSE+NASDAQ+AMEX, cacheado a disco (mismo patrón
     que `screener.universe.cargar_sp500`) para no depender de la red en
@@ -117,16 +173,14 @@ def cargar(refrescar: bool = False, excluir_etf: bool = True) -> list[Simbolo]:
             log.warning("caché de universo corrupta (%s); refresco", e)
 
     try:
-        simbolos = _descargar()
+        simbolos = _descargar_con_respaldo()
         CACHE.write_text(json.dumps({
             "generado": datetime.now(UTC).isoformat(timespec="seconds"),
             "simbolos": [s.__dict__ for s in simbolos],
         }, ensure_ascii=False))
-        log.info("universo NYSE+NASDAQ+AMEX: %d símbolos (%d ETFs excluidos por defecto)",
-                  len(simbolos), sum(s.es_etf for s in simbolos))
     except Exception as e:
         if CACHE.exists():
-            log.warning("NASDAQ Trader falló (%s); uso caché en disco", e)
+            log.warning("NASDAQ Trader y respaldo fallaron (%s); uso caché en disco", e)
             data = json.loads(CACHE.read_text())
             simbolos = [Simbolo(**s) for s in data["simbolos"]]
         else:

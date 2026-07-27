@@ -3,7 +3,11 @@ el mismo formato que devuelven los archivos reales de NASDAQ Trader."""
 
 from __future__ import annotations
 
-from momentum_hunter.universe import _parsear_nasdaqlisted, _parsear_otherlisted
+from momentum_hunter.universe import (
+    _parsear_nasdaq_api,
+    _parsear_nasdaqlisted,
+    _parsear_otherlisted,
+)
 
 
 def test_parsear_nasdaqlisted_excluye_test_issues_y_marca_etf():
@@ -35,3 +39,23 @@ def test_parsear_otherlisted_mapea_bolsa_y_excluye_arca():
     assert set(tickers) == {"CCCC", "DDDD"}   # Arca (P) queda fuera
     assert tickers["CCCC"].bolsa == "NYSE"
     assert tickers["DDDD"].bolsa == "AMEX"
+
+
+def test_parsear_nasdaq_api_mapea_bolsa_y_descarta_sin_symbol():
+    payload = {"data": {"rows": [
+        {"symbol": "AAAA", "name": "Alpha Corp Common Stock"},
+        {"symbol": " bbbb ", "name": ""},
+        {"symbol": "", "name": "Ignorada sin symbol"},
+    ]}}
+    simbolos = _parsear_nasdaq_api(payload, "NASDAQ")
+    tickers = {s.ticker: s for s in simbolos}
+    assert set(tickers) == {"AAAA", "BBBB"}
+    assert tickers["AAAA"].nombre == "Alpha Corp Common Stock"
+    assert tickers["BBBB"].nombre is None
+    assert all(s.bolsa == "NASDAQ" and s.es_etf is False for s in simbolos)
+
+
+def test_parsear_nasdaq_api_payload_vacio_no_lanza():
+    assert _parsear_nasdaq_api({}, "NYSE") == []
+    assert _parsear_nasdaq_api({"data": {}}, "NYSE") == []
+    assert _parsear_nasdaq_api({"data": {"rows": None}}, "NYSE") == []
