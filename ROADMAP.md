@@ -77,3 +77,207 @@ Engine → Validation Pipeline completo.
 
 **Siguiente parte a construir: por decidir con el dueño del proyecto en cada
 sesión — ver la conversación para la elección más reciente.**
+
+## Segundo sistema, deliberadamente independiente: Momentum Opportunity Hunter
+
+Pedido explícito del dueño del producto (2026-07-26): "no copies el bot
+actual... el nuevo debe ser un Opportunity Hunter" — el Investment
+Analyst de arriba (agentes 1-11, `screener/`) responde "¿vale la pena
+invertir en esta empresa?" sobre el S&P 500 con un horizonte de semanas
+o meses; `momentum_hunter/` responde una pregunta completamente distinta
+— "¿qué acción puede moverse fuerte HOY o en los próximos días?" — sobre
+penny stocks/small caps/low float con un horizonte de 1 a 10 días. Son
+problemas distintos a propósito, así que **no comparten universo,
+`DataProvider`, factores, scoring, ni código de valoración/calidad**:
+`momentum_hunter/` es un paquete nuevo, standalone, con su propia
+arquitectura de principio a fin (ver `momentum_hunter/README.md` para el
+detalle completo).
+
+100% determinístico, mismo Principio #3 de arriba (sin LLM decidiendo
+qué comprar). Score 0-100 = 40% momentum + 25% catalizador + 20%
+liquidez + 15% gestión del riesgo (cero P/E, cero ROE, cero dividendos).
+Solo manda alerta a Telegram cuando las cuatro condiciones del Prompt 7
+se cumplen a la vez (score > 85, catalizador confirmado, RVOL > 4x,
+liquidez suficiente), con un tope de 5 alertas/día — y se queda en
+silencio cuando nada califica, en vez de anunciar "no encontré nada"
+(esa es la convención del Investment Analyst, que corre una vez al día;
+este bot puede correr varias veces al día, así que repetir el
+no-resultado sería el mismo ruido que Prompt 2 pide evitar).
+
+Clasifica cada oportunidad por tipo (🔥 Breakout / ⚡ News Momentum /
+🚀 Short Squeeze / 💰 Earnings Play / 📈 Trend Continuation / 🔄
+Reversal) y decide el vehículo de entrada (Comprar acciones/Long
+Call/Bull Call Spread/Cash Secured Put/No Operar) con justificación —
+nunca se limita a decir "comprar". Incluye su propio Learning Engine
+(`tracker.py`/`outcomes.py`/`stats.py`): cada alerta se guarda y se mide
+su resultado real a 1/3/5/10 días (win rate, retorno promedio, drawdown
+máximo, expectancy, Sharpe — global y por tipo de oportunidad), la misma
+pieza de "medir el desempeño de las alertas EN SÍ MISMAS" que el
+Investment Analyst todavía tiene pendiente (agente 11, arriba).
+
+Limitación honesta compartida con `screener/`: escanear TODO
+NYSE+NASDAQ+AMEX (~8,000-11,000 símbolos) varias veces al día con datos
+gratis por-ticker no es viable sin arriesgar que Yahoo bloquee el
+runner — `run.py` opera por defecto sobre un subconjunto acotado
+(`--limit`/`--universo`); producción real de alta frecuencia necesitaría
+un `DataProvider` de pago con cotizaciones masivas, sin tocar el resto
+del pipeline (la interfaz ya lo permite). Pendiente, no construido:
+opciones de compra reales por debajo del vehículo elegido (hoy
+`strategy.py` decide QUÉ vehículo usar pero no cotiza la cadena de
+opciones como sí hace `screener/options_math.py` para el otro bot —
+deliberado, ver `momentum_hunter/README.md`), y conectar
+`risk_manager/` para sizing real de posición.
+
+### Pivote (2026-07-26): de "screener" a "trader de momentum"
+
+Pedido explícito del dueño del producto, el mismo día: "todavía piensa
+demasiado como un screener... quiero que piense exactamente como un
+trader profesional de momentum (Ross Cameron, Warrior Trading)". El
+diagnóstico: TODO el pipeline de arriba corría sobre barras DIARIAS —
+suficiente para decidir un universo candidato, pero varios patrones
+reales de momentum (Micro Pullback, Bull Flag, Gap and Go, Opening Range
+Breakout) son formas del precio en los últimos MINUTOS, imposibles de
+ver con un cierre diario. Se rediseñó el pipeline en dos etapas
+(detalle completo en `momentum_hunter/README.md`, sección "Pivote"):
+
+1. **Etapa 1 (sin cambios de fondo)**: el filtro diario de arriba sigue
+   igual, pero ya NO decide si se alerta — solo recorta a los
+   `max_candidatos_intradia` (50) mejores para no pedir datos intradía
+   sobre miles de tickers (mismo tipo de límite de datos gratis que ya
+   aceptaba este bot).
+2. **Etapa 2 (nueva)**: `data/provider.barras_intradia` (Yahoo,
+   temporal — "el algoritmo nunca debe depender de Yahoo
+   específicamente", diseñado detrás de la misma interfaz
+   `DataProvider` para poder cambiar a Polygon/Alpaca/Tradier sin tocar
+   lógica) trae velas de 1 minuto. `factors/intradia.py` calcula VWAP
+   REAL (ya no una aproximación), EMA9, RVOL inmediato y aceleración de
+   volumen. `classification.py` se reescribió por completo: las
+   categorías genéricas anteriores (breakout/news momentum/earnings
+   play/reversal/short squeeze) se reemplazaron por los seis patrones
+   reales de Ross Cameron. El desequilibrio oferta/demanda (antes la
+   categoría "short squeeze") dejó de ser un patrón y pasó a ser un GATE
+   que aplica a cualquier patrón (más fiel a cómo un trader de momentum
+   realmente piensa: float bajo es un multiplicador, no una entrada en
+   sí misma).
+3. **Early Opportunity Engine** (`early_opportunity.py`, nuevo):
+   responde "¿llegamos a tiempo?" como una pregunta SEPARADA de "¿qué
+   tan buena es la señal?" — el veredicto temprano/tarde sale de dos
+   reglas duras (extensión desde VWAP/EMA9, velas desde el patrón), no
+   del score compuesto, precisamente para que un score alto nunca pueda
+   rescatar una entrada tardía (pedido explícito).
+4. **`evaluator.py`** (nuevo) reemplaza el promedio ponderado como lo
+   que decide alertar: las 5 preguntas en orden estricto (catalizador →
+   corte duro; dinero entrando, desequilibrio, patrón, temprano →
+   penalización, deliberadamente grande en patrón/temprano porque en la
+   práctica no hay alerta accionable sin ninguno de los dos).
+5. **Formato del mensaje reescrito por completo** (`report.py`): de un
+   reporte con campos etiquetados a un mensaje de trader de 7 preguntas
+   (por qué apareció/por qué ahora/qué patrón/qué espero/dónde
+   entro/dónde salgo/qué invalida), urgencia calculada objetivamente
+   desde la frescura del patrón (no un valor fijo por tipo), y voz en
+   primera persona de operador.
+6. **Market Radar** (`radar.py`, idea del dueño del producto, no pedida
+   explícitamente en los prompts numerados): agrupa lo que quedó "cerca"
+   pero no accionable (patrón aún sin confirmar, o ya tarde) en un
+   resumen corto separado de las alertas de entrada — antes esos
+   candidatos desaparecían en silencio sin dejar rastro.
+
+`strategy.py` (selección de vehículo de opciones, Prompt 9 del pedido
+original) quedó desacoplado del mensaje nuevo — el mockup de formato de
+trader no incluye esa sección todavía; anotado como pendiente en
+`momentum_hunter/README.md`, no se eliminó el módulo ni sus pruebas.
+
+### Segundo pivote, mismo día: cero jerga + memoria para aprendizaje
+
+Pedido explícito, después de ver el formato de trader de arriba: "el
+usuario nunca debería sentir que necesita saber análisis técnico...
+si mi papá, que nunca ha hecho trading, leyera este mensaje, ¿entendería
+exactamente por qué vale la pena esta oportunidad?" Ningún cálculo
+cambió (RVOL/EMA9/VWAP/ATR/MACD/RSI/patrones siguen siendo exactamente
+los mismos) — lo que cambió es que `report.py` ya NO deja pasar ni un
+indicador crudo ni el nombre técnico de un patrón al mensaje: todo se
+traduce a una historia de 4 pasos (qué pasó → qué hizo el mercado → qué
+está pasando ahora → ¿todavía vale la pena?), más por qué llegó esta
+alerta y qué la cancelaría. `test_report.py` verifica automáticamente
+que palabras como "RVOL"/"EMA9"/"VWAP" nunca aparezcan en un mensaje
+real — la prueba es parte del código, no solo una intención.
+
+Segundo pedido explícito, mismo día: "quiero que el sistema tenga
+MEMORIA... no quiero optimizar eso todavía, solo quiero que la
+arquitectura quede preparada." Cada alerta ahora guarda (nunca en el
+mensaje, solo en `tracker.AlertaRegistrada`) el patrón, la hora UTC, el
+tipo de catalizador, el float, el gap y el RVOL del momento en que se
+mandó. `stats.py` ganó `calcular_por_hora`/`calcular_por_catalizador`/
+`calcular_por_float`/`calcular_por_gap`/`calcular_por_rvol` (mismo
+`EstadisticasHorizonte` de siempre, agrupado por cada dimensión) — pero
+deliberadamente ninguna de esas funciones toca `scoring.py` ni
+`config.py`: es la mitad de "medir", no la de "decidir". Ese ajuste,
+cuando haya suficiente historia real, sigue siendo una decisión humana
+explícita — mismo principio del Validation Pipeline de arriba ("nadie
+salta pasos por prisa").
+
+### Tercer pivote (2026-07-27): los 14 principios del CIO
+
+Pedido explícito: "construye un sistema en el que confiaría si TODO mi
+patrimonio dependiera de él... asume que cada operación es mala hasta
+demostrar lo contrario." Cuatro piezas nuevas, todas deterministas
+(tabla completa principio-por-principio en `momentum_hunter/README.md`):
+
+- **`skeptic.py` (abogado del diablo, Principios 1/2/11)**: corre
+  DESPUÉS de que una candidata ya es accionable e intenta destruirla.
+  Objeciones fatales (sin salida definible, riesgo al stop > 8%, el
+  volumen se está muriendo) matan la alerta sin importar el score;
+  advertencias (última hora, noticia >2h, historial débil) viajan al
+  mensaje como "qué podría salir mal". El pipeline convence; este
+  módulo refuta; solo lo que sobrevive a ambos se alerta.
+- **`memoria.py` (Principios 3/12)**: probabilidad histórica REAL en el
+  mensaje ("jugadas como esta me han funcionado X% de las veces, N
+  casos medidos") solo con ≥10 resueltas; con menos, dice literalmente
+  "no voy a inventar confianza que no tengo". El historial débil de un
+  patrón entra al debate como advertencia — ajusta confianza, nunca
+  prohíbe (Principio 12 literal).
+- **Competencia relativa (Principio 4)**: `config.solo_la_mejor`
+  (default True) — una sola alerta por corrida, la mejor que además
+  sobreviva el debate; si la mejor muere en el debate, la siguiente
+  hereda el turno de competir. Las subcampeonas y las vetadas aparecen
+  en el radar con su motivo exacto, nunca desaparecen en silencio.
+- **`audit.py` (Principios 6/7/9)**: snapshot completo de CADA candidato
+  evaluado (precio, volumen, factores intradía, catalizador con
+  titular/fuente/hora, resultado de cada pregunta del evaluador,
+  decisión, motivos y qué tendría que cambiar — vía
+  `evaluator.explicar_rechazo`, nunca "el score fue bajo") appendeado a
+  `momentum_hunter/auditoria/AAAA-MM-DD.json` y committeado por el
+  workflow. Cruzando con el tracker se responde el "¿qué ocurrió
+  realmente?" meses después.
+
+**Regla inquebrantable (pedido explícito)**: el bot investiga, filtra,
+puntúa, explica, vigila y recomienda — la decisión de ejecutar una
+operación con dinero real la toma SIEMPRE el humano. Sin conexión a
+broker, y cada alerta cierra diciéndolo ("La decisión de operar siempre
+es tuya — yo solo investigo y aviso"). Coherente con los Principios
+duros #3 y #4 del inicio de este documento.
+
+### Cuarto refinamiento (2026-07-27): pensar como Head Trader
+
+Pedido explícito: "no quiero más complejidad, quiero mejorar la calidad
+de las decisiones" — diez puntos sobre los módulos ya existentes (tabla
+punto por punto en `momentum_hunter/README.md`). Lo nuevo de fondo:
+**ranking absoluto** en cada alerta ("la #1 del día entre N acciones
+escaneadas", N real de la etapa 1); **"por qué esta y no las demás"**
+como checklist construido solo con condiciones realmente verificadas;
+**ventana estimada de vigencia** por tipo de jugada (editorial y
+declarada como estimación — el historial para calibrarla aún no
+existe); **calidad en estrellas y confianza explicada**
+(`memoria.estrellas`/`memoria.confianza` — solo con ≥10 casos medidos,
+sin muestra lo admiten); **la última pregunta** como filtro final
+(más de 2 dudas acumuladas = no es un "sí claro" = no hay alerta, con
+decisión propia en la auditoría); **vigilancia post-alerta**
+(`vigilancia.py` — cada corrida revisa las alertas de hoy y avisa solo
+en cambios de estado: rompió stop / alcanzó objetivo / debilitándose /
+volumen desapareció, con el stop evaluado antes que el objetivo como
+lectura conservadora); y **diario automático** (`diario.py` — al
+resolverse cada alerta, una página markdown de aprendizaje con
+plantillas deterministas sobre los números medidos, persistida por el
+workflow de outcomes). Ninguna de estas piezas modifica reglas sola:
+el diario y la memoria generan la evidencia; el cambio de umbrales
+sigue siendo decisión humana (Principio 8).
