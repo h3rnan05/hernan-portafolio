@@ -361,6 +361,27 @@ def _modo_actualizar_resultados(cfg: MomentumConfig) -> None:
         )
 
 
+def _revisar_resumen_cierre(dry_run: bool) -> None:
+    """Bug encontrado el 2026-07-27 corriendo el bot en vivo: el mensaje
+    de "hoy no hubo nada" (heartbeat.py, PR #72) vivía solo al final de
+    `main()`, después de dos `return` tempranos -- exactamente los casos
+    más comunes de un día normal (ningún ticker pasa los filtros de
+    universo, o ninguno tiene catalizador confirmado). El heartbeat
+    nunca llegaba a evaluarse en el escenario para el que se pidió. Se
+    llama en cada punto de salida de `main()`, no solo al final."""
+    if dry_run:
+        return
+    todas = tracker.cargar()
+    ahora = datetime.now(UTC)
+    hora_actual = ahora.hour + ahora.minute / 60.0
+    alertas_hoy = sum(1 for a in todas if a.fecha[:10] == ahora.date().isoformat())
+    estado = heartbeat.cargar_estado()
+    if heartbeat.necesita_resumen_cierre(ahora.date(), hora_actual, alertas_hoy, estado):
+        enviar_telegram(heartbeat.MENSAJE_SIN_ALERTAS)
+        heartbeat.registrar_enviado(ahora.date())
+        log.info("resumen de cierre enviado: hoy no hubo alertas")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=None,
@@ -390,6 +411,7 @@ def main() -> None:
     log.info("etapa 1 -- tras filtros de precio/liquidez: %d/%d", len(validos), len(barras))
     if not validos:
         log.warning("ningún ticker pasó los filtros de universo -- no hay nada que evaluar hoy")
+        _revisar_resumen_cierre(args.dry_run)
         return
 
     candidatos_diarios = construir_candidatos_diarios(validos, barras, provider, CONFIG, not args.no_catalizadores)
@@ -398,6 +420,7 @@ def main() -> None:
               sum(1 for c in candidatos_diarios if c.catalizador is not None), len(shortlist))
     if not shortlist:
         log.info("ningún candidato con catalizador confirmado hoy -- silencio (ver alerts.py)")
+        _revisar_resumen_cierre(args.dry_run)
         return
 
     candidatos_intradia = construir_candidatos_intradia(shortlist, barras, provider, CONFIG)
@@ -444,18 +467,7 @@ def main() -> None:
         if avisos:
             log.info("vigilancia: %d cambio(s) de estado avisado(s)", len(avisos))
 
-        # Confirmación de fin de día (pedido explícito, 2026-07-27): un
-        # solo mensaje, cerca del cierre, SOLO si hoy no se mandó ninguna
-        # alerta -- para que sepas que el bot corrió y decidió que no
-        # había nada, no que se cayó y por eso no avisó.
-        ahora = datetime.now(UTC)
-        hora_actual = ahora.hour + ahora.minute / 60.0
-        alertas_hoy = sum(1 for a in todas if a.fecha[:10] == ahora.date().isoformat())
-        estado = heartbeat.cargar_estado()
-        if heartbeat.necesita_resumen_cierre(ahora.date(), hora_actual, alertas_hoy, estado):
-            enviar_telegram(heartbeat.MENSAJE_SIN_ALERTAS)
-            heartbeat.registrar_enviado(ahora.date())
-            log.info("resumen de cierre enviado: hoy no hubo alertas")
+    _revisar_resumen_cierre(args.dry_run)
 
 
 if __name__ == "__main__":
