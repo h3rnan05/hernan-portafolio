@@ -78,7 +78,8 @@ jobs:
         run: |
           git config user.name "momentum-opportunity-hunter"
           git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
-          for f in momentum_hunter/universo_cache.json momentum_hunter/alertas_enviadas.json; do
+          for f in momentum_hunter/universo_cache.json momentum_hunter/alertas_enviadas.json \
+                   momentum_hunter/estado_diario.json; do
             [ -f "$f" ] && git add "$f" || true
           done
           # Auditoría completa de cada corrida (Principio 9: cada alerta

@@ -46,6 +46,7 @@ from momentum_hunter import (
     classification,
     diario,
     evaluator,
+    heartbeat,
     memoria,
     outcomes,
     radar,
@@ -442,6 +443,19 @@ def main() -> None:
             enviar_telegram(aviso)
         if avisos:
             log.info("vigilancia: %d cambio(s) de estado avisado(s)", len(avisos))
+
+        # Confirmación de fin de día (pedido explícito, 2026-07-27): un
+        # solo mensaje, cerca del cierre, SOLO si hoy no se mandó ninguna
+        # alerta -- para que sepas que el bot corrió y decidió que no
+        # había nada, no que se cayó y por eso no avisó.
+        ahora = datetime.now(UTC)
+        hora_actual = ahora.hour + ahora.minute / 60.0
+        alertas_hoy = sum(1 for a in todas if a.fecha[:10] == ahora.date().isoformat())
+        estado = heartbeat.cargar_estado()
+        if heartbeat.necesita_resumen_cierre(ahora.date(), hora_actual, alertas_hoy, estado):
+            enviar_telegram(heartbeat.MENSAJE_SIN_ALERTAS)
+            heartbeat.registrar_enviado(ahora.date())
+            log.info("resumen de cierre enviado: hoy no hubo alertas")
 
 
 if __name__ == "__main__":

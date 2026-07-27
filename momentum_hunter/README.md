@@ -232,6 +232,9 @@ tracker.py              Persiste cada alerta enviada (sin red) -- incluye la mat
 outcomes.py             Actualiza resultados a 1/3/5/10 días con datos de mercado reales.
 stats.py                Win rate, retorno promedio, drawdown máximo, expectancy, Sharpe
                        -- global y agrupado por patrón/hora/catalizador/float/gap/RVOL.
+heartbeat.py             Un mensaje, una sola vez, cerca del cierre, SOLO si hoy no se
+                       mandó ninguna alerta -- confirma que el bot corrió y decidió
+                       que no había nada, no que se cayó.
 run.py                  Orchestrator de las dos etapas -> alertas + radar -> Telegram -> tracker.
 ```
 
