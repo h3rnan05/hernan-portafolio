@@ -29,9 +29,11 @@ PATH = Path(__file__).resolve().parent / "estado_diario.json"
 HORA_UTC_CIERRE_RESUMEN = 19.9
 
 MENSAJE_SIN_ALERTAS = (
-    "👋 Hoy no encontré ninguna oportunidad que mereciera arriesgar tu dinero. "
-    "Sin alertas no es que esté roto -- es que hoy decidí que nada valía la pena. "
-    "Bonito día."
+    "🌤️ Buenos días.\n\n"
+    "Hoy analicé todo el mercado y no encontré ninguna oportunidad que cumpliera "
+    "con mis criterios de calidad y riesgo.\n\n"
+    "Prefiero no operar antes que abrir una posición sin una ventaja clara.\n\n"
+    "Que tengas un excelente día."
 )
 
 
