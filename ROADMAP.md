@@ -256,3 +256,28 @@ operación con dinero real la toma SIEMPRE el humano. Sin conexión a
 broker, y cada alerta cierra diciéndolo ("La decisión de operar siempre
 es tuya — yo solo investigo y aviso"). Coherente con los Principios
 duros #3 y #4 del inicio de este documento.
+
+### Cuarto refinamiento (2026-07-27): pensar como Head Trader
+
+Pedido explícito: "no quiero más complejidad, quiero mejorar la calidad
+de las decisiones" — diez puntos sobre los módulos ya existentes (tabla
+punto por punto en `momentum_hunter/README.md`). Lo nuevo de fondo:
+**ranking absoluto** en cada alerta ("la #1 del día entre N acciones
+escaneadas", N real de la etapa 1); **"por qué esta y no las demás"**
+como checklist construido solo con condiciones realmente verificadas;
+**ventana estimada de vigencia** por tipo de jugada (editorial y
+declarada como estimación — el historial para calibrarla aún no
+existe); **calidad en estrellas y confianza explicada**
+(`memoria.estrellas`/`memoria.confianza` — solo con ≥10 casos medidos,
+sin muestra lo admiten); **la última pregunta** como filtro final
+(más de 2 dudas acumuladas = no es un "sí claro" = no hay alerta, con
+decisión propia en la auditoría); **vigilancia post-alerta**
+(`vigilancia.py` — cada corrida revisa las alertas de hoy y avisa solo
+en cambios de estado: rompió stop / alcanzó objetivo / debilitándose /
+volumen desapareció, con el stop evaluado antes que el objetivo como
+lectura conservadora); y **diario automático** (`diario.py` — al
+resolverse cada alerta, una página markdown de aprendizaje con
+plantillas deterministas sobre los números medidos, persistida por el
+workflow de outcomes). Ninguna de estas piezas modifica reglas sola:
+el diario y la memoria generan la evidencia; el cambio de umbrales
+sigue siendo decisión humana (Principio 8).

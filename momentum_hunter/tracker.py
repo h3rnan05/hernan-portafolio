@@ -55,6 +55,9 @@ class AlertaRegistrada:
     float_acciones: float | None = None
     gap_pct: float | None = None
     rvol: float | None = None
+    # -- Refinamiento "Head Trader" (2026-07-27) --
+    ultimo_estado: str | None = None      # vigilancia.py: último estado observado post-alerta
+    diario_escrito: bool = False           # diario.py: la página de aprendizaje ya se generó
 
 
 def desde_oportunidad(o: Oportunidad) -> AlertaRegistrada:

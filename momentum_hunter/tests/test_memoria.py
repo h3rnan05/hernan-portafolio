@@ -7,9 +7,12 @@ from __future__ import annotations
 from momentum_hunter.memoria import (
     N_MINIMO_HISTORIAL,
     advertencias_contextuales,
+    confianza,
     contexto_catalizador,
     contexto_patron,
+    estrellas,
     frase_probabilidad,
+    linea_calidad,
 )
 from momentum_hunter.tracker import AlertaRegistrada
 
@@ -91,3 +94,63 @@ def test_sin_advertencia_con_historial_bueno():
     historial = _historial(N_MINIMO_HISTORIAL, retorno=0.05)
     ctx = contexto_patron(historial, "gap_and_go")
     assert advertencias_contextuales([ctx]) == []
+
+
+# --------- Refinamiento "Head Trader": estrellas + confianza ---------
+
+def _ctx_mixto(ganadoras, perdedoras):
+    # ids numéricos: el helper _alerta deriva la fecha de int(id_).
+    historial = (
+        [_alerta(str(i), 0.05) for i in range(ganadoras)]
+        + [_alerta(str(100 + i), -0.05) for i in range(perdedoras)]
+    )
+    return contexto_patron(historial, "gap_and_go")
+
+
+def test_estrellas_none_sin_muestra_suficiente():
+    assert estrellas(contexto_patron(_historial(4), "gap_and_go")) is None
+
+
+def test_estrellas_por_win_rate():
+    assert estrellas(_ctx_mixto(8, 2)) == "★★★★★"    # 80%
+    assert estrellas(_ctx_mixto(13, 7)) == "★★★★☆"   # 65%
+    assert estrellas(_ctx_mixto(11, 9)) == "★★★☆☆"   # 55%
+    assert estrellas(_ctx_mixto(9, 11)) == "★★☆☆☆"   # 45%
+    assert estrellas(_ctx_mixto(2, 8)) == "★☆☆☆☆"    # 20%
+
+
+def test_linea_calidad_sin_muestra_lo_admite():
+    linea = linea_calidad(contexto_patron(_historial(4), "gap_and_go"))
+    assert "sin calificar todavía" in linea
+    assert "★" not in linea
+
+
+def test_linea_calidad_con_muestra_cita_el_dato():
+    linea = linea_calidad(_ctx_mixto(13, 7))
+    assert "★★★★☆" in linea
+    assert "65%" in linea
+    assert "20 casos" in linea
+
+
+def test_confianza_baja_sin_muestra_y_lo_dice():
+    nivel, texto = confianza(contexto_patron([], "gap_and_go"), n_advertencias=0)
+    assert nivel == "Baja"
+    assert "No invento confianza que no tengo" in texto
+
+
+def test_confianza_alta_con_historial_fuerte():
+    nivel, texto = confianza(_ctx_mixto(13, 7), n_advertencias=0)   # 65%
+    assert nivel == "Alta"
+    assert "vista 20 veces" in texto
+    assert "65%" in texto
+
+
+def test_confianza_se_rebaja_un_nivel_con_dos_dudas():
+    nivel, texto = confianza(_ctx_mixto(13, 7), n_advertencias=2)
+    assert nivel == "Media"
+    assert "Le resté un nivel" in texto
+
+
+def test_confianza_baja_con_historial_debil_aunque_haya_muestra():
+    nivel, _ = confianza(_ctx_mixto(3, 17), n_advertencias=0)   # 15%
+    assert nivel == "Baja"

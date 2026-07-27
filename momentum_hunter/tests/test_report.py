@@ -134,11 +134,18 @@ def test_formatear_nunca_muestra_el_nombre_tecnico_del_patron():
 
 def test_formatear_se_lee_corto():
     c = _candidato()
-    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
+    o = construir_oportunidad(
+        c, CONFIG.velas_maximas_desde_patron, rank=1, n_universo=4300,
+        confianza_texto="Confianza: Baja -- no tengo ni un caso medido de esta jugada todavía.",
+        calidad_historica="Calidad histórica: sin calificar todavía.",
+        hora_utc=15.0, advertencias=["Queda menos de una hora de mercado."],
+    )
     texto = formatear(o)
-    # "Debe poder leerse en menos de 15 segundos" -- límite generoso pero
-    # mucho más chico que el formato de reporte de antes del pivote.
-    assert len(texto) < 800
+    # El techo subió respecto a rondas anteriores porque el refinamiento
+    # "Head Trader" pidió explícitamente secciones nuevas (ranking, por
+    # qué esta, confianza, ventana, señales de confirmación) -- pero
+    # sigue siendo un mensaje de escaneo rápido, no un reporte.
+    assert len(texto) < 1800
 
 
 # ------ Pedido 2026-07-27: probabilidades, advertencias, competencia ------
@@ -182,3 +189,82 @@ def test_formatear_cierra_con_la_regla_inquebrantable():
     c = _candidato()
     o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
     assert "La decisión de operar siempre es tuya" in formatear(o)
+
+
+# --------- Refinamiento "Head Trader" (2026-07-27, segunda ronda) ---------
+
+def test_ranking_absoluto_en_el_encabezado():
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, rank=1, n_universo=4300)
+    texto = formatear(o)
+    assert "La #1 del día entre 4,300 acciones escaneadas." in texto
+
+
+def test_sin_universo_no_se_inventa_ranking():
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
+    assert "del día entre" not in formatear(o)
+
+
+def test_por_que_unica_sale_de_condiciones_reales():
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
+    assert "una noticia real y confirmada detrás del movimiento" in o.por_que_unica
+    assert "el movimiento apenas está empezando, no lo estamos persiguiendo" in o.por_que_unica
+    assert "una salida cercana y clara si se equivoca" in o.por_que_unica
+
+
+def test_ventana_estimada_por_patron_y_hora():
+    c = _candidato(patron="micro_pullback")
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, hora_utc=15.0)
+    assert "≈15 minutos" in o.ventana_texto
+    assert "no una promesa" in o.ventana_texto
+
+
+def test_ventana_acotada_por_el_cierre():
+    c = _candidato(patron="gap_and_go")   # base 30 min, pero quedan ~6 min de sesión
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, hora_utc=19.9)
+    assert "≈15 minutos" in o.ventana_texto
+
+
+def test_trend_continuation_hasta_el_cierre():
+    c = _candidato(patron="trend_continuation")
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, hora_utc=14.0)
+    assert "hasta el cierre" in o.ventana_texto
+
+
+def test_señales_de_confirmacion_y_falla_en_el_mensaje():
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
+    texto = formatear(o)
+    assert "espero ver:" in texto
+    assert "Y me preocuparía ver:" in texto
+    assert any(linea.startswith("✔") for linea in texto.splitlines())
+    assert any(linea.startswith("✘") for linea in texto.splitlines())
+
+
+def test_confianza_texto_reemplaza_probabilidad_cuando_existe():
+    c = _candidato()
+    o = construir_oportunidad(
+        c, CONFIG.velas_maximas_desde_patron,
+        probabilidad_historica="frase de probabilidad",
+        confianza_texto="Confianza: Alta -- jugada vista 42 veces, funcionó 68% de las veces.",
+        calidad_historica="Calidad histórica: ★★★★☆ (68% de éxito en 42 casos).",
+    )
+    texto = formatear(o)
+    assert "Confianza: Alta" in texto
+    assert "★★★★☆" in texto
+    assert "frase de probabilidad" not in texto   # no se duplica la misma información
+
+
+def test_mensaje_completo_sigue_sin_jerga():
+    c = _candidato()
+    o = construir_oportunidad(
+        c, CONFIG.velas_maximas_desde_patron, rank=1, n_universo=4300,
+        confianza_texto="Confianza: Baja -- no tengo ni un caso medido de esta jugada todavía.",
+        calidad_historica="Calidad histórica: sin calificar todavía.",
+        hora_utc=15.0,
+    )
+    texto = formatear(o)
+    for palabra in JERGA_PROHIBIDA:
+        assert palabra not in texto, f"'{palabra}' apareció en el mensaje completo"

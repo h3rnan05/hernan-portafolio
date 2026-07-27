@@ -64,6 +64,92 @@ _VALE_LA_PENA = {
     "velas": "El movimiento principal ya pasó hace rato.",
 }
 
+# --- Ventana estimada de vigencia (refinamiento "Head Trader", punto 4).
+# Minutos editoriales por tipo de jugada, acotados por el tiempo que
+# queda de sesión; None = "hasta el cierre". HONESTIDAD: hoy son valores
+# editoriales fijos y documentados -- el pedido pide basarlos en el
+# comportamiento histórico de patrones similares, y ese historial
+# todavía no existe; cuando el tracker acumule suficientes casos, la
+# calibración será una propuesta medida que el humano aprueba (Principio
+# 8), nunca un ajuste silencioso. El propio texto del mensaje lo dice
+# ("estimación, no una promesa"). ---
+_VENTANA_MINUTOS: dict[str, int | None] = {
+    "gap_and_go": 30,
+    "opening_range_breakout": 30,
+    "bull_flag": 30,
+    "micro_pullback": 15,
+    "high_tight_flag": 15,
+    "trend_continuation": None,
+}
+_HORA_CIERRE_UTC = 20.0
+
+
+def _ventana_texto(patron: str, hora_utc: float | None) -> str:
+    if hora_utc is None:
+        return ""
+    minutos_a_cierre = max(0.0, (_HORA_CIERRE_UTC - hora_utc) * 60.0)
+    base = _VENTANA_MINUTOS.get(patron)
+    minutos = minutos_a_cierre if base is None else min(float(base), minutos_a_cierre)
+    if minutos <= 0:
+        return "La sesión ya está cerrando -- casi no queda ventana."
+    if base is None and minutos_a_cierre > 60:
+        etiqueta = "hasta el cierre"
+    elif minutos <= 15:
+        etiqueta = "≈15 minutos"
+    elif minutos <= 30:
+        etiqueta = "≈30 minutos"
+    elif minutos <= 60:
+        etiqueta = "≈1 hora"
+    else:
+        etiqueta = "hasta el cierre"
+    return f"Ventana estimada: {etiqueta} (estimación por tipo de jugada, no una promesa)."
+
+
+# --- Qué espero ver después (punto 6): las señales que confirmarían la
+# tesis en los próximos minutos, y las que dirían que está fallando.
+# Sin jerga -- "su precio promedio del día" en vez de VWAP. ---
+_SEÑALES_CONFIRMAN = {
+    "gap_and_go": ["que aguante arriba del nivel que rompió", "nuevos máximos en las próximas velas",
+                   "volumen creciendo, no apagándose"],
+    "opening_range_breakout": ["que no vuelva a meterse en el rango de los primeros minutos",
+                               "nuevos máximos", "volumen acompañando"],
+    "bull_flag": ["que rompa el techo de la pausa con volumen", "que el respiro no se convierta en caída"],
+    "micro_pullback": ["que aguante arriba de su promedio de corto plazo", "un nuevo intento de máximo",
+                       "volumen regresando en la subida"],
+    "high_tight_flag": ["que rompa el techo de la consolidación", "que la pausa siga siendo angosta"],
+    "trend_continuation": ["que siga haciendo máximos y mínimos ascendentes",
+                           "que se mantenga arriba de su precio promedio del día"],
+}
+_SEÑALES_FALLAN = {
+    "gap_and_go": ["que vuelva a caer debajo del nivel que rompió", "volumen muriéndose",
+                   "varias velas rojas seguidas"],
+    "opening_range_breakout": ["que regrese dentro del rango de apertura", "volumen apagándose"],
+    "bull_flag": ["que la pausa se rompa hacia abajo", "volumen vendedor creciendo"],
+    "micro_pullback": ["que pierda su promedio de corto plazo", "que el rebote no llegue con volumen"],
+    "high_tight_flag": ["que la consolidación se rompa hacia abajo", "que el rango se ensanche con velas rojas"],
+    "trend_continuation": ["que pierda su precio promedio del día", "varias velas rojas seguidas"],
+}
+
+
+def _por_que_unica(candidato: CandidatoIntradia, stop: float | None) -> list[str]:
+    """Qué reunió esta candidata que las demás no (punto 3) -- cada
+    línea existe solo si la condición REALMENTE se verificó en el
+    evaluador/niveles; nunca es una lista fija de marketing."""
+    r = candidato.resultado
+    razones: list[str] = []
+    if candidato.catalizador is not None and candidato.catalizador.confirmado:
+        razones.append("una noticia real y confirmada detrás del movimiento")
+    if r.dinero_entrando:
+        razones.append("el dinero está entrando ahora mismo, no hace horas")
+    if r.desequilibrio:
+        razones.append("pocas acciones disponibles para tanta demanda")
+    if r.patron is not None and r.temprano:
+        razones.append("el movimiento apenas está empezando, no lo estamos persiguiendo")
+    if stop is not None:
+        razones.append("una salida cercana y clara si se equivoca")
+    return razones
+
+
 # --- ¿Por qué esta alerta y no otra? -- Principio 4: la competencia
 # relativa es un hecho verificable (cuántas candidatas se evaluaron en
 # esta corrida), no una frase de entusiasmo. ---
@@ -158,17 +244,24 @@ def _urgencia(candidato: CandidatoIntradia, techo_velas: int) -> str:
 def construir_oportunidad(
     candidato: CandidatoIntradia, techo_velas: int,
     probabilidad_historica: str = "", advertencias: list[str] | None = None,
-    n_evaluados: int = 0,
+    n_evaluados: int = 0, rank: int = 0, n_universo: int = 0,
+    confianza_texto: str = "", calidad_historica: str = "",
+    hora_utc: float | None = None,
 ) -> Oportunidad:
     """Ensambla la `Oportunidad` final -- ya se decidió que se manda
-    (accionable + sobrevivió al abogado del diablo); esto solo decide
-    CÓMO se presenta, traduciendo todo a lenguaje humano.
+    (accionable + sobrevivió al abogado del diablo + la última
+    pregunta); esto solo decide CÓMO se presenta, traduciendo todo a
+    lenguaje humano.
 
     `probabilidad_historica` viene de `memoria.frase_probabilidad`
     (Principio 3), `advertencias` son las objeciones NO fatales que
     sobrevivieron del debate de `skeptic.py` (Principios 2/11 -- el
-    usuario decide con los riesgos a la vista), y `n_evaluados` es
-    contra cuántas candidatas compitió (Principio 4)."""
+    usuario decide con los riesgos a la vista), `n_evaluados` es contra
+    cuántas candidatas compitió (Principio 4), `rank`/`n_universo` es su
+    lugar del día contra el universo escaneado, `confianza_texto`/
+    `calidad_historica` vienen de `memoria.confianza`/`memoria.
+    linea_calidad`, y `hora_utc` alimenta la ventana estimada de
+    vigencia."""
     patron = candidato.resultado.patron or "trend_continuation"
     urgencia_clave = _urgencia(candidato, techo_velas)
     niveles = niveles_entrada_salida(candidato.factores, candidato.atr_diario)
@@ -202,11 +295,20 @@ def construir_oportunidad(
         rvol=candidato.factores.rvol_actual,
         probabilidad_historica=probabilidad_historica,
         advertencias=list(advertencias or []), n_evaluados=n_evaluados,
+        rank=rank, n_universo=n_universo,
+        por_que_unica=_por_que_unica(candidato, niveles["stop"]),
+        confianza_texto=confianza_texto, calidad_historica=calidad_historica,
+        ventana_texto=_ventana_texto(patron, hora_utc),
+        señales_confirman=_SEÑALES_CONFIRMAN.get(patron, []),
+        señales_fallan=_SEÑALES_FALLAN.get(patron, []),
     )
 
 
 def formatear(o: Oportunidad) -> str:
-    lineas = [f"{o.urgencia_emoji} {o.ticker} -- {o.titular_corto}", ""]
+    lineas = [f"{o.urgencia_emoji} {o.ticker} -- {o.titular_corto}"]
+    if o.rank and o.n_universo:
+        lineas.append(f"La #{o.rank} del día entre {o.n_universo:,} acciones escaneadas.")
+    lineas.append("")
     if o.nombre:
         lineas.append(o.nombre)
         lineas.append("")
@@ -218,8 +320,19 @@ def formatear(o: Oportunidad) -> str:
     lineas.append(f"4) ¿Todavía vale la pena? {respuesta}. {o.por_que_vale_la_pena}")
 
     lineas += ["", o.por_que_esta_alerta]
-    if o.probabilidad_historica:
-        lineas.append(o.probabilidad_historica)
+    if o.por_que_unica:
+        lineas.append("Fue la que reunió todo a la vez:")
+        lineas += [f"✔ {r}" for r in o.por_que_unica]
+
+    if o.confianza_texto:
+        lineas += ["", o.confianza_texto]
+        if o.calidad_historica:
+            lineas.append(o.calidad_historica)
+    elif o.probabilidad_historica:
+        lineas += ["", o.probabilidad_historica]
+
+    if o.ventana_texto:
+        lineas += ["", o.ventana_texto]
 
     lineas += ["", f"Si decides entrar: cerca de ${o.entrada:,.2f}."]
     if o.stop is not None:
@@ -228,6 +341,13 @@ def formatear(o: Oportunidad) -> str:
         lineas.append(f"Si funciona, la primera meta es ${o.objetivo:,.2f}.")
 
     lineas += ["", o.invalidacion]
+
+    if o.señales_confirman:
+        lineas += ["", "Si esto es bueno, en los próximos minutos espero ver:"]
+        lineas += [f"✔ {s}" for s in o.señales_confirman[:3]]
+    if o.señales_fallan:
+        lineas.append("Y me preocuparía ver:")
+        lineas += [f"✘ {s}" for s in o.señales_fallan[:3]]
 
     if o.advertencias:
         lineas += ["", "Qué podría salir mal:"]

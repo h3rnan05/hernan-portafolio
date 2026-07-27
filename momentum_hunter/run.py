@@ -44,6 +44,7 @@ import requests
 from momentum_hunter import (
     audit,
     classification,
+    diario,
     evaluator,
     memoria,
     outcomes,
@@ -53,6 +54,7 @@ from momentum_hunter import (
     stats,
     tracker,
     universe,
+    vigilancia,
 )
 from momentum_hunter.alerts import (
     CandidatoDiario,
@@ -218,19 +220,32 @@ def construir_candidatos_intradia(
     return resultado
 
 
+# Refinamiento "Head Trader" (2026-07-27), punto 10 -- la última
+# pregunta: "si este fuera mi propio dinero y solo pudiera hacer una
+# operación hoy, ¿realmente abriría esta posición?". Regla fija: con más
+# de MAX_DUDAS_PARA_SI_CLARO dudas acumuladas (advertencias no fatales
+# del debate), la respuesta ya no es un "sí claro" -- y sin un sí claro
+# no hay alerta. Cada duda individual está en la auditoría, así que la
+# decisión es rastreable.
+MAX_DUDAS_PARA_SI_CLARO = 2
+
+
 def seleccionar_y_auditar(
     candidatos: list[CandidatoIntradia], cfg: MomentumConfig,
-    historial=None, hora_utc: float | None = None,
+    historial=None, hora_utc: float | None = None, n_universo: int = 0,
 ) -> tuple[list, dict[str, str], list[dict]]:
     """El tramo final del pipeline (pedido 2026-07-27, "sistema en el que
     confiaría mi patrimonio"): competencia relativa (Principio 4) +
     debate del abogado del diablo (Principios 1/2/11) + memoria
-    contextual (Principios 3/12) + auditoría completa de CADA candidato
+    contextual (Principios 3/12) + la última pregunta ("¿realmente
+    abriría esta posición?") + auditoría completa de CADA candidato
     (Principios 6/7/9). Devuelve (oportunidades a alertar, vetadas
     {ticker: motivo}, snapshots de auditoría).
 
     Puro y testeable: `historial` y `hora_utc` son inyectables; solo se
-    leen del mundo real cuando no se pasan."""
+    leen del mundo real cuando no se pasan. `n_universo` es cuántas
+    acciones escaneó la etapa 1 -- para el ranking absoluto del mensaje
+    ("la #1 del día entre N escaneadas")."""
     historial = tracker.cargar() if historial is None else historial
     ahora = datetime.now(UTC)
     hora_utc = hora_utc if hora_utc is not None else ahora.hour + ahora.minute / 60.0
@@ -269,15 +284,35 @@ def seleccionar_y_auditar(
             continue
 
         advertencias = [o.texto for o in objeciones if not o.fatal]
+
+        # La última pregunta (punto 10): sobrevivió el debate, pero si
+        # quedó cargada de dudas, la respuesta no es un "sí claro".
+        if len(advertencias) > MAX_DUDAS_PARA_SI_CLARO:
+            motivo = (f"Sobrevivió los filtros, pero acumuló {len(advertencias)} dudas -- "
+                      "eso ya no es un sí claro, y sin un sí claro no arriesgo dinero.")
+            vetadas[c.ticker] = motivo
+            decisiones[c.ticker] = (
+                audit.DECISION_SIN_CONVICCION,
+                [motivo, *advertencias],
+                ["Que la misma configuración aparezca con menos dudas acumuladas a la vez."],
+            )
+            continue
+
+        _, confianza_texto = memoria.confianza(ctx_patron, len(advertencias))
         oportunidad = report.construir_oportunidad(
             c, cfg.velas_maximas_desde_patron,
             probabilidad_historica=memoria.frase_probabilidad(ctx_patron),
             advertencias=advertencias, n_evaluados=len(candidatos),
+            rank=len(elegidas) + 1, n_universo=n_universo,
+            confianza_texto=confianza_texto,
+            calidad_historica=memoria.linea_calidad(ctx_patron),
+            hora_utc=hora_utc,
         )
         elegidas.append((c, oportunidad))
         decisiones[c.ticker] = (
             audit.DECISION_ALERTADA,
-            ["Sobrevivió las 5 preguntas del evaluador y el debate del abogado del diablo."]
+            ["Sobrevivió las 5 preguntas del evaluador, el debate del abogado del diablo "
+             "y la última pregunta."]
             + advertencias,
             [],
         )
@@ -311,7 +346,12 @@ def _modo_actualizar_resultados(cfg: MomentumConfig) -> None:
         log.info("no hay alertas registradas todavía")
         return
     outcomes.actualizar_resultados(alertas, YahooProvider(), cfg)
+    # Punto 9 ("Head Trader"): cada alerta recién resuelta genera su
+    # página de aprendizaje -- una sola vez (diario_escrito).
+    rutas = diario.escribir_nuevas(alertas)
     tracker.guardar(alertas)
+    if rutas:
+        log.info("diario: %d página(s) de aprendizaje nueva(s)", len(rutas))
     for h in cfg.horizontes_seguimiento:
         e = stats.calcular_estadisticas(alertas, h)
         log.info(
@@ -362,7 +402,8 @@ def main() -> None:
     candidatos_intradia = construir_candidatos_intradia(shortlist, barras, provider, CONFIG)
     log.info("etapa 2 -- candidatos evaluados: %d", len(candidatos_intradia))
 
-    oportunidades, vetadas, snapshots = seleccionar_y_auditar(candidatos_intradia, CONFIG)
+    oportunidades, vetadas, snapshots = seleccionar_y_auditar(
+        candidatos_intradia, CONFIG, n_universo=len(tickers))
     for o in oportunidades:
         texto = report.formatear(o)
         print("\n" + texto)
@@ -387,6 +428,20 @@ def main() -> None:
         print("\n" + resumen_radar)
         if not args.dry_run:
             enviar_telegram(resumen_radar)
+
+    # Punto 8 ("Head Trader"): el trabajo no termina al mandar Telegram.
+    # Cada corrida también vigila las alertas de HOY todavía abiertas y
+    # avisa SOLO cuando su estado cambia (rompió stop, alcanzó objetivo,
+    # debilitándose...). En dry-run se omite: vigilar muta el tracker.
+    if not args.dry_run:
+        todas = tracker.cargar()
+        avisos = vigilancia.vigilar(todas, provider, CONFIG)
+        tracker.guardar(todas)
+        for aviso in avisos:
+            print("\n" + aviso)
+            enviar_telegram(aviso)
+        if avisos:
+            log.info("vigilancia: %d cambio(s) de estado avisado(s)", len(avisos))
 
 
 if __name__ == "__main__":

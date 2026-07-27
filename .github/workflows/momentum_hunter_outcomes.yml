@@ -38,11 +38,14 @@ jobs:
       - name: Actualizar resultados y calcular estadísticas
         run: python -m momentum_hunter.run --actualizar-resultados
 
-      - name: Persistir tracker actualizado
+      - name: Persistir tracker y diario de aprendizaje
         run: |
           git config user.name "momentum-opportunity-hunter"
           git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
           [ -f momentum_hunter/alertas_enviadas.json ] && git add momentum_hunter/alertas_enviadas.json || true
-          git diff --cached --quiet || git commit -m "momentum_hunter: actualiza resultados [skip ci]"
+          # Páginas de aprendizaje generadas al resolverse cada alerta
+          # (refinamiento "Head Trader", punto 9 -- ver momentum_hunter/diario.py).
+          [ -d momentum_hunter/diario ] && git add momentum_hunter/diario || true
+          git diff --cached --quiet || git commit -m "momentum_hunter: resultados y diario [skip ci]"
           git pull --rebase origin main || true
           git push

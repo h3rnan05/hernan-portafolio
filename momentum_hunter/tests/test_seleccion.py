@@ -4,6 +4,8 @@ inyectado (sin red, sin reloj real, sin tocar el tracker del repo)."""
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 from momentum_hunter import audit
 from momentum_hunter.alerts import CandidatoIntradia
 from momentum_hunter.catalysts.detector import Catalizador
@@ -109,3 +111,45 @@ def test_todos_los_candidatos_quedan_en_la_auditoria():
     _, _, snapshots = seleccionar_y_auditar(
         candidatos, CFG, historial=[], hora_utc=HORA_MEDIA_SESION)
     assert {s["ticker"] for s in snapshots} == {"A", "B", "C", "D"}
+
+
+# --------- Refinamiento "Head Trader" (2026-07-27, segunda ronda) ---------
+
+def test_ranking_absoluto_llega_a_la_oportunidad():
+    oportunidades, _, _ = seleccionar_y_auditar(
+        [_candidato("ACME")], CFG, historial=[], hora_utc=HORA_MEDIA_SESION, n_universo=4300)
+    assert oportunidades[0].rank == 1
+    assert oportunidades[0].n_universo == 4300
+
+
+def test_confianza_y_calidad_llegan_a_la_oportunidad():
+    oportunidades, _, _ = seleccionar_y_auditar(
+        [_candidato("ACME")], CFG, historial=[], hora_utc=HORA_MEDIA_SESION)
+    o = oportunidades[0]
+    assert "Confianza: Baja" in o.confianza_texto      # sin historial -> honesto
+    assert "sin calificar todavía" in o.calidad_historica
+    assert o.ventana_texto                                # la hora se pasó, hay ventana
+
+
+def test_ultima_pregunta_veta_con_demasiadas_dudas():
+    # última hora (1 duda) + noticia fría (2) + volumen enfriándose (3)
+    # -> más de MAX_DUDAS_PARA_SI_CLARO: no es un "sí claro".
+    c = _candidato("DUDOSA")
+    factores = replace(c.factores, aceleracion_volumen=0.85)
+    c = replace(c, factores=factores, minutos_desde_catalizador=200.0)
+    oportunidades, vetadas, snapshots = seleccionar_y_auditar(
+        [c], CFG, historial=[], hora_utc=19.5)
+    assert oportunidades == []
+    assert "DUDOSA" in vetadas
+    assert "sí claro" in vetadas["DUDOSA"]
+    decisiones = {s["ticker"]: s["decision"] for s in snapshots}
+    assert decisiones["DUDOSA"] == audit.DECISION_SIN_CONVICCION
+
+
+def test_dos_dudas_todavia_es_si_claro():
+    # última hora (1) + noticia fría (2) = exactamente el máximo tolerado.
+    c = replace(_candidato("ACME"), minutos_desde_catalizador=200.0)
+    oportunidades, vetadas, _ = seleccionar_y_auditar(
+        [c], CFG, historial=[], hora_utc=19.5)
+    assert len(oportunidades) == 1
+    assert vetadas == {}

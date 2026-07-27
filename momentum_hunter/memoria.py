@@ -88,6 +88,74 @@ def frase_probabilidad(ctx: ContextoHistorico) -> str:
             f"({ctx.n} casos medidos). El pasado no garantiza nada, pero es mi mejor dato real.")
 
 
+def estrellas(ctx: ContextoHistorico) -> str | None:
+    """Calidad del movimiento en estrellas (refinamiento "Head Trader",
+    punto 5) -- SOLO desde el historial real del propio sistema, nunca de
+    un score teórico. None sin muestra suficiente: mostrar tres estrellas
+    "por defecto" sería inventar una calificación (mismo criterio que
+    `frase_probabilidad`). Los cortes son fijos y documentados."""
+    if not ctx.suficiente or ctx.win_rate is None:
+        return None
+    if ctx.win_rate >= 0.70:
+        return "★★★★★"
+    if ctx.win_rate >= 0.60:
+        return "★★★★☆"
+    if ctx.win_rate >= 0.50:
+        return "★★★☆☆"
+    if ctx.win_rate >= 0.40:
+        return "★★☆☆☆"
+    return "★☆☆☆☆"
+
+
+def linea_calidad(ctx: ContextoHistorico) -> str:
+    """La línea de calidad para el mensaje -- estrellas con su dato, o la
+    admisión honesta de que todavía no hay calificación."""
+    e = estrellas(ctx)
+    if e is None:
+        return (f"Calidad histórica: sin calificar todavía -- necesito al menos "
+                f"{N_MINIMO_HISTORIAL} casos medidos y llevo {ctx.n}.")
+    return f"Calidad histórica: {e} ({ctx.win_rate:.0%} de éxito en {ctx.n} casos)."
+
+
+def confianza(ctx: ContextoHistorico, n_advertencias: int) -> tuple[str, str]:
+    """Nivel de confianza CON sus razones (refinamiento "Head Trader",
+    punto 7: "no quiero un porcentaje solamente, quiero saber por qué").
+    Devuelve (nivel, texto completo listo para el mensaje).
+
+    Reglas fijas: sin muestra suficiente la confianza es Baja y el texto
+    lo dice sin rodeos (nunca se bloquea la alerta por esto -- Principio
+    3 pide admitir, no castigar); con muestra, el nivel sale del win rate
+    real, y dos o más dudas del abogado del diablo lo bajan un nivel
+    (las dudas están listadas en el propio mensaje, así que la rebaja es
+    rastreable a ellas)."""
+    if not ctx.suficiente:
+        if ctx.n == 0:
+            texto = ("Confianza: Baja -- no tengo ni un caso medido de esta jugada todavía. "
+                     "No invento confianza que no tengo.")
+        else:
+            texto = (f"Confianza: Baja -- solo tengo {ctx.n} ejemplo(s) histórico(s) de esta "
+                     "jugada. No invento confianza que no tengo.")
+        return "Baja", texto
+
+    if ctx.win_rate >= 0.60:
+        nivel = "Alta"
+    elif ctx.win_rate >= 0.45:
+        nivel = "Media"
+    else:
+        nivel = "Baja"
+
+    rebajada = False
+    if n_advertencias >= 2 and nivel != "Baja":
+        nivel = {"Alta": "Media", "Media": "Baja"}[nivel]
+        rebajada = True
+
+    texto = (f"Confianza: {nivel} -- jugada vista {ctx.n} veces, funcionó "
+             f"{ctx.win_rate:.0%} de las veces.")
+    if rebajada:
+        texto += " Le resté un nivel por las dudas listadas abajo."
+    return nivel, texto
+
+
 def advertencias_contextuales(contextos: list[ContextoHistorico]) -> list[str]:
     """Advertencias para el debate del abogado del diablo -- SOLO cuando
     hay muestra suficiente Y el resultado medido es débil. Con muestra

@@ -38,6 +38,9 @@ DECISION_ALERTADA = "alertada"
 DECISION_VETADA = "vetada_por_abogado_del_diablo"
 DECISION_PERDIO_COMPETENCIA = "perdio_la_competencia_relativa"
 DECISION_DESCARTADA = "descartada_por_evaluador"
+DECISION_SIN_CONVICCION = "no_paso_la_ultima_pregunta"   # sobrevivió todo, pero con
+                                                          # demasiadas dudas acumuladas
+                                                          # para un "sí claro"
 
 
 def snapshot_candidato(

@@ -136,6 +136,47 @@ tradujo en una pieza verificable de código, no en una intención:
 | 13. Optimizar para ganar dinero, no para tener razón | `stats.py` ya mide expectancy/drawdown/Sharpe por grupo -- rendimiento ajustado a riesgo, no % de aciertos a secas |
 | 14. "¿Pondría dinero aquí?" | Es la suma de todo lo anterior: score alto sin salida definida = no hay alerta |
 
+## Cuarto refinamiento 2026-07-27: pensar como Head Trader
+
+Pedido explícito: "deja de pensar como un desarrollador que agrega
+funciones... no quiero más complejidad, quiero mejorar la calidad de
+las decisiones." Diez puntos, cada uno sobre módulos ya existentes:
+
+1. **Ranking absoluto** -- cada alerta abre con "La #1 del día entre
+   N acciones escaneadas" (N real de la etapa 1, nunca inventado).
+2. **Máximo pocas alertas** -- ya cubierto por `solo_la_mejor` + el
+   silencio como resultado válido.
+3. **¿Por qué esta y no las demás?** -- checklist ✔ construido SOLO con
+   las condiciones que realmente se verificaron en el evaluador
+   (`report._por_que_unica`), nunca una lista fija de marketing.
+4. **Ventana estimada** -- "≈15 min / ≈30 min / ≈1 hora / hasta el
+   cierre" por tipo de jugada, acotada por el tiempo real de sesión que
+   queda. HONESTO: hoy son valores editoriales documentados (el
+   historial para calibrarlos aún no existe); el propio mensaje dice
+   "estimación, no una promesa".
+5. **Calidad en estrellas** -- `memoria.estrellas`: ★ basadas SOLO en el
+   win rate real del propio sistema (≥10 casos); sin muestra, la línea
+   dice "sin calificar todavía" en vez de inventar tres estrellas.
+6. **Qué espero ver después** -- señales de confirmación (✔) y de falla
+   (✘) por patrón, sin jerga -- enseña a leer el mercado.
+7. **Confianza explicada** -- `memoria.confianza`: nivel + por qué
+   ("jugada vista 42 veces, funcionó 68%"), rebajado un nivel si el
+   debate acumuló 2+ dudas (rastreables en el propio mensaje).
+8. **Vigilancia post-alerta** -- `vigilancia.py`: cada corrida revisa
+   las alertas de HOY (sigue válida / debilitándose / rompió stop /
+   alcanzó objetivo / volumen desapareció) y avisa SOLO en cambios de
+   estado. Stop antes que objetivo cuando ambos se tocaron: lectura
+   conservadora.
+9. **Diario automático** -- `diario.py`: al resolverse cada alerta se
+   escribe una página markdown en `diario/` (qué ocurrió realmente, qué
+   hubiera hecho un profesional, qué aprender) -- plantillas
+   deterministas sobre números medidos; lo que no se puede medir se
+   declara fuera de alcance en la propia página.
+10. **La última pregunta** -- filtro final en `run.seleccionar_y_auditar`:
+    si una candidata sobrevive todo pero acumula más de 2 dudas, ya no
+    es un "sí claro" -- y sin un sí claro no hay alerta (decisión
+    `no_paso_la_ultima_pregunta` en la auditoría).
+
 ### La regla inquebrantable
 
 **El bot investiga, filtra, puntúa, explica, vigila y recomienda. La

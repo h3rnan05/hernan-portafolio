@@ -170,3 +170,12 @@ class Oportunidad:
     probabilidad_historica: str = ""     # Principio 3: probabilidad real medida, o la admisión de que no hay
     advertencias: list[str] = field(default_factory=list)  # Principio 2/11: "qué tendría que salir mal"
     n_evaluados: int = 0                  # Principio 4: contra cuántas candidatas compitió hoy
+    # -- Refinamiento "Head Trader" (2026-07-27, segunda ronda) --
+    rank: int = 0                          # lugar del día (#1, #2...) entre las alertadas
+    n_universo: int = 0                    # cuántas acciones se escanearon en la etapa 1
+    por_que_unica: list[str] = field(default_factory=list)   # qué reunió que las demás no
+    confianza_texto: str = ""              # nivel de confianza CON sus razones, prearmado
+    calidad_historica: str = ""            # estrellas basadas en historial propio, o "" sin muestra
+    ventana_texto: str = ""                # cuánto tiempo estimo que sigue vigente
+    señales_confirman: list[str] = field(default_factory=list)  # qué espero ver si es buena
+    señales_fallan: list[str] = field(default_factory=list)      # qué me diría que está fallando
