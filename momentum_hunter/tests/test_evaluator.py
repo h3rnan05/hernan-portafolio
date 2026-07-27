@@ -102,3 +102,38 @@ def test_score_ajustado_nunca_es_negativo():
     r = ev.evaluar(c, None, FactoresIntradia(), _bi(), Metadata(ticker="TST"),
                    1.0, None, None, 5.0, CONFIG)
     assert r.score_ajustado >= 0.0
+
+
+# ------------------------- explicar_rechazo (Principio 7) -------------------------
+
+def test_explicar_rechazo_vacio_si_fue_accionable():
+    c = Catalizador(tipo="fda", titular="x", fuente="Reuters")
+    r = ev.evaluar(c, 5.0, _factores_accionables(), _bi(), _meta_desequilibrio(),
+                   5.20, 5.00, 5.60, 95.0, CONFIG)
+    assert r.accionable is True
+    assert ev.explicar_rechazo(r, CONFIG) == []
+
+
+def test_explicar_rechazo_sin_catalizador():
+    r = ev.evaluar(None, None, _factores_accionables(), _bi(), Metadata(ticker="TST"),
+                   5.20, 5.00, 5.60, 90.0, CONFIG)
+    cambios = ev.explicar_rechazo(r, CONFIG)
+    assert len(cambios) == 1
+    assert "catalizador verificable" in cambios[0]
+
+
+def test_explicar_rechazo_sin_patron_dice_exactamente_que_falta():
+    c = Catalizador(tipo="fda", titular="x", fuente="Reuters")
+    f = FactoresIntradia(precio_actual=5.20, rvol_actual=4.0)
+    r = ev.evaluar(c, 5.0, f, _bi(), _meta_desequilibrio(), 5.20, 5.00, 5.60, 100.0, CONFIG)
+    cambios = ev.explicar_rechazo(r, CONFIG)
+    assert any("figuras" in x for x in cambios)
+
+
+def test_explicar_rechazo_tarde_por_extension():
+    c = Catalizador(tipo="fda", titular="x", fuente="Reuters")
+    f = FactoresIntradia(precio_actual=6.50, vwap=5.00, ema9=5.00, rvol_actual=4.0,
+                         gap_pct=0.10, maximo_premarket=5.00, velas_desde_ruptura=1)
+    r = ev.evaluar(c, 5.0, f, _bi(), _meta_desequilibrio(), 6.50, 6.00, 7.50, 100.0, CONFIG)
+    cambios = ev.explicar_rechazo(r, CONFIG)
+    assert any("estirado" in x for x in cambios)

@@ -64,13 +64,21 @@ _VALE_LA_PENA = {
     "velas": "El movimiento principal ya pasó hace rato.",
 }
 
-# --- ¿Por qué esta alerta y no otra? -- por nivel de exigencia cumplido ---
-def _por_que_esta_alerta(score_ajustado: float) -> str:
+# --- ¿Por qué esta alerta y no otra? -- Principio 4: la competencia
+# relativa es un hecho verificable (cuántas candidatas se evaluaron en
+# esta corrida), no una frase de entusiasmo. ---
+def _por_que_esta_alerta(score_ajustado: float, n_evaluados: int) -> str:
+    if n_evaluados > 1:
+        return (f"Hoy evalué {n_evaluados} candidatas e intenté descartarlas todas. "
+                "Esta fue la que mejor sobrevivió.")
+    if n_evaluados == 1:
+        return ("Fue la única candidata que llegó a la evaluación final hoy -- y aun así "
+                "tuvo que sobrevivir todos mis intentos de descartarla.")
+    # Sin conteo disponible (llamada directa en pruebas/preview): se cae
+    # al texto por nivel de exigencia, sin inventar una competencia.
     if score_ajustado >= 95.0:
         return "De todo lo que vi hoy, esta es de las mejores oportunidades."
-    if score_ajustado >= 90.0:
-        return "Es una oportunidad sólida -- cumple todo lo que exijo antes de avisarte."
-    return "Cumple lo mínimo que exijo para avisarte, pero no es excepcional."
+    return "Cumple todo lo que exijo antes de avisarte."
 
 
 def _que_paso(candidato: CandidatoIntradia) -> str:
@@ -147,10 +155,20 @@ def _urgencia(candidato: CandidatoIntradia, techo_velas: int) -> str:
     return "media"
 
 
-def construir_oportunidad(candidato: CandidatoIntradia, techo_velas: int) -> Oportunidad:
+def construir_oportunidad(
+    candidato: CandidatoIntradia, techo_velas: int,
+    probabilidad_historica: str = "", advertencias: list[str] | None = None,
+    n_evaluados: int = 0,
+) -> Oportunidad:
     """Ensambla la `Oportunidad` final -- ya se decidió que se manda
-    (`candidato.resultado.accionable`); esto solo decide CÓMO se
-    presenta, traduciendo todo a lenguaje humano."""
+    (accionable + sobrevivió al abogado del diablo); esto solo decide
+    CÓMO se presenta, traduciendo todo a lenguaje humano.
+
+    `probabilidad_historica` viene de `memoria.frase_probabilidad`
+    (Principio 3), `advertencias` son las objeciones NO fatales que
+    sobrevivieron del debate de `skeptic.py` (Principios 2/11 -- el
+    usuario decide con los riesgos a la vista), y `n_evaluados` es
+    contra cuántas candidatas compitió (Principio 4)."""
     patron = candidato.resultado.patron or "trend_continuation"
     urgencia_clave = _urgencia(candidato, techo_velas)
     niveles = niveles_entrada_salida(candidato.factores, candidato.atr_diario)
@@ -174,7 +192,7 @@ def construir_oportunidad(candidato: CandidatoIntradia, techo_velas: int) -> Opo
         que_pasa_ahora=_QUE_PASA_AHORA.get(patron, "Sigue moviéndose con fuerza."),
         vale_la_pena=candidato.resultado.temprano,
         por_que_vale_la_pena=_VALE_LA_PENA.get(razon, _VALE_LA_PENA["ok"]),
-        por_que_esta_alerta=_por_que_esta_alerta(candidato.resultado.score_ajustado),
+        por_que_esta_alerta=_por_que_esta_alerta(candidato.resultado.score_ajustado, n_evaluados),
         entrada=niveles["entrada"] or 0.0, stop=niveles["stop"], objetivo=niveles["objetivo"],
         invalidacion=invalidacion, catalizador=candidato.catalizador,
         score=candidato.resultado.score_ajustado, fecha=ahora.isoformat(timespec="seconds"),
@@ -182,6 +200,8 @@ def construir_oportunidad(candidato: CandidatoIntradia, techo_velas: int) -> Opo
         catalizador_tipo=candidato.catalizador.tipo if candidato.catalizador else None,
         float_acciones=candidato.meta.shares_float, gap_pct=candidato.factores.gap_pct,
         rvol=candidato.factores.rvol_actual,
+        probabilidad_historica=probabilidad_historica,
+        advertencias=list(advertencias or []), n_evaluados=n_evaluados,
     )
 
 
@@ -198,6 +218,8 @@ def formatear(o: Oportunidad) -> str:
     lineas.append(f"4) ¿Todavía vale la pena? {respuesta}. {o.por_que_vale_la_pena}")
 
     lineas += ["", o.por_que_esta_alerta]
+    if o.probabilidad_historica:
+        lineas.append(o.probabilidad_historica)
 
     lineas += ["", f"Si decides entrar: cerca de ${o.entrada:,.2f}."]
     if o.stop is not None:
@@ -207,7 +229,12 @@ def formatear(o: Oportunidad) -> str:
 
     lineas += ["", o.invalidacion]
 
+    if o.advertencias:
+        lineas += ["", "Qué podría salir mal:"]
+        lineas += [f"• {a}" for a in o.advertencias[:3]]
+
     if o.catalizador is not None:
         lineas += ["", f'Fuente: "{o.catalizador.titular}" ({o.catalizador.fuente})']
 
+    lineas += ["", "La decisión de operar siempre es tuya -- yo solo investigo y aviso."]
     return "\n".join(lineas)

@@ -74,13 +74,17 @@ jobs:
           [ -n "$UNIVERSO" ] && ARGS="$ARGS --universo $UNIVERSO"
           python -m momentum_hunter.run $ARGS
 
-      - name: Persistir universo/tracker
+      - name: Persistir universo/tracker/auditoría
         run: |
           git config user.name "momentum-opportunity-hunter"
           git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
           for f in momentum_hunter/universo_cache.json momentum_hunter/alertas_enviadas.json; do
             [ -f "$f" ] && git add "$f" || true
           done
-          git diff --cached --quiet || git commit -m "momentum_hunter: alertas del día [skip ci]"
+          # Auditoría completa de cada corrida (Principio 9: cada alerta
+          # debe poder reconstruirse meses después) -- se committea igual
+          # que el tracker, nunca se pierde la trazabilidad.
+          [ -d momentum_hunter/auditoria ] && git add momentum_hunter/auditoria || true
+          git diff --cached --quiet || git commit -m "momentum_hunter: alertas y auditoría del día [skip ci]"
           git pull --rebase origin main || true
           git push

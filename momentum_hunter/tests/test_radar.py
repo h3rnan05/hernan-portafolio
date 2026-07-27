@@ -74,3 +74,29 @@ def test_construir_resumen_marca_oportunidades_tarde():
     assert "ya se movió demasiado" in resumen
     assert "TARDE" in resumen
     assert "BULL FLAG" not in resumen.upper()
+
+
+def test_subcampeona_aparece_con_su_lugar_en_la_fila():
+    # Accionable pero no elegida (perdió la competencia relativa) -- no
+    # desaparece en silencio (Principio 7).
+    ganadora = _candidato("GANA", patron="gap_and_go", accionable=True)
+    subcampeona = _candidato("PLATA", patron="bull_flag", accionable=True)
+    resumen = construir_resumen([ganadora, subcampeona], elegidas={"GANA"})
+    assert "🥈 PLATA" in resumen
+    assert "no fue la mejor" in resumen
+    assert "GANA" not in [ln.split()[1].rstrip(":") for ln in resumen.splitlines() if ln.startswith("🥈")]
+
+
+def test_vetada_aparece_con_su_motivo_exacto():
+    vetada = _candidato("VETO", patron="gap_and_go", accionable=True)
+    resumen = construir_resumen(
+        [vetada], elegidas=set(),
+        vetadas={"VETO": "El dinero está dejando de entrar."},
+    )
+    assert "⛔ VETO" in resumen
+    assert "El dinero está dejando de entrar." in resumen
+
+
+def test_elegida_no_aparece_en_el_radar():
+    ganadora = _candidato("GANA", patron="gap_and_go", accionable=True)
+    assert construir_resumen([ganadora], elegidas={"GANA"}) is None

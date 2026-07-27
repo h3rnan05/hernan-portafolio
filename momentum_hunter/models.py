@@ -166,3 +166,7 @@ class Oportunidad:
     float_acciones: float | None = None
     gap_pct: float | None = None
     rvol: float | None = None
+    # -- Pedido 2026-07-27 ("sistema en el que confiaría mi patrimonio") --
+    probabilidad_historica: str = ""     # Principio 3: probabilidad real medida, o la admisión de que no hay
+    advertencias: list[str] = field(default_factory=list)  # Principio 2/11: "qué tendría que salir mal"
+    n_evaluados: int = 0                  # Principio 4: contra cuántas candidatas compitió hoy

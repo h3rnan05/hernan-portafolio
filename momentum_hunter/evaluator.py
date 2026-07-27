@@ -119,3 +119,41 @@ def evaluar(
         patron=patron, temprano=temprano, early=early, penalizaciones=penalizaciones,
         score_base=score_base, score_ajustado=score_ajustado, accionable=accionable,
     )
+
+
+def explicar_rechazo(r: ResultadoEvaluacion, cfg: MomentumConfig) -> list[str]:
+    """Principio 7 (pedido 2026-07-27): "cuando descarte algo debe
+    explicar exactamente qué lo descartó... qué tendría que cambiar para
+    que la oportunidad volviera a ser válida". Una línea por condición
+    que falló, en términos de lo que tendría que ser distinto -- nunca
+    'el score fue bajo'. Lista vacía si el resultado fue accionable (no
+    hubo rechazo que explicar)."""
+    if r.accionable:
+        return []
+    if r.paso_detenido == "catalizador":
+        return ["Que exista un catalizador verificable en una fuente real -- sin él, "
+                "ni siquiera se evalúa el resto."]
+    cambios: list[str] = []
+    if not r.dinero_entrando:
+        cambios.append(f"Que el volumen del momento supere {cfg.umbral_rvol_intradia:.0f} veces "
+                       "el de los minutos anteriores -- hoy no está entrando dinero con fuerza.")
+    if not r.desequilibrio:
+        cambios.append("Que exista un desequilibrio real de oferta/demanda (pocas acciones "
+                       "disponibles, o muchos vendedores en corto atrapados).")
+    if r.patron is None:
+        cambios.append("Que el precio forme una de las seis figuras que sé operar -- sin una "
+                       "forma clara no hay entrada ni salida definibles.")
+    if not r.temprano and r.early is not None:
+        if r.early.razon == "extension":
+            cambios.append("Que el precio regrese cerca de sus niveles de referencia -- ahora "
+                           "está demasiado estirado para entrar sin perseguirlo.")
+        else:
+            cambios.append("Que aparezca una configuración fresca -- esta ya corrió sin nosotros "
+                           "y perseguirla es mal negocio.")
+    if not cambios:
+        # Accionable=False sin ninguna condición individual fallida solo
+        # puede ser el umbral de score: las penalizaciones acumuladas
+        # dejaron el total por debajo del mínimo.
+        cambios.append(f"Que el conjunto sume más convicción: el total quedó en "
+                       f"{r.score_ajustado:.0f} y exijo más de {cfg.score_minimo_alerta:.0f}.")
+    return cambios

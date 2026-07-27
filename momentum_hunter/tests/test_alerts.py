@@ -7,7 +7,9 @@ from __future__ import annotations
 from momentum_hunter.alerts import (
     CandidatoDiario,
     CandidatoIntradia,
+    accionables_ordenados,
     candidatos_para_etapa_intradia,
+    cuota_alertas,
     filtrar_alertas,
 )
 from momentum_hunter.catalysts.detector import Catalizador
@@ -66,12 +68,33 @@ def test_filtrar_alertas_solo_accionables():
     assert [c.ticker for c in resultado] == ["BUENO"]
 
 
+def test_solo_la_mejor_por_defecto_recorta_a_una():
+    # Principio 4 (2026-07-27): "si hoy solamente pudiera abrir UNA
+    # operación, ¿sería esta?" -- por defecto, una sola gana.
+    candidatos = [
+        _candidato_intradia("T0", score_ajustado=90.0),
+        _candidato_intradia("T1", score_ajustado=99.0),
+    ]
+    assert cuota_alertas(CFG) == 1
+    assert [c.ticker for c in filtrar_alertas(candidatos, CFG)] == ["T1"]
+
+
 def test_filtrar_alertas_ordena_por_score_ajustado_y_recorta():
-    cfg = MomentumConfig(limite_diario_alertas=2)
+    cfg = MomentumConfig(limite_diario_alertas=2, solo_la_mejor=False)
     candidatos = [
         _candidato_intradia("T0", score_ajustado=90.0),
         _candidato_intradia("T1", score_ajustado=99.0),
         _candidato_intradia("T2", score_ajustado=86.0),
     ]
     resultado = filtrar_alertas(candidatos, cfg)
+    assert [c.ticker for c in resultado] == ["T1", "T0"]
+
+
+def test_accionables_ordenados_devuelve_todos_sin_recortar():
+    candidatos = [
+        _candidato_intradia("T0", score_ajustado=90.0),
+        _candidato_intradia("T1", score_ajustado=99.0),
+        _candidato_intradia("MALO", accionable=False),
+    ]
+    resultado = accionables_ordenados(candidatos)
     assert [c.ticker for c in resultado] == ["T1", "T0"]

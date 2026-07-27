@@ -67,6 +67,14 @@ class MomentumConfig:
     # 2026-07-26: "prefiero una sola oportunidad excelente que veinte
     # promedio").
     limite_diario_alertas: int = 3
+    # Principio 4 (pedido 2026-07-27): "cada alerta debe competir contra
+    # todas las demás... si hoy solamente pudiera abrir UNA operación,
+    # ¿sería esta? Si la respuesta es no, no quiero recibir la alerta."
+    # Con True (default), por corrida solo se alerta LA MEJOR candidata
+    # que además sobreviva al abogado del diablo (skeptic.py); las demás
+    # accionables aparecen en el radar como subcampeonas, con su motivo.
+    # limite_diario_alertas queda como techo cuando esto se apague.
+    solo_la_mejor: bool = True
 
     # --- Catalizadores ---
     fuentes_minimas_rumor: int = 2            # un rumor solo cuenta si aparece en >=N fuentes

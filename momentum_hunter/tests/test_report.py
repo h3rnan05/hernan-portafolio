@@ -139,3 +139,46 @@ def test_formatear_se_lee_corto():
     # "Debe poder leerse en menos de 15 segundos" -- límite generoso pero
     # mucho más chico que el formato de reporte de antes del pivote.
     assert len(texto) < 800
+
+
+# ------ Pedido 2026-07-27: probabilidades, advertencias, competencia ------
+
+def test_formatear_incluye_probabilidad_historica_cuando_existe():
+    c = _candidato()
+    o = construir_oportunidad(
+        c, CONFIG.velas_maximas_desde_patron,
+        probabilidad_historica="Jugadas como esta me han funcionado 62% de las veces (13 casos medidos).",
+    )
+    assert "62% de las veces" in formatear(o)
+
+
+def test_formatear_incluye_que_podria_salir_mal():
+    c = _candidato()
+    o = construir_oportunidad(
+        c, CONFIG.velas_maximas_desde_patron,
+        advertencias=["Queda menos de una hora de mercado."],
+    )
+    texto = formatear(o)
+    assert "Qué podría salir mal:" in texto
+    assert "menos de una hora" in texto
+
+
+def test_formatear_sin_advertencias_omite_la_seccion():
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
+    assert "Qué podría salir mal:" not in formatear(o)
+
+
+def test_por_que_esta_alerta_cita_la_competencia_real():
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, n_evaluados=17)
+    assert "17 candidatas" in o.por_que_esta_alerta
+    assert "sobrevivió" in o.por_que_esta_alerta
+
+
+def test_formatear_cierra_con_la_regla_inquebrantable():
+    # "La decisión final de ejecutar una operación siempre la toma el
+    # humano" -- el mensaje lo dice en cada alerta, no solo en el README.
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron)
+    assert "La decisión de operar siempre es tuya" in formatear(o)

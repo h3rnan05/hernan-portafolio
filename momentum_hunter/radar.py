@@ -33,12 +33,28 @@ def candidatos_para_radar(candidatos: list[CandidatoIntradia]) -> list[Candidato
     ]
 
 
-def construir_resumen(candidatos: list[CandidatoIntradia]) -> str | None:
+def construir_resumen(
+    candidatos: list[CandidatoIntradia],
+    elegidas: frozenset[str] | set[str] = frozenset(),
+    vetadas: dict[str, str] | None = None,
+) -> str | None:
     """None si no hay nada que vigilar -- mismo principio que
     `alerts.py`: el silencio es un resultado válido, no se fuerza
-    contenido."""
+    contenido.
+
+    `elegidas` son los tickers que SÍ se alertaron en esta corrida;
+    `vetadas` mapea ticker -> motivo (en lenguaje humano) de las
+    candidatas que eran accionables pero el abogado del diablo mató
+    (`skeptic.py`). Ninguna de las dos desaparece en silencio (Principio
+    7): las accionables no elegidas se reportan como subcampeonas de la
+    competencia relativa, y las vetadas con su motivo exacto."""
+    vetadas = vetadas or {}
     radar = candidatos_para_radar(candidatos)
-    if not radar:
+    subcampeonas = [
+        c for c in candidatos
+        if c.resultado.accionable and c.ticker not in elegidas and c.ticker not in vetadas
+    ]
+    if not radar and not subcampeonas and not vetadas:
         return None
 
     formando = [c for c in radar if c.resultado.patron is not None and c.resultado.temprano]
@@ -50,6 +66,14 @@ def construir_resumen(candidatos: list[CandidatoIntradia]) -> str | None:
         por_patron.setdefault(c.resultado.patron, []).append(c.ticker)
 
     lineas = ["📡 Market Radar", ""]
+
+    for c in subcampeonas:
+        lineas.append(
+            f"🥈 {c.ticker}: también calificó hoy, pero no fue la mejor -- es la siguiente "
+            "en la lista si la primera se invalida."
+        )
+    for ticker, motivo in vetadas.items():
+        lineas.append(f"⛔ {ticker}: calificaba, pero la descarté. {motivo}")
     for patron, tickers in por_patron.items():
         descripcion = classification.DESCRIPCION_HUMANA.get(patron, "en movimiento")
         sustantivo = "acción" if len(tickers) == 1 else "acciones"

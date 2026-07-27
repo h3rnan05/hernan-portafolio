@@ -114,6 +114,38 @@ nada" como confirmación de que sí corrió), este bot puede correr varias
 veces al día, y repetir "nada hoy" sería exactamente el ruido que se
 busca evitar.
 
+## Tercer pivote 2026-07-27: los 14 principios del CIO
+
+Pedido explícito: "construye un sistema en el que confiaría si TODO mi
+patrimonio dependiera de él... tu trabajo es proteger capital y solo
+actuar cuando exista una ventaja estadística clara." Cada principio se
+tradujo en una pieza verificable de código, no en una intención:
+
+| Principio | Dónde vive |
+|---|---|
+| 1-2. Escéptico: cada oportunidad debe demostrar por qué NO operarse | `skeptic.py` -- el abogado del diablo corre DESPUÉS de que una candidata ya es accionable, y busca matarla: sin salida clara (fatal), riesgo > 8% (fatal), dinero saliendo (fatal), última hora/noticia fría/volumen enfriándose (advertencias que viajan al mensaje como "qué podría salir mal") |
+| 3. Probabilidades, nunca certezas | `memoria.frase_probabilidad` -- cita el win rate REAL medido solo con ≥10 casos resueltos; con menos, el mensaje dice literalmente "no voy a inventar confianza que no tengo" |
+| 4. Competencia relativa | `config.solo_la_mejor` (default True) + `run.seleccionar_y_auditar` -- una sola alerta por corrida: la mejor que además sobreviva el debate. El mensaje lo dice con datos ("hoy evalué N candidatas...") |
+| 5. Preservar capital / minimizar errores de comisión | Las objeciones fatales del skeptic ganan siempre, sin importar el score -- perder una buena oportunidad es aceptable; una mala operación no |
+| 6-7. Verificable, nunca caja negra | `evaluator.explicar_rechazo` -- cada descarte dice exactamente qué condición falló y qué tendría que cambiar (nunca "el score fue bajo"); cada objeción del skeptic trae su `que_cambiaria` |
+| 8. Aprende pero nunca se auto-modifica | `stats.py`/`memoria.py` miden y reportan; NINGUNA función ajusta `scoring.py` ni `config.py` -- el ciclo es medir → demostrar → proponer → el humano decide |
+| 9. Auditoría completa | `audit.py` -- snapshot de CADA candidato evaluado (precio, volumen, factores, catalizador con titular/fuente/hora, resultado de cada pregunta, decisión y motivos) en `auditoria/AAAA-MM-DD.json`, committeado por el workflow; se cruza con el tracker para el "qué ocurrió realmente" |
+| 10. Empresa ≠ oportunidad ≠ ejecución | Ya estructural: calidad de empresa es del Investment Analyst (`screener/`, otro sistema); calidad de oportunidad es el evaluador; calidad de ejecución es el Early Opportunity Engine + skeptic |
+| 11. El sistema duda (dos analistas) | El pipeline entero convence (`evaluator.py`); `skeptic.py` destruye. Solo lo que sobrevive a ambos se alerta |
+| 12. Memoria contextual que ajusta confianza sin prohibir | `memoria.advertencias_contextuales` -- "mis últimas N alertas con este tipo de jugada solo funcionaron X%" entra al debate como advertencia, NUNCA como veto |
+| 13. Optimizar para ganar dinero, no para tener razón | `stats.py` ya mide expectancy/drawdown/Sharpe por grupo -- rendimiento ajustado a riesgo, no % de aciertos a secas |
+| 14. "¿Pondría dinero aquí?" | Es la suma de todo lo anterior: score alto sin salida definida = no hay alerta |
+
+### La regla inquebrantable
+
+**El bot investiga, filtra, puntúa, explica, vigila y recomienda. La
+decisión de ejecutar una operación con dinero real la toma SIEMPRE el
+humano.** Este sistema no tiene, y no debe tener, conexión a ningún
+broker -- y cada alerta lo dice en su última línea ("La decisión de
+operar siempre es tuya -- yo solo investigo y aviso"). Es la misma
+regla que el `ROADMAP.md` raíz ya impone al resto de la plataforma, y
+aquí es además un pedido explícito del dueño del producto (2026-07-27).
+
 ## Arquitectura (cada módulo es reemplazable de forma independiente)
 
 ```
@@ -138,12 +170,21 @@ scoring.py              Score base 0-100 (etapa 1) -- 40% momentum + 25% cataliz
                        20% liquidez + 15% riesgo. Cero valoración fundamental.
 strategy.py             Selección de vehículo de opciones (Prompt 9) -- no conectado
                        todavía al mensaje nuevo, ver "Roadmap" abajo.
-alerts.py               Recorte a la etapa 2 + filtro final por "accionable".
+alerts.py               Recorte a la etapa 2 + competencia relativa (solo_la_mejor).
+skeptic.py              Abogado del diablo: intenta destruir cada tesis accionable --
+                       objeciones fatales matan la alerta; advertencias viajan al
+                       mensaje como "qué podría salir mal".
+memoria.py              Memoria contextual: probabilidad histórica honesta (o la
+                       admisión de que no hay muestra) + advertencias cuando el
+                       historial medido de un patrón/catalizador es débil.
+audit.py                Auditoría completa: snapshot reconstruible de CADA candidato
+                       evaluado, con decisión, motivos y qué tendría que cambiar.
 report.py               Traduce todo a lenguaje humano (cero indicadores/jerga) y arma
                        la historia de 4 pasos: qué pasó/qué hizo el mercado/qué está
                        pasando ahora/¿todavía vale la pena?
 radar.py                Market Radar -- resumen en lenguaje humano de lo que quedó
-                       cerca pero no accionable.
+                       cerca pero no accionable, incluidas subcampeonas y vetadas
+                       con su motivo.
 tracker.py              Persiste cada alerta enviada (sin red) -- incluye la materia
                        prima para el aprendizaje futuro (patrón, hora, catalizador,
                        float, gap, RVOL), nunca mostrada en el mensaje.

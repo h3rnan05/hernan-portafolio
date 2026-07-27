@@ -41,12 +41,25 @@ from datetime import UTC, datetime
 
 import requests
 
-from momentum_hunter import classification, evaluator, outcomes, radar, report, stats, tracker, universe
+from momentum_hunter import (
+    audit,
+    classification,
+    evaluator,
+    memoria,
+    outcomes,
+    radar,
+    report,
+    skeptic,
+    stats,
+    tracker,
+    universe,
+)
 from momentum_hunter.alerts import (
     CandidatoDiario,
     CandidatoIntradia,
+    accionables_ordenados,
     candidatos_para_etapa_intradia,
-    filtrar_alertas,
+    cuota_alertas,
 )
 from momentum_hunter.catalysts.detector import YahooNewsProvider, detectar_catalizador, minutos_desde_catalizador
 from momentum_hunter.config import CONFIG, MomentumConfig
@@ -205,6 +218,83 @@ def construir_candidatos_intradia(
     return resultado
 
 
+def seleccionar_y_auditar(
+    candidatos: list[CandidatoIntradia], cfg: MomentumConfig,
+    historial=None, hora_utc: float | None = None,
+) -> tuple[list, dict[str, str], list[dict]]:
+    """El tramo final del pipeline (pedido 2026-07-27, "sistema en el que
+    confiaría mi patrimonio"): competencia relativa (Principio 4) +
+    debate del abogado del diablo (Principios 1/2/11) + memoria
+    contextual (Principios 3/12) + auditoría completa de CADA candidato
+    (Principios 6/7/9). Devuelve (oportunidades a alertar, vetadas
+    {ticker: motivo}, snapshots de auditoría).
+
+    Puro y testeable: `historial` y `hora_utc` son inyectables; solo se
+    leen del mundo real cuando no se pasan."""
+    historial = tracker.cargar() if historial is None else historial
+    ahora = datetime.now(UTC)
+    hora_utc = hora_utc if hora_utc is not None else ahora.hour + ahora.minute / 60.0
+
+    cuota = cuota_alertas(cfg)
+    ordenados = accionables_ordenados(candidatos)
+    elegidas: list[tuple[CandidatoIntradia, object]] = []
+    vetadas: dict[str, str] = {}
+    decisiones: dict[str, tuple[str, list[str], list[str]]] = {}
+
+    for c in ordenados:
+        if len(elegidas) >= cuota:
+            mejor = elegidas[0][0].ticker
+            decisiones[c.ticker] = (
+                audit.DECISION_PERDIO_COMPETENCIA,
+                [f"Calificó, pero {mejor} quedó por encima en la competencia relativa de esta corrida."],
+                ["Que su configuración supere a la mejor del día, o que la mejor se invalide."],
+            )
+            continue
+
+        niveles = report.niveles_entrada_salida(c.factores, c.atr_diario)
+        ctx_patron = memoria.contexto_patron(historial, c.resultado.patron)
+        ctx_catalizador = memoria.contexto_catalizador(
+            historial, c.catalizador.tipo if c.catalizador else None)
+        avisos_memoria = tuple(memoria.advertencias_contextuales([ctx_patron, ctx_catalizador]))
+        objeciones = skeptic.refutar(
+            c.factores, c.minutos_desde_catalizador, niveles["stop"], hora_utc, avisos_memoria)
+        fatales = [o for o in objeciones if o.fatal]
+        if fatales:
+            vetadas[c.ticker] = fatales[0].texto
+            decisiones[c.ticker] = (
+                audit.DECISION_VETADA,
+                [o.texto for o in fatales],
+                [o.que_cambiaria for o in fatales],
+            )
+            continue
+
+        advertencias = [o.texto for o in objeciones if not o.fatal]
+        oportunidad = report.construir_oportunidad(
+            c, cfg.velas_maximas_desde_patron,
+            probabilidad_historica=memoria.frase_probabilidad(ctx_patron),
+            advertencias=advertencias, n_evaluados=len(candidatos),
+        )
+        elegidas.append((c, oportunidad))
+        decisiones[c.ticker] = (
+            audit.DECISION_ALERTADA,
+            ["Sobrevivió las 5 preguntas del evaluador y el debate del abogado del diablo."]
+            + advertencias,
+            [],
+        )
+
+    snapshots = []
+    for c in candidatos:
+        if c.ticker in decisiones:
+            decision, motivos, cambios = decisiones[c.ticker]
+        else:
+            decision = audit.DECISION_DESCARTADA
+            motivos = list(c.resultado.penalizaciones) or ["No fue accionable."]
+            cambios = evaluator.explicar_rechazo(c.resultado, cfg)
+        snapshots.append(audit.snapshot_candidato(c, decision, motivos, cambios))
+
+    return [o for _, o in elegidas], vetadas, snapshots
+
+
 def _cargar_tickers(args: argparse.Namespace) -> list[str]:
     if args.universo:
         ticks = universe.desde_archivo(args.universo)
@@ -272,8 +362,7 @@ def main() -> None:
     candidatos_intradia = construir_candidatos_intradia(shortlist, barras, provider, CONFIG)
     log.info("etapa 2 -- candidatos evaluados: %d", len(candidatos_intradia))
 
-    accionables = filtrar_alertas(candidatos_intradia, CONFIG)
-    oportunidades = [report.construir_oportunidad(c, CONFIG.velas_maximas_desde_patron) for c in accionables]
+    oportunidades, vetadas, snapshots = seleccionar_y_auditar(candidatos_intradia, CONFIG)
     for o in oportunidades:
         texto = report.formatear(o)
         print("\n" + texto)
@@ -284,9 +373,16 @@ def main() -> None:
         tracker.registrar(oportunidades)
         log.info("registradas %d alerta(s) en el tracker", len(oportunidades))
     elif not oportunidades:
-        log.info("ninguna oportunidad accionable hoy -- silencio, no es un error (ver evaluator.py)")
+        log.info("ninguna oportunidad sobrevivió todos los filtros hoy -- silencio, no es "
+                 "un error (Principio 1: la mejor operación muchas veces es no operar)")
 
-    resumen_radar = radar.construir_resumen(candidatos_intradia)
+    if not args.dry_run:
+        ruta = audit.registrar_corrida(snapshots)
+        if ruta:
+            log.info("auditoría de la corrida escrita en %s", ruta)
+
+    elegidas = {o.ticker for o in oportunidades}
+    resumen_radar = radar.construir_resumen(candidatos_intradia, elegidas, vetadas)
     if resumen_radar:
         print("\n" + resumen_radar)
         if not args.dry_run:

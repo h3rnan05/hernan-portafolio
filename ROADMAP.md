@@ -215,3 +215,44 @@ deliberadamente ninguna de esas funciones toca `scoring.py` ni
 cuando haya suficiente historia real, sigue siendo una decisión humana
 explícita — mismo principio del Validation Pipeline de arriba ("nadie
 salta pasos por prisa").
+
+### Tercer pivote (2026-07-27): los 14 principios del CIO
+
+Pedido explícito: "construye un sistema en el que confiaría si TODO mi
+patrimonio dependiera de él... asume que cada operación es mala hasta
+demostrar lo contrario." Cuatro piezas nuevas, todas deterministas
+(tabla completa principio-por-principio en `momentum_hunter/README.md`):
+
+- **`skeptic.py` (abogado del diablo, Principios 1/2/11)**: corre
+  DESPUÉS de que una candidata ya es accionable e intenta destruirla.
+  Objeciones fatales (sin salida definible, riesgo al stop > 8%, el
+  volumen se está muriendo) matan la alerta sin importar el score;
+  advertencias (última hora, noticia >2h, historial débil) viajan al
+  mensaje como "qué podría salir mal". El pipeline convence; este
+  módulo refuta; solo lo que sobrevive a ambos se alerta.
+- **`memoria.py` (Principios 3/12)**: probabilidad histórica REAL en el
+  mensaje ("jugadas como esta me han funcionado X% de las veces, N
+  casos medidos") solo con ≥10 resueltas; con menos, dice literalmente
+  "no voy a inventar confianza que no tengo". El historial débil de un
+  patrón entra al debate como advertencia — ajusta confianza, nunca
+  prohíbe (Principio 12 literal).
+- **Competencia relativa (Principio 4)**: `config.solo_la_mejor`
+  (default True) — una sola alerta por corrida, la mejor que además
+  sobreviva el debate; si la mejor muere en el debate, la siguiente
+  hereda el turno de competir. Las subcampeonas y las vetadas aparecen
+  en el radar con su motivo exacto, nunca desaparecen en silencio.
+- **`audit.py` (Principios 6/7/9)**: snapshot completo de CADA candidato
+  evaluado (precio, volumen, factores intradía, catalizador con
+  titular/fuente/hora, resultado de cada pregunta del evaluador,
+  decisión, motivos y qué tendría que cambiar — vía
+  `evaluator.explicar_rechazo`, nunca "el score fue bajo") appendeado a
+  `momentum_hunter/auditoria/AAAA-MM-DD.json` y committeado por el
+  workflow. Cruzando con el tracker se responde el "¿qué ocurrió
+  realmente?" meses después.
+
+**Regla inquebrantable (pedido explícito)**: el bot investiga, filtra,
+puntúa, explica, vigila y recomienda — la decisión de ejecutar una
+operación con dinero real la toma SIEMPRE el humano. Sin conexión a
+broker, y cada alerta cierra diciéndolo ("La decisión de operar siempre
+es tuya — yo solo investigo y aviso"). Coherente con los Principios
+duros #3 y #4 del inicio de este documento.
