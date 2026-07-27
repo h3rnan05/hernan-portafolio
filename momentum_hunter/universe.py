@@ -43,10 +43,20 @@ OTHER_LISTED = "https://www.nasdaqtrader.com/dynamic/SymDirectory/otherlisted.tx
 # Respaldo -- descubierto el 2026-07-27: NASDAQ Trader empezó a devolver
 # 404 en los .txt de arriba (confirmado en la corrida real de GitHub
 # Actions, no solo localmente), y sin caché en disco el pipeline caía
-# derecho a la semilla de 16 tickers. El screener de nasdaq.com expone
-# el mismo universo de acciones (ETFs ya excluidos por el propio
-# endpoint) por bolsa, en JSON.
-NASDAQ_API_SCREENER = "https://api.nasdaq.com/api/screener/stocks"
+# derecho a la semilla de 16 tickers. Se probó primero api.nasdaq.com
+# como respaldo, pero ESE también devolvió 0 filas al correr en el
+# runner real de GitHub Actions (funcionaba en local -- huele a que
+# nasdaq.com bloquea/limita IPs de datacenter que no local/residenciales).
+# El listado de tickers de la SEC es infraestructura de gobierno pensada
+# para acceso automatizado (solo pide un User-Agent identificable, sin
+# API key ni bloqueo de IP conocido) -- mucho más confiable para correr
+# desde un runner de CI.
+SEC_TICKERS = "https://www.sec.gov/files/company_tickers_exchange.json"
+# La SEC exige el formato exacto "Nombre correo@dominio" -- probado en
+# vivo: cualquier otra forma (paréntesis, sin correo con @) devuelve 403
+# "Request Rate Threshold Exceeded" aunque no haya rate limit real de
+# por medio. Ver https://www.sec.gov/os/webmaster-faq#developers.
+_SEC_USER_AGENT = "momentum-opportunity-hunter hernanlv2005@gmail.com"
 
 # Código de bolsa de otherlisted.txt -> nuestro nombre. Solo se conservan
 # NYSE (N) y NYSE American / AMEX (A); NYSE Arca (P) y el resto de tapes
@@ -112,34 +122,36 @@ def _descargar() -> list[Simbolo]:
     return simbolos
 
 
-def _parsear_nasdaq_api(payload: dict, bolsa: str) -> list[Simbolo]:
-    filas = (payload.get("data") or {}).get("rows") or []
+_SEC_BOLSA = {"Nasdaq": "NASDAQ", "NYSE": "NYSE"}
+
+
+def _parsear_sec_tickers(payload: dict) -> list[Simbolo]:
+    """`company_tickers_exchange.json` no distingue NYSE American (AMEX)
+    de NYSE -- ambos llegan como "NYSE" (confirmado con tickers AMEX
+    conocidos como GORO/NAK). Se acepta esa pérdida de detalle porque
+    `bolsa` solo se usa para trazabilidad en la auditoría, no para
+    filtrar candidatos. Se descartan OTC/CBOE (pink sheets y BZX) para
+    quedarse con el mismo universo NYSE+NASDAQ que ya documenta este
+    módulo -- ETFs no aparecen aquí porque `company_tickers_exchange.json`
+    solo cubre emisores que reportan 10-K, no fondos."""
     out = []
-    for fila in filas:
-        simbolo = (fila.get("symbol") or "").strip().upper()
-        if not simbolo:
+    for _cik, nombre, simbolo, bolsa_sec in payload.get("data") or []:
+        bolsa = _SEC_BOLSA.get(bolsa_sec)
+        simbolo = (simbolo or "").strip().upper()
+        if bolsa is None or not simbolo:
             continue
-        out.append(Simbolo(simbolo, (fila.get("name") or "").strip() or None, bolsa, False))
+        out.append(Simbolo(simbolo, (nombre or "").strip() or None, bolsa, False))
     return out
 
 
 def _descargar_respaldo() -> list[Simbolo]:
     """Fuente de respaldo cuando los .txt de NASDAQ Trader fallan (ver
-    NASDAQ_API_SCREENER arriba). Ya viene sin ETFs (endpoint /stocks, no
-    /etf), así que es_etf queda siempre False."""
-    simbolos = []
-    for bolsa in ("nasdaq", "nyse", "amex"):
-        r = requests.get(
-            NASDAQ_API_SCREENER,
-            params={"tableonly": "true", "limit": 10000, "offset": 0,
-                     "exchange": bolsa, "download": "true"},
-            headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"},
-            timeout=20,
-        )
-        r.raise_for_status()
-        simbolos.extend(_parsear_nasdaq_api(r.json(), bolsa.upper()))
+    SEC_TICKERS arriba)."""
+    r = requests.get(SEC_TICKERS, headers={"User-Agent": _SEC_USER_AGENT}, timeout=20)
+    r.raise_for_status()
+    simbolos = _parsear_sec_tickers(r.json())
     if len(simbolos) < 3000:
-        raise ValueError(f"nasdaq.com screener devolvió solo {len(simbolos)} símbolos")
+        raise ValueError(f"listado de la SEC devolvió solo {len(simbolos)} símbolos")
     return simbolos
 
 
@@ -155,7 +167,7 @@ def _descargar_con_respaldo() -> list[Simbolo]:
         return simbolos
     except Exception as e_primario:
         simbolos = _descargar_respaldo()
-        log.warning("NASDAQ Trader falló (%s); uso respaldo nasdaq.com screener -- %d símbolos",
+        log.warning("NASDAQ Trader falló (%s); uso respaldo del listado de la SEC -- %d símbolos",
                     e_primario, len(simbolos))
         return simbolos
 
