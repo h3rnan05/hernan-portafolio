@@ -1,11 +1,18 @@
 {
-  "cash": 3457.0609999999997,
+  "cash": 2689.2409999999995,
   "posiciones": {
     "EFA": {
       "qty": 14,
       "entrada": 105.54,
       "stop": 102.9,
       "fecha": "2026-07-30 15:28 UTC",
+      "origen": "sistema"
+    },
+    "SPY": {
+      "qty": 1,
+      "entrada": 767.82,
+      "stop": 751.39,
+      "fecha": "2026-08-04 15:41 UTC",
       "origen": "sistema"
     }
   },
@@ -420,6 +427,10 @@
     {
       "ts": "2026-08-03 21:07 UTC",
       "equity": 4941.34
+    },
+    {
+      "ts": "2026-08-04 15:41 UTC",
+      "equity": 4956.11
     }
   ],
   "noticias_vistas": [
@@ -602,7 +613,11 @@
     "d39c5d32820e",
     "063c983a27af",
     "50c389de6917",
-    "08feef197c4f"
+    "08feef197c4f",
+    "a113bfe54079",
+    "51aecc4257c3",
+    "821a003edc57",
+    "602519a476bf"
   ],
   "eventos": [
     {
@@ -616,6 +631,10 @@
     {
       "ts": "2026-07-30 15:28 UTC",
       "evento": "🟢 COMPRA EFA (Acciones internacionales): 14 @ $105.54 | ruptura de máx. 55d | stop $102.90 (riesgo $36.96 = 0.7% del equity)"
+    },
+    {
+      "ts": "2026-08-04 15:41 UTC",
+      "evento": "🟢 COMPRA SPY (S&P 500): 1 @ $767.82 | ruptura de máx. 55d | stop $751.39 (riesgo $16.43 = 0.3% del equity)"
     }
   ],
   "noticias_evaluadas": [
@@ -933,6 +952,21 @@
     "0ae4a5bdb17a",
     "7749c09033f0",
     "01925fcb0a6d",
-    "ccdac92e1c1e"
+    "ccdac92e1c1e",
+    "f2760941b47e",
+    "51aecc4257c3",
+    "b860c854413f",
+    "03f256f3872a",
+    "561a228b9480",
+    "b486b65e7514",
+    "a0ced80dbcf8",
+    "0a114bf6bd50",
+    "0828a149f8d7",
+    "7cc654d6d68c",
+    "2178e4f09a55",
+    "72b81b42307c",
+    "1d393e1da4ef",
+    "28ad6baa61c4",
+    "b14d4a2ea41a"
   ]
 }
