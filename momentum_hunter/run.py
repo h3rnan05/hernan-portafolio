@@ -361,14 +361,20 @@ def _modo_actualizar_resultados(cfg: MomentumConfig) -> None:
         )
 
 
-def _revisar_resumen_cierre(dry_run: bool) -> None:
+def _revisar_resumen_cierre(dry_run: bool, ya_avisado_radar: bool = False) -> None:
     """Bug encontrado el 2026-07-27 corriendo el bot en vivo: el mensaje
     de "hoy no hubo nada" (heartbeat.py, PR #72) vivía solo al final de
     `main()`, después de dos `return` tempranos -- exactamente los casos
     más comunes de un día normal (ningún ticker pasa los filtros de
     universo, o ninguno tiene catalizador confirmado). El heartbeat
     nunca llegaba a evaluarse en el escenario para el que se pidió. Se
-    llama en cada punto de salida de `main()`, no solo al final."""
+    llama en cada punto de salida de `main()`, no solo al final.
+
+    `ya_avisado_radar` (2026-07-27, mismo día): si esta misma corrida ya
+    mandó un Market Radar, ese mensaje ya cubrió "el bot corrió y no
+    encontró nada" -- mandar el genérico de heartbeat.py encima sería
+    redundante, dos mensajes seguidos diciendo lo mismo. Igual se
+    registra como enviado para no repetir el genérico más tarde hoy."""
     if dry_run:
         return
     todas = tracker.cargar()
@@ -377,9 +383,12 @@ def _revisar_resumen_cierre(dry_run: bool) -> None:
     alertas_hoy = sum(1 for a in todas if a.fecha[:10] == ahora.date().isoformat())
     estado = heartbeat.cargar_estado()
     if heartbeat.necesita_resumen_cierre(ahora.date(), hora_actual, alertas_hoy, estado):
-        enviar_telegram(heartbeat.MENSAJE_SIN_ALERTAS)
+        if ya_avisado_radar:
+            log.info("resumen de cierre: ya se mandó Market Radar esta corrida, no repito el genérico")
+        else:
+            enviar_telegram(heartbeat.MENSAJE_SIN_ALERTAS)
+            log.info("resumen de cierre enviado: hoy no hubo alertas")
         heartbeat.registrar_enviado(ahora.date())
-        log.info("resumen de cierre enviado: hoy no hubo alertas")
 
 
 def main() -> None:
@@ -447,7 +456,7 @@ def main() -> None:
             log.info("auditoría de la corrida escrita en %s", ruta)
 
     elegidas = {o.ticker for o in oportunidades}
-    resumen_radar = radar.construir_resumen(candidatos_intradia, elegidas, vetadas)
+    resumen_radar = radar.construir_resumen(candidatos_intradia, elegidas, vetadas, CONFIG)
     if resumen_radar:
         print("\n" + resumen_radar)
         if not args.dry_run:
@@ -467,7 +476,7 @@ def main() -> None:
         if avisos:
             log.info("vigilancia: %d cambio(s) de estado avisado(s)", len(avisos))
 
-    _revisar_resumen_cierre(args.dry_run)
+    _revisar_resumen_cierre(args.dry_run, ya_avisado_radar=bool(resumen_radar))
 
 
 if __name__ == "__main__":

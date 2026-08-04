@@ -8,7 +8,7 @@ from momentum_hunter.alerts import CandidatoIntradia
 from momentum_hunter.catalysts.detector import Catalizador
 from momentum_hunter.evaluator import ResultadoEvaluacion
 from momentum_hunter.models import BarraIntradia, FactoresIntradia, Metadata
-from momentum_hunter.radar import candidatos_para_radar, construir_resumen
+from momentum_hunter.radar import TOPE_RADAR_TICKERS, candidatos_para_radar, construir_resumen
 
 
 def _bi(ticker) -> BarraIntradia:
@@ -52,20 +52,47 @@ def test_construir_resumen_none_si_no_hay_nada():
     assert construir_resumen([]) is None
 
 
-def test_construir_resumen_agrupa_por_patron():
-    dos_pullback = [_candidato(f"T{i}", patron="micro_pullback") for i in range(2)]
-    resumen = construir_resumen(dos_pullback)
-    assert resumen is not None
+def test_construir_resumen_intro_sin_alertas_hoy():
+    c = _candidato("T0", patron="micro_pullback")
+    resumen = construir_resumen([c])
+    assert "No encontré ninguna oportunidad con suficiente convicción para abrir una posición todavía." in resumen
+
+
+def test_construir_resumen_intro_cuando_ya_hubo_alerta():
+    # elegidas no vacío significa que esta misma corrida ya mandó una
+    # alerta de entrada -- el radar es un extra, no el mensaje principal.
+    ganadora = _candidato("GANA", patron="gap_and_go", accionable=True)
+    otro = _candidato("T0", patron="micro_pullback")
+    resumen = construir_resumen([ganadora, otro], elegidas={"GANA"})
+    assert "Además de la alerta que te acabo de mandar, esto es lo que sigo vigilando:" in resumen
+
+
+def test_construir_resumen_bloque_con_patron_dice_que_espera():
+    c = _candidato("NOK", patron="trend_continuation", dinero_entrando=True)
+    resumen = construir_resumen([c])
+    assert "🔥 NOK" in resumen
+    assert "Está subiendo de forma constante." in resumen
+    assert "Lo que estoy esperando:" in resumen
+    assert "• " in resumen
+    assert "Si se confirma, te aviso automáticamente." in resumen
     # Lenguaje humano (pivote 2026-07-26) -- nunca el nombre técnico del patrón.
-    assert "2 acciones están recuperando tras un respiro corto: T0, T1." in resumen
-    assert "MICRO PULLBACK" not in resumen.upper()
+    assert "TREND_CONTINUATION" not in resumen.upper()
 
 
-def test_construir_resumen_incluye_volumen_sin_patron():
+def test_construir_resumen_bloque_sin_patron_dice_que_espera():
     c = _candidato("VOL", dinero_entrando=True, patron=None)
     resumen = construir_resumen([c])
-    assert "sin nada claro que operar" in resumen
-    assert "VOL" in resumen
+    assert "👀 VOL" in resumen
+    assert "Hay dinero entrando, pero todavía no veo una forma clara de entrada." in resumen
+    assert "Lo que estoy esperando:" in resumen
+    assert "Que el precio forme una de las seis figuras que sé operar" in resumen
+
+
+def test_construir_resumen_limita_a_tope_radar_tickers():
+    candidatos = [_candidato(f"T{i}", patron="micro_pullback", dinero_entrando=True) for i in range(TOPE_RADAR_TICKERS + 2)]
+    resumen = construir_resumen(candidatos)
+    incluidos = sum(1 for c in candidatos if f"🔥 {c.ticker}" in resumen)
+    assert incluidos == TOPE_RADAR_TICKERS
 
 
 def test_construir_resumen_marca_oportunidades_tarde():
@@ -74,6 +101,9 @@ def test_construir_resumen_marca_oportunidades_tarde():
     assert "ya se movió demasiado" in resumen
     assert "TARDE" in resumen
     assert "BULL FLAG" not in resumen.upper()
+    # "Tarde" no trae lista de "lo que estoy esperando" -- no hay nada
+    # que esperar, ya corrió sin nosotros.
+    assert "Lo que estoy esperando" not in resumen
 
 
 def test_subcampeona_aparece_con_su_lugar_en_la_fila():
