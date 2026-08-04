@@ -101,6 +101,8 @@ WEBULL_ENDPOINT = os.getenv("WEBULL_ENDPOINT", "api.sandbox.webull.com")
 
 MAX_NOTICIAS = 6
 
+UMBRAL_CERCA_SENAL = 5.0  # % de distancia a la ruptura para considerarlo "cerca"
+
 # ============================== UTILIDADES ==============================
 
 
@@ -596,6 +598,46 @@ def _diagnostico_integraciones() -> None:
     )
 
 
+def texto_revision_mercado(inds: dict, posiciones: dict) -> list[str]:
+    """Divide la revisión del universo en 3 niveles de detalle -- pedido
+    explícito del dueño del producto (2026-08-04): el mensaje mandaba
+    una línea completa por cada uno de los 10 tickers del universo
+    SIEMPRE, y eso resultaba "mucho" y "no está bien organizado". En
+    posición se muestra siempre completo (es información real de una
+    posición abierta, nunca ruido). Cerca de señal (< UMBRAL_CERCA_SENAL%,
+    incluye rupturas ya en curso que el bot no compró por tope de calor o
+    de posiciones) se muestra con el número real -- es lo que de verdad
+    vale la pena vigilar hoy. Lejos de señal se comprime a solo los
+    tickers, sin números: siguen ahí, pero no compiten por atención con
+    lo que sí importa."""
+    en_posicion, cerca, lejos = [], [], []
+    for t, ind in sorted(inds.items()):
+        if t in posiciones:
+            pos = posiciones[t]
+            pnl = (ind["precio"] - pos["entrada"]) * pos["qty"]
+            en_posicion.append(f"  {t}: {pos['qty']} u. | ${ind['precio']:.2f} | "
+                               f"stop ${pos['stop']:.2f} | P&L ${pnl:+.2f}")
+            continue
+        dist = (ind["max55"] / ind["precio"] - 1) * 100
+        if dist < 0:
+            cerca.append(f"  🔥 {t}: en ruptura")
+        elif dist < UMBRAL_CERCA_SENAL:
+            cerca.append(f"  {t}: a {dist:.1f}% de señal")
+        else:
+            lejos.append(t)
+
+    lineas = ["Revisión de mercado (canales 55/20d):"]
+    if en_posicion:
+        lineas.append("En posición:")
+        lineas += en_posicion
+    if cerca:
+        lineas.append("Cerca de señal:")
+        lineas += cerca
+    if lejos:
+        lineas.append(f"Lejos de señal: {', '.join(lejos)}")
+    return lineas
+
+
 def ciclo() -> None:
     _diagnostico_integraciones()
     st = cargar_estado()
@@ -672,19 +714,6 @@ def ciclo() -> None:
     # ---- 5) Revisión de mercado (la "lectura" del libro, informativa) ----
     eq = equity_total(st, precios)
     st["curva_equity"].append({"ts": ahora(), "equity": round(eq, 2)})
-    revision = []
-    for t, ind in sorted(inds.items()):
-        if t in st["posiciones"]:
-            pos = st["posiciones"][t]
-            pnl = (ind["precio"] - pos["entrada"]) * pos["qty"]
-            revision.append(f"  {t}: EN POSICIÓN {pos['qty']} u. | "
-                            f"${ind['precio']:.2f} | stop ${pos['stop']:.2f} | "
-                            f"P&L ${pnl:+.2f}")
-        else:
-            dist = (ind["max55"] / ind["precio"] - 1) * 100
-            estado = ("🔥 en ruptura" if dist < 0
-                      else f"a {dist:.1f}% de señal")
-            revision.append(f"  {t}: ${ind['precio']:.2f} | {estado}")
 
     wr = (st["trades_ganadores"] / st["trades_cerrados"] * 100
           if st["trades_cerrados"] else 0.0)
@@ -700,11 +729,13 @@ def ciclo() -> None:
 
     partes = [resumen]
     partes += lineas
-    partes.append("Revisión de mercado (canales 55/20d):")
-    partes += revision
-    digest = noticias_digest(st, list(st["posiciones"]) or list(UNIVERSO))
-    if digest:
-        partes.append(digest)
+    partes += texto_revision_mercado(inds, st["posiciones"])
+    # noticias_digest() ya no se manda en el aviso automático (pedido
+    # explícito, 2026-08-04: "es mucho y no me da ganas de leerlo") --
+    # son titulares genéricos ("stock market today"), no atados a una
+    # señal del sistema, y el propio docstring de la función ya aclaraba
+    # que es puramente informativo. La función se queda intacta y
+    # probada por si más adelante se pide bajo demanda en vez de siempre.
 
     # Aviso completo a Discord solo cuando hubo acción; si no, solo log.
     mensaje = "\n".join(partes)
