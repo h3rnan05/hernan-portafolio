@@ -1,0 +1,82 @@
+{
+  "corridas": [
+    {
+      "timestamp": "2026-08-05T15:20:28+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "NOK",
+          "nombre": "Nokia Corporation Sponsored",
+          "precio_actual": 9.701399803161621,
+          "factores_intradia": {
+            "precio_actual": 9.701399803161621,
+            "vwap": 9.779849063851477,
+            "ema9": 9.70451495280966,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.6755261841738509,
+            "gap_pct": -0.010080683538370105,
+            "maximo_dia": 10.13,
+            "maximo_premarket": 10.13,
+            "rango_apertura_max": 9.899900436401367,
+            "rango_apertura_min": 9.760000228881836,
+            "velas_desde_ruptura": null
+          },
+          "meta": {
+            "float_acciones": 4443588231.0,
+            "short_pct_float": 0.009,
+            "market_cap": null,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Is Nokia Oyj (HLSE:NOKIA) Undervalued As Strong Q2 Results And Q3 Growth Guidance Land?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-04T16:13:13Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1387.2569312166668,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 52.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 17.55261841738509,
+                "extension": 100.0,
+                "distancia_maximo_dia": 57.690010183772955,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.5,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    }
+  ]
+}
