@@ -214,6 +214,19 @@ def test_por_que_unica_sale_de_condiciones_reales():
     assert "una salida cercana y clara si se equivoca" in o.por_que_unica
 
 
+def test_por_que_unica_large_cap_no_menciona_desequilibrio_de_float():
+    # Large-cap (2026-08-07): sin desequilibrio de float que reportar --
+    # la razón que lo reemplaza es honesta sobre lo que sí es cierto (el
+    # precio ya reaccionando), nunca "pocas acciones disponibles".
+    from dataclasses import replace as _replace
+    c = _candidato()
+    resultado_lc = _replace(c.resultado, desequilibrio=False, es_large_cap=True)
+    c_lc = _replace(c, es_large_cap=True, resultado=resultado_lc)
+    o = construir_oportunidad(c_lc, CONFIG.velas_maximas_desde_patron)
+    assert "pocas acciones disponibles para tanta demanda" not in o.por_que_unica
+    assert "una empresa grande ya reaccionando con fuerza real en el precio, no solo la noticia sola" in o.por_que_unica
+
+
 def test_ventana_estimada_por_patron_y_hora():
     c = _candidato(patron="micro_pullback")
     o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, hora_utc=15.0)

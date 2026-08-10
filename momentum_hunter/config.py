@@ -3,18 +3,38 @@ tocar universo, pesos y umbrales de alerta (mismo principio que
 screener/config.py).
 
 Deliberadamente NO comparte config con `screener/`: ese motor está
-calibrado para el S&P 500 (empresas grandes, valoración, calidad de
-negocio). Este vive en un universo completamente distinto -- penny
-stocks / small caps / low float -- con una pregunta distinta ("¿puede
-explotar en los próximos días?" en vez de "¿es una buena empresa?"),
-así que comparte cero fundamentales, cero pesos, cero umbrales con el
-screener. Ver momentum_hunter/README.md.
+calibrado para el S&P 500 con una pregunta de VALORACIÓN ("¿es una buena
+empresa?"). Este vive en un universo mayormente small-cap/low float
+(ver `market_cap_max`), más una banda large-cap complementaria (ver
+"Modo large-cap" más abajo) -- pero SIEMPRE con la misma pregunta de
+momentum ("¿puede moverse fuerte ahora?"), nunca de valoración. Cero
+fundamentales, cero pesos, cero umbrales compartidos con el screener.
+Ver momentum_hunter/README.md.
 
 Nota sobre `market_cap_max`: el pedido original decía "menor a 2
 billones" -- en el uso real de un Opportunity Hunter de small/micro caps
 eso solo tiene sentido como 2,000 millones de dólares (small-cap, no
 mega-cap), así que el default es 2e9 USD. Queda como parámetro explícito
 por si se quisiera ajustar.
+
+Modo large-cap (pedido 2026-08-07, después de ver a Airbnb (ABNB) subir
+17% en un día): `incluir_large_cap` abre una SEGUNDA banda de universo,
+COMPLEMENTARIA a la de arriba, no un reemplazo -- todo lo que quede por
+encima de `precio_max`/`market_cap_max` (sin techo superior) entra por
+esta banda en vez de quedar descartado. La pregunta de fondo sigue
+siendo la misma ("¿puede moverse fuerte ahora?"), pero el mecanismo es
+distinto: una empresa grande no tiene el desequilibrio de oferta/demanda
+de un float bajo (evaluator.py pregunta 3 -- ver `es_large_cap` ahí), así
+que la pregunta que reemplaza esa señal es un catalizador confirmado que
+YA está moviendo el precio con un gap real (los mismos patrones
+`gap_and_go`/`opening_range_breakout` de `classification.py`, sin
+umbrales nuevos: un gap del 8%+ en una mega-cap ya es un evento inusual,
+el mismo umbral que usa small-cap resulta apropiadamente exigente aquí).
+Honestidad explícita (ver conversación con el dueño del producto): esto
+NO predice un movimiento antes de que exista ninguna señal pública --
+eso no es alcanzable para una acción con cobertura total de Wall Street.
+Lo que sí hace es avisar en el instante en que el catalizador + el gap
+premarket ya son detectables, antes de que abra el mercado regular.
 
 Pivote 2026-07-26 (pedido explícito: "quiero que piense como un trader
 de momentum, no como un screener"): la etapa 2 del pipeline (`run.py`)
@@ -46,6 +66,11 @@ class MomentumConfig:
     excluir_spac: bool = True
     excluir_cef: bool = True                  # closed-end funds
     liquidez_minima_adr: float = 300_000.0    # ADRs con menos volumen que esto se excluyen
+
+    # --- Modo large-cap (ver docstring del módulo) -- banda complementaria,
+    # no reemplaza precio_min/precio_max/market_cap_max de arriba. ---
+    incluir_large_cap: bool = True
+    volumen_promedio_min_large_cap: float = 1_000_000.0  # empresas grandes trafican mucho más
 
     # --- Pesos del score compuesto (deben sumar 1.0) ---
     # Nunca incluye fundamentales de valoración (P/E, ROE, dividendos) --
@@ -110,6 +135,8 @@ class MomentumConfig:
             raise ValueError("extension_maxima_pct debe ser > 0")
         if self.velas_maximas_desde_patron < 1:
             raise ValueError("velas_maximas_desde_patron debe ser >= 1")
+        if self.volumen_promedio_min_large_cap <= 0:
+            raise ValueError("volumen_promedio_min_large_cap debe ser > 0")
 
 
 CONFIG = MomentumConfig()

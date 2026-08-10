@@ -27,7 +27,19 @@ sus penalizaciones son deliberadamente grandes (ver
 `PENALIZACION_SIN_PATRON`/`PENALIZACION_TARDE`) porque, en la práctica,
 no existe una alerta accionable sin patrón o ya tarde: no hay dónde
 poner una entrada. `accionable` lo deja explícito en vez de depender
-silenciosamente de que la aritmética de penalización nunca cambie."""
+silenciosamente de que la aritmética de penalización nunca cambie.
+
+`es_large_cap` (2026-08-07, modo large-cap -- ver `config.py`): la
+pregunta 3 deja de aplicar tal cual para una empresa grande. El float
+bajo/interés en corto alto es el mecanismo que explica por qué una
+small-cap puede explotar con relativamente poco volumen; una mega-cap no
+tiene ese mecanismo estructural, así que preguntarlo ahí sería exigir
+algo que por diseño casi nunca puede ser cierto -- una penalización
+disfrazada de pregunta. Para `es_large_cap=True`, la pregunta 3 se omite
+por completo (ni penalización ni mención en `explicar_rechazo`): el
+catalizador confirmado + un patrón real ya en marcha (que para large-cap
+en la práctica significa `gap_and_go`/`opening_range_breakout` --
+requieren un gap real, ver `classification.py`) hacen ese trabajo."""
 
 from __future__ import annotations
 
@@ -56,7 +68,7 @@ PENALIZACION_TARDE = 100.0
 class ResultadoEvaluacion:
     paso_detenido: str | None          # "catalizador" si el análisis terminó ahí, si no None
     dinero_entrando: bool
-    desequilibrio: bool
+    desequilibrio: bool                 # siempre False si es_large_cap -- ver docstring del módulo
     patron: str | None                  # clave de classification.py, o None
     temprano: bool
     early: EarlyOpportunity | None
@@ -64,6 +76,7 @@ class ResultadoEvaluacion:
     score_base: float = 0.0
     score_ajustado: float = 0.0
     accionable: bool = False
+    es_large_cap: bool = False
 
 
 def _hay_desequilibrio(meta: Metadata) -> bool:
@@ -76,7 +89,7 @@ def evaluar(
     catalizador: Catalizador | None, minutos_desde_catalizador: float | None,
     factores: FactoresIntradia, bi_hoy: BarraIntradia, meta: Metadata,
     entrada: float, stop: float | None, objetivo: float | None,
-    score_base: float, cfg: MomentumConfig,
+    score_base: float, cfg: MomentumConfig, es_large_cap: bool = False,
 ) -> ResultadoEvaluacion:
     # Pregunta 1 -- corte duro real.
     if catalizador is None or not catalizador.confirmado:
@@ -85,13 +98,15 @@ def evaluar(
             patron=None, temprano=False, early=None,
             penalizaciones=["Sin catalizador confirmado -- análisis terminado aquí."],
             score_base=score_base, score_ajustado=0.0, accionable=False,
+            es_large_cap=es_large_cap,
         )
 
     # Preguntas 2-5.
     dinero_entrando = (
         factores.rvol_actual is not None and factores.rvol_actual >= cfg.umbral_rvol_intradia
     )
-    desequilibrio = _hay_desequilibrio(meta)
+    # Pregunta 3: N/A para large-cap -- ver docstring del módulo.
+    desequilibrio = False if es_large_cap else _hay_desequilibrio(meta)
     patron = classification.detectar_patron(bi_hoy, factores)
     early = early_opportunity.calcular(minutos_desde_catalizador, factores, entrada, stop, objetivo, cfg)
     temprano = early.veredicto == "temprano"
@@ -101,7 +116,7 @@ def evaluar(
     if not dinero_entrando:
         descuento += PENALIZACION_SIN_DINERO
         penalizaciones.append("El volumen no muestra que esté entrando dinero ahora mismo.")
-    if not desequilibrio:
+    if not desequilibrio and not es_large_cap:
         descuento += PENALIZACION_SIN_DESEQUILIBRIO
         penalizaciones.append("No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).")
     if patron is None:
@@ -118,6 +133,7 @@ def evaluar(
         paso_detenido=None, dinero_entrando=dinero_entrando, desequilibrio=desequilibrio,
         patron=patron, temprano=temprano, early=early, penalizaciones=penalizaciones,
         score_base=score_base, score_ajustado=score_ajustado, accionable=accionable,
+        es_large_cap=es_large_cap,
     )
 
 
@@ -137,7 +153,7 @@ def explicar_rechazo(r: ResultadoEvaluacion, cfg: MomentumConfig) -> list[str]:
     if not r.dinero_entrando:
         cambios.append(f"Que el volumen del momento supere {cfg.umbral_rvol_intradia:.0f} veces "
                        "el de los minutos anteriores -- hoy no está entrando dinero con fuerza.")
-    if not r.desequilibrio:
+    if not r.desequilibrio and not r.es_large_cap:
         cambios.append("Que exista un desequilibrio real de oferta/demanda (pocas acciones "
                        "disponibles, o muchos vendedores en corto atrapados).")
     if r.patron is None:

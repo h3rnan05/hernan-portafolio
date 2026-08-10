@@ -98,24 +98,43 @@ def enviar_telegram(texto: str) -> None:
             log.warning("envío a Telegram falló: %s", e)
 
 
-def _pasa_filtros_de_universo(b: Barras, cfg: MomentumConfig) -> bool:
+def _banda_de_universo(b: Barras, cfg: MomentumConfig) -> str | None:
+    """"small" o "large", o None si no califica para ninguna banda.
+    Large-cap (2026-08-07) es COMPLEMENTARIA a small-cap, no la
+    reemplaza: cualquier ticker con precio por ENCIMA de `precio_max`
+    entra por ahí en vez de quedar descartado, con su propio piso de
+    liquidez (empresas grandes trafican mucho más como línea de base) --
+    ver docstring de `config.incluir_large_cap`."""
     if not b.close or b.close[-1] <= 0:
-        return False
+        return None
     precio = b.close[-1]
     vol_prom = _volumen_promedio(b)
-    return (
-        cfg.precio_min <= precio <= cfg.precio_max
-        and vol_prom is not None and vol_prom >= cfg.volumen_promedio_min
-    )
+    if cfg.precio_min <= precio <= cfg.precio_max:
+        if vol_prom is not None and vol_prom >= cfg.volumen_promedio_min:
+            return "small"
+        return None
+    if cfg.incluir_large_cap and precio > cfg.precio_max:
+        if vol_prom is not None and vol_prom >= cfg.volumen_promedio_min_large_cap:
+            return "large"
+    return None
 
 
 def construir_candidatos_diarios(
     tickers_validos: list[str], barras: dict[str, Barras], provider: DataProvider,
-    cfg: MomentumConfig, con_catalizadores: bool,
+    cfg: MomentumConfig, con_catalizadores: bool, bandas: dict[str, str] | None = None,
 ) -> list[CandidatoDiario]:
     """Etapa 1 -- núcleo puro y testeable: recibe todo ya inyectado
     (barras, metadata, catalizadores), nunca llama red directamente. Un
-    ticker que falle no debe tumbar la corrida completa."""
+    ticker que falle no debe tumbar la corrida completa.
+
+    `bandas` (2026-08-07, modo large-cap): mapa ticker -> "small"/"large"
+    de `_banda_de_universo`. Un ticker en la banda "large" se salta el
+    techo `market_cap_max` (ese techo es justamente lo que separa las dos
+    bandas) y queda marcado `es_large_cap=True` para que `evaluator.py`
+    sepa qué pregunta 3 aplicar. Sin `bandas` (compatibilidad con
+    llamadas existentes/pruebas), todo se trata como small-cap de
+    siempre."""
+    bandas = bandas or {}
     metadata = provider.metadata(tickers_validos)
     noticias = YahooNewsProvider() if con_catalizadores else None
 
@@ -126,9 +145,10 @@ def construir_candidatos_diarios(
             meta = metadata.get(t)
             if meta is None:
                 continue
+            es_large_cap = bandas.get(t) == "large"
             if meta.es_etf or (cfg.excluir_spac and meta.es_spac) or (cfg.excluir_cef and meta.es_cef):
                 continue
-            if meta.market_cap is not None and meta.market_cap > cfg.market_cap_max:
+            if not es_large_cap and meta.market_cap is not None and meta.market_cap > cfg.market_cap_max:
                 continue
             vol_prom = _volumen_promedio(b)
             if meta.es_adr and (vol_prom is None or vol_prom < cfg.liquidez_minima_adr):
@@ -143,6 +163,7 @@ def construir_candidatos_diarios(
             candidatos.append(CandidatoDiario(
                 ticker=t, nombre=meta.nombre, precio=b.close[-1], volumen_promedio=vol_prom,
                 factores=factores, catalizador=catalizador, meta=meta, puntuacion=puntuacion,
+                es_large_cap=es_large_cap,
             ))
         except Exception as e:
             log.warning("candidato diario %s falló: %s", t, e)
@@ -210,11 +231,13 @@ def construir_candidatos_intradia(
             resultado_eval = evaluator.evaluar(
                 c.catalizador, minutos, factores, hoy, c.meta,
                 entrada, niveles["stop"], niveles["objetivo"], c.puntuacion.score_total, cfg,
+                es_large_cap=c.es_large_cap,
             )
             resultado.append(CandidatoIntradia(
                 ticker=c.ticker, nombre=c.nombre, catalizador=c.catalizador,
                 minutos_desde_catalizador=minutos, factores=factores, bi_hoy=hoy,
                 meta=c.meta, atr_diario=c.factores.atr, resultado=resultado_eval,
+                es_large_cap=c.es_large_cap,
             ))
         except Exception as e:
             log.warning("candidato intradía %s falló: %s", c.ticker, e)
@@ -416,14 +439,17 @@ def main() -> None:
 
     provider = YahooProvider()
     barras = provider.barras(tickers, dias=280)
-    validos = [t for t, b in barras.items() if _pasa_filtros_de_universo(b, CONFIG)]
-    log.info("etapa 1 -- tras filtros de precio/liquidez: %d/%d", len(validos), len(barras))
+    bandas = {t: banda for t, b in barras.items() if (banda := _banda_de_universo(b, CONFIG)) is not None}
+    validos = list(bandas)
+    log.info("etapa 1 -- tras filtros de precio/liquidez: %d/%d (%d large-cap)",
+              len(validos), len(barras), sum(1 for banda in bandas.values() if banda == "large"))
     if not validos:
         log.warning("ningún ticker pasó los filtros de universo -- no hay nada que evaluar hoy")
         _revisar_resumen_cierre(args.dry_run)
         return
 
-    candidatos_diarios = construir_candidatos_diarios(validos, barras, provider, CONFIG, not args.no_catalizadores)
+    candidatos_diarios = construir_candidatos_diarios(
+        validos, barras, provider, CONFIG, not args.no_catalizadores, bandas)
     shortlist = candidatos_para_etapa_intradia(candidatos_diarios, CONFIG)
     log.info("etapa 1 -- candidatos con catalizador confirmado: %d -- pasan a intradía: %d",
               sum(1 for c in candidatos_diarios if c.catalizador is not None), len(shortlist))

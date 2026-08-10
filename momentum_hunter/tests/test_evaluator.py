@@ -137,3 +137,37 @@ def test_explicar_rechazo_tarde_por_extension():
     r = ev.evaluar(c, 5.0, f, _bi(), _meta_desequilibrio(), 6.50, 6.00, 7.50, 100.0, CONFIG)
     cambios = ev.explicar_rechazo(r, CONFIG)
     assert any("estirado" in x for x in cambios)
+
+
+# ------------------------- modo large-cap (2026-08-07) -------------------------
+
+def test_large_cap_no_penaliza_por_falta_de_desequilibrio():
+    # Mismos factores accionables que test_accionable_con_todo_a_favor,
+    # pero SIN el float bajo/short alto -- en small-cap esto perdería 15
+    # puntos; en large-cap no debería perder nada.
+    c = Catalizador(tipo="earnings", titular="x", fuente="Reuters")
+    r = ev.evaluar(c, 5.0, _factores_accionables(), _bi(), Metadata(ticker="ABNB"),
+                   5.20, 5.00, 5.60, 95.0, CONFIG, es_large_cap=True)
+    assert r.desequilibrio is False
+    assert r.es_large_cap is True
+    assert "desequilibrio" not in " ".join(r.penalizaciones).lower()
+    assert r.score_ajustado == 95.0
+    assert r.accionable is True
+
+
+def test_misma_falta_de_desequilibrio_si_penaliza_en_small_cap():
+    # Control: el mismo escenario SIN es_large_cap sí pierde los 15 puntos.
+    c = Catalizador(tipo="earnings", titular="x", fuente="Reuters")
+    r = ev.evaluar(c, 5.0, _factores_accionables(), _bi(), Metadata(ticker="TST"),
+                   5.20, 5.00, 5.60, 95.0, CONFIG, es_large_cap=False)
+    assert r.score_ajustado == 95.0 - ev.PENALIZACION_SIN_DESEQUILIBRIO
+
+
+def test_explicar_rechazo_large_cap_omite_el_desequilibrio():
+    c = Catalizador(tipo="earnings", titular="x", fuente="Reuters")
+    f = FactoresIntradia(precio_actual=178.0, rvol_actual=4.0)  # sin patrón -- rechazada
+    r = ev.evaluar(c, 5.0, f, _bi(), Metadata(ticker="ABNB"), 178.0, 170.0, 194.0, 90.0,
+                   CONFIG, es_large_cap=True)
+    cambios = ev.explicar_rechazo(r, CONFIG)
+    assert not any("desequilibrio" in x for x in cambios)
+    assert any("figuras" in x for x in cambios)  # sigue exigiendo un patrón real
