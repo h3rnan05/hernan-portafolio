@@ -66,6 +66,7 @@ def snapshot_candidato(
         },
         "catalizador": asdict(c.catalizador) if c.catalizador is not None else None,
         "minutos_desde_catalizador": c.minutos_desde_catalizador,
+        "es_large_cap": c.es_large_cap,
         "evaluacion": {
             "paso_detenido": r.paso_detenido,
             "dinero_entrando": r.dinero_entrando,

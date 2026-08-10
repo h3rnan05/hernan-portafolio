@@ -143,6 +143,12 @@ def _por_que_unica(candidato: CandidatoIntradia, stop: float | None) -> list[str
         razones.append("el dinero está entrando ahora mismo, no hace horas")
     if r.desequilibrio:
         razones.append("pocas acciones disponibles para tanta demanda")
+    elif candidato.es_large_cap and r.patron is not None:
+        # Large-cap (2026-08-07): no hay desequilibrio de float que
+        # explicar -- la razón honesta es otra: el precio de una empresa
+        # grande y conocida ya está confirmando la noticia con un
+        # movimiento real, no solo la noticia sola.
+        razones.append("una empresa grande ya reaccionando con fuerza real en el precio, no solo la noticia sola")
     if r.patron is not None and r.temprano:
         razones.append("el movimiento apenas está empezando, no lo estamos persiguiendo")
     if stop is not None:

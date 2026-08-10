@@ -289,14 +289,47 @@ ninguna de esas palabras pueda colarse en un mensaje real.
 
 ## Filtros de universo (etapa 1)
 
-| Filtro | Valor por defecto |
-|---|---|
-| Bolsas | NYSE, NASDAQ, AMEX |
-| Precio | $0.75 - $20 |
-| Capitalización | < $2,000 millones |
-| Volumen promedio | ≥ 300,000 acciones/día |
-| Excluye | ETFs, SPACs, closed-end funds, ADRs de baja liquidez |
-| Candidatos que pasan a intradía | Top 50 por score, con catalizador confirmado |
+| Filtro | Banda small-cap (default) | Banda large-cap (complementaria) |
+|---|---|---|
+| Bolsas | NYSE, NASDAQ, AMEX | NYSE, NASDAQ, AMEX |
+| Precio | $0.75 - $20 | > $20 (sin techo) |
+| Capitalización | < $2,000 millones | sin techo |
+| Volumen promedio | ≥ 300,000 acciones/día | ≥ 1,000,000 acciones/día |
+| Excluye | ETFs, SPACs, closed-end funds, ADRs de baja liquidez | igual |
+| Candidatos que pasan a intradía | Top 50 por score, con catalizador confirmado | igual |
+
+Las dos bandas corren en la MISMA corrida, nunca se excluyen entre sí --
+cualquier ticker cae en una banda o en la otra según su precio, nunca en
+ninguna a la vez.
+
+## Modo large-cap (pedido 2026-08-07, tras el gap de 17% de Airbnb en un día)
+
+El dueño del producto vio a ABNB subir 17% en un día y preguntó por qué
+el bot no lo había alertado -- la respuesta honesta fue "porque está
+diseñado para small-caps, y Airbnb ni siquiera entra al universo que
+escanea". Este modo abre una segunda banda de universo (arriba)
+COMPLEMENTARIA a la small-cap de siempre, para empresas de cualquier
+tamaño de capitalización.
+
+**Lo que cambia mecánicamente** (`evaluator.py`, pregunta 3 del árbol de
+decisión): una small-cap puede explotar con relativamente poco volumen
+porque tiene poco float en circulación (desequilibrio oferta/demanda);
+una mega-cap no tiene ese mecanismo estructural -- exigirlo ahí sería una
+penalización disfrazada de pregunta. Para un candidato `es_large_cap`,
+esa pregunta se omite por completo (ni penaliza, ni aparece en las
+explicaciones de rechazo): el catalizador confirmado + un patrón real ya
+en marcha (`gap_and_go`/`opening_range_breakout`, que por definición
+exigen un gap real -- ver `classification.py`) hacen ese trabajo. El
+resto del árbol (catalizador confirmado, dinero entrando, patrón claro,
+Early Opportunity Engine) es idéntico para las dos bandas.
+
+**Honestidad explícita** (la misma que ya rige todo el proyecto,
+Principio 3/CIO): esto NO predice un movimiento antes de que exista
+ninguna señal pública -- para una acción con cobertura total de Wall
+Street, eso no es alcanzable por ningún bot. Lo que sí hace es avisar en
+el instante en que el catalizador + el gap premarket ya son detectables,
+antes de que abra el mercado regular -- una ventana real de minutos u
+horas, no una promesa de anticipación imposible.
 
 ## Limitaciones honestas (datos gratis)
 

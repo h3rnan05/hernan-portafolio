@@ -36,7 +36,12 @@ from momentum_hunter.scoring import Puntuacion
 class CandidatoDiario:
     """Salida de la etapa 1 -- sobre barras diarias, mismo motor de
     siempre (`scoring.puntuar`). Ya no decide si se alerta: solo si
-    vale la pena pedir datos intradía para este ticker."""
+    vale la pena pedir datos intradía para este ticker.
+
+    `es_large_cap` (2026-08-07): viene de qué banda de universo pasó el
+    ticker (`run._banda_de_universo`) -- distingue el mecanismo que
+    `evaluator.py` usa para la pregunta 3 (desequilibrio de float en
+    small-cap vs. N/A en large-cap, ver su docstring)."""
     ticker: str
     nombre: str | None
     precio: float
@@ -45,6 +50,7 @@ class CandidatoDiario:
     catalizador: Catalizador | None
     meta: Metadata
     puntuacion: Puntuacion
+    es_large_cap: bool = False
 
 
 @dataclass(frozen=True)
@@ -60,6 +66,7 @@ class CandidatoIntradia:
     meta: Metadata
     atr_diario: float | None          # de la etapa 1 -- fallback si no hay VWAP/EMA9 para el stop
     resultado: ResultadoEvaluacion
+    es_large_cap: bool = False
 
 
 def candidatos_para_etapa_intradia(

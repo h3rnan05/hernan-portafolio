@@ -53,3 +53,9 @@ def test_velas_maximas_desde_patron_debe_ser_al_menos_uno():
     cfg = MomentumConfig(velas_maximas_desde_patron=0)
     with pytest.raises(ValueError):
         cfg.validar()
+
+
+def test_volumen_promedio_min_large_cap_debe_ser_positivo():
+    cfg = MomentumConfig(volumen_promedio_min_large_cap=0.0)
+    with pytest.raises(ValueError):
+        cfg.validar()
