@@ -205,13 +205,24 @@ def _construir_candidato_intradia(
     """Núcleo compartido de la etapa 2 -- lo usan tanto
     `construir_candidatos_intradia` (descubrimiento, con `cierre_anterior`
     real de las barras diarias) como `revisar_watchlist` (chequeo
-    liviano, "Fase 2": sin barras diarias frescas, `gap_pct_fallback` es
-    el gap congelado desde el descubrimiento -- el gap de apertura no
-    cambia durante el resto de la sesión). None si no hay velas de hoy
-    todavía."""
+    liviano, "Fase 2": sin barras diarias frescas). None si no hay velas
+    de hoy todavía.
+
+    Sin `cierre_anterior` (siempre el caso en `revisar_watchlist`), se
+    deriva directamente de las velas intradía de `bi` (`periodo="5d"` ya
+    trae la sesión anterior completa) antes de calcular el gap --
+    corrección 2026-08-11 (revisión de PR): antes de esto, una candidata
+    descubierta ANTES de la apertura regular (sin `gap_pct_congelado`
+    todavía, porque no hay vela regular con la que congelarlo en el
+    momento del descubrimiento) se quedaba sin gap para siempre en el
+    chequeo liviano, justo en la ventana de apertura que el patrón "gap
+    and go" necesita. `gap_pct_fallback` (el gap ya congelado) sigue
+    siendo el último recurso si ni siquiera `bi` alcanza."""
     hoy = fi.barras_de_hoy(bi)
     if not hoy.timestamps:
         return None
+    if cierre_anterior is None:
+        cierre_anterior = fi.cierre_sesion_anterior(bi)
     factores = fi.calcular(bi, cierre_anterior)
     if factores.gap_pct is None and gap_pct_fallback is not None:
         factores = replace(factores, gap_pct=gap_pct_fallback)
@@ -413,6 +424,7 @@ def _modo_actualizar_resultados(cfg: MomentumConfig) -> None:
 def _actualizar_watchlist(
     shortlist: list[CandidatoDiario], candidatos_intradia: list[CandidatoIntradia],
     elegidas_tickers: set[str], cfg: MomentumConfig, dry_run: bool, ahora: datetime | None = None,
+    dato_recibido_ts: str | None = None,
 ) -> tuple[list, dict[str, object]]:
     """State Engine (2026-08-11, "Fase 2"): toda candidata con
     catalizador confirmado que llega a la etapa 2 entra a vigilancia
@@ -422,6 +434,15 @@ def _actualizar_watchlist(
     `revisar_watchlist`); el resto queda en WATCHING, INVALIDATED o
     MISSED según lo que ya decidió `evaluator.evaluar` -- ningún cálculo
     nuevo, solo se traduce el mismo veredicto a una transición de estado.
+
+    `dato_recibido_ts` (2026-08-11, corrección de revisión de PR): reloj
+    tomado por `main()` justo antes de pedir las velas intradía de la
+    etapa 2 (`provider.barras_intradia`, dentro de `construir_candidatos_
+    intradia`) -- un instante real y DISTINTO de `evaluador_ts`. Antes de
+    este fix, `marcar_triggered` recibía el mismo reloj dos veces
+    (`evaluador_ts` también como `data_received_ts`), como si pedir los
+    datos hubiera tardado cero segundos -- nunca medido, siempre
+    inventado. Si no se pasa (compatibilidad), cae a `evaluador_ts`.
 
     Devuelve `(entradas, disparadas)` -- `disparadas` (ticker ->
     entrada) son las que quedaron TRIGGERED en esta misma corrida, pero
@@ -457,7 +478,7 @@ def _actualizar_watchlist(
         if c.ticker in elegidas_tickers:
             market_ts = c.bi_hoy.timestamps[-1] if c.bi_hoy.timestamps else _ahora_iso_run(ahora)
             evaluador_ts = _ahora_iso_run(datetime.now(UTC))
-            watchlist.marcar_triggered(e, market_ts, evaluador_ts, evaluador_ts, ahora)
+            watchlist.marcar_triggered(e, market_ts, dato_recibido_ts or evaluador_ts, evaluador_ts, ahora)
             disparadas[c.ticker] = e
         elif not r.temprano and r.early is not None:
             watchlist.marcar_missed(e, r.early.motivo_veredicto, ahora)
@@ -649,6 +670,11 @@ def main() -> None:
         _revisar_resumen_cierre(args.dry_run)
         return
 
+    # Reloj real tomado justo antes de pedir las velas intradía -- lo
+    # necesita `_actualizar_watchlist` para `data_received_ts` (ver su
+    # docstring: antes de este fix ese campo se rellenaba con el mismo
+    # reloj que `evaluador_ts`, como si pedir los datos tardara cero).
+    dato_recibido_ts = _ahora_iso_run(datetime.now(UTC))
     candidatos_intradia = construir_candidatos_intradia(shortlist, barras, provider, CONFIG)
     log.info("etapa 2 -- candidatos evaluados: %d", len(candidatos_intradia))
 
@@ -656,7 +682,8 @@ def main() -> None:
         candidatos_intradia, CONFIG, n_universo=len(tickers))
 
     entradas_watchlist, disparadas_watchlist = _actualizar_watchlist(
-        shortlist, candidatos_intradia, {o.ticker for o in oportunidades}, CONFIG, args.dry_run)
+        shortlist, candidatos_intradia, {o.ticker for o in oportunidades}, CONFIG, args.dry_run,
+        dato_recibido_ts=dato_recibido_ts)
 
     for o in oportunidades:
         # "Fase 1" del detector de entradas (2026-08-10): a Telegram va

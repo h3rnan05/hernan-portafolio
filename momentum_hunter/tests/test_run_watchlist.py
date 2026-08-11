@@ -252,6 +252,23 @@ def test_actualizar_watchlist_no_fabrica_latencia_al_disparar(monkeypatch, tmp_p
     assert e.signal_latency_ms is None
 
 
+def test_actualizar_watchlist_usa_dato_recibido_ts_real_no_evaluador_ts(monkeypatch, tmp_path):
+    # Bug real encontrado en revisión de PR (2026-08-11): `marcar_triggered`
+    # recibía el mismo reloj dos veces (evaluador_ts también como
+    # data_received_ts) -- como si pedir los datos tardara cero segundos.
+    _preparar_watchlist(monkeypatch, tmp_path, [])
+    c_diario = _candidato_diario("RKLB")
+    c_intradia = _candidato_intradia("RKLB", accionable=True)
+
+    entradas, disparadas = run_mod._actualizar_watchlist(
+        [c_diario], [c_intradia], {"RKLB"}, CFG, dry_run=False, ahora=AHORA,
+        dato_recibido_ts="2026-08-11T14:00:00+00:00")
+
+    e = disparadas["RKLB"]
+    assert e.data_received_ts == "2026-08-11T14:00:00+00:00"
+    assert e.data_received_ts != e.evaluador_ts
+
+
 def test_dos_candidatos_watching_compiten_solo_la_mejor_dispara(monkeypatch, tmp_path):
     e_a = watchlist.desde_candidato_diario(_candidato_diario("MEJOR"), AHORA)
     e_b = watchlist.desde_candidato_diario(_candidato_diario("SEGUNDA"), AHORA)

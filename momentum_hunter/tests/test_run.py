@@ -192,6 +192,29 @@ def test_construir_candidato_intradia_none_sin_velas_de_hoy():
     assert resultado is None
 
 
+def test_construir_candidato_intradia_deriva_cierre_anterior_de_bi_sin_barras_diarias():
+    # Bug real encontrado en revisión de PR (2026-08-11): sin esto, una
+    # candidata descubierta ANTES de la apertura regular (sin gap
+    # congelado todavía) se quedaba sin gap para siempre en el chequeo
+    # liviano de la watchlist, que nunca pasa `cierre_anterior` (no pide
+    # barras diarias). Ahora se deriva directo de las velas intradía.
+    marcas = ["2026-08-10T13:30:00+00:00", "2026-08-10T19:59:00+00:00"] + [
+        f"2026-08-11T14:{30 + i:02d}:00+00:00" for i in range(3)
+    ]
+    cierres_ayer = [4.00, 4.00]
+    cierres_hoy = [4.60, 4.65, 4.70]   # gap real: (4.60 - 4.00) / 4.00 = 15%
+    closes = cierres_ayer + cierres_hoy
+    bi = BarraIntradia("RKLB", marcas, closes, closes, closes, closes, [5_000.0] * len(marcas))
+
+    candidato = _construir_candidato_intradia(
+        "RKLB", None, None, Metadata(ticker="RKLB"), False, 0.30, 88.0,
+        None, bi, CFG,   # cierre_anterior=None, sin gap_pct_fallback tampoco
+    )
+    assert candidato is not None
+    assert candidato.factores.gap_pct is not None
+    assert abs(candidato.factores.gap_pct - 0.15) < 1e-9
+
+
 def test_construir_candidato_intradia_usa_el_gap_congelado_si_no_hay_cierre_anterior():
     # Sin `cierre_anterior` (None, como en el chequeo liviano de la
     # watchlist) `fi.calcular` no puede derivar el gap solo -- debe caer

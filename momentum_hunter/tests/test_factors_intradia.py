@@ -101,6 +101,34 @@ def test_gap_pct_usa_apertura_regular_no_premarket():
     assert abs(gap - 0.075) < 1e-9
 
 
+# ------------------------- cierre_sesion_anterior -------------------------
+
+def test_cierre_sesion_anterior_toma_el_ultimo_cierre_regular_del_dia_previo():
+    marcas = [
+        "2026-07-25T13:30:00+00:00", "2026-07-25T19:59:00+00:00",   # ayer, sesión regular
+        "2026-07-26T13:00:00+00:00",   # hoy, premarket
+    ]
+    closes = [10.0, 12.0, 12.5]
+    bi = BarraIntradia("TST", marcas, closes, closes, closes, closes, [100.0] * 3)
+    assert fi.cierre_sesion_anterior(bi) == 12.0
+
+
+def test_cierre_sesion_anterior_usa_lo_que_haya_si_el_dia_previo_no_tiene_sesion_regular():
+    marcas = ["2026-07-25T13:00:00+00:00", "2026-07-26T13:00:00+00:00"]   # solo premarket ambos días
+    closes = [9.0, 9.5]
+    bi = BarraIntradia("TST", marcas, closes, closes, closes, closes, [100.0] * 2)
+    assert fi.cierre_sesion_anterior(bi) == 9.0
+
+
+def test_cierre_sesion_anterior_none_sin_dias_previos():
+    bi = BarraIntradia("TST", ["2026-07-26T13:30:00+00:00"], [5.0], [5.0], [5.0], [5.0], [100.0])
+    assert fi.cierre_sesion_anterior(bi) is None
+
+
+def test_cierre_sesion_anterior_none_sin_velas():
+    assert fi.cierre_sesion_anterior(BarraIntradia("TST", [], [], [], [], [], [])) is None
+
+
 def test_velas_desde_ruptura_cuenta_desde_la_primera_vela_sobre_el_nivel():
     closes = [4.0, 4.6, 4.7, 4.8]  # rompe 4.5 en la vela índice 1, se mantiene arriba
     marcas = [_marca(f"13:{30+i:02d}") for i in range(4)]
