@@ -474,16 +474,13 @@ def _actualizar_watchlist(
             # intradia`), así `revisar_watchlist` no necesita barras
             # diarias frescas para recalcularlo.
             e.gap_pct_congelado = c.factores.gap_pct
-        r = c.resultado
         if c.ticker in elegidas_tickers:
             market_ts = c.bi_hoy.timestamps[-1] if c.bi_hoy.timestamps else _ahora_iso_run(ahora)
             evaluador_ts = _ahora_iso_run(datetime.now(UTC))
             watchlist.marcar_triggered(e, market_ts, dato_recibido_ts or evaluador_ts, evaluador_ts, ahora)
             disparadas[c.ticker] = e
-        elif not r.temprano and r.early is not None:
-            watchlist.marcar_missed(e, r.early.motivo_veredicto, ahora)
-        elif not watchlist.catalizador_vigente(e, cfg.dias_ventana_catalizador, ahora):
-            watchlist.marcar_invalidated(e, "El catalizador ya salió de la ventana de vigencia.", ahora)
+        else:
+            _evaluar_no_disparada(e, c, cfg, ahora)
 
     entradas = watchlist.purgar_antiguas(entradas, ahora)
     watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
@@ -496,6 +493,28 @@ def _actualizar_watchlist(
 
 def _ahora_iso_run(ahora: datetime) -> str:
     return ahora.isoformat(timespec="seconds")
+
+
+def _evaluar_no_disparada(e, c: CandidatoIntradia, cfg: MomentumConfig, ahora: datetime) -> None:
+    """Traduce el resultado de una candidata que NO disparó esta vez a
+    una transición de watchlist (o ninguna, si sigue en observación) --
+    compartido entre `_actualizar_watchlist` y `revisar_watchlist`
+    (corrección 2026-08-11, revisión de PR: antes esta lógica estaba
+    duplicada en las dos funciones).
+
+    El veredicto "tarde" es del instante, no permanente -- ver
+    `EntradaWatchlist.tarde_consecutivas`: hace falta verlo
+    `cfg.verificaciones_tarde_para_missed` veces SEGUIDAS antes de
+    comprometerse a MISSED; cualquier otra lectura resetea el conteo."""
+    r = c.resultado
+    if not r.temprano and r.early is not None:
+        e.tarde_consecutivas += 1
+        if e.tarde_consecutivas >= cfg.verificaciones_tarde_para_missed:
+            watchlist.marcar_missed(e, r.early.motivo_veredicto, ahora)
+        return
+    e.tarde_consecutivas = 0
+    if not watchlist.catalizador_vigente(e, cfg.dias_ventana_catalizador, ahora):
+        watchlist.marcar_invalidated(e, "El catalizador ya salió de la ventana de vigencia.", ahora)
 
 
 def revisar_watchlist(
@@ -520,6 +539,9 @@ def revisar_watchlist(
     vigiladas = watchlist.activas(entradas)
     if not vigiladas:
         log.info("watchlist vacía -- nada que re-chequear")
+        entradas = watchlist.purgar_antiguas(entradas, ahora)
+        if not dry_run:
+            watchlist.guardar(entradas)
         return
 
     tickers = [e.ticker for e in vigiladas]
@@ -558,7 +580,6 @@ def revisar_watchlist(
 
     for candidato in candidatos:
         e = por_ticker[candidato.ticker]
-        r = candidato.resultado
         if candidato.ticker in elegidos:
             oportunidad = elegidos[candidato.ticker]
             evaluador_ts = _ahora_iso_run(datetime.now(UTC))
@@ -576,10 +597,8 @@ def revisar_watchlist(
             log.info("TRIGGERED %s -- latencia de la señal: %s ms", e.ticker, e.signal_latency_ms)
             if not dry_run:
                 tracker.registrar([oportunidad])
-        elif not r.temprano and r.early is not None:
-            watchlist.marcar_missed(e, r.early.motivo_veredicto, ahora)
-        elif not watchlist.catalizador_vigente(e, cfg.dias_ventana_catalizador, ahora):
-            watchlist.marcar_invalidated(e, "El catalizador ya salió de la ventana de vigencia.", ahora)
+        else:
+            _evaluar_no_disparada(e, candidato, cfg, ahora)
 
     entradas = watchlist.purgar_antiguas(entradas, ahora)
     watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)

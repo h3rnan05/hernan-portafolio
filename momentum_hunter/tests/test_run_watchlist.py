@@ -165,7 +165,11 @@ def test_fallo_del_proveedor_en_un_ticker_no_tumba_el_batch(monkeypatch, tmp_pat
     assert recargadas["TTWO"].estado == watchlist.ESTADO_WATCHING   # se reintenta el próximo ciclo
 
 
-def test_marca_missed_cuando_el_veredicto_es_tarde(monkeypatch, tmp_path):
+def test_una_sola_lectura_tarde_no_marca_missed_todavia(monkeypatch, tmp_path):
+    # Bug real encontrado en revisión de PR (2026-08-11): el veredicto
+    # "tarde" es del instante (extensión desde VWAP/EMA9, velas desde la
+    # ruptura), ambas condiciones pueden revertirse -- una sola lectura
+    # no debe apagar la vigilancia para el resto de la sesión.
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     path = _preparar_watchlist(monkeypatch, tmp_path, [e])
     _parchear_efectos_secundarios(monkeypatch)
@@ -178,8 +182,52 @@ def test_marca_missed_cuando_el_veredicto_es_tarde(monkeypatch, tmp_path):
     run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA)
 
     r = watchlist.cargar(path)[0]
+    assert r.estado == watchlist.ESTADO_WATCHING
+    assert r.tarde_consecutivas == 1
+
+
+def test_marca_missed_solo_tras_verificaciones_seguidas(monkeypatch, tmp_path):
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+    monkeypatch.setattr(
+        run_mod, "_construir_candidato_intradia",
+        lambda ticker, *a, **kw: _candidato_intradia(
+            ticker, accionable=False, temprano=False,
+            motivo_tarde="Ya se movió más de un 12% desde la ruptura."))
+
+    # CFG.verificaciones_tarde_para_missed == 2 -- hacen falta dos
+    # chequeos SEGUIDOS con veredicto "tarde".
+    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA)
+    run_mod.revisar_watchlist(
+        CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=5))
+
+    r = watchlist.cargar(path)[0]
     assert r.estado == watchlist.ESTADO_MISSED
     assert r.transiciones[-1].motivo == "Ya se movió más de un 12% desde la ruptura."
+
+
+def test_una_lectura_temprano_resetea_el_contador_de_tarde(monkeypatch, tmp_path):
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+    monkeypatch.setattr(
+        run_mod, "_construir_candidato_intradia",
+        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=False, temprano=False))
+    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA)
+    assert watchlist.cargar(path)[0].tarde_consecutivas == 1
+
+    # Se recupera (vuelve a ser "temprano") -- el contador se reinicia,
+    # no se acumula hacia MISSED.
+    monkeypatch.setattr(
+        run_mod, "_construir_candidato_intradia",
+        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=False, temprano=True))
+    run_mod.revisar_watchlist(
+        CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=5))
+
+    r = watchlist.cargar(path)[0]
+    assert r.estado == watchlist.ESTADO_WATCHING
+    assert r.tarde_consecutivas == 0
 
 
 def test_marca_invalidated_cuando_el_catalizador_ya_expiro(monkeypatch, tmp_path):
@@ -212,6 +260,20 @@ def test_sin_candidatos_no_persiste_en_dry_run(monkeypatch, tmp_path):
     run_mod.revisar_watchlist(CFG, _FakeProviderIntradia(set()), dry_run=True, ahora=AHORA)
 
     assert path.stat().st_mtime_ns == mtime_antes   # el archivo nunca se reescribió
+
+
+def test_watchlist_vacia_igual_purga_terminales_viejas(monkeypatch, tmp_path):
+    # Bug real encontrado en revisión de PR (2026-08-11): cuando no hay
+    # NADA activo que re-chequear, la salida temprana se saltaba
+    # `purgar_antiguas` -- justo el caso para el que existe (el archivo
+    # solo tiene entradas terminales).
+    vieja = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA - timedelta(days=10))
+    watchlist.marcar_missed(vieja, "x", AHORA - timedelta(days=10))
+    path = _preparar_watchlist(monkeypatch, tmp_path, [vieja])
+
+    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia(set()), dry_run=False, ahora=AHORA)
+
+    assert watchlist.cargar(path) == []
 
 
 def test_sin_candidatos_igual_expira_las_vencidas(monkeypatch, tmp_path):
@@ -267,6 +329,18 @@ def test_actualizar_watchlist_usa_dato_recibido_ts_real_no_evaluador_ts(monkeypa
     e = disparadas["RKLB"]
     assert e.data_received_ts == "2026-08-11T14:00:00+00:00"
     assert e.data_received_ts != e.evaluador_ts
+
+
+def test_actualizar_watchlist_tambien_debounced_antes_de_missed(monkeypatch, tmp_path):
+    _preparar_watchlist(monkeypatch, tmp_path, [])
+    c_diario = _candidato_diario("RKLB")
+    c_intradia_tarde = _candidato_intradia("RKLB", accionable=False, temprano=False)
+
+    entradas, _ = run_mod._actualizar_watchlist(
+        [c_diario], [c_intradia_tarde], set(), CFG, dry_run=False, ahora=AHORA)
+    e = entradas[0]
+    assert e.estado == watchlist.ESTADO_WATCHING   # una sola lectura no basta
+    assert e.tarde_consecutivas == 1
 
 
 def test_dos_candidatos_watching_compiten_solo_la_mejor_dispara(monkeypatch, tmp_path):

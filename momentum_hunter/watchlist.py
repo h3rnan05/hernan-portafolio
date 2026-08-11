@@ -103,6 +103,17 @@ class EntradaWatchlist:
     # durante el resto de la sesión, así el chequeo liviano no necesita
     # volver a pedir barras DIARIAS (solo intradía) para calcularlo.
     gap_pct_congelado: float | None = None
+    # Corrección 2026-08-11 (revisión de PR): el veredicto "tarde" de
+    # `early_opportunity` es una lectura del INSTANTE actual (extensión
+    # desde VWAP/EMA9, velas desde la ruptura) -- ambas condiciones
+    # pueden revertirse (un retroceso resetea la extensión, una vela por
+    # debajo del nivel resetea el conteo). Antes, UNA sola lectura
+    # "tarde" mandaba la candidata a MISSED (terminal), apagando la
+    # vigilancia continua con un solo dato ruidoso. Este contador exige
+    # ver "tarde" en `cfg.verificaciones_tarde_para_missed` chequeos
+    # SEGUIDOS antes de comprometerse -- se resetea a 0 en cualquier
+    # lectura que no sea "tarde" (ver `run._evaluar_no_disparada`).
+    tarde_consecutivas: int = 0
     # -- Latencia (pedido explícito): solo se llenan al pasar a TRIGGERED --
     market_event_ts: str | None = None       # timestamp de la VELA que confirmó (dato, no reloj)
     data_received_ts: str | None = None      # reloj: cuándo llegaron esas velas
