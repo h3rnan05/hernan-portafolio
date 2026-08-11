@@ -8,6 +8,7 @@ real del repo (`cargar`/`guardar` parcheados a un archivo temporal, ver
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 from momentum_hunter import run as run_mod
 from momentum_hunter import watchlist
@@ -43,7 +44,10 @@ def _bi(ticker: str) -> BarraIntradia:
 def _candidato_intradia(
     ticker: str, accionable: bool = True, temprano: bool = True,
     motivo_tarde: str = "ya se movió demasiado", score: float = 90.0,
+    patron: str | None = "_default_",
 ) -> CandidatoIntradia:
+    if patron == "_default_":
+        patron = "gap_and_go" if accionable else None
     factores = FactoresIntradia(
         precio_actual=5.20, vwap=5.10, ema9=5.10, rvol_actual=4.0, aceleracion_volumen=1.5,
         gap_pct=0.10, maximo_premarket=5.00, maximo_dia=5.25, velas_desde_ruptura=1,
@@ -52,7 +56,7 @@ def _candidato_intradia(
                               razon="ok", motivo_veredicto=motivo_tarde)
     resultado = ResultadoEvaluacion(
         paso_detenido=None, dinero_entrando=True, desequilibrio=True,
-        patron="gap_and_go" if accionable else None, temprano=temprano, early=early,
+        patron=patron, temprano=temprano, early=early,
         penalizaciones=[] if accionable else ["No hay un patrón técnico claro formándose todavía."],
         score_base=score, score_ajustado=score if accionable else 0.0, accionable=accionable,
     )
@@ -169,14 +173,16 @@ def test_una_sola_lectura_tarde_no_marca_missed_todavia(monkeypatch, tmp_path):
     # Bug real encontrado en revisión de PR (2026-08-11): el veredicto
     # "tarde" es del instante (extensión desde VWAP/EMA9, velas desde la
     # ruptura), ambas condiciones pueden revertirse -- una sola lectura
-    # no debe apagar la vigilancia para el resto de la sesión.
+    # no debe apagar la vigilancia para el resto de la sesión. Se pasa
+    # un patrón real (a diferencia de accionable=False solo, que deja
+    # patron=None -- ver el siguiente test para ESE caso).
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     path = _preparar_watchlist(monkeypatch, tmp_path, [e])
     _parchear_efectos_secundarios(monkeypatch)
     monkeypatch.setattr(
         run_mod, "_construir_candidato_intradia",
         lambda ticker, *a, **kw: _candidato_intradia(
-            ticker, accionable=False, temprano=False,
+            ticker, accionable=False, temprano=False, patron="gap_and_go",
             motivo_tarde="Ya se movió más de un 12% desde la ruptura."))
 
     run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA)
@@ -186,6 +192,29 @@ def test_una_sola_lectura_tarde_no_marca_missed_todavia(monkeypatch, tmp_path):
     assert r.tarde_consecutivas == 1
 
 
+def test_sin_patron_detectado_nunca_llega_a_missed_por_tarde(monkeypatch, tmp_path):
+    # Bug real encontrado en revisión de PR (2026-08-11, segunda vuelta):
+    # `early_opportunity.calcular` corre SIEMPRE, incluso sin patrón --
+    # sin un patrón real detectado no hay nada que "perseguir" todavía,
+    # así que "tarde" nunca debe acumular hacia MISSED (solo el TTL
+    # normal puede resolver esta candidata).
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+    monkeypatch.setattr(
+        run_mod, "_construir_candidato_intradia",
+        lambda ticker, *a, **kw: _candidato_intradia(
+            ticker, accionable=False, temprano=False, patron=None))
+
+    for i in range(5):   # muchas más que verificaciones_tarde_para_missed
+        run_mod.revisar_watchlist(
+            CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=5 * i))
+
+    r = watchlist.cargar(path)[0]
+    assert r.estado == watchlist.ESTADO_WATCHING
+    assert r.tarde_consecutivas == 0
+
+
 def test_marca_missed_solo_tras_verificaciones_seguidas(monkeypatch, tmp_path):
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     path = _preparar_watchlist(monkeypatch, tmp_path, [e])
@@ -193,7 +222,7 @@ def test_marca_missed_solo_tras_verificaciones_seguidas(monkeypatch, tmp_path):
     monkeypatch.setattr(
         run_mod, "_construir_candidato_intradia",
         lambda ticker, *a, **kw: _candidato_intradia(
-            ticker, accionable=False, temprano=False,
+            ticker, accionable=False, temprano=False, patron="gap_and_go",
             motivo_tarde="Ya se movió más de un 12% desde la ruptura."))
 
     # CFG.verificaciones_tarde_para_missed == 2 -- hacen falta dos
@@ -213,7 +242,8 @@ def test_una_lectura_temprano_resetea_el_contador_de_tarde(monkeypatch, tmp_path
     _parchear_efectos_secundarios(monkeypatch)
     monkeypatch.setattr(
         run_mod, "_construir_candidato_intradia",
-        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=False, temprano=False))
+        lambda ticker, *a, **kw: _candidato_intradia(
+            ticker, accionable=False, temprano=False, patron="gap_and_go"))
     run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA)
     assert watchlist.cargar(path)[0].tarde_consecutivas == 1
 
@@ -221,7 +251,8 @@ def test_una_lectura_temprano_resetea_el_contador_de_tarde(monkeypatch, tmp_path
     # no se acumula hacia MISSED.
     monkeypatch.setattr(
         run_mod, "_construir_candidato_intradia",
-        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=False, temprano=True))
+        lambda ticker, *a, **kw: _candidato_intradia(
+            ticker, accionable=False, temprano=True, patron="gap_and_go"))
     run_mod.revisar_watchlist(
         CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=5))
 
@@ -334,7 +365,7 @@ def test_actualizar_watchlist_usa_dato_recibido_ts_real_no_evaluador_ts(monkeypa
 def test_actualizar_watchlist_tambien_debounced_antes_de_missed(monkeypatch, tmp_path):
     _preparar_watchlist(monkeypatch, tmp_path, [])
     c_diario = _candidato_diario("RKLB")
-    c_intradia_tarde = _candidato_intradia("RKLB", accionable=False, temprano=False)
+    c_intradia_tarde = _candidato_intradia("RKLB", accionable=False, temprano=False, patron="gap_and_go")
 
     entradas, _ = run_mod._actualizar_watchlist(
         [c_diario], [c_intradia_tarde], set(), CFG, dry_run=False, ahora=AHORA)
@@ -361,3 +392,46 @@ def test_dos_candidatos_watching_compiten_solo_la_mejor_dispara(monkeypatch, tmp
     recargadas = {r.ticker: r for r in watchlist.cargar(path)}
     assert recargadas["MEJOR"].estado == watchlist.ESTADO_TRIGGERED
     assert recargadas["SEGUNDA"].estado == watchlist.ESTADO_WATCHING   # perdió la competencia, sigue vigilada
+
+
+# ------------------------- _filtrar_ya_disparadas_hoy -------------------------
+# Bug real encontrado en revisión de PR (2026-08-11, tercera vuelta): el
+# escaneo completo podía re-mandar la misma alerta que el chequeo
+# liviano ya había mandado minutos antes, porque `seleccionar_y_auditar`
+# re-evalúa el universo entero sin consultar la watchlist.
+
+def test_filtrar_ya_disparadas_hoy_excluye_lo_ya_triggered_antes_de_esta_corrida():
+    o = SimpleNamespace(ticker="RKLB")
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    watchlist.marcar_triggered(e, "m", "d", "ev", AHORA)   # ya disparado ANTES de esta corrida
+
+    resultado = run_mod._filtrar_ya_disparadas_hoy([o], [e], {}, ahora=AHORA)
+    assert resultado == []
+
+
+def test_filtrar_ya_disparadas_hoy_no_excluye_lo_recien_disparado_esta_corrida():
+    o = SimpleNamespace(ticker="RKLB")
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    watchlist.marcar_triggered(e, "m", "d", "ev", AHORA)
+
+    # RKLB SÍ está en disparadas_watchlist -- lo disparó ESTA MISMA corrida.
+    resultado = run_mod._filtrar_ya_disparadas_hoy([o], [e], {"RKLB": e}, ahora=AHORA)
+    assert resultado == [o]
+
+
+def test_filtrar_ya_disparadas_hoy_no_excluye_triggered_de_un_dia_anterior():
+    o = SimpleNamespace(ticker="RKLB")
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    watchlist.marcar_triggered(e, "m", "d", "ev", AHORA)
+
+    resultado = run_mod._filtrar_ya_disparadas_hoy([o], [e], {}, ahora=AHORA + timedelta(days=1))
+    assert resultado == [o]
+
+
+def test_filtrar_ya_disparadas_hoy_no_toca_tickers_sin_entrada_en_watchlist():
+    o = SimpleNamespace(ticker="OTRO")
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    watchlist.marcar_triggered(e, "m", "d", "ev", AHORA)
+
+    resultado = run_mod._filtrar_ya_disparadas_hoy([o], [e], {}, ahora=AHORA)
+    assert resultado == [o]

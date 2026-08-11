@@ -495,6 +495,33 @@ def _ahora_iso_run(ahora: datetime) -> str:
     return ahora.isoformat(timespec="seconds")
 
 
+def _filtrar_ya_disparadas_hoy(
+    oportunidades: list, entradas_watchlist: list, disparadas_watchlist: dict,
+    ahora: datetime | None = None,
+) -> list:
+    """Corrección 2026-08-11 (revisión de PR): el escaneo completo
+    re-evalúa TODO el universo desde cero, sin consultar la watchlist --
+    si un ticker ya se disparó HOY vía el chequeo liviano
+    (`revisar_watchlist`, cada ~5 min), `_actualizar_watchlist` lo salta
+    (ya no está en WATCHING) pero `seleccionar_y_auditar` podía seguir
+    eligiéndolo igual, mandando la misma alerta dos veces. Excluye a los
+    que ya estaban TRIGGERED de HOY ANTES de esta corrida -- los recién
+    disparados AHORA MISMO (en `disparadas_watchlist`) sí se mandan, son
+    la primera vez."""
+    ahora = ahora or datetime.now(UTC)
+    hoy_iso = ahora.date().isoformat()
+    ya_disparadas_hoy = {
+        e.ticker for e in entradas_watchlist
+        if e.estado == watchlist.ESTADO_TRIGGERED and e.ticker not in disparadas_watchlist
+        and e.actualizado_en[:10] == hoy_iso
+    }
+    for o in oportunidades:
+        if o.ticker in ya_disparadas_hoy:
+            log.info("%s ya se había disparado hoy (chequeo liviano) -- se omite la alerta duplicada",
+                      o.ticker)
+    return [o for o in oportunidades if o.ticker not in ya_disparadas_hoy]
+
+
 def _evaluar_no_disparada(e, c: CandidatoIntradia, cfg: MomentumConfig, ahora: datetime) -> None:
     """Traduce el resultado de una candidata que NO disparó esta vez a
     una transición de watchlist (o ninguna, si sigue en observación) --
@@ -505,9 +532,20 @@ def _evaluar_no_disparada(e, c: CandidatoIntradia, cfg: MomentumConfig, ahora: d
     El veredicto "tarde" es del instante, no permanente -- ver
     `EntradaWatchlist.tarde_consecutivas`: hace falta verlo
     `cfg.verificaciones_tarde_para_missed` veces SEGUIDAS antes de
-    comprometerse a MISSED; cualquier otra lectura resetea el conteo."""
+    comprometerse a MISSED; cualquier otra lectura resetea el conteo.
+
+    Corrección 2026-08-11 (revisión de PR, segunda vuelta): MISSED exige
+    además `r.patron is not None` -- `early_opportunity.calcular` corre
+    SIEMPRE, incluso sin patrón detectado, y `_nivel_para_patron` cae a
+    EMA9/VWAP cuando no hay uno (ver su docstring), así que cualquier
+    ticker simplemente cerrando arriba de su EMA9 por varios minutos leía
+    "tarde" sin que jamás se hubiera formado nada que perseguir. MISSED
+    documenta explícitamente "el patrón se formó pero ya no estamos a
+    tiempo" (ver docstring del módulo `watchlist.py`) -- sin patrón real,
+    la candidata sigue en WATCHING (nunca hay nada que "perder"), sujeta
+    solo al TTL normal de `expirar_vencidas`."""
     r = c.resultado
-    if not r.temprano and r.early is not None:
+    if r.patron is not None and not r.temprano and r.early is not None:
         e.tarde_consecutivas += 1
         if e.tarde_consecutivas >= cfg.verificaciones_tarde_para_missed:
             watchlist.marcar_missed(e, r.early.motivo_veredicto, ahora)
@@ -704,7 +742,9 @@ def main() -> None:
         shortlist, candidatos_intradia, {o.ticker for o in oportunidades}, CONFIG, args.dry_run,
         dato_recibido_ts=dato_recibido_ts)
 
-    for o in oportunidades:
+    oportunidades_nuevas = _filtrar_ya_disparadas_hoy(oportunidades, entradas_watchlist, disparadas_watchlist)
+
+    for o in oportunidades_nuevas:
         # "Fase 1" del detector de entradas (2026-08-10): a Telegram va
         # el mensaje corto (`formatear_entrada`, 5-10 segundos de
         # lectura); la narrativa larga (`formatear`) se sigue imprimiendo
@@ -726,9 +766,9 @@ def main() -> None:
     if not args.dry_run and disparadas_watchlist:
         watchlist.guardar(entradas_watchlist)
 
-    if not args.dry_run and oportunidades:
-        tracker.registrar(oportunidades)
-        log.info("registradas %d alerta(s) en el tracker", len(oportunidades))
+    if not args.dry_run and oportunidades_nuevas:
+        tracker.registrar(oportunidades_nuevas)
+        log.info("registradas %d alerta(s) en el tracker", len(oportunidades_nuevas))
     elif not oportunidades:
         log.info("ninguna oportunidad sobrevivió todos los filtros hoy -- silencio, no es "
                  "un error (Principio 1: la mejor operación muchas veces es no operar)")
