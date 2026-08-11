@@ -249,12 +249,25 @@ def agregar_nuevas(
     terminaba EXPIRED/MISSED/INVALIDATED/TRIGGERED una sola vez quedaba
     bloqueado en `watchlist.json` para el resto de la vida del bot, ya
     que ese archivo se committea y nunca se limpiaba solo -- ver
-    `purgar_antiguas`)."""
+    `purgar_antiguas`).
+
+    EXPIRED es la ÚNICA excepción al bloqueo por sesión (corrección
+    2026-08-11, revisión de PR, quinta vuelta): a diferencia de
+    TRIGGERED/MISSED/INVALIDATED (una decisión real sobre la candidata),
+    EXPIRED solo dice "este intento de vigilancia se venció" (TTL de
+    `minutos_maximos_en_watching`, 120 min por defecto) -- el
+    catalizador puede seguir vigente por días (`dias_ventana_
+    catalizador`). Bloquearla el resto del día apagaba la vigilancia de
+    5 minutos justo para las candidatas que el escaneo completo sigue
+    re-descubriendo como válidas, dejándolas solo con el chequeo de 30
+    minutos; re-descubrirla reinicia `creado_en` (nuevo intento, nuevo TTL)."""
     hoy = ahora.date()
 
     def _bloquea(e: EntradaWatchlist) -> bool:
         if e.estado == ESTADO_WATCHING:
             return True
+        if e.estado == ESTADO_EXPIRED:
+            return False
         try:
             return datetime.fromisoformat(e.actualizado_en).date() == hoy
         except ValueError:

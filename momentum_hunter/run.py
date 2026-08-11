@@ -495,7 +495,7 @@ def _ahora_iso_run(ahora: datetime) -> str:
     return ahora.isoformat(timespec="seconds")
 
 
-def _filtrar_ya_disparadas_hoy(
+def _filtrar_ya_resueltas_hoy(
     oportunidades: list, entradas_watchlist: list, disparadas_watchlist: dict,
     ahora: datetime | None = None,
 ) -> list:
@@ -504,22 +504,33 @@ def _filtrar_ya_disparadas_hoy(
     si un ticker ya se disparó HOY vía el chequeo liviano
     (`revisar_watchlist`, cada ~5 min), `_actualizar_watchlist` lo salta
     (ya no está en WATCHING) pero `seleccionar_y_auditar` podía seguir
-    eligiéndolo igual, mandando la misma alerta dos veces. Excluye a los
-    que ya estaban TRIGGERED de HOY ANTES de esta corrida -- los recién
-    disparados AHORA MISMO (en `disparadas_watchlist`) sí se mandan, son
-    la primera vez."""
+    eligiéndolo igual, mandando la misma alerta dos veces.
+
+    Corrección 2026-08-11 (revisión de PR, quinta vuelta): no basta con
+    excluir solo TRIGGERED -- un ticker que ya se resolvió HOY en
+    CUALQUIER estado terminal (MISSED/INVALIDATED/EXPIRED, no solo
+    TRIGGERED) también sale de WATCHING, así que `_actualizar_watchlist`
+    tampoco vuelve a tocarlo -- pero `seleccionar_y_auditar` lo re-evalúa
+    de cero cada corrida y podía seguir eligiéndolo igual. Sin esto era
+    peor que el bug original: cada corrida de 30 minutos mandaba la
+    MISMA alerta de nuevo, sin registrar ninguna transición (el ticker
+    ya no está en WATCHING) -- ni siquiera quedaba rastro en el
+    historial de auditoría.
+
+    Excluye a los que ya se resolvieron HOY ANTES de esta corrida -- los
+    recién disparados AHORA MISMO (en `disparadas_watchlist`) sí se
+    mandan, son la primera vez."""
     ahora = ahora or datetime.now(UTC)
     hoy_iso = ahora.date().isoformat()
-    ya_disparadas_hoy = {
+    ya_resueltas_hoy = {
         e.ticker for e in entradas_watchlist
-        if e.estado == watchlist.ESTADO_TRIGGERED and e.ticker not in disparadas_watchlist
+        if e.estado in watchlist.ESTADOS_TERMINALES and e.ticker not in disparadas_watchlist
         and e.actualizado_en[:10] == hoy_iso
     }
     for o in oportunidades:
-        if o.ticker in ya_disparadas_hoy:
-            log.info("%s ya se había disparado hoy (chequeo liviano) -- se omite la alerta duplicada",
-                      o.ticker)
-    return [o for o in oportunidades if o.ticker not in ya_disparadas_hoy]
+        if o.ticker in ya_resueltas_hoy:
+            log.info("%s ya se resolvió hoy en la watchlist -- se omite la alerta duplicada", o.ticker)
+    return [o for o in oportunidades if o.ticker not in ya_resueltas_hoy]
 
 
 def _evaluar_no_disparada(e, c: CandidatoIntradia, cfg: MomentumConfig, ahora: datetime) -> None:
@@ -742,7 +753,7 @@ def main() -> None:
         shortlist, candidatos_intradia, {o.ticker for o in oportunidades}, CONFIG, args.dry_run,
         dato_recibido_ts=dato_recibido_ts)
 
-    oportunidades_nuevas = _filtrar_ya_disparadas_hoy(oportunidades, entradas_watchlist, disparadas_watchlist)
+    oportunidades_nuevas = _filtrar_ya_resueltas_hoy(oportunidades, entradas_watchlist, disparadas_watchlist)
 
     for o in oportunidades_nuevas:
         # "Fase 1" del detector de entradas (2026-08-10): a Telegram va

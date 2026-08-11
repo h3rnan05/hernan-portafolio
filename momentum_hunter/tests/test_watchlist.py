@@ -122,6 +122,24 @@ def test_agregar_nuevas_si_reagrega_estado_terminal_de_un_dia_anterior():
     assert nueva.creado_en == un_dia_despues.isoformat(timespec="seconds")
 
 
+def test_agregar_nuevas_si_reagrega_expired_el_mismo_dia():
+    # Bug real encontrado en revisión de PR (2026-08-11, quinta vuelta):
+    # a diferencia de MISSED/INVALIDATED/TRIGGERED (una decisión real
+    # sobre la candidata), EXPIRED solo dice "se venció el intento" --
+    # bloquearla el resto del día apagaba la vigilancia de 5 minutos
+    # justo para las candidatas que el escaneo completo seguía
+    # re-descubriendo como válidas.
+    e = desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    expirar_vencidas([e], minutos_maximos=60, ahora=AHORA + timedelta(minutes=61))
+    assert e.estado == ESTADO_EXPIRED
+
+    despues = AHORA + timedelta(minutes=90)   # mismo día
+    entradas = agregar_nuevas([e], [_candidato_diario("RKLB")], despues)
+    assert len(entradas) == 2
+    nueva = [x for x in entradas if x.estado == ESTADO_WATCHING][0]
+    assert nueva.creado_en == despues.isoformat(timespec="seconds")   # TTL reiniciado
+
+
 def test_agregar_nuevas_no_reagrega_algo_que_sigue_watching():
     e = desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     entradas = agregar_nuevas([e], [_candidato_diario("RKLB")], AHORA + timedelta(days=10))

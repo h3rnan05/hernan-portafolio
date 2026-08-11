@@ -394,44 +394,79 @@ def test_dos_candidatos_watching_compiten_solo_la_mejor_dispara(monkeypatch, tmp
     assert recargadas["SEGUNDA"].estado == watchlist.ESTADO_WATCHING   # perdió la competencia, sigue vigilada
 
 
-# ------------------------- _filtrar_ya_disparadas_hoy -------------------------
-# Bug real encontrado en revisión de PR (2026-08-11, tercera vuelta): el
-# escaneo completo podía re-mandar la misma alerta que el chequeo
-# liviano ya había mandado minutos antes, porque `seleccionar_y_auditar`
-# re-evalúa el universo entero sin consultar la watchlist.
+# ------------------------- _filtrar_ya_resueltas_hoy -------------------------
+# Bug real encontrado en revisión de PR (2026-08-11, tercera y quinta
+# vuelta): el escaneo completo podía re-mandar la misma alerta que el
+# chequeo liviano ya había mandado minutos antes (o incluso mandar UNA
+# alerta nueva sin registrar ninguna transición) porque `seleccionar_y_
+# auditar` re-evalúa el universo entero sin consultar la watchlist.
 
-def test_filtrar_ya_disparadas_hoy_excluye_lo_ya_triggered_antes_de_esta_corrida():
+def test_filtrar_ya_resueltas_hoy_excluye_lo_ya_triggered_antes_de_esta_corrida():
     o = SimpleNamespace(ticker="RKLB")
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     watchlist.marcar_triggered(e, "m", "d", "ev", AHORA)   # ya disparado ANTES de esta corrida
 
-    resultado = run_mod._filtrar_ya_disparadas_hoy([o], [e], {}, ahora=AHORA)
+    resultado = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA)
     assert resultado == []
 
 
-def test_filtrar_ya_disparadas_hoy_no_excluye_lo_recien_disparado_esta_corrida():
+def test_filtrar_ya_resueltas_hoy_no_excluye_lo_recien_disparado_esta_corrida():
     o = SimpleNamespace(ticker="RKLB")
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     watchlist.marcar_triggered(e, "m", "d", "ev", AHORA)
 
     # RKLB SÍ está en disparadas_watchlist -- lo disparó ESTA MISMA corrida.
-    resultado = run_mod._filtrar_ya_disparadas_hoy([o], [e], {"RKLB": e}, ahora=AHORA)
+    resultado = run_mod._filtrar_ya_resueltas_hoy([o], [e], {"RKLB": e}, ahora=AHORA)
     assert resultado == [o]
 
 
-def test_filtrar_ya_disparadas_hoy_no_excluye_triggered_de_un_dia_anterior():
+def test_filtrar_ya_resueltas_hoy_no_excluye_triggered_de_un_dia_anterior():
     o = SimpleNamespace(ticker="RKLB")
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     watchlist.marcar_triggered(e, "m", "d", "ev", AHORA)
 
-    resultado = run_mod._filtrar_ya_disparadas_hoy([o], [e], {}, ahora=AHORA + timedelta(days=1))
+    resultado = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA + timedelta(days=1))
     assert resultado == [o]
 
 
-def test_filtrar_ya_disparadas_hoy_no_toca_tickers_sin_entrada_en_watchlist():
+def test_filtrar_ya_resueltas_hoy_no_toca_tickers_sin_entrada_en_watchlist():
     o = SimpleNamespace(ticker="OTRO")
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     watchlist.marcar_triggered(e, "m", "d", "ev", AHORA)
 
-    resultado = run_mod._filtrar_ya_disparadas_hoy([o], [e], {}, ahora=AHORA)
+    resultado = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA)
     assert resultado == [o]
+
+
+def test_filtrar_ya_resueltas_hoy_excluye_missed_no_solo_triggered(monkeypatch, tmp_path):
+    # Bug real encontrado en revisión de PR (2026-08-11, quinta vuelta):
+    # excluir solo TRIGGERED no bastaba -- un ticker resuelto hoy como
+    # MISSED/INVALIDATED/EXPIRED también salió de WATCHING, y
+    # seleccionar_y_auditar podía seguir eligiéndolo sin que quedara
+    # NINGÚN rastro en la watchlist (ni siquiera se re-marca).
+    o = SimpleNamespace(ticker="RKLB")
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    watchlist.marcar_missed(e, "x", AHORA)
+
+    resultado = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA)
+    assert resultado == []
+
+
+def test_filtrar_ya_resueltas_hoy_excluye_invalidated():
+    o = SimpleNamespace(ticker="RKLB")
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    watchlist.marcar_invalidated(e, "x", AHORA)
+
+    resultado = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA)
+    assert resultado == []
+
+
+def test_filtrar_ya_resueltas_hoy_excluye_expired():
+    o = SimpleNamespace(ticker="RKLB")
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    watchlist.expirar_vencidas([e], minutos_maximos=1, ahora=AHORA + timedelta(hours=1))
+    assert e.estado == watchlist.ESTADO_EXPIRED
+
+    resultado = run_mod._filtrar_ya_resueltas_hoy(
+        [o], [e], {}, ahora=AHORA + timedelta(hours=1))
+    assert resultado == []
