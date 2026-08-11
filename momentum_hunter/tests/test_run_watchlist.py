@@ -199,6 +199,59 @@ def test_marca_invalidated_cuando_el_catalizador_ya_expiro(monkeypatch, tmp_path
     assert r.estado == watchlist.ESTADO_INVALIDATED
 
 
+def test_sin_candidatos_no_persiste_en_dry_run(monkeypatch, tmp_path):
+    # Bug real encontrado en revisión de PR (2026-08-11): la salida
+    # temprana cuando el proveedor no devolvió datos para NINGÚN ticker
+    # llamaba `guardar` sin chequear `dry_run` -- "calcula y muestra" no
+    # debe tocar el archivo persistido bajo ninguna rama.
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    mtime_antes = path.stat().st_mtime_ns
+
+    # Proveedor sin datos para RKLB -- `candidatos` termina vacío.
+    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia(set()), dry_run=True, ahora=AHORA)
+
+    assert path.stat().st_mtime_ns == mtime_antes   # el archivo nunca se reescribió
+
+
+def test_sin_candidatos_igual_expira_las_vencidas(monkeypatch, tmp_path):
+    # Mismo bug: la salida temprana también se saltaba `expirar_vencidas`
+    # -- una candidata vencida se quedaba en WATCHING para siempre si el
+    # proveedor fallaba justo ese ciclo.
+    vieja = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA - timedelta(hours=3))
+    path = _preparar_watchlist(monkeypatch, tmp_path, [vieja])
+    _parchear_efectos_secundarios(monkeypatch)
+
+    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia(set()), dry_run=False, ahora=AHORA)
+
+    r = watchlist.cargar(path)[0]
+    assert r.estado == watchlist.ESTADO_EXPIRED
+
+
+def test_actualizar_watchlist_no_fabrica_latencia_al_disparar(monkeypatch, tmp_path):
+    # Bug real encontrado en revisión de PR (2026-08-11): `_actualizar_
+    # watchlist` completaba `mensaje_generado_ts`/`telegram_enviado_ts`
+    # con el mismo reloj capturado AL EMPEZAR la función, antes de que
+    # `main()` siquiera armara el mensaje o llamara a Telegram -- una
+    # latencia inventada, no medida. Ahora esos dos campos deben quedar
+    # sin llenar hasta que `main()` los complete después del envío real.
+    _preparar_watchlist(monkeypatch, tmp_path, [])
+    c_diario = _candidato_diario("RKLB")
+    c_intradia = _candidato_intradia("RKLB", accionable=True)
+
+    entradas, disparadas = run_mod._actualizar_watchlist(
+        [c_diario], [c_intradia], {"RKLB"}, CFG, dry_run=False, ahora=AHORA)
+
+    assert "RKLB" in disparadas
+    e = disparadas["RKLB"]
+    assert e.estado == watchlist.ESTADO_TRIGGERED
+    assert e.market_event_ts is not None
+    assert e.evaluador_ts is not None
+    assert e.mensaje_generado_ts is None      # todavía no lo completó `main()`
+    assert e.telegram_enviado_ts is None
+    assert e.signal_latency_ms is None
+
+
 def test_dos_candidatos_watching_compiten_solo_la_mejor_dispara(monkeypatch, tmp_path):
     e_a = watchlist.desde_candidato_diario(_candidato_diario("MEJOR"), AHORA)
     e_b = watchlist.desde_candidato_diario(_candidato_diario("SEGUNDA"), AHORA)

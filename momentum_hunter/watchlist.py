@@ -185,7 +185,9 @@ def cargar(path: Path = PATH) -> list[EntradaWatchlist]:
     """Un archivo corrupto no debe tumbar la corrida -- se ignora y se
     reinicia vacía (mismo principio que `heartbeat.cargar_estado`).
     Una entrada individual corrupta se descarta sola, sin perder las
-    demás."""
+    demás -- por eso TODO el parseo de una entrada (incluidas sus
+    transiciones) vive dentro del mismo try/except, no solo la
+    construcción final de `EntradaWatchlist`."""
     if not path.exists():
         return []
     try:
@@ -193,19 +195,22 @@ def cargar(path: Path = PATH) -> list[EntradaWatchlist]:
     except (json.JSONDecodeError, OSError) as e:
         log.warning("watchlist corrupta (%s); se reinicia vacía", e)
         return []
+    if not isinstance(data, dict):
+        log.warning("watchlist con formato inesperado (no es un objeto); se reinicia vacía")
+        return []
     entradas = []
     for d in data.get("entradas", []):
-        d = dict(d)
-        transiciones = [Transicion(**t) for t in d.pop("transiciones", [])]
-        if "catalizador_fuentes_adicionales" in d:
-            # JSON no tiene tuplas -- se recarga como lista; se restaura
-            # el tipo declarado para que `catalizador_de` y cualquier
-            # comparación por igualdad se comporten igual que en la
-            # entrada recién creada (nunca persistida/recargada).
-            d["catalizador_fuentes_adicionales"] = tuple(d["catalizador_fuentes_adicionales"])
         try:
+            d = dict(d)
+            transiciones = [Transicion(**t) for t in d.pop("transiciones", [])]
+            if "catalizador_fuentes_adicionales" in d:
+                # JSON no tiene tuplas -- se recarga como lista; se restaura
+                # el tipo declarado para que `catalizador_de` y cualquier
+                # comparación por igualdad se comporten igual que en la
+                # entrada recién creada (nunca persistida/recargada).
+                d["catalizador_fuentes_adicionales"] = tuple(d["catalizador_fuentes_adicionales"])
             entradas.append(EntradaWatchlist(transiciones=transiciones, **d))
-        except TypeError as e:
+        except (TypeError, ValueError, AttributeError) as e:
             log.warning("entrada de watchlist corrupta (%s); se descarta", e)
     return entradas
 
@@ -226,14 +231,59 @@ def agregar_nuevas(
     `.ticker`) que todavía no estén en la watchlist ACTIVA -- un ticker
     ya en WATCHING no se reinicia (conservaría `creado_en` incorrecto);
     uno que ya está en un estado terminal de HOY tampoco se re-agrega en
-    la misma sesión (evita re-vigilar algo que ya se resolvió, ver punto
-    "evitar alertas duplicadas" del pedido)."""
-    ya_conocidos = {e.ticker for e in entradas}
+    la misma sesión (evita re-vigilar algo que ya se resolvió dos veces
+    en la misma corrida/día). Un estado terminal de un día ANTERIOR sí
+    puede volver a vigilarse -- el bloqueo es por sesión, no para
+    siempre (bug real, 2026-08-11: antes de este fix, un ticker que
+    terminaba EXPIRED/MISSED/INVALIDATED/TRIGGERED una sola vez quedaba
+    bloqueado en `watchlist.json` para el resto de la vida del bot, ya
+    que ese archivo se committea y nunca se limpiaba solo -- ver
+    `purgar_antiguas`)."""
+    hoy = ahora.date()
+
+    def _bloquea(e: EntradaWatchlist) -> bool:
+        if e.estado == ESTADO_WATCHING:
+            return True
+        try:
+            return datetime.fromisoformat(e.actualizado_en).date() == hoy
+        except ValueError:
+            return True   # fecha ilegible -- más seguro no re-agregar de más
+
+    ya_conocidos = {e.ticker for e in entradas if _bloquea(e)}
     nuevas = [
         desde_candidato_diario(c, ahora) for c in candidatos
         if c.ticker not in ya_conocidos
     ]
     return entradas + nuevas
+
+
+RETENCION_DIAS_TERMINALES = 7
+
+
+def purgar_antiguas(
+    entradas: list[EntradaWatchlist], ahora: datetime, dias: int = RETENCION_DIAS_TERMINALES,
+) -> list[EntradaWatchlist]:
+    """Descarta entradas en estado TERMINAL (nunca las WATCHING activas)
+    con más de `dias` días desde su última transición -- sin esto,
+    `watchlist.json` crece sin límite para siempre (se committea en cada
+    corrida, nunca se sobreescribe desde cero). El historial de largo
+    plazo para aprendizaje/auditoría sigue viviendo en
+    `tracker.py`/`audit.py`; este archivo es solo el estado operativo
+    reciente, no el registro permanente."""
+    limite = timedelta(days=dias)
+    resultado = []
+    for e in entradas:
+        if e.estado not in ESTADOS_TERMINALES:
+            resultado.append(e)
+            continue
+        try:
+            actualizado = datetime.fromisoformat(e.actualizado_en)
+        except ValueError:
+            resultado.append(e)   # fecha ilegible -- más seguro no purgar de más
+            continue
+        if ahora - actualizado <= limite:
+            resultado.append(e)
+    return resultado
 
 
 def marcar_invalidated(e: EntradaWatchlist, motivo: str, ahora: datetime) -> None:

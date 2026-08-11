@@ -413,7 +413,7 @@ def _modo_actualizar_resultados(cfg: MomentumConfig) -> None:
 def _actualizar_watchlist(
     shortlist: list[CandidatoDiario], candidatos_intradia: list[CandidatoIntradia],
     elegidas_tickers: set[str], cfg: MomentumConfig, dry_run: bool, ahora: datetime | None = None,
-) -> None:
+) -> tuple[list, dict[str, object]]:
     """State Engine (2026-08-11, "Fase 2"): toda candidata con
     catalizador confirmado que llega a la etapa 2 entra a vigilancia
     persistida. Las que se alertan AHORA MISMO se marcan TRIGGERED de
@@ -423,6 +423,18 @@ def _actualizar_watchlist(
     MISSED según lo que ya decidió `evaluator.evaluar` -- ningún cálculo
     nuevo, solo se traduce el mismo veredicto a una transición de estado.
 
+    Devuelve `(entradas, disparadas)` -- `disparadas` (ticker ->
+    entrada) son las que quedaron TRIGGERED en esta misma corrida, pero
+    TODAVÍA sin `signal_latency_ms` real: el envío de verdad a Telegram
+    ocurre después, en `main()` (formatear + `enviar_telegram` tardan un
+    tiempo real que no se puede medir desde acá). Corrección 2026-08-11
+    (encontrado en revisión de PR): antes esta función rellenaba
+    `mensaje_generado_ts`/`telegram_enviado_ts` con el mismo reloj
+    capturado al EMPEZAR la función, antes de que el mensaje siquiera se
+    armara -- una latencia inventada, no medida. Ahora `main()` completa
+    `registrar_latencia` con relojes frescos tomados alrededor del envío
+    real, igual que ya hace `revisar_watchlist`.
+
     En dry-run no se persiste (mismo principio que el resto de `main()`:
     dry-run calcula y muestra, nunca muta estado)."""
     ahora = ahora or datetime.now(UTC)
@@ -430,6 +442,7 @@ def _actualizar_watchlist(
     entradas = watchlist.agregar_nuevas(entradas, shortlist, ahora)
     por_ticker = {e.ticker: e for e in entradas}
 
+    disparadas: dict[str, object] = {}
     for c in candidatos_intradia:
         e = por_ticker.get(c.ticker)
         if e is None or e.estado != watchlist.ESTADO_WATCHING:
@@ -443,19 +456,21 @@ def _actualizar_watchlist(
         r = c.resultado
         if c.ticker in elegidas_tickers:
             market_ts = c.bi_hoy.timestamps[-1] if c.bi_hoy.timestamps else _ahora_iso_run(ahora)
-            reloj = _ahora_iso_run(ahora)
-            watchlist.marcar_triggered(e, market_ts, reloj, reloj, ahora)
-            watchlist.registrar_latencia(e, reloj, reloj)
+            evaluador_ts = _ahora_iso_run(datetime.now(UTC))
+            watchlist.marcar_triggered(e, market_ts, evaluador_ts, evaluador_ts, ahora)
+            disparadas[c.ticker] = e
         elif not r.temprano and r.early is not None:
             watchlist.marcar_missed(e, r.early.motivo_veredicto, ahora)
         elif not watchlist.catalizador_vigente(e, cfg.dias_ventana_catalizador, ahora):
             watchlist.marcar_invalidated(e, "El catalizador ya salió de la ventana de vigencia.", ahora)
 
+    entradas = watchlist.purgar_antiguas(entradas, ahora)
     watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
     n_watching = len(watchlist.activas(entradas))
     log.info("watchlist: %d en observación tras esta corrida", n_watching)
     if not dry_run:
         watchlist.guardar(entradas)
+    return entradas, disparadas
 
 
 def _ahora_iso_run(ahora: datetime) -> str:
@@ -511,7 +526,10 @@ def revisar_watchlist(
             log.warning("re-chequeo de %s falló: %s", e.ticker, ex)
 
     if not candidatos:
-        watchlist.guardar(entradas)
+        entradas = watchlist.purgar_antiguas(entradas, ahora)
+        watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
+        if not dry_run:
+            watchlist.guardar(entradas)
         return
 
     oportunidades, vetadas, snapshots = seleccionar_y_auditar(candidatos, cfg, n_universo=0)
@@ -542,6 +560,7 @@ def revisar_watchlist(
         elif not watchlist.catalizador_vigente(e, cfg.dias_ventana_catalizador, ahora):
             watchlist.marcar_invalidated(e, "El catalizador ya salió de la ventana de vigencia.", ahora)
 
+    entradas = watchlist.purgar_antiguas(entradas, ahora)
     watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
     log.info("watchlist: %d en observación tras el re-chequeo", len(watchlist.activas(entradas)))
     if not dry_run:
@@ -636,7 +655,7 @@ def main() -> None:
     oportunidades, vetadas, snapshots = seleccionar_y_auditar(
         candidatos_intradia, CONFIG, n_universo=len(tickers))
 
-    _actualizar_watchlist(
+    entradas_watchlist, disparadas_watchlist = _actualizar_watchlist(
         shortlist, candidatos_intradia, {o.ticker for o in oportunidades}, CONFIG, args.dry_run)
 
     for o in oportunidades:
@@ -646,8 +665,20 @@ def main() -> None:
         # en el log de la corrida -- nada se pierde, solo deja de ser lo
         # que llega al chat.
         print("\n" + report.formatear(o))
+        mensaje_ts = _ahora_iso_run(datetime.now(UTC))
         if not args.dry_run:
             enviar_telegram(report.formatear_entrada(o))
+        # Latencia real (corrección 2026-08-11, ver docstring de
+        # `_actualizar_watchlist`): se completa acá, con relojes tomados
+        # alrededor del envío de VERDAD, no con el reloj de antes de
+        # armar/mandar el mensaje.
+        telegram_ts = _ahora_iso_run(datetime.now(UTC))
+        entrada_disparada = disparadas_watchlist.get(o.ticker)
+        if entrada_disparada is not None:
+            watchlist.registrar_latencia(entrada_disparada, mensaje_ts, telegram_ts)
+
+    if not args.dry_run and disparadas_watchlist:
+        watchlist.guardar(entradas_watchlist)
 
     if not args.dry_run and oportunidades:
         tracker.registrar(oportunidades)

@@ -31,6 +31,7 @@ from momentum_hunter.watchlist import (
     marcar_missed,
     marcar_triggered,
     meta_de,
+    purgar_antiguas,
     registrar_latencia,
 )
 
@@ -96,6 +97,57 @@ def test_agregar_nuevas_agrega_tickers_nuevos():
     entradas = agregar_nuevas([], [_candidato_diario("RKLB"), _candidato_diario("TTWO")], AHORA)
     assert {e.ticker for e in entradas} == {"RKLB", "TTWO"}
     assert all(e.estado == ESTADO_WATCHING for e in entradas)
+
+
+def test_agregar_nuevas_no_reagrega_estado_terminal_de_hoy():
+    # Bug real encontrado en revisión de PR (2026-08-11): evita re-vigilar
+    # dos veces en la misma sesión algo que ya se resolvió hace un rato.
+    e = desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    marcar_missed(e, "x", AHORA + timedelta(minutes=5))
+    entradas = agregar_nuevas([e], [_candidato_diario("RKLB")], AHORA + timedelta(minutes=10))
+    assert len(entradas) == 1   # no se agregó una segunda entrada
+
+
+def test_agregar_nuevas_si_reagrega_estado_terminal_de_un_dia_anterior():
+    # El bug real: antes de este fix, un ticker que terminaba en estado
+    # terminal UNA SOLA VEZ quedaba bloqueado para siempre en
+    # `watchlist.json` (que se committea y nunca se limpiaba solo) --
+    # nunca volvía a vigilarse aunque hubiera pasado una semana.
+    e = desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    marcar_missed(e, "x", AHORA)
+    un_dia_despues = AHORA + timedelta(days=1)
+    entradas = agregar_nuevas([e], [_candidato_diario("RKLB")], un_dia_despues)
+    assert len(entradas) == 2
+    nueva = [x for x in entradas if x.estado == ESTADO_WATCHING][0]
+    assert nueva.creado_en == un_dia_despues.isoformat(timespec="seconds")
+
+
+def test_agregar_nuevas_no_reagrega_algo_que_sigue_watching():
+    e = desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    entradas = agregar_nuevas([e], [_candidato_diario("RKLB")], AHORA + timedelta(days=10))
+    assert len(entradas) == 1   # WATCHING nunca se re-agrega, sin importar cuánto tiempo pase
+
+
+# ------------------------- purgar_antiguas -------------------------
+
+def test_purgar_antiguas_descarta_terminales_viejas():
+    e = desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    marcar_missed(e, "x", AHORA)
+    ocho_dias_despues = AHORA + timedelta(days=8)
+    assert purgar_antiguas([e], ocho_dias_despues, dias=7) == []
+
+
+def test_purgar_antiguas_no_toca_terminales_recientes():
+    e = desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    marcar_missed(e, "x", AHORA)
+    un_dia_despues = AHORA + timedelta(days=1)
+    assert purgar_antiguas([e], un_dia_despues, dias=7) == [e]
+
+
+def test_purgar_antiguas_nunca_toca_watching_activas():
+    e = desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    mucho_despues = AHORA + timedelta(days=365)
+    assert purgar_antiguas([e], mucho_despues, dias=7) == [e]
 
 
 def test_activas_solo_devuelve_watching():
@@ -216,3 +268,24 @@ def test_cargar_entrada_individual_corrupta_se_descarta_sin_perder_las_demas(tmp
     recargadas = cargar(path)
     assert len(recargadas) == 1
     assert recargadas[0].ticker == "RKLB"
+
+
+def test_cargar_transicion_corrupta_se_descarta_sin_tumbar_la_corrida(tmp_path):
+    # Bug real encontrado en revisión de PR (2026-08-11): antes de este
+    # fix, `Transicion(**t)` vivía FUERA del try/except que solo envolvía
+    # `EntradaWatchlist(...)` -- una transición mal formada (clave
+    # desconocida) tumbaba TODA la carga, no solo esa entrada.
+    path = tmp_path / "watchlist.json"
+    buena = desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    rota = asdict(desde_candidato_diario(_candidato_diario("ROTA"), AHORA))
+    rota["transiciones"] = [{"estado": "watching", "clave_desconocida": "x"}]   # falta "timestamp"/"motivo"
+    data = {"entradas": [asdict(buena), rota]}
+    path.write_text(json.dumps(data, ensure_ascii=False))
+    recargadas = cargar(path)
+    assert [r.ticker for r in recargadas] == ["RKLB"]
+
+
+def test_cargar_json_que_no_es_un_objeto_se_reinicia_vacia(tmp_path):
+    path = tmp_path / "watchlist.json"
+    path.write_text(json.dumps([1, 2, 3]))   # válido como JSON, pero no es {"entradas": [...]}
+    assert cargar(path) == []
