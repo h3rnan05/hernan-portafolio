@@ -248,12 +248,15 @@ python -m momentum_hunter.run --limit 500            # subconjunto (recomendado,
 python -m momentum_hunter.run --universo watchlist.txt   # watchlist propia
 python -m momentum_hunter.run --dry-run              # calcula y muestra, no envía ni registra
 python -m momentum_hunter.run --actualizar-resultados     # actualiza tracker + imprime stats
+python -m momentum_hunter.run --solo-watchlist        # chequeo liviano de la watchlist ("Fase 2")
 ```
 
 Con `MOMENTUM_TELEGRAM_BOT_TOKEN`/`MOMENTUM_TELEGRAM_CHAT_ID` (o, si no
 existen, `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID`) en el entorno, manda
 las alertas por Telegram. `.github/workflows/momentum_hunter.yml` corre
-el escaneo varias veces al día en horario de mercado;
+el escaneo completo varias veces al día en horario de mercado;
+`.github/workflows/momentum_hunter_watchlist.yml` corre el chequeo
+liviano de la watchlist cada ~5 minutos (ver "Fase 2" más abajo);
 `.github/workflows/momentum_hunter_outcomes.yml` corre una vez al día
 después del cierre para actualizar el tracking de resultados.
 
@@ -349,18 +352,148 @@ Lo que cambió en la lógica de decisión (no solo en el formato):
   ruptura) -- Fase 1 no duplicó esa lógica, solo la hace visible con la
   zona de entrada y la advertencia explícita en el mensaje.
 
-**Limitación honesta, explícita desde el principio de esta conversación**:
-esto NO es vigilancia en vivo. Cada corrida sigue siendo un solo escaneo
-que empieza y termina (~2-6 minutos para el universo completo) -- no hay
-todavía una lista de "en observación" que se re-chequee cada pocos
-minutos mientras el precio se mueve. Eso es la Fase 2, deliberadamente
-pospuesta: requiere un segundo workflow, mucho más liviano (solo
-re-evalúa la watchlist persistida, no todo el universo), en la cadencia
-más rápida que GitHub Actions realmente garantiza (5 minutos, no el "1
-minuto ideal" pedido -- GitHub no promete esa frecuencia). El backtest/
-replay contra sesiones históricas (para poder responder "¿el bot
-realmente habría detectado esto a tiempo?") también queda pendiente,
-después de que la vigilancia en vivo lleve unos días corriendo.
+**La vigilancia en vivo de lo que queda en observación (era la
+limitación honesta de esta sección) ya existe -- ver "State Engine y
+vigilancia persistida, Fase 2" más abajo.**
+
+## State Engine y vigilancia persistida, "Fase 2" (pedido 2026-08-11)
+
+Pedido explícito: "Yo NO quiero un screener que me diga qué acciones son
+interesantes. Quiero un Opportunity Hunter que vigile continuamente un
+pequeño grupo de acciones y me avise EXACTAMENTE cuando exista una
+entrada accionable." Antes de escribir código se hizo una auditoría
+completa de lo que ya existía (competencia relativa, regla de no
+perseguir, `DataProvider` desacoplado, vigilancia post-alerta de
+`vigilancia.py`) contra lo que realmente faltaba (estado persistido,
+instrumentación de latencia). El dueño del producto priorizó
+explícitamente: "State Engine primero, todo lo demás depende de él",
+dejando el comando `/trade` para después, aparte.
+
+### Los 5 estados (`watchlist.py`)
+
+Cada candidata con catalizador confirmado que llega a la etapa 2 entra a
+una watchlist persistida (`momentum_hunter/watchlist.json`, mismo patrón
+de persistencia por archivo JSON que `tracker.py`/`heartbeat.py`) con
+exactamente 5 estados, cada transición con su propio timestamp:
+
+- **WATCHING** -- se detectó un catalizador + patrón preliminar, pero
+  todavía no confirma una entrada accionable.
+- **TRIGGERED** -- confirmó una entrada de verdad (el mismo árbol de 5
+  preguntas de `evaluator.py`, la misma competencia relativa de
+  `seleccionar_y_auditar` si compiten varias a la vez) -- se manda la
+  alerta corta a Telegram.
+- **INVALIDATED** -- el catalizador salió de la ventana de vigencia
+  (`catalysts.detector.dentro_de_ventana`, reutilizada, no reinventada)
+  antes de confirmar nada.
+- **MISSED** -- el Early Opportunity Engine (`early_opportunity.py`, sin
+  cambios) dio veredicto "tarde": ya se movió demasiado para entrar sin
+  perseguir.
+- **EXPIRED** -- lleva más de `cfg.minutos_maximos_en_watching` (120
+  minutos por defecto) sin resolver nada.
+
+```
+09:42       -- RKLB -> WATCHING (contrato + patrón preliminar)
+09:49:02    -- RKLB -> TRIGGERED (confirmó entrada)
+09:49:03    -- Telegram enviado
+```
+
+### `signal_latency_ms`
+
+Cuatro timestamps con nombre explícito por candidata, capturados en el
+momento real en que ocurre cada paso (no estimados): `market_event_ts`
+(la vela que confirmó), `data_received_ts` (cuándo llegó el dato del
+proveedor), `evaluador_ts` (cuándo terminó de evaluar) y
+`telegram_enviado_ts` (cuándo salió el mensaje). `signal_latency_ms` es
+la diferencia entre el primero y el último -- la métrica real de qué tan
+rápido avisa el bot, no una promesa de marketing.
+
+### Por qué 5 minutos, no "tiempo real"
+
+Pedido explícito: "No quiero que simplemente pongas GitHub Actions cada
+5 minutos y consideres esto 'tiempo real'." La respuesta honesta, medida
+en corridas reales de este proyecto:
+
+- El escaneo completo (`momentum_hunter.yml`, universo completo con
+  Yahoo secuencial, ver `data/provider.py`) tarda ~6 minutos.
+- El chequeo liviano de la watchlist (`--solo-watchlist`, sin barras
+  diarias, solo sobre los tickers ya en observación) tarda ~7-20 segundos.
+- GitHub Actions no garantiza cron por debajo de 5 minutos de forma
+  confiable (documentado por GitHub: puede haber demora bajo carga) --
+  pedir "cada minuto" prometería algo que la plataforma no cumple.
+
+Por eso `.github/workflows/momentum_hunter_watchlist.yml` corre
+`--solo-watchlist` cada 5 minutos, en un workflow SEPARADO del escaneo
+completo (que sigue corriendo cada 30 minutos para descubrir candidatas
+nuevas) -- los dos comparten `concurrency.group` para nunca pisarse
+escribiendo `watchlist.json` a la vez. 5 minutos es la cadencia máxima
+realista con la arquitectura actual (Yahoo + GitHub Actions gratis); una
+cadencia de segundos requeriría un proveedor de pago con websockets
+(Polygon, Alpaca), lo cual `DataProvider` ya permite sin tocar ninguna
+lógica de trading (ver "Arquitectura" arriba).
+
+### Sigue siendo RESEARCH + SIGNAL + ALERT, nunca EXECUTION
+
+Reafirmado explícitamente por el dueño del producto en este pedido: "El
+sistema debe seguir siendo estrictamente: RESEARCH + SIGNAL + ALERT.
+Nunca: RESEARCH + SIGNAL + EXECUTION" y "NO quiero que el sistema opere
+automáticamente. Yo siempre tomo la decisión final." Fase 2 no agrega
+ninguna conexión a un broker -- `revisar_watchlist()` termina en un
+mensaje de Telegram, igual que siempre.
+
+### Uso
+
+```bash
+python -m momentum_hunter.run --solo-watchlist              # chequeo liviano, cada ~5 min
+python -m momentum_hunter.run --solo-watchlist --dry-run    # calcula y muestra, no manda ni persiste
+```
+
+### Lo que Fase 2 explícitamente NO incluye todavía
+
+Priorización explícita del dueño del producto ("State Engine primero,
+todo lo demás depende de él" / "/trade después, aparte"):
+
+- **Comando `/trade TICKER --full`** (recibir comandos de Telegram, no
+  solo enviarlos) -- pospuesto a propósito, es un cambio de superficie
+  distinto (requiere webhook o polling de Telegram, no solo `requests.
+  post`).
+- **Backtest/replay minuto a minuto** contra sesiones históricas, para
+  poder responder objetivamente "¿el bot realmente habría detectado esto
+  a tiempo?" -- pospuesto a propósito, después de que la vigilancia en
+  vivo lleve unos días corriendo con datos reales que auditar.
+- Los 14 escenarios de robustez pedidos (reversión inmediata tras
+  ruptura, gap ya extendido, 2-5 triggers simultáneos, fallo del
+  proveedor, velas faltantes/duplicadas, precio exacto en el borde de la
+  zona, stop y objetivo tocados en la misma vela, fallo de Telegram,
+  reinicio del proceso en distintos momentos del ciclo de vida) están
+  cubiertos parcialmente por las pruebas actuales (`test_watchlist.py`,
+  `test_run_watchlist.py`) -- el estado persistido en JSON YA sobrevive
+  un reinicio del proceso (es la garantía central de este diseño), pero
+  no los 14 casos exactos tienen todos una prueba dedicada todavía.
+
+### ¿Está listo para usar dinero real?
+
+**No.** Con honestidad, no solo porque los tests pasan:
+
+1. La cadencia real (5 minutos) significa que una ruptura puede tardar
+   hasta 5 minutos en detectarse -- para un patrón que se mueve fuerte en
+   segundos, esa ventana ya se puede haber cerrado. El diseño evita
+   alertar TARDE (el veredicto "tarde" de `early_opportunity.py` sigue
+   aplicando), pero no puede prometer alertar en el segundo exacto.
+2. Sin backtest/replay contra sesiones reales, no existe todavía
+   evidencia medida de qué tan bien funciona esta cadencia en la
+   práctica -- solo el razonamiento de diseño, no datos.
+3. Los 14 escenarios de robustez pedidos no están todos cubiertos por
+   pruebas dedicadas (ver arriba).
+4. Sigue habiendo dependencia de datos gratis de Yahoo (ver
+   "Limitaciones honestas" abajo) -- sin un proveedor de pago, un fallo o
+   bloqueo de IP puede dejar la watchlist sin re-chequear por un ciclo
+   completo.
+
+Lo que SÍ está listo: la arquitectura de estado (nunca se pierde una
+candidata al reiniciar el proceso), la instrumentación de latencia (se
+puede medir objetivamente qué tan rápido es el sistema, en vez de
+asumirlo), y la garantía de que el sistema nunca ejecuta nada por su
+cuenta -- toda decisión de entrar sigue siendo del dueño del producto.
 
 ## Filtros de universo (etapa 1)
 
@@ -432,9 +565,20 @@ horas, no una promesa de anticipación imposible.
   ni terminales de noticias en tiempo real. `minutos_desde_catalizador`
   (usado por el Early Opportunity Engine) es `None` cuando la fuente solo
   da una fecha sin hora -- nunca se inventa la precisión que falta.
+- **5 minutos es el piso real de la vigilancia en vivo** (ver "Fase 2"
+  arriba), no segundos -- limitación de GitHub Actions + Yahoo gratis,
+  no de la lógica de decisión.
 
 ## Roadmap (fase 3)
 
+- **Comando `/trade TICKER --full`** por Telegram (pospuesto de Fase 2 a
+  propósito) -- recibir comandos, no solo enviarlos.
+- **Backtest/replay minuto a minuto** contra sesiones históricas
+  (pospuesto de Fase 2 a propósito) -- para medir objetivamente qué tan
+  bien funciona la cadencia de 5 minutos en la práctica, en vez de solo
+  razonarlo por diseño.
+- Cobertura de pruebas dedicada para los 14 escenarios de robustez
+  pedidos que hoy solo están parcialmente cubiertos (ver "Fase 2" arriba).
 - `DataProvider`/`NewsProvider` de pago para cotizaciones masivas y
   noticias en tiempo real con hora exacta (condición real para correr
   cada pocos minutos sobre el mercado completo).

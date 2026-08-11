@@ -19,7 +19,7 @@ verificables (un comunicado de la FDA no necesita una segunda fuente).
 
 `Titular.fecha` guarda el timestamp COMPLETO cuando la fuente lo da (no
 solo la fecha) -- lo necesita `minutos_desde_catalizador` para el "hace
-X minutos" del Early Opportunity Engine (Prompt 2/5). `_dentro_de_ventana`
+X minutos" del Early Opportunity Engine (Prompt 2/5). `dentro_de_ventana`
 sigue comparando solo por fecha (`fecha[:10]`), así que esto no cambia
 ningún comportamiento de la ventana de días."""
 
@@ -107,11 +107,14 @@ def clasificar_titular(texto: str) -> str | None:
     return None
 
 
-def _dentro_de_ventana(fecha: str | None, hoy: date, dias: int) -> bool:
+def dentro_de_ventana(fecha: str | None, hoy: date, dias: int) -> bool:
     """Sin fecha (algunas fuentes no la dan) se asume vigente -- mejor no
     descartar de más un catalizador real que sí lo es. `+1` de margen
     tolera desfases de huso horario entre el timestamp de la fuente y la
-    corrida del bot."""
+    corrida del bot. Pública (2026-08-11) -- `watchlist.py` la reutiliza
+    para decidir si un catalizador ya congelado envejeció fuera de la
+    ventana (transición a INVALIDATED), en vez de reinventar la misma
+    regla dos veces."""
     if not fecha:
         return True
     try:
@@ -131,7 +134,7 @@ def detectar_catalizador(
     existe un catalizador verificable, descartar la acción"), sin
     importar qué tan bien se vea el gráfico."""
     hoy = hoy or date.today()
-    vigentes = [t for t in titulares if _dentro_de_ventana(t.fecha, hoy, cfg.dias_ventana_catalizador)]
+    vigentes = [t for t in titulares if dentro_de_ventana(t.fecha, hoy, cfg.dias_ventana_catalizador)]
 
     por_tipo: dict[str, list[Titular]] = {}
     for t in vigentes:

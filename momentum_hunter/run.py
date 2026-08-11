@@ -56,6 +56,7 @@ from momentum_hunter import (
     tracker,
     universe,
     vigilancia,
+    watchlist,
 )
 from momentum_hunter.alerts import (
     CandidatoDiario,
@@ -196,6 +197,48 @@ def _nivel_para_patron(patron: str | None, factores) -> float | None:
     return factores.vwap
 
 
+def _construir_candidato_intradia(
+    ticker: str, nombre: str | None, catalizador, meta, es_large_cap: bool,
+    atr_diario: float | None, score_base: float, cierre_anterior: float | None,
+    bi, cfg: MomentumConfig, gap_pct_fallback: float | None = None,
+) -> CandidatoIntradia | None:
+    """Núcleo compartido de la etapa 2 -- lo usan tanto
+    `construir_candidatos_intradia` (descubrimiento, con `cierre_anterior`
+    real de las barras diarias) como `revisar_watchlist` (chequeo
+    liviano, "Fase 2": sin barras diarias frescas, `gap_pct_fallback` es
+    el gap congelado desde el descubrimiento -- el gap de apertura no
+    cambia durante el resto de la sesión). None si no hay velas de hoy
+    todavía."""
+    hoy = fi.barras_de_hoy(bi)
+    if not hoy.timestamps:
+        return None
+    factores = fi.calcular(bi, cierre_anterior)
+    if factores.gap_pct is None and gap_pct_fallback is not None:
+        factores = replace(factores, gap_pct=gap_pct_fallback)
+
+    patron_preliminar = classification.detectar_patron(hoy, factores)
+    nivel_ruptura = _nivel_para_patron(patron_preliminar, factores)
+    if nivel_ruptura is not None:
+        velas = fi.velas_desde_ruptura(hoy, nivel_ruptura)
+        factores = replace(factores, velas_desde_ruptura=velas)
+
+    minutos = minutos_desde_catalizador(catalizador)
+    niveles = report.niveles_entrada_salida(factores, atr_diario)
+    entrada = factores.precio_actual if factores.precio_actual is not None else 0.0
+
+    resultado_eval = evaluator.evaluar(
+        catalizador, minutos, factores, hoy, meta,
+        entrada, niveles["stop"], niveles["objetivo"], score_base, cfg,
+        es_large_cap=es_large_cap,
+    )
+    return CandidatoIntradia(
+        ticker=ticker, nombre=nombre, catalizador=catalizador,
+        minutos_desde_catalizador=minutos, factores=factores, bi_hoy=hoy,
+        meta=meta, atr_diario=atr_diario, resultado=resultado_eval,
+        es_large_cap=es_large_cap,
+    )
+
+
 def construir_candidatos_intradia(
     shortlist: list[CandidatoDiario], barras_diarias: dict[str, Barras],
     provider: DataProvider, cfg: MomentumConfig,
@@ -216,29 +259,12 @@ def construir_candidatos_intradia(
             if not hoy.timestamps:
                 continue
             cierre_ant = _cierre_anterior(barras_diarias[c.ticker], hoy.timestamps[-1][:10])
-            factores = fi.calcular(bi, cierre_ant)
-
-            patron_preliminar = classification.detectar_patron(hoy, factores)
-            nivel_ruptura = _nivel_para_patron(patron_preliminar, factores)
-            if nivel_ruptura is not None:
-                velas = fi.velas_desde_ruptura(hoy, nivel_ruptura)
-                factores = replace(factores, velas_desde_ruptura=velas)
-
-            minutos = minutos_desde_catalizador(c.catalizador)
-            niveles = report.niveles_entrada_salida(factores, c.factores.atr)
-            entrada = factores.precio_actual if factores.precio_actual is not None else c.precio
-
-            resultado_eval = evaluator.evaluar(
-                c.catalizador, minutos, factores, hoy, c.meta,
-                entrada, niveles["stop"], niveles["objetivo"], c.puntuacion.score_total, cfg,
-                es_large_cap=c.es_large_cap,
+            candidato = _construir_candidato_intradia(
+                c.ticker, c.nombre, c.catalizador, c.meta, c.es_large_cap,
+                c.factores.atr, c.puntuacion.score_total, cierre_ant, bi, cfg,
             )
-            resultado.append(CandidatoIntradia(
-                ticker=c.ticker, nombre=c.nombre, catalizador=c.catalizador,
-                minutos_desde_catalizador=minutos, factores=factores, bi_hoy=hoy,
-                meta=c.meta, atr_diario=c.factores.atr, resultado=resultado_eval,
-                es_large_cap=c.es_large_cap,
-            ))
+            if candidato is not None:
+                resultado.append(candidato)
         except Exception as e:
             log.warning("candidato intradía %s falló: %s", c.ticker, e)
     return resultado
@@ -384,6 +410,145 @@ def _modo_actualizar_resultados(cfg: MomentumConfig) -> None:
         )
 
 
+def _actualizar_watchlist(
+    shortlist: list[CandidatoDiario], candidatos_intradia: list[CandidatoIntradia],
+    elegidas_tickers: set[str], cfg: MomentumConfig, dry_run: bool, ahora: datetime | None = None,
+) -> None:
+    """State Engine (2026-08-11, "Fase 2"): toda candidata con
+    catalizador confirmado que llega a la etapa 2 entra a vigilancia
+    persistida. Las que se alertan AHORA MISMO se marcan TRIGGERED de
+    una vez (el historial de transiciones queda completo incluso para
+    las inmediatas, no solo para las que confirma el chequeo liviano de
+    `revisar_watchlist`); el resto queda en WATCHING, INVALIDATED o
+    MISSED según lo que ya decidió `evaluator.evaluar` -- ningún cálculo
+    nuevo, solo se traduce el mismo veredicto a una transición de estado.
+
+    En dry-run no se persiste (mismo principio que el resto de `main()`:
+    dry-run calcula y muestra, nunca muta estado)."""
+    ahora = ahora or datetime.now(UTC)
+    entradas = watchlist.cargar()
+    entradas = watchlist.agregar_nuevas(entradas, shortlist, ahora)
+    por_ticker = {e.ticker: e for e in entradas}
+
+    for c in candidatos_intradia:
+        e = por_ticker.get(c.ticker)
+        if e is None or e.estado != watchlist.ESTADO_WATCHING:
+            continue
+        if e.gap_pct_congelado is None and c.factores.gap_pct is not None:
+            # Se congela una sola vez -- el gap de apertura no cambia
+            # durante el resto de la sesión (ver `_construir_candidato_
+            # intradia`), así `revisar_watchlist` no necesita barras
+            # diarias frescas para recalcularlo.
+            e.gap_pct_congelado = c.factores.gap_pct
+        r = c.resultado
+        if c.ticker in elegidas_tickers:
+            market_ts = c.bi_hoy.timestamps[-1] if c.bi_hoy.timestamps else _ahora_iso_run(ahora)
+            reloj = _ahora_iso_run(ahora)
+            watchlist.marcar_triggered(e, market_ts, reloj, reloj, ahora)
+            watchlist.registrar_latencia(e, reloj, reloj)
+        elif not r.temprano and r.early is not None:
+            watchlist.marcar_missed(e, r.early.motivo_veredicto, ahora)
+        elif not watchlist.catalizador_vigente(e, cfg.dias_ventana_catalizador, ahora):
+            watchlist.marcar_invalidated(e, "El catalizador ya salió de la ventana de vigencia.", ahora)
+
+    watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
+    n_watching = len(watchlist.activas(entradas))
+    log.info("watchlist: %d en observación tras esta corrida", n_watching)
+    if not dry_run:
+        watchlist.guardar(entradas)
+
+
+def _ahora_iso_run(ahora: datetime) -> str:
+    return ahora.isoformat(timespec="seconds")
+
+
+def revisar_watchlist(
+    cfg: MomentumConfig = CONFIG, provider: DataProvider | None = None, dry_run: bool = False,
+    ahora: datetime | None = None,
+) -> None:
+    """Chequeo liviano (2026-08-11, "Fase 2") -- SOLO re-evalúa la
+    watchlist activa, sin re-escanear el universo ni pedir barras
+    diarias (ver `gap_pct_congelado` en `watchlist.py`). Pensado para
+    correr cada ~5 minutos -- el mínimo real que garantiza GitHub
+    Actions, no el "1 minuto ideal" pedido originalmente (ver README) --
+    en un workflow SEPARADO del escaneo completo:
+    `python -m momentum_hunter.run --solo-watchlist`.
+
+    Reutiliza exactamente la misma competencia relativa + abogado del
+    diablo + auditoría que ya usa el descubrimiento (`seleccionar_y_
+    auditar`) -- si dos o más tickers vigilados confirman en el mismo
+    ciclo, se aplica la misma regla de "solo la mejor" de siempre."""
+    provider = provider or YahooProvider()
+    ahora = ahora or datetime.now(UTC)
+    entradas = watchlist.cargar()
+    vigiladas = watchlist.activas(entradas)
+    if not vigiladas:
+        log.info("watchlist vacía -- nada que re-chequear")
+        return
+
+    tickers = [e.ticker for e in vigiladas]
+    barras_intradia = provider.barras_intradia(tickers, cfg.intervalo_intradia, cfg.periodo_intradia)
+    dato_recibido_ts = _ahora_iso_run(datetime.now(UTC))
+
+    candidatos: list[CandidatoIntradia] = []
+    por_ticker = {e.ticker: e for e in vigiladas}
+    for e in vigiladas:
+        bi = barras_intradia.get(e.ticker)
+        if bi is None:
+            # El proveedor falló para este ticker -- se reintenta en el
+            # próximo ciclo, nunca se expira solo por esto (un fallo
+            # transitorio no debe borrar una candidata real).
+            continue
+        try:
+            candidato = _construir_candidato_intradia(
+                e.ticker, e.nombre, watchlist.catalizador_de(e), watchlist.meta_de(e),
+                e.es_large_cap, e.atr_diario, e.score_base, None, bi, cfg,
+                gap_pct_fallback=e.gap_pct_congelado,
+            )
+            if candidato is not None:
+                candidatos.append(candidato)
+        except Exception as ex:
+            log.warning("re-chequeo de %s falló: %s", e.ticker, ex)
+
+    if not candidatos:
+        watchlist.guardar(entradas)
+        return
+
+    oportunidades, vetadas, snapshots = seleccionar_y_auditar(candidatos, cfg, n_universo=0)
+    elegidos = {o.ticker: o for o in oportunidades}
+
+    for candidato in candidatos:
+        e = por_ticker[candidato.ticker]
+        r = candidato.resultado
+        if candidato.ticker in elegidos:
+            oportunidad = elegidos[candidato.ticker]
+            evaluador_ts = _ahora_iso_run(datetime.now(UTC))
+            market_ts = (
+                candidato.bi_hoy.timestamps[-1] if candidato.bi_hoy.timestamps else evaluador_ts
+            )
+            watchlist.marcar_triggered(e, market_ts, dato_recibido_ts, evaluador_ts, ahora)
+            texto = report.formatear_entrada(oportunidad)
+            mensaje_ts = _ahora_iso_run(datetime.now(UTC))
+            print("\n" + report.formatear(oportunidad))
+            if not dry_run:
+                enviar_telegram(texto)
+            telegram_ts = _ahora_iso_run(datetime.now(UTC))
+            watchlist.registrar_latencia(e, mensaje_ts, telegram_ts)
+            log.info("TRIGGERED %s -- latencia de la señal: %s ms", e.ticker, e.signal_latency_ms)
+            if not dry_run:
+                tracker.registrar([oportunidad])
+        elif not r.temprano and r.early is not None:
+            watchlist.marcar_missed(e, r.early.motivo_veredicto, ahora)
+        elif not watchlist.catalizador_vigente(e, cfg.dias_ventana_catalizador, ahora):
+            watchlist.marcar_invalidated(e, "El catalizador ya salió de la ventana de vigencia.", ahora)
+
+    watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
+    log.info("watchlist: %d en observación tras el re-chequeo", len(watchlist.activas(entradas)))
+    if not dry_run:
+        audit.registrar_corrida(snapshots)
+        watchlist.guardar(entradas)
+
+
 def _revisar_resumen_cierre(dry_run: bool, ya_avisado_radar: bool = False) -> None:
     """Bug encontrado el 2026-07-27 corriendo el bot en vivo: el mensaje
     de "hoy no hubo nada" (heartbeat.py, PR #72) vivía solo al final de
@@ -428,10 +593,17 @@ def main() -> None:
                     help="calcula y muestra, no manda a Telegram ni registra en el tracker")
     ap.add_argument("--actualizar-resultados", action="store_true",
                     help="no escanea: actualiza resultados de alertas pendientes y muestra stats")
+    ap.add_argument("--solo-watchlist", action="store_true",
+                    help="no escanea el universo -- solo re-chequea la watchlist activa "
+                         "(pensado para un workflow separado, cada ~5 minutos, ver watchlist.py)")
     args = ap.parse_args()
 
     if args.actualizar_resultados:
         _modo_actualizar_resultados(CONFIG)
+        return
+
+    if args.solo_watchlist:
+        revisar_watchlist(CONFIG, YahooProvider(), args.dry_run)
         return
 
     tickers = _cargar_tickers(args)
@@ -463,6 +635,10 @@ def main() -> None:
 
     oportunidades, vetadas, snapshots = seleccionar_y_auditar(
         candidatos_intradia, CONFIG, n_universo=len(tickers))
+
+    _actualizar_watchlist(
+        shortlist, candidatos_intradia, {o.ticker for o in oportunidades}, CONFIG, args.dry_run)
+
     for o in oportunidades:
         # "Fase 1" del detector de entradas (2026-08-10): a Telegram va
         # el mensaje corto (`formatear_entrada`, 5-10 segundos de
