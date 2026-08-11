@@ -406,8 +406,9 @@ def test_filtrar_ya_resueltas_hoy_excluye_lo_ya_triggered_antes_de_esta_corrida(
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     watchlist.marcar_triggered(e, "m", "d", "ev", AHORA)   # ya disparado ANTES de esta corrida
 
-    resultado = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA)
+    resultado, excluidos = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA)
     assert resultado == []
+    assert excluidos == {"RKLB"}
 
 
 def test_filtrar_ya_resueltas_hoy_no_excluye_lo_recien_disparado_esta_corrida():
@@ -416,8 +417,9 @@ def test_filtrar_ya_resueltas_hoy_no_excluye_lo_recien_disparado_esta_corrida():
     watchlist.marcar_triggered(e, "m", "d", "ev", AHORA)
 
     # RKLB SÍ está en disparadas_watchlist -- lo disparó ESTA MISMA corrida.
-    resultado = run_mod._filtrar_ya_resueltas_hoy([o], [e], {"RKLB": e}, ahora=AHORA)
+    resultado, excluidos = run_mod._filtrar_ya_resueltas_hoy([o], [e], {"RKLB": e}, ahora=AHORA)
     assert resultado == [o]
+    assert excluidos == set()
 
 
 def test_filtrar_ya_resueltas_hoy_no_excluye_triggered_de_un_dia_anterior():
@@ -425,8 +427,10 @@ def test_filtrar_ya_resueltas_hoy_no_excluye_triggered_de_un_dia_anterior():
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     watchlist.marcar_triggered(e, "m", "d", "ev", AHORA)
 
-    resultado = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA + timedelta(days=1))
+    resultado, excluidos = run_mod._filtrar_ya_resueltas_hoy(
+        [o], [e], {}, ahora=AHORA + timedelta(days=1))
     assert resultado == [o]
+    assert excluidos == set()
 
 
 def test_filtrar_ya_resueltas_hoy_no_toca_tickers_sin_entrada_en_watchlist():
@@ -434,8 +438,9 @@ def test_filtrar_ya_resueltas_hoy_no_toca_tickers_sin_entrada_en_watchlist():
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     watchlist.marcar_triggered(e, "m", "d", "ev", AHORA)
 
-    resultado = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA)
+    resultado, excluidos = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA)
     assert resultado == [o]
+    assert excluidos == {"RKLB"}   # RKLB se excluye, pero no afecta a OTRO
 
 
 def test_filtrar_ya_resueltas_hoy_excluye_missed_no_solo_triggered(monkeypatch, tmp_path):
@@ -448,8 +453,9 @@ def test_filtrar_ya_resueltas_hoy_excluye_missed_no_solo_triggered(monkeypatch, 
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     watchlist.marcar_missed(e, "x", AHORA)
 
-    resultado = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA)
+    resultado, excluidos = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA)
     assert resultado == []
+    assert excluidos == {"RKLB"}
 
 
 def test_filtrar_ya_resueltas_hoy_excluye_invalidated():
@@ -457,8 +463,9 @@ def test_filtrar_ya_resueltas_hoy_excluye_invalidated():
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     watchlist.marcar_invalidated(e, "x", AHORA)
 
-    resultado = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA)
+    resultado, excluidos = run_mod._filtrar_ya_resueltas_hoy([o], [e], {}, ahora=AHORA)
     assert resultado == []
+    assert excluidos == {"RKLB"}
 
 
 def test_filtrar_ya_resueltas_hoy_excluye_expired():
@@ -467,6 +474,7 @@ def test_filtrar_ya_resueltas_hoy_excluye_expired():
     watchlist.expirar_vencidas([e], minutos_maximos=1, ahora=AHORA + timedelta(hours=1))
     assert e.estado == watchlist.ESTADO_EXPIRED
 
-    resultado = run_mod._filtrar_ya_resueltas_hoy(
+    resultado, excluidos = run_mod._filtrar_ya_resueltas_hoy(
         [o], [e], {}, ahora=AHORA + timedelta(hours=1))
     assert resultado == []
+    assert excluidos == {"RKLB"}

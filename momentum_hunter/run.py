@@ -36,6 +36,7 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime
 
@@ -252,13 +253,24 @@ def _construir_candidato_intradia(
 
 def construir_candidatos_intradia(
     shortlist: list[CandidatoDiario], barras_diarias: dict[str, Barras],
-    provider: DataProvider, cfg: MomentumConfig,
+    provider: DataProvider, cfg: MomentumConfig, on_datos_recibidos: Callable[[], None] | None = None,
 ) -> list[CandidatoIntradia]:
     """Etapa 2 -- SOLO sobre `shortlist` (ya recortada por
     `alerts.candidatos_para_etapa_intradia`). Un ticker que falle no
-    tumba la corrida completa."""
+    tumba la corrida completa.
+
+    `on_datos_recibidos` (2026-08-11, corrección de revisión de PR):
+    callback opcional invocado justo DESPUÉS de que `provider.
+    barras_intradia` devuelve -- para tickers en la banda large-cap con
+    `max_candidatos_intradia` alto, este pedido secuencial puede tardar
+    minutos (ver README). `main()` lo usa para capturar el reloj real de
+    "cuándo llegaron los datos" (`dato_recibido_ts`) en vez de un reloj
+    tomado ANTES de pedirlos, que atribuía todo el tiempo de descarga al
+    paso equivocado en la latencia registrada."""
     tickers = [c.ticker for c in shortlist]
     barras_intradia = provider.barras_intradia(tickers, cfg.intervalo_intradia, cfg.periodo_intradia)
+    if on_datos_recibidos is not None:
+        on_datos_recibidos()
 
     resultado: list[CandidatoIntradia] = []
     for c in shortlist:
@@ -498,7 +510,7 @@ def _ahora_iso_run(ahora: datetime) -> str:
 def _filtrar_ya_resueltas_hoy(
     oportunidades: list, entradas_watchlist: list, disparadas_watchlist: dict,
     ahora: datetime | None = None,
-) -> list:
+) -> tuple[list, set[str]]:
     """Corrección 2026-08-11 (revisión de PR): el escaneo completo
     re-evalúa TODO el universo desde cero, sin consultar la watchlist --
     si un ticker ya se disparó HOY vía el chequeo liviano
@@ -519,7 +531,15 @@ def _filtrar_ya_resueltas_hoy(
 
     Excluye a los que ya se resolvieron HOY ANTES de esta corrida -- los
     recién disparados AHORA MISMO (en `disparadas_watchlist`) sí se
-    mandan, son la primera vez."""
+    mandan, son la primera vez.
+
+    Devuelve `(oportunidades_nuevas, tickers_excluidos)` -- corrección
+    2026-08-11 (revisión de PR, sexta vuelta): `main()` necesita el
+    segundo valor para corregir el snapshot de auditoría de los
+    excluidos (quedaban marcados DECISION_ALERTADA aunque nunca se
+    mandó nada) y para que `elegidas` (lo que de verdad "se alertó esta
+    corrida", el contrato documentado de `radar.construir_resumen`) no
+    los incluya."""
     ahora = ahora or datetime.now(UTC)
     hoy_iso = ahora.date().isoformat()
     ya_resueltas_hoy = {
@@ -530,7 +550,7 @@ def _filtrar_ya_resueltas_hoy(
     for o in oportunidades:
         if o.ticker in ya_resueltas_hoy:
             log.info("%s ya se resolvió hoy en la watchlist -- se omite la alerta duplicada", o.ticker)
-    return [o for o in oportunidades if o.ticker not in ya_resueltas_hoy]
+    return [o for o in oportunidades if o.ticker not in ya_resueltas_hoy], ya_resueltas_hoy
 
 
 def _evaluar_no_disparada(e, c: CandidatoIntradia, cfg: MomentumConfig, ahora: datetime) -> None:
@@ -738,12 +758,23 @@ def main() -> None:
         _revisar_resumen_cierre(args.dry_run)
         return
 
-    # Reloj real tomado justo antes de pedir las velas intradía -- lo
-    # necesita `_actualizar_watchlist` para `data_received_ts` (ver su
-    # docstring: antes de este fix ese campo se rellenaba con el mismo
-    # reloj que `evaluador_ts`, como si pedir los datos tardara cero).
-    dato_recibido_ts = _ahora_iso_run(datetime.now(UTC))
-    candidatos_intradia = construir_candidatos_intradia(shortlist, barras, provider, CONFIG)
+    # Reloj real capturado justo DESPUÉS de que llegan las velas intradía
+    # -- lo necesita `_actualizar_watchlist` para `data_received_ts` (ver
+    # su docstring: antes de este fix ese campo se rellenaba con el
+    # mismo reloj que `evaluador_ts`, como si pedir los datos tardara
+    # cero). Corrección 2026-08-11 (revisión de PR, sexta vuelta): un
+    # reloj tomado ANTES del pedido tampoco sirve -- el pedido secuencial
+    # a Yahoo para hasta `max_candidatos_intradia` tickers puede tardar
+    # minutos, y ese tiempo quedaba mal atribuido. `on_datos_recibidos`
+    # captura el instante real en que `provider.barras_intradia` ya
+    # devolvió, dentro de `construir_candidatos_intradia`.
+    _reloj_dato_recibido: dict[str, str] = {}
+    candidatos_intradia = construir_candidatos_intradia(
+        shortlist, barras, provider, CONFIG,
+        on_datos_recibidos=lambda: _reloj_dato_recibido.setdefault(
+            "ts", _ahora_iso_run(datetime.now(UTC))),
+    )
+    dato_recibido_ts = _reloj_dato_recibido.get("ts") or _ahora_iso_run(datetime.now(UTC))
     log.info("etapa 2 -- candidatos evaluados: %d", len(candidatos_intradia))
 
     oportunidades, vetadas, snapshots = seleccionar_y_auditar(
@@ -753,7 +784,13 @@ def main() -> None:
         shortlist, candidatos_intradia, {o.ticker for o in oportunidades}, CONFIG, args.dry_run,
         dato_recibido_ts=dato_recibido_ts)
 
-    oportunidades_nuevas = _filtrar_ya_resueltas_hoy(oportunidades, entradas_watchlist, disparadas_watchlist)
+    oportunidades_nuevas, ya_resueltas_hoy = _filtrar_ya_resueltas_hoy(
+        oportunidades, entradas_watchlist, disparadas_watchlist)
+    for snap in snapshots:
+        if snap["ticker"] in ya_resueltas_hoy:
+            snap["decision"] = audit.DECISION_DUPLICADA_MISMO_DIA
+            snap["motivos"] = ["Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."]
+            snap["que_tendria_que_cambiar"] = []
 
     for o in oportunidades_nuevas:
         # "Fase 1" del detector de entradas (2026-08-10): a Telegram va
@@ -789,7 +826,7 @@ def main() -> None:
         if ruta:
             log.info("auditoría de la corrida escrita en %s", ruta)
 
-    elegidas = {o.ticker for o in oportunidades}
+    elegidas = {o.ticker for o in oportunidades_nuevas}
     resumen_radar = radar.construir_resumen(candidatos_intradia, elegidas, vetadas, CONFIG)
     if resumen_radar:
         print("\n" + resumen_radar)

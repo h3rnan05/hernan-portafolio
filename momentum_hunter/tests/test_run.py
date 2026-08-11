@@ -159,6 +159,21 @@ def test_construir_candidatos_intradia_devuelve_un_candidato_por_ticker_con_dato
     assert candidatos[0].ticker == "RKLB"
 
 
+def test_construir_candidatos_intradia_llama_on_datos_recibidos_tras_el_fetch():
+    # Bug real encontrado en revisión de PR (2026-08-11, sexta vuelta):
+    # `main()` necesita un reloj capturado DESPUÉS de que las velas
+    # intradía llegan (no antes de pedirlas, que atribuye mal el tiempo
+    # de descarga) -- este callback es lo que se lo permite sin romper
+    # la firma existente.
+    shortlist = [_candidato_diario_intradia("RKLB")]
+    barras_diarias = {"RKLB": _barras_diarias("RKLB")}
+    provider = _FakeProviderIntradia({"RKLB": _bi_regular("RKLB")})
+    llamadas = []
+    construir_candidatos_intradia(
+        shortlist, barras_diarias, provider, CFG, on_datos_recibidos=lambda: llamadas.append(1))
+    assert llamadas == [1]
+
+
 def test_construir_candidatos_intradia_ignora_ticker_sin_barras_del_proveedor():
     shortlist = [_candidato_diario_intradia("SINDATOS")]
     barras_diarias = {"SINDATOS": _barras_diarias("SINDATOS")}

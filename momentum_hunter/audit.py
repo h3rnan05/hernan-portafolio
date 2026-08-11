@@ -41,6 +41,13 @@ DECISION_DESCARTADA = "descartada_por_evaluador"
 DECISION_SIN_CONVICCION = "no_paso_la_ultima_pregunta"   # sobrevivió todo, pero con
                                                           # demasiadas dudas acumuladas
                                                           # para un "sí claro"
+# "Fase 2" (2026-08-11, corrección de revisión de PR): ganó la
+# competencia relativa, pero el ticker ya se había resuelto HOY en la
+# watchlist (ver `run._filtrar_ya_resueltas_hoy`) -- NO se mandó a
+# Telegram ni se registró en el tracker. Sin este decision separado, el
+# snapshot quedaría marcado DECISION_ALERTADA aunque nunca se avisó,
+# violando el Principio 9 (auditoría reconstruible).
+DECISION_DUPLICADA_MISMO_DIA = "duplicada_ya_resuelta_hoy"
 
 
 def snapshot_candidato(
