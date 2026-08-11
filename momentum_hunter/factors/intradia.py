@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from momentum_hunter.factors.momentum import ema_serie
 from momentum_hunter.models import BarraIntradia, FactoresIntradia
 
 HORA_APERTURA_UTC = 13.5   # 9:30am ET (verano)
@@ -110,6 +111,29 @@ def ema9_intradia(bi_hoy: BarraIntradia) -> float | None:
     return ema
 
 
+def macd_intradia(
+    bi_hoy: BarraIntradia, rapida: int = 12, lenta: int = 26, señal: int = 9,
+) -> tuple[float, float] | None:
+    """(línea MACD, línea de señal) sobre velas de HOY -- mismos periodos
+    12/26/9 que `factors/momentum.macd` (valor editorial fijo, igual que
+    ese módulo; no se inventan periodos "intradía" distintos sin datos
+    que los justifiquen). Reutiliza `ema_serie` en vez de reimplementar
+    la misma matemática una tercera vez (ya existe una copia inline en
+    `ema9_intradia` de este mismo archivo, deuda técnica previa que no
+    se toca aquí). None hasta que haya suficientes velas -- con 1 minuto
+    por vela, recién a partir de la vela ~35 de la sesión regular."""
+    ema_rapida = ema_serie(bi_hoy.close, rapida)
+    ema_lenta = ema_serie(bi_hoy.close, lenta)
+    if ema_rapida is None or ema_lenta is None:
+        return None
+    n = min(len(ema_rapida), len(ema_lenta))
+    linea_macd = [ema_rapida[-n + i] - ema_lenta[-n + i] for i in range(n)]
+    serie_señal = ema_serie(linea_macd, señal)
+    if serie_señal is None:
+        return None
+    return linea_macd[-1], serie_señal[-1]
+
+
 def rvol_actual(bi: BarraIntradia, ventana: int = 5) -> float | None:
     """Volumen de la vela actual / promedio de las `ventana` anteriores
     -- una lectura inmediata, no el promedio de 20 DÍAS que usa
@@ -170,6 +194,7 @@ def calcular(
     ticker en una sola pasada, sobre las velas de HOY únicamente."""
     hoy = barras_de_hoy(bi)
     apertura = rango_apertura(hoy)
+    macd_resultado = macd_intradia(hoy)
     return FactoresIntradia(
         precio_actual=hoy.close[-1] if hoy.close else None,
         vwap=vwap_real(hoy),
@@ -184,4 +209,6 @@ def calcular(
         velas_desde_ruptura=(
             velas_desde_ruptura(hoy, nivel_ruptura) if nivel_ruptura is not None else None
         ),
+        macd=macd_resultado[0] if macd_resultado else None,
+        macd_signal=macd_resultado[1] if macd_resultado else None,
     )

@@ -122,3 +122,33 @@ def test_calcular_agrega_todos_los_factores():
     assert f.maximo_premarket == 4.25
     assert f.maximo_dia == 4.55
     assert f.gap_pct is not None
+
+
+def test_macd_intradia_none_sin_suficiente_historia():
+    bi = _bi_con_premarket_y_regular()  # solo 6 velas, MACD(12,26,9) necesita muchas más
+    assert fi.macd_intradia(bi) is None
+
+
+def test_macd_intradia_positivo_en_tendencia_alcista_sostenida():
+    # Suficientes velas para las tres EMAs del MACD (12/26/9): una
+    # tendencia alcista sostenida y sin ruido debe dar línea > señal
+    # (momentum a favor, mismo criterio que el MACD diario de
+    # `factors/momentum.py`).
+    n = 60
+    marcas = [_marca(f"{13 + (30 + i) // 60:02d}:{(30 + i) % 60:02d}") for i in range(n)]
+    closes = [1.0 + i * 0.01 for i in range(n)]
+    bi = BarraIntradia("TST", marcas, closes, closes, closes, closes, [1_000.0] * n)
+    resultado = fi.macd_intradia(bi)
+    assert resultado is not None
+    linea, señal = resultado
+    assert linea > señal
+
+
+def test_calcular_incluye_macd_cuando_hay_suficiente_historia():
+    n = 60
+    marcas = [_marca(f"{13 + (30 + i) // 60:02d}:{(30 + i) % 60:02d}") for i in range(n)]
+    closes = [1.0 + i * 0.01 for i in range(n)]
+    bi = BarraIntradia("TST", marcas, closes, closes, closes, closes, [1_000.0] * n)
+    f = fi.calcular(bi)
+    assert f.macd is not None
+    assert f.macd_signal is not None

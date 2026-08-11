@@ -23,6 +23,7 @@ from datetime import UTC, datetime
 
 from momentum_hunter import classification
 from momentum_hunter.alerts import CandidatoIntradia
+from momentum_hunter.config import MomentumConfig
 from momentum_hunter.models import FactoresIntradia, Oportunidad
 
 _EMOJI_URGENCIA = {"muy_alta": "🔴", "alta": "🟠", "media": "🟡", "baja": "⚪"}
@@ -129,6 +130,54 @@ _SEÑALES_FALLAN = {
     "high_tight_flag": ["que la consolidación se rompa hacia abajo", "que el rango se ensanche con velas rojas"],
     "trend_continuation": ["que pierda su precio promedio del día", "varias velas rojas seguidas"],
 }
+
+
+# --- Detector de entradas, "Fase 1" (2026-08-10): versión de 2-4
+# palabras de `_QUE_PASA_AHORA`, para el mensaje corto de
+# `formatear_entrada` -- ese formato se lee en 5-10 segundos, no admite
+# la oración completa que usa la narrativa larga. ---
+_POR_QUE_AHORA_PATRON = {
+    "high_tight_flag": "Consolidación angosta rompiendo",
+    "gap_and_go": "Ruptura confirmada",
+    "opening_range_breakout": "Rompió el rango de apertura",
+    "bull_flag": "Bandera rompiendo con volumen",
+    "micro_pullback": "Recuperó tras el pullback",
+    "trend_continuation": "Tendencia intacta",
+}
+
+
+def _por_que_ahora_corto(candidato: CandidatoIntradia) -> list[str]:
+    """Misma idea que `_por_que_unica` pero en frases de 2-4 palabras --
+    cada una existe solo si la condición REALMENTE se verificó, nunca
+    una lista fija (mismo principio que `_por_que_unica`)."""
+    r = candidato.resultado
+    f = candidato.factores
+    bullets: list[str] = []
+    if r.patron is not None:
+        bullets.append(_POR_QUE_AHORA_PATRON.get(r.patron, "Patrón confirmado"))
+    if r.dinero_entrando:
+        bullets.append("Volumen acelerándose")
+    if f.macd is not None and f.macd_signal is not None and f.macd > f.macd_signal:
+        # MACD es CONFIRMACIÓN, nunca la razón por sí sola (nunca aparece
+        # si no hay ya un patrón real) -- ver evaluator.py.
+        bullets.append("Momentum a favor")
+    if candidato.catalizador is not None and candidato.catalizador.confirmado:
+        bullets.append("Catalizador confirmado")
+    return bullets
+
+
+def zona_entrada(candidato: CandidatoIntradia, cfg: MomentumConfig) -> tuple[float | None, float | None]:
+    """Rango de entrada, no un precio único (pedido 2026-08-10: "no
+    quiero que el bot diga simplemente Entrada: $80"). `zona_baja` es el
+    mismo nivel de ruptura que ya usa `_nivel_invalidacion` -- si se
+    pierde, cancela la idea; si se pierde por perseguir, tampoco hay
+    entrada. `zona_alta` es ese nivel más una tolerancia editorial fija
+    (`cfg.tolerancia_zona_entrada_pct`, documentada en config.py) --
+    pasarla es la señal de "esto ya corrió, no perseguir"."""
+    nivel = _nivel_invalidacion(candidato)
+    if nivel is None:
+        return None, None
+    return nivel, nivel * (1 + cfg.tolerancia_zona_entrada_pct)
 
 
 def _por_que_unica(candidato: CandidatoIntradia, stop: float | None) -> list[str]:
@@ -252,7 +301,7 @@ def construir_oportunidad(
     probabilidad_historica: str = "", advertencias: list[str] | None = None,
     n_evaluados: int = 0, rank: int = 0, n_universo: int = 0,
     confianza_texto: str = "", calidad_historica: str = "",
-    hora_utc: float | None = None,
+    hora_utc: float | None = None, cfg: MomentumConfig | None = None,
 ) -> Oportunidad:
     """Ensambla la `Oportunidad` final -- ya se decidió que se manda
     (accionable + sobrevivió al abogado del diablo + la última
@@ -266,12 +315,14 @@ def construir_oportunidad(
     cuántas candidatas compitió (Principio 4), `rank`/`n_universo` es su
     lugar del día contra el universo escaneado, `confianza_texto`/
     `calidad_historica` vienen de `memoria.confianza`/`memoria.
-    linea_calidad`, y `hora_utc` alimenta la ventana estimada de
-    vigencia."""
+    linea_calidad`, `hora_utc` alimenta la ventana estimada de vigencia,
+    y `cfg` la zona de entrada (`zona_entrada`)."""
+    cfg = cfg or MomentumConfig()
     patron = candidato.resultado.patron or "trend_continuation"
     urgencia_clave = _urgencia(candidato, techo_velas)
     niveles = niveles_entrada_salida(candidato.factores, candidato.atr_diario)
     nivel_inval = _nivel_invalidacion(candidato)
+    zona_baja, zona_alta = zona_entrada(candidato, cfg)
 
     early = candidato.resultado.early
     razon = early.razon if early is not None else "ok"
@@ -307,6 +358,8 @@ def construir_oportunidad(
         ventana_texto=_ventana_texto(patron, hora_utc),
         señales_confirman=_SEÑALES_CONFIRMAN.get(patron, []),
         señales_fallan=_SEÑALES_FALLAN.get(patron, []),
+        zona_entrada_baja=zona_baja, zona_entrada_alta=zona_alta,
+        por_que_ahora=_por_que_ahora_corto(candidato),
     )
 
 
@@ -363,4 +416,38 @@ def formatear(o: Oportunidad) -> str:
         lineas += ["", f'Fuente: "{o.catalizador.titular}" ({o.catalizador.fuente})']
 
     lineas += ["", "La decisión de operar siempre es tuya -- yo solo investigo y aviso."]
+    return "\n".join(lineas)
+
+
+def formatear_entrada(o: Oportunidad) -> str:
+    """Mensaje de "Fase 1" del detector de entradas (pedido 2026-08-10):
+    "quiero abandonar el formato actual demasiado largo para las
+    señales de entrada... quiero que este formato sea el mensaje
+    principal del bot... que pueda leerse en 5-10 segundos". Es lo que
+    `run.py` manda a Telegram para una alerta accionable -- `formatear()`
+    sigue existiendo (auditoría, consola), pero deja de ser lo que llega
+    al chat. La decisión de fondo (accionable, no perseguir, riesgo
+    definido) sigue siendo exactamente la misma de `evaluator.py`; esto
+    solo cambia CÓMO se presenta."""
+    lineas = ["🚨 ENTRADA CONFIRMADA", "", f"{o.urgencia_emoji} {o.ticker}", f"💵 ${o.entrada:,.2f}"]
+
+    if o.zona_entrada_baja is not None and o.zona_entrada_alta is not None:
+        lineas += ["", "ENTRADA", f"${o.zona_entrada_baja:,.2f}–${o.zona_entrada_alta:,.2f}"]
+    if o.stop is not None:
+        lineas += ["", "🛑 STOP", f"${o.stop:,.2f}"]
+    if o.objetivo is not None:
+        lineas += ["", "🎯 OBJETIVO", f"${o.objetivo:,.2f}"]
+    if o.stop is not None and o.objetivo is not None and o.entrada > o.stop:
+        rr = (o.objetivo - o.entrada) / (o.entrada - o.stop)
+        lineas += ["", "R/R", f"{rr:.1f} : 1"]
+
+    if o.por_que_ahora:
+        lineas += ["", "POR QUÉ AHORA"]
+        lineas += [f"✓ {b}" for b in o.por_que_ahora]
+
+    lineas += ["", "⏱ ENTRADA: AHORA"]
+
+    if o.zona_entrada_alta is not None:
+        lineas += ["", f"⚠️ Si pasa de ${o.zona_entrada_alta:,.2f}:", "NO PERSEGUIR."]
+
     return "\n".join(lineas)
