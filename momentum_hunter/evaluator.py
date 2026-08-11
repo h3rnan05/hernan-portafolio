@@ -39,7 +39,16 @@ disfrazada de pregunta. Para `es_large_cap=True`, la pregunta 3 se omite
 por completo (ni penalización ni mención en `explicar_rechazo`): el
 catalizador confirmado + un patrón real ya en marcha (que para large-cap
 en la práctica significa `gap_and_go`/`opening_range_breakout` --
-requieren un gap real, ver `classification.py`) hacen ese trabajo."""
+requieren un gap real, ver `classification.py`) hacen ese trabajo.
+
+`riesgo_definido` (2026-08-10, "Fase 1" del detector de entradas -- ver
+README): veto explícito que antes NO existía. `report.niveles_entrada_salida`
+puede devolver `stop=None` (sin VWAP/EMA9/ATR disponibles) y, hasta ahora,
+esa candidata igual podía volverse `accionable` -- una alerta sin un stop
+real definido. Ahora, sin un riesgo/recompensa de al menos
+`cfg.riesgo_recompensa_minimo`, la respuesta es no, sin importar qué tan
+bien se vea el resto (misma filosofía que la pregunta 4/5: un corte que
+en la práctica anula la alerta, expresado como penalización)."""
 
 from __future__ import annotations
 
@@ -62,6 +71,7 @@ PENALIZACION_SIN_DESEQUILIBRIO = 15.0
 # "penalización" para seguir la letra de Prompt 4.
 PENALIZACION_SIN_PATRON = 100.0
 PENALIZACION_TARDE = 100.0
+PENALIZACION_RIESGO_INSUFICIENTE = 100.0   # ídem -- ver docstring del módulo
 
 
 @dataclass(frozen=True)
@@ -77,12 +87,24 @@ class ResultadoEvaluacion:
     score_ajustado: float = 0.0
     accionable: bool = False
     es_large_cap: bool = False
+    riesgo_definido: bool = False       # stop + objetivo reales, con R:R >= mínimo
 
 
 def _hay_desequilibrio(meta: Metadata) -> bool:
     float_bajo = meta.shares_float is not None and meta.shares_float <= UMBRAL_FLOAT_DESEQUILIBRIO
     short_alto = meta.short_pct_float is not None and meta.short_pct_float >= UMBRAL_SHORT_DESEQUILIBRIO
     return float_bajo or short_alto
+
+
+def _riesgo_recompensa_ok(
+    entrada: float, stop: float | None, objetivo: float | None, minimo: float,
+) -> bool:
+    if stop is None or objetivo is None or entrada <= stop:
+        return False
+    # Tolerancia de punto flotante (mismo principio que `validar()` con
+    # los pesos): un R:R real de exactamente el mínimo no debe rechazarse
+    # por el redondeo binario de una resta de precios.
+    return (objetivo - entrada) / (entrada - stop) >= minimo - 1e-9
 
 
 def evaluar(
@@ -110,6 +132,7 @@ def evaluar(
     patron = classification.detectar_patron(bi_hoy, factores)
     early = early_opportunity.calcular(minutos_desde_catalizador, factores, entrada, stop, objetivo, cfg)
     temprano = early.veredicto == "temprano"
+    riesgo_definido = _riesgo_recompensa_ok(entrada, stop, objetivo, cfg.riesgo_recompensa_minimo)
 
     penalizaciones: list[str] = []
     descuento = 0.0
@@ -125,15 +148,22 @@ def evaluar(
     if not temprano:
         descuento += PENALIZACION_TARDE
         penalizaciones.append(early.motivo_veredicto)
+    if not riesgo_definido:
+        descuento += PENALIZACION_RIESGO_INSUFICIENTE
+        penalizaciones.append(f"No hay un stop y objetivo que den al menos "
+                              f"{cfg.riesgo_recompensa_minimo:.1f}:1 de riesgo/recompensa.")
 
     score_ajustado = round(max(0.0, score_base - descuento), 1)
-    accionable = patron is not None and temprano and score_ajustado >= cfg.score_minimo_alerta
+    accionable = (
+        patron is not None and temprano and riesgo_definido
+        and score_ajustado >= cfg.score_minimo_alerta
+    )
 
     return ResultadoEvaluacion(
         paso_detenido=None, dinero_entrando=dinero_entrando, desequilibrio=desequilibrio,
         patron=patron, temprano=temprano, early=early, penalizaciones=penalizaciones,
         score_base=score_base, score_ajustado=score_ajustado, accionable=accionable,
-        es_large_cap=es_large_cap,
+        es_large_cap=es_large_cap, riesgo_definido=riesgo_definido,
     )
 
 
@@ -166,6 +196,9 @@ def explicar_rechazo(r: ResultadoEvaluacion, cfg: MomentumConfig) -> list[str]:
         else:
             cambios.append("Que aparezca una configuración fresca -- esta ya corrió sin nosotros "
                            "y perseguirla es mal negocio.")
+    if not r.riesgo_definido:
+        cambios.append(f"Que exista un stop real con al menos {cfg.riesgo_recompensa_minimo:.1f}:1 "
+                       "de riesgo/recompensa -- sin eso no hay una salida clara si me equivoco.")
     if not cambios:
         # Accionable=False sin ninguna condición individual fallida solo
         # puede ser el umbral de score: las penalizaciones acumuladas

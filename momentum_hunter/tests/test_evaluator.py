@@ -171,3 +171,42 @@ def test_explicar_rechazo_large_cap_omite_el_desequilibrio():
     cambios = ev.explicar_rechazo(r, CONFIG)
     assert not any("desequilibrio" in x for x in cambios)
     assert any("figuras" in x for x in cambios)  # sigue exigiendo un patrón real
+
+
+# ------------------------- veto de riesgo/recompensa (2026-08-10) -------------------------
+
+def test_sin_stop_no_es_accionable_aunque_todo_lo_demas_sea_perfecto():
+    c = Catalizador(tipo="fda", titular="x", fuente="Reuters")
+    r = ev.evaluar(c, 5.0, _factores_accionables(), _bi(), _meta_desequilibrio(),
+                   5.20, None, None, 95.0, CONFIG)  # sin stop/objetivo
+    assert r.riesgo_definido is False
+    assert r.accionable is False
+    assert r.score_ajustado == max(0.0, 95.0 - ev.PENALIZACION_RIESGO_INSUFICIENTE)
+
+
+def test_riesgo_recompensa_por_debajo_del_minimo_no_es_accionable():
+    c = Catalizador(tipo="fda", titular="x", fuente="Reuters")
+    # Objetivo a solo 0.10 de entrada con 0.20 de riesgo -- R:R 0.5:1,
+    # muy por debajo del mínimo (1.5:1 por defecto).
+    r = ev.evaluar(c, 5.0, _factores_accionables(), _bi(), _meta_desequilibrio(),
+                   5.20, 5.00, 5.30, 95.0, CONFIG)
+    assert r.riesgo_definido is False
+    assert r.accionable is False
+
+
+def test_riesgo_recompensa_justo_en_el_minimo_si_es_accionable():
+    c = Catalizador(tipo="fda", titular="x", fuente="Reuters")
+    # Riesgo 0.20, recompensa 0.30 -- exactamente 1.5:1.
+    r = ev.evaluar(c, 5.0, _factores_accionables(), _bi(), _meta_desequilibrio(),
+                   5.20, 5.00, 5.50, 95.0, CONFIG)
+    assert r.riesgo_definido is True
+    assert r.accionable is True
+    assert r.score_ajustado == 95.0
+
+
+def test_explicar_rechazo_sin_riesgo_definido():
+    c = Catalizador(tipo="fda", titular="x", fuente="Reuters")
+    r = ev.evaluar(c, 5.0, _factores_accionables(), _bi(), _meta_desequilibrio(),
+                   5.20, None, None, 95.0, CONFIG)
+    cambios = ev.explicar_rechazo(r, CONFIG)
+    assert any("riesgo/recompensa" in x for x in cambios)

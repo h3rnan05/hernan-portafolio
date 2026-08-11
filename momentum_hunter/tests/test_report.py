@@ -11,7 +11,13 @@ from momentum_hunter.config import CONFIG
 from momentum_hunter.early_opportunity import EarlyOpportunity
 from momentum_hunter.evaluator import ResultadoEvaluacion
 from momentum_hunter.models import BarraIntradia, FactoresIntradia, Metadata
-from momentum_hunter.report import construir_oportunidad, formatear, niveles_entrada_salida
+from momentum_hunter.report import (
+    construir_oportunidad,
+    formatear,
+    formatear_entrada,
+    niveles_entrada_salida,
+    zona_entrada,
+)
 
 # Palabras que NUNCA deben aparecer en un mensaje enviado a Telegram --
 # la prueba central del pivote ("el usuario nunca debería sentir que
@@ -281,3 +287,87 @@ def test_mensaje_completo_sigue_sin_jerga():
     texto = formatear(o)
     for palabra in JERGA_PROHIBIDA:
         assert palabra not in texto, f"'{palabra}' apareció en el mensaje completo"
+
+
+# ------------------------- detector de entradas, "Fase 1" (2026-08-10) -------------------------
+
+def test_zona_entrada_usa_el_nivel_de_ruptura_mas_tolerancia():
+    c = _candidato()  # gap_and_go, maximo_premarket=5.00
+    baja, alta = zona_entrada(c, CONFIG)
+    assert baja == 5.00
+    assert alta == 5.00 * (1 + CONFIG.tolerancia_zona_entrada_pct)
+
+
+def test_zona_entrada_none_sin_nivel_disponible():
+    factores = FactoresIntradia(precio_actual=5.20)  # sin vwap/ema9/premarket/apertura
+    resultado = ResultadoEvaluacion(
+        paso_detenido=None, dinero_entrando=True, desequilibrio=True, patron=None,
+        temprano=True, early=None, penalizaciones=[], score_base=90.0,
+        score_ajustado=90.0, accionable=False,
+    )
+    c = CandidatoIntradia(
+        ticker="ACME", nombre=None, catalizador=None, minutos_desde_catalizador=None,
+        factores=factores, bi_hoy=_bi(), meta=Metadata(ticker="ACME"), atr_diario=None,
+        resultado=resultado,
+    )
+    assert zona_entrada(c, CONFIG) == (None, None)
+
+
+def test_por_que_ahora_corto_sale_de_condiciones_reales():
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, cfg=CONFIG)
+    assert "Ruptura confirmada" in o.por_que_ahora           # patrón gap_and_go
+    assert "Volumen acelerándose" in o.por_que_ahora          # dinero_entrando=True
+    assert "Catalizador confirmado" in o.por_que_ahora
+    assert "Momentum a favor" not in o.por_que_ahora          # sin datos de MACD en el fixture
+
+
+def test_por_que_ahora_incluye_macd_cuando_confirma():
+    from dataclasses import replace
+
+    c = _candidato()
+    factores_con_macd = replace(c.factores, macd=0.05, macd_signal=0.02)
+    c_macd = replace(c, factores=factores_con_macd)
+    o = construir_oportunidad(c_macd, CONFIG.velas_maximas_desde_patron, cfg=CONFIG)
+    assert "Momentum a favor" in o.por_que_ahora
+
+
+def test_formatear_entrada_incluye_zona_stop_objetivo_rr():
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, cfg=CONFIG)
+    texto = formatear_entrada(o)
+    assert "🚨 ENTRADA CONFIRMADA" in texto
+    assert "ENTRADA" in texto
+    assert f"${o.zona_entrada_baja:,.2f}" in texto
+    assert "🛑 STOP" in texto
+    assert "🎯 OBJETIVO" in texto
+    assert "R/R" in texto
+    assert "2.0 : 1" in texto   # fórmula 2R siempre da exactamente 2.0
+    assert "POR QUÉ AHORA" in texto
+    assert "✓ Ruptura confirmada" in texto
+    assert "⏱ ENTRADA: AHORA" in texto
+
+
+def test_formatear_entrada_incluye_no_perseguir():
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, cfg=CONFIG)
+    texto = formatear_entrada(o)
+    assert f"${o.zona_entrada_alta:,.2f}" in texto
+    assert "NO PERSEGUIR." in texto
+
+
+def test_formatear_entrada_nunca_muestra_jerga():
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, cfg=CONFIG)
+    texto = formatear_entrada(o)
+    for palabra in JERGA_PROHIBIDA:
+        assert palabra not in texto, f"'{palabra}' apareció en el mensaje de entrada"
+
+
+def test_formatear_entrada_es_mucho_mas_corto_que_la_narrativa():
+    c = _candidato()
+    o = construir_oportunidad(
+        c, CONFIG.velas_maximas_desde_patron, cfg=CONFIG, rank=1, n_universo=4300,
+        confianza_texto="Confianza: Alta -- jugada vista 42 veces, funcionó 68% de las veces.",
+    )
+    assert len(formatear_entrada(o)) < len(formatear(o)) / 2

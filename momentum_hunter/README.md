@@ -287,6 +287,81 @@ DESCRIPCION_HUMANA`, `report._CATALIZADOR_HUMANO`, `report.
 _QUE_PASA_AHORA`). `test_report.py` verifica automáticamente que
 ninguna de esas palabras pueda colarse en un mensaje real.
 
+## Detector de entradas, "Fase 1" (pedido 2026-08-10)
+
+Pedido explícito del dueño del producto: "el bot está funcionando como
+radar, no como un detector de entrada... quiero que me avise ÚNICAMENTE
+cuando una oportunidad esté realmente lista para entrar". La narrativa
+de arriba sigue existiendo (`report.formatear()`, se imprime en el log
+de cada corrida), pero **ya no es lo que llega a Telegram** -- una
+alerta accionable ahora manda el mensaje corto de `report.
+formatear_entrada()`, pensado para leerse en 5-10 segundos:
+
+```
+🚨 ENTRADA CONFIRMADA
+
+🔴 RKLB
+💵 $80.25
+
+ENTRADA
+$80.20–$81.40
+
+🛑 STOP
+$79.40
+
+🎯 OBJETIVO
+$81.95
+
+R/R
+2.0 : 1
+
+POR QUÉ AHORA
+✓ Ruptura confirmada
+✓ Volumen acelerándose
+✓ Momentum a favor
+✓ Catalizador confirmado
+
+⏱ ENTRADA: AHORA
+
+⚠️ Si pasa de $81.40:
+NO PERSEGUIR.
+```
+
+Lo que cambió en la lógica de decisión (no solo en el formato):
+
+- **Zona de entrada, no un precio único** (`report.zona_entrada`): el
+  mismo nivel de ruptura del patrón que ya usaba `_nivel_invalidacion`
+  (si se pierde, cancela la idea), más una tolerancia editorial fija
+  (`cfg.tolerancia_zona_entrada_pct`, 1.5% por defecto) -- pasar ese
+  techo es la señal de "esto ya corrió, no perseguir", visible en el
+  propio mensaje.
+- **Veto explícito de riesgo/recompensa** (`evaluator.py`, gate nuevo):
+  antes, una candidata sin `stop` definido (sin VWAP/EMA9/ATR
+  disponibles) podía volverse accionable igual. Ahora, sin un
+  riesgo/recompensa de al menos `cfg.riesgo_recompensa_minimo` (1.5:1
+  por defecto), la respuesta es no, sin importar el score.
+- **MACD intradía como confirmación, nunca como gate**
+  (`factors/intradia.macd_intradia`, mismos periodos 12/26/9 que el
+  MACD diario de `factors/momentum.py`): si está a favor, aparece como
+  "Momentum a favor" en el mensaje -- nunca decide nada por sí solo.
+- **La regla de "no perseguir" real sigue siendo la de siempre**
+  (`early_opportunity.py`: extensión desde VWAP/EMA9 + velas desde la
+  ruptura) -- Fase 1 no duplicó esa lógica, solo la hace visible con la
+  zona de entrada y la advertencia explícita en el mensaje.
+
+**Limitación honesta, explícita desde el principio de esta conversación**:
+esto NO es vigilancia en vivo. Cada corrida sigue siendo un solo escaneo
+que empieza y termina (~2-6 minutos para el universo completo) -- no hay
+todavía una lista de "en observación" que se re-chequee cada pocos
+minutos mientras el precio se mueve. Eso es la Fase 2, deliberadamente
+pospuesta: requiere un segundo workflow, mucho más liviano (solo
+re-evalúa la watchlist persistida, no todo el universo), en la cadencia
+más rápida que GitHub Actions realmente garantiza (5 minutos, no el "1
+minuto ideal" pedido -- GitHub no promete esa frecuencia). El backtest/
+replay contra sesiones históricas (para poder responder "¿el bot
+realmente habría detectado esto a tiempo?") también queda pendiente,
+después de que la vigilancia en vivo lleve unos días corriendo.
+
 ## Filtros de universo (etapa 1)
 
 | Filtro | Banda small-cap (default) | Banda large-cap (complementaria) |

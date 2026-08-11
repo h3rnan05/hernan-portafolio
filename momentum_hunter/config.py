@@ -116,6 +116,18 @@ class MomentumConfig:
     extension_maxima_pct: float = 0.12         # >12% lejos de VWAP/EMA9 -> "ya vamos tarde"
     velas_maximas_desde_patron: int = 8        # más de 8 velas desde la ruptura -> "ya vamos tarde"
 
+    # --- Detector de entradas (2026-08-10, ver "Fase 1" en README) ---
+    # Veto duro que antes no existía: un candidato sin stop definido (o
+    # con riesgo/recompensa pobre) podía volverse accionable igual --
+    # esto lo bloquea explícitamente, no solo lo penaliza.
+    riesgo_recompensa_minimo: float = 1.5
+    # Ancho de la zona de entrada sobre el nivel de ruptura del patrón
+    # (mismo nivel que ya usa `report._nivel_invalidacion`) -- 1.5% es
+    # editorial, documentado como tal (mismo espíritu que `_VENTANA_MINUTOS`
+    # en report.py): ancho a propósito para "recién rompió", no una
+    # tolerancia infinita para perseguir el precio.
+    tolerancia_zona_entrada_pct: float = 0.015
+
     # --- Aprendizaje / tracking ---
     horizontes_seguimiento: tuple[int, ...] = (1, 3, 5, 10)  # días hábiles de seguimiento
 
@@ -137,6 +149,10 @@ class MomentumConfig:
             raise ValueError("velas_maximas_desde_patron debe ser >= 1")
         if self.volumen_promedio_min_large_cap <= 0:
             raise ValueError("volumen_promedio_min_large_cap debe ser > 0")
+        if self.riesgo_recompensa_minimo <= 0:
+            raise ValueError("riesgo_recompensa_minimo debe ser > 0")
+        if self.tolerancia_zona_entrada_pct <= 0:
+            raise ValueError("tolerancia_zona_entrada_pct debe ser > 0")
 
 
 CONFIG = MomentumConfig()

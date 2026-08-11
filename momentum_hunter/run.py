@@ -330,7 +330,7 @@ def seleccionar_y_auditar(
             rank=len(elegidas) + 1, n_universo=n_universo,
             confianza_texto=confianza_texto,
             calidad_historica=memoria.linea_calidad(ctx_patron),
-            hora_utc=hora_utc,
+            hora_utc=hora_utc, cfg=cfg,
         )
         elegidas.append((c, oportunidad))
         decisiones[c.ticker] = (
@@ -464,10 +464,14 @@ def main() -> None:
     oportunidades, vetadas, snapshots = seleccionar_y_auditar(
         candidatos_intradia, CONFIG, n_universo=len(tickers))
     for o in oportunidades:
-        texto = report.formatear(o)
-        print("\n" + texto)
+        # "Fase 1" del detector de entradas (2026-08-10): a Telegram va
+        # el mensaje corto (`formatear_entrada`, 5-10 segundos de
+        # lectura); la narrativa larga (`formatear`) se sigue imprimiendo
+        # en el log de la corrida -- nada se pierde, solo deja de ser lo
+        # que llega al chat.
+        print("\n" + report.formatear(o))
         if not args.dry_run:
-            enviar_telegram(texto)
+            enviar_telegram(report.formatear_entrada(o))
 
     if not args.dry_run and oportunidades:
         tracker.registrar(oportunidades)

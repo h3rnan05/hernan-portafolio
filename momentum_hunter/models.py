@@ -64,6 +64,10 @@ class FactoresIntradia:
     rango_apertura_max: float | None = None    # high de los primeros N minutos de sesión regular
     rango_apertura_min: float | None = None
     velas_desde_ruptura: int | None = None     # velas desde que cerró por primera vez sobre el nivel relevante
+    # -- Detector de entradas, "Fase 1" (2026-08-10): MACD intradía como
+    # CONFIRMACIÓN adicional, nunca como gate -- ver evaluator.py. --
+    macd: float | None = None
+    macd_signal: float | None = None
 
 
 @dataclass
@@ -179,3 +183,8 @@ class Oportunidad:
     ventana_texto: str = ""                # cuánto tiempo estimo que sigue vigente
     señales_confirman: list[str] = field(default_factory=list)  # qué espero ver si es buena
     señales_fallan: list[str] = field(default_factory=list)      # qué me diría que está fallando
+    # -- Detector de entradas, "Fase 1" (2026-08-10) --
+    zona_entrada_baja: float | None = None   # nivel de ruptura del patrón (mismo que `invalidacion`)
+    zona_entrada_alta: float | None = None   # zona_entrada_baja + tolerancia -- más allá, no perseguir
+    por_que_ahora: list[str] = field(default_factory=list)  # versión corta de por_que_unica, para
+                                                              # el mensaje de entrada de 5-10 segundos
