@@ -162,6 +162,33 @@ def aceleracion_volumen(bi: BarraIntradia, ventana: int = 3) -> float | None:
     return (sum(recientes) / len(recientes)) / prom_previo
 
 
+def cierre_sesion_anterior(bi: BarraIntradia) -> float | None:
+    """Cierre de la sesión regular ANTERIOR a "hoy", derivado directamente
+    de las velas intradía ya pedidas (`periodo="5d"` trae de sobra) --
+    para cuando no hay barras DIARIAS a mano. Corrección 2026-08-11
+    (revisión de PR): `revisar_watchlist` ("Fase 2") nunca pide barras
+    diarias y siempre llamaba a `calcular()` con `cierre_anterior=None`,
+    así que una candidata descubierta ANTES de la apertura regular (cuyo
+    `gap_pct_congelado` todavía es `None` en ese momento -- no hay vela
+    regular con la que congelarlo) se quedaba sin gap para siempre en el
+    chequeo liviano, exactamente durante la ventana de apertura que el
+    patrón "gap and go" necesita. Mismo espíritu "mejor esfuerzo" que
+    `run._cierre_anterior` (que sí usa barras diarias): si la fecha
+    anterior no tiene ninguna vela de sesión regular, usa su último
+    cierre disponible en vez de devolver None. Asume orden cronológico
+    (mismo invariante documentado en `BarraIntradia`)."""
+    if not bi.timestamps:
+        return None
+    hoy = _fecha(bi.timestamps[-1])
+    anteriores = [(t, c) for t, c in zip(bi.timestamps, bi.close, strict=True) if _fecha(t) != hoy]
+    if not anteriores:
+        return None
+    fecha_anterior = _fecha(anteriores[-1][0])
+    de_esa_fecha = [(t, c) for t, c in anteriores if _fecha(t) == fecha_anterior]
+    regulares = [c for t, c in de_esa_fecha if es_sesion_regular(t)]
+    return regulares[-1] if regulares else de_esa_fecha[-1][1]
+
+
 def gap_pct(bi_hoy: BarraIntradia, cierre_anterior: float | None) -> float | None:
     """Gap de la apertura REGULAR de hoy vs. el cierre regular de ayer
     (`cierre_anterior` viene de las barras diarias ya calculadas en la

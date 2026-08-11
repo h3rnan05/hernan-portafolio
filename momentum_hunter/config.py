@@ -128,6 +128,19 @@ class MomentumConfig:
     # tolerancia infinita para perseguir el precio.
     tolerancia_zona_entrada_pct: float = 0.015
 
+    # --- State Engine / watchlist persistida (2026-08-11, "Fase 2" --
+    # ver watchlist.py y README). Cuánto tiempo puede quedarse un ticker
+    # en WATCHING sin resolver (TRIGGERED/INVALIDATED/MISSED) antes de
+    # expirar solo -- una candidata que lleva horas sin confirmar nada
+    # ya no es la misma oportunidad que la detectó. ---
+    minutos_maximos_en_watching: int = 120
+    # Corrección 2026-08-11 (revisión de PR): el veredicto "tarde" es
+    # una lectura del instante, no un hecho permanente -- se exige verla
+    # en N chequeos SEGUIDOS antes de comprometerse a MISSED (terminal),
+    # para no apagar la vigilancia continua por un solo dato ruidoso
+    # (ver `EntradaWatchlist.tarde_consecutivas`).
+    verificaciones_tarde_para_missed: int = 2
+
     # --- Aprendizaje / tracking ---
     horizontes_seguimiento: tuple[int, ...] = (1, 3, 5, 10)  # días hábiles de seguimiento
 
@@ -153,6 +166,10 @@ class MomentumConfig:
             raise ValueError("riesgo_recompensa_minimo debe ser > 0")
         if self.tolerancia_zona_entrada_pct <= 0:
             raise ValueError("tolerancia_zona_entrada_pct debe ser > 0")
+        if self.minutos_maximos_en_watching < 1:
+            raise ValueError("minutos_maximos_en_watching debe ser >= 1")
+        if self.verificaciones_tarde_para_missed < 1:
+            raise ValueError("verificaciones_tarde_para_missed debe ser >= 1")
 
 
 CONFIG = MomentumConfig()

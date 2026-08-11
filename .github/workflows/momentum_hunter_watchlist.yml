@@ -1,0 +1,64 @@
+# Chequeo liviano de la watchlist persistida ("Fase 2" del detector de
+# entradas, 2026-08-11, ver momentum_hunter/watchlist.py y README).
+#
+# El escaneo completo (momentum_hunter.yml) descubre candidatas nuevas
+# cada ~30 minutos; este workflow SEPARADO solo re-evalúa las que YA
+# están en WATCHING, sin re-escanear el universo ni pedir barras diarias
+# -- eso permite un cron mucho más frecuente sin acercarse al límite real
+# de Yahoo/GitHub Actions (ver la auditoría de frecuencia en el README:
+# 5 minutos es el mínimo que GitHub Actions garantiza de forma
+# confiable, no el "1 minuto ideal" original).
+#
+# Comparte el `concurrency.group` con momentum_hunter.yml a propósito:
+# los dos workflows leen y escriben el mismo watchlist.json, así que
+# nunca deben correr al mismo tiempo (se encolan, no se cancelan).
+#
+# Mismos secrets que momentum_hunter.yml -- ver ese archivo.
+
+name: momentum-opportunity-hunter-watchlist
+
+on:
+  schedule:
+    - cron: "*/5 13-20 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: momentum-opportunity-hunter
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q -r momentum_hunter/requirements.txt
+
+      - name: Re-chequear la watchlist activa
+        env:
+          MOMENTUM_TELEGRAM_BOT_TOKEN: ${{ secrets.MOMENTUM_TELEGRAM_BOT_TOKEN }}
+          MOMENTUM_TELEGRAM_CHAT_ID: ${{ secrets.MOMENTUM_TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python -m momentum_hunter.run --solo-watchlist
+
+      - name: Persistir watchlist/tracker/auditoría
+        run: |
+          git config user.name "momentum-opportunity-hunter"
+          git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
+          for f in momentum_hunter/watchlist.json momentum_hunter/alertas_enviadas.json; do
+            [ -f "$f" ] && git add "$f" || true
+          done
+          [ -d momentum_hunter/auditoria ] && git add momentum_hunter/auditoria || true
+          git diff --cached --quiet || git commit -m "momentum_hunter: re-chequeo de watchlist [skip ci]"
+          git pull --rebase origin main || true
+          git push
