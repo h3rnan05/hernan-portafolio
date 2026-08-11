@@ -36,8 +36,10 @@ import base64
 import json
 import logging
 import os
+import sys
 import uuid
 from datetime import UTC, datetime
+from pathlib import Path
 
 import httpx
 from fastapi import BackgroundTasks, FastAPI, Header, Request
@@ -48,6 +50,18 @@ from options_command import generar_options
 from report_command import generar_lista_completa, generar_reporte
 from trade_command import generar_trade
 
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
+from momentum_hunter.watchlist import parsear as parsear_watchlist_momentum  # noqa: E402
+from momentum_commands import (  # noqa: E402
+    AYUDA_MOMENTUM,
+    generar_radar as generar_radar_momentum,
+    generar_status as generar_status_momentum,
+    generar_trade as generar_trade_momentum,
+)
+
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("telegram_bot")
 
@@ -57,6 +71,14 @@ GITHUB_REPO = os.getenv("GITHUB_REPO", "h3rnan05/hernan-portafolio")
 INBOX_PATH = "wizards_inbox.json"
 STATE_PATH = "wizards_state.json"
 _updates_vistos: set[int] = set()  # dedupe: Telegram reintenta si tardamos
+
+# --- Momentum Opportunity Hunter (2026-08-11): namespace de comandos
+# separado -- bot de Telegram DISTINTO (`MOMENTUM_TELEGRAM_BOT_TOKEN`/
+# `_CHAT_ID`, ver docstring de `momentum_commands.py`), su propio secreto
+# de webhook y su propio set de dedup (update_ids de dos bots distintos
+# pueden coincidir en valor sin ser el mismo update). ---
+MOMENTUM_WATCHLIST_PATH = "momentum_hunter/watchlist.json"
+_updates_vistos_momentum: set[int] = set()
 
 AYUDA = (
     "🧙 Soy el filtro de ideas de tu wizards bot.\n\n"
@@ -128,6 +150,54 @@ async def _github_get(http: httpx.AsyncClient, path: str) -> tuple[dict | None, 
     body = r.json()
     contenido = json.loads(base64.b64decode(body["content"]).decode())
     return contenido, body["sha"]
+
+
+async def _momentum_telegram_send(chat_id: str, texto: str) -> None:
+    """Igual que `_telegram_send`, pero con el token del bot dedicado de
+    momentum_hunter (mismo fallback que ya usa `run.enviar_telegram`:
+    MOMENTUM_TELEGRAM_BOT_TOKEN si existe, si no TELEGRAM_BOT_TOKEN)."""
+    token = _env("MOMENTUM_TELEGRAM_BOT_TOKEN") or _env("TELEGRAM_BOT_TOKEN")
+    async with httpx.AsyncClient(timeout=15) as http:
+        await http.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            json={"chat_id": chat_id, "text": texto[:4000]},
+        )
+
+
+async def _cargar_watchlist_momentum() -> list:
+    """Descarga `momentum_hunter/watchlist.json` vía la API de contenidos
+    de GitHub (este servicio no tiene filesystem local persistente en
+    Render) y lo parsea con el MISMO parseo tolerante a corrupción que
+    usa `momentum_hunter.watchlist.cargar()` -- "no dupliques la lógica
+    de estados en Telegram"."""
+    async with httpx.AsyncClient(timeout=20) as http:
+        contenido, _ = await _github_get(http, MOMENTUM_WATCHLIST_PATH)
+    if contenido is None:
+        return []
+    return parsear_watchlist_momentum(contenido)
+
+
+async def _cargar_auditoria_momentum_hoy() -> dict | None:
+    hoy = datetime.now(UTC).date().isoformat()
+    async with httpx.AsyncClient(timeout=20) as http:
+        contenido, _ = await _github_get(http, f"momentum_hunter/auditoria/{hoy}.json")
+    return contenido
+
+
+async def _procesar_momentum_trade(ticker: str, chat_id: str) -> None:
+    entradas = await _cargar_watchlist_momentum()
+    await _momentum_telegram_send(chat_id, generar_trade_momentum(ticker, entradas))
+
+
+async def _procesar_momentum_status(chat_id: str) -> None:
+    entradas = await _cargar_watchlist_momentum()
+    auditoria = await _cargar_auditoria_momentum_hoy()
+    await _momentum_telegram_send(chat_id, generar_status_momentum(entradas, auditoria))
+
+
+async def _procesar_momentum_radar(chat_id: str) -> None:
+    entradas = await _cargar_watchlist_momentum()
+    await _momentum_telegram_send(chat_id, generar_radar_momentum(entradas))
 
 
 async def _encolar_idea(idea: dict) -> None:
@@ -472,4 +542,74 @@ async def telegram_webhook(
         return {"ok": True}
 
     background.add_task(_procesar, texto, chat_id)
+    return {"ok": True}
+
+
+@app.post("/momentum/webhook")
+async def momentum_webhook(
+    request: Request,
+    background: BackgroundTasks,
+    x_telegram_bot_api_secret_token: str | None = Header(default=None),
+) -> dict:
+    """Webhook DEDICADO al Momentum Opportunity Hunter -- namespace de
+    comandos separado del wizards bot de arriba (que ya tiene su propio
+    `/trade`, ver docstring del módulo). READ-ONLY estricto: cada
+    comando solo lee `momentum_hunter/watchlist.json`/`auditoria/` vía la
+    API de GitHub y traduce a texto -- "Telegram NO decide, Telegram NO
+    evalúa, Telegram solo comunica" (pedido explícito). PROHIBIDO
+    cualquier ejecución de operaciones: no existe ningún comando acá que
+    escriba estado, conecte un broker, ni coloque una orden.
+
+    Paso manual pendiente (no ejecutable desde acá, requiere el token
+    real del bot): registrar este webhook contra el bot dedicado de
+    momentum_hunter --
+      curl "https://api.telegram.org/bot<MOMENTUM_TOKEN>/setWebhook?url=https://<ESTE-SERVICIO>.onrender.com/momentum/webhook&secret_token=<MOMENTUM_TELEGRAM_WEBHOOK_SECRET>"
+    """
+    secret = _env("MOMENTUM_TELEGRAM_WEBHOOK_SECRET") or _env("TELEGRAM_WEBHOOK_SECRET")
+    if not secret or x_telegram_bot_api_secret_token != secret:
+        return {"ok": True}   # 200 vacío a impostores -- sin dar señal de qué falló
+
+    update = await request.json()
+    update_id = update.get("update_id")
+    if update_id in _updates_vistos_momentum:
+        return {"ok": True}   # reintento de Telegram por timeout previo
+    _updates_vistos_momentum.add(update_id)
+    if len(_updates_vistos_momentum) > 500:
+        _updates_vistos_momentum.clear()
+
+    msg = update.get("message") or update.get("edited_message") or {}
+    chat_id = str(msg.get("chat", {}).get("id", ""))
+    texto = (msg.get("text") or "").strip()
+    if not chat_id or not texto:
+        return {"ok": True}
+
+    chat_permitido = _env("MOMENTUM_TELEGRAM_CHAT_ID") or _env("TELEGRAM_CHAT_ID")
+    if chat_id != chat_permitido:
+        background.add_task(
+            _momentum_telegram_send, chat_id,
+            "Este bot es privado. No estás en su lista de chats autorizados.")
+        return {"ok": True}
+
+    if texto.startswith(("/start", "/help", "/ayuda")):
+        background.add_task(_momentum_telegram_send, chat_id, AYUDA_MOMENTUM)
+        return {"ok": True}
+
+    if texto.startswith("/status"):
+        background.add_task(_procesar_momentum_status, chat_id)
+        return {"ok": True}
+
+    if texto.startswith("/radar"):
+        background.add_task(_procesar_momentum_radar, chat_id)
+        return {"ok": True}
+
+    if texto.startswith("/trade"):
+        partes = texto.split()
+        if len(partes) < 2:
+            background.add_task(
+                _momentum_telegram_send, chat_id, "Uso: /trade TICKER (ej. /trade RKLB)")
+            return {"ok": True}
+        background.add_task(_procesar_momentum_trade, partes[1].upper(), chat_id)
+        return {"ok": True}
+
+    background.add_task(_momentum_telegram_send, chat_id, AYUDA_MOMENTUM)
     return {"ok": True}

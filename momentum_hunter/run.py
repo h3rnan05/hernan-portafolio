@@ -437,7 +437,7 @@ def _actualizar_watchlist(
     shortlist: list[CandidatoDiario], candidatos_intradia: list[CandidatoIntradia],
     elegidas_tickers: set[str], cfg: MomentumConfig, dry_run: bool, ahora: datetime | None = None,
     dato_recibido_ts: str | None = None,
-) -> tuple[list, dict[str, object]]:
+) -> tuple[list, dict[str, object], list[str]]:
     """State Engine (2026-08-11, "Fase 2"): toda candidata con
     catalizador confirmado que llega a la etapa 2 entra a vigilancia
     persistida. Las que se alertan AHORA MISMO se marcan TRIGGERED de
@@ -468,14 +468,48 @@ def _actualizar_watchlist(
     `registrar_latencia` con relojes frescos tomados alrededor del envío
     real, igual que ya hace `revisar_watchlist`.
 
-    En dry-run no se persiste (mismo principio que el resto de `main()`:
-    dry-run calcula y muestra, nunca muta estado)."""
+    Integración de Telegram (pedido explícito): además de `(entradas,
+    disparadas)`, devuelve una lista `mensajes_pendientes` -- los textos
+    de WATCHING/INVALIDATED/MISSED/EXPIRED que ocurrieron DENTRO de esta
+    corrida. Esta función NUNCA los manda ella misma: "TRIGGERED --
+    PRIORIDAD MÁXIMA, debe enviarse inmediatamente" (pedido explícito)
+    exige que `main()` mande primero el TRIGGERED de esta corrida (que
+    recién arma su `Oportunidad` completa DESPUÉS de esta función) y
+    solo entonces los mensajes de menor prioridad que ya quedaron
+    calculados y persistidos acá -- nunca al revés.
+
+    El archivo SÍ se persiste (`watchlist.guardar`) ANTES de devolver
+    -- la transición ya quedó a salvo en disco aunque el envío (que hace
+    el caller) tarde o falle. Si el proceso muere justo después de un
+    envío, el estado en disco YA refleja la transición, así que la
+    próxima corrida nunca la vuelve a procesar. La única ventana de
+    duplicación que esto NO puede cerrar (documentada en el README): un
+    crash entre el envío y el COMMIT DE GIT que hace el workflow al
+    terminar (la escritura local de `guardar` no sobrevive un contenedor
+    que muere antes de ese commit).
+
+    WATCHING solo se avisa para candidatas NUEVAS que SIGUEN en WATCHING
+    al terminar esta corrida -- una candidata nueva que pasó directo a
+    TRIGGERED/INVALIDATED/MISSED en el mismo ciclo NO recibe también un
+    aviso de WATCHING (sería el ruido de "la estoy vigilando" seguido un
+    instante después por "ya se resolvió", justo lo que se pidió evitar).
+
+    En dry-run no se persiste ni se manda nada (mismo principio que el
+    resto de `main()`: dry-run calcula y muestra, nunca muta estado) --
+    `mensajes_pendientes` igual se calcula (es puro), pero el caller debe
+    respetar `dry_run` y no enviarlo."""
     ahora = ahora or datetime.now(UTC)
     entradas = watchlist.cargar()
-    entradas = watchlist.agregar_nuevas(entradas, shortlist, ahora)
+    ya_conocidos_antes = {e.ticker for e in entradas}
+    evaluacion_ts_creacion = _ahora_iso_run(datetime.now(UTC))
+    entradas = watchlist.agregar_nuevas(
+        entradas, shortlist, ahora, deteccion_ts=dato_recibido_ts, evaluacion_ts=evaluacion_ts_creacion)
     por_ticker = {e.ticker: e for e in entradas}
+    por_ticker_candidato = {c.ticker: c for c in candidatos_intradia}
+    nuevas_tickers = {e.ticker for e in entradas if e.ticker not in ya_conocidos_antes}
 
     disparadas: dict[str, object] = {}
+    mensajes_pendientes: list[str] = []
     for c in candidatos_intradia:
         e = por_ticker.get(c.ticker)
         if e is None or e.estado != watchlist.ESTADO_WATCHING:
@@ -490,17 +524,39 @@ def _actualizar_watchlist(
             market_ts = c.bi_hoy.timestamps[-1] if c.bi_hoy.timestamps else _ahora_iso_run(ahora)
             evaluador_ts = _ahora_iso_run(datetime.now(UTC))
             watchlist.marcar_triggered(e, market_ts, dato_recibido_ts or evaluador_ts, evaluador_ts, ahora)
+            niveles = report.niveles_entrada_salida(c.factores, c.atr_diario)
+            zona_baja, _ = report.zona_entrada(c, cfg)
+            watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
             disparadas[c.ticker] = e
         else:
-            _evaluar_no_disparada(e, c, cfg, ahora)
+            mensaje = _evaluar_no_disparada(e, c, cfg, ahora, dato_recibido_ts, evaluacion_ts_creacion)
+            if mensaje is not None:
+                mensajes_pendientes.append(mensaje)
 
     entradas = watchlist.purgar_antiguas(entradas, ahora)
-    watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
+    expiradas = watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
     n_watching = len(watchlist.activas(entradas))
     log.info("watchlist: %d en observación tras esta corrida", n_watching)
+
+    for ticker in nuevas_tickers:
+        e = por_ticker.get(ticker)
+        candidato = por_ticker_candidato.get(ticker)
+        if e is None or candidato is None:
+            continue
+        if e.estado == watchlist.ESTADO_WATCHING:
+            niveles = report.niveles_entrada_salida(candidato.factores, candidato.atr_diario)
+            zona_baja, _ = report.zona_entrada(candidato, cfg)
+            watchlist.actualizar_niveles(
+                e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
+            mensajes_pendientes.append(report.mensaje_watching(candidato, cfg))
+    for expirada in expiradas:
+        mensajes_pendientes.append(report.mensaje_expired(expirada.ticker))
+
     if not dry_run:
-        watchlist.guardar(entradas)
-    return entradas, disparadas
+        watchlist.guardar(entradas)   # COMMIT primero -- ver docstring
+    else:
+        mensajes_pendientes = []   # dry-run: nunca se manda nada
+    return entradas, disparadas, mensajes_pendientes
 
 
 def _ahora_iso_run(ahora: datetime) -> str:
@@ -553,12 +609,23 @@ def _filtrar_ya_resueltas_hoy(
     return [o for o in oportunidades if o.ticker not in ya_resueltas_hoy], ya_resueltas_hoy
 
 
-def _evaluar_no_disparada(e, c: CandidatoIntradia, cfg: MomentumConfig, ahora: datetime) -> None:
+def _evaluar_no_disparada(
+    e, c: CandidatoIntradia, cfg: MomentumConfig, ahora: datetime,
+    deteccion_ts: str | None = None, evaluacion_ts: str | None = None,
+) -> str | None:
     """Traduce el resultado de una candidata que NO disparó esta vez a
     una transición de watchlist (o ninguna, si sigue en observación) --
     compartido entre `_actualizar_watchlist` y `revisar_watchlist`
     (corrección 2026-08-11, revisión de PR: antes esta lógica estaba
     duplicada en las dos funciones).
+
+    Devuelve el texto del mensaje de Telegram si esta evaluación produjo
+    una transición terminal (INVALIDATED/MISSED), o `None` si la
+    candidata sigue en WATCHING -- el CALLER decide cuándo es seguro
+    mandarlo (después de persistir el archivo, ver docstring de
+    `_actualizar_watchlist`). Esta función nunca llama a `enviar_telegram`
+    directamente -- "Telegram solamente representa lo que decidió el
+    State Engine", nunca al revés.
 
     El veredicto "tarde" es del instante, no permanente -- ver
     `EntradaWatchlist.tarde_consecutivas`: hace falta verlo
@@ -575,15 +642,23 @@ def _evaluar_no_disparada(e, c: CandidatoIntradia, cfg: MomentumConfig, ahora: d
     tiempo" (ver docstring del módulo `watchlist.py`) -- sin patrón real,
     la candidata sigue en WATCHING (nunca hay nada que "perder"), sujeta
     solo al TTL normal de `expirar_vencidas`."""
+    niveles = report.niveles_entrada_salida(c.factores, c.atr_diario)
+    zona_baja, _ = report.zona_entrada(c, cfg)
+    watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
+
     r = c.resultado
     if r.patron is not None and not r.temprano and r.early is not None:
         e.tarde_consecutivas += 1
         if e.tarde_consecutivas >= cfg.verificaciones_tarde_para_missed:
-            watchlist.marcar_missed(e, r.early.motivo_veredicto, ahora)
-        return
+            watchlist.marcar_missed(e, r.early.motivo_veredicto, ahora, deteccion_ts, evaluacion_ts)
+            return report.mensaje_missed(e.ticker, zona_baja, c.factores.precio_actual)
+        return None
     e.tarde_consecutivas = 0
     if not watchlist.catalizador_vigente(e, cfg.dias_ventana_catalizador, ahora):
-        watchlist.marcar_invalidated(e, "El catalizador ya salió de la ventana de vigencia.", ahora)
+        motivo = "El catalizador ya salió de la ventana de vigencia."
+        watchlist.marcar_invalidated(e, motivo, ahora, deteccion_ts, evaluacion_ts)
+        return report.mensaje_invalidated(e.ticker, motivo, zona_baja)
+    return None
 
 
 def revisar_watchlist(
@@ -639,42 +714,85 @@ def revisar_watchlist(
 
     if not candidatos:
         entradas = watchlist.purgar_antiguas(entradas, ahora)
-        watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
+        expiradas = watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
         if not dry_run:
             watchlist.guardar(entradas)
+            for expirada in expiradas:
+                enviar_telegram(report.mensaje_expired(expirada.ticker))
         return
 
+    evaluacion_ts = _ahora_iso_run(datetime.now(UTC))
     oportunidades, vetadas, snapshots = seleccionar_y_auditar(candidatos, cfg, n_universo=0)
     elegidos = {o.ticker: o for o in oportunidades}
 
+    # Primera pasada: SOLO transiciones de estado (State Engine) -- cero
+    # llamadas a Telegram todavía. "ALERT FIRST, SECOND ANALYTICS" no
+    # significa saltarse la persistencia: significa que el archivo se
+    # confirma en disco ANTES de intentar cualquier envío, para que un
+    # reinicio justo después de mandar un mensaje nunca reprocese la
+    # misma transición (la única ventana de duplicación que esto NO
+    # cierra -- un crash entre el envío y el commit de git del workflow --
+    # queda documentada en el README).
+    pendientes: list[tuple[str, object, object]] = []   # (tipo, entrada, oportunidad|texto)
     for candidato in candidatos:
         e = por_ticker[candidato.ticker]
         if candidato.ticker in elegidos:
             oportunidad = elegidos[candidato.ticker]
-            evaluador_ts = _ahora_iso_run(datetime.now(UTC))
+            evaluador_ts_disparo = _ahora_iso_run(datetime.now(UTC))
             market_ts = (
-                candidato.bi_hoy.timestamps[-1] if candidato.bi_hoy.timestamps else evaluador_ts
+                candidato.bi_hoy.timestamps[-1] if candidato.bi_hoy.timestamps else evaluador_ts_disparo
             )
-            watchlist.marcar_triggered(e, market_ts, dato_recibido_ts, evaluador_ts, ahora)
-            texto = report.formatear_entrada(oportunidad)
-            mensaje_ts = _ahora_iso_run(datetime.now(UTC))
-            print("\n" + report.formatear(oportunidad))
-            if not dry_run:
-                enviar_telegram(texto)
-            telegram_ts = _ahora_iso_run(datetime.now(UTC))
-            watchlist.registrar_latencia(e, mensaje_ts, telegram_ts)
-            log.info("TRIGGERED %s -- latencia de la señal: %s ms", e.ticker, e.signal_latency_ms)
-            if not dry_run:
-                tracker.registrar([oportunidad])
+            watchlist.marcar_triggered(e, market_ts, dato_recibido_ts, evaluador_ts_disparo, ahora)
+            watchlist.actualizar_niveles(
+                e, oportunidad.entrada, oportunidad.stop, oportunidad.objetivo,
+                oportunidad.zona_entrada_baja, ahora)
+            pendientes.append(("triggered", e, oportunidad))
         else:
-            _evaluar_no_disparada(e, candidato, cfg, ahora)
+            mensaje = _evaluar_no_disparada(e, candidato, cfg, ahora, dato_recibido_ts, evaluacion_ts)
+            if mensaje is not None:
+                pendientes.append(("estado", e, mensaje))
 
     entradas = watchlist.purgar_antiguas(entradas, ahora)
-    watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
+    expiradas = watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
+    for expirada in expiradas:
+        pendientes.append(("estado", expirada, report.mensaje_expired(expirada.ticker)))
+
     log.info("watchlist: %d en observación tras el re-chequeo", len(watchlist.activas(entradas)))
     if not dry_run:
+        watchlist.guardar(entradas)   # COMMIT primero -- ver comentario arriba
+
+    # Segunda pasada: recién ahora se manda a Telegram. "TRIGGERED --
+    # PRIORIDAD MÁXIMA, debe enviarse inmediatamente" (pedido explícito):
+    # SIEMPRE primero, sin importar en qué orden se procesaron los
+    # tickers arriba -- ninguna espera a que auditoría/tracker terminen
+    # (esos corren DESPUÉS, ver abajo).
+    pendientes.sort(key=lambda item: 0 if item[0] == "triggered" else 1)
+    for tipo, e, contenido in pendientes:
+        if tipo == "triggered":
+            oportunidad = contenido
+            texto = report.formatear_entrada(oportunidad)
+            print("\n" + report.formatear(oportunidad))
+            if dry_run:
+                continue
+            mensaje_ts = _ahora_iso_run(datetime.now(UTC))
+            enviar_telegram(texto)
+            telegram_ts = _ahora_iso_run(datetime.now(UTC))
+            watchlist.registrar_latencia(e, mensaje_ts, telegram_ts)
+            watchlist.completar_latencia_transicion(e, mensaje_ts, telegram_ts)
+            log.info("TRIGGERED %s -- latencia de la señal: %s ms", e.ticker, e.signal_latency_ms)
+            tracker.registrar([oportunidad])
+        else:
+            texto = contenido
+            if dry_run:
+                continue
+            mensaje_ts = _ahora_iso_run(datetime.now(UTC))
+            enviar_telegram(texto)
+            telegram_ts = _ahora_iso_run(datetime.now(UTC))
+            watchlist.completar_latencia_transicion(e, mensaje_ts, telegram_ts)
+
+    if not dry_run:
         audit.registrar_corrida(snapshots)
-        watchlist.guardar(entradas)
+        watchlist.guardar(entradas)   # segunda vez -- persiste la latencia recién completada (best-effort)
 
 
 def _revisar_resumen_cierre(dry_run: bool, ya_avisado_radar: bool = False) -> None:
@@ -780,7 +898,7 @@ def main() -> None:
     oportunidades, vetadas, snapshots = seleccionar_y_auditar(
         candidatos_intradia, CONFIG, n_universo=len(tickers))
 
-    entradas_watchlist, disparadas_watchlist = _actualizar_watchlist(
+    entradas_watchlist, disparadas_watchlist, mensajes_menor_prioridad = _actualizar_watchlist(
         shortlist, candidatos_intradia, {o.ticker for o in oportunidades}, CONFIG, args.dry_run,
         dato_recibido_ts=dato_recibido_ts)
 
@@ -810,6 +928,16 @@ def main() -> None:
         entrada_disparada = disparadas_watchlist.get(o.ticker)
         if entrada_disparada is not None:
             watchlist.registrar_latencia(entrada_disparada, mensaje_ts, telegram_ts)
+            watchlist.completar_latencia_transicion(entrada_disparada, mensaje_ts, telegram_ts)
+
+    # "TRIGGERED -- PRIORIDAD MÁXIMA, debe enviarse inmediatamente"
+    # (pedido explícito): recién ACÁ, después de que la(s) alerta(s) de
+    # esta corrida ya salieron, se mandan los mensajes de menor prioridad
+    # (WATCHING/INVALIDATED/MISSED/EXPIRED de otros tickers) que
+    # `_actualizar_watchlist` ya calculó y persistió -- nunca antes.
+    if not args.dry_run:
+        for texto in mensajes_menor_prioridad:
+            enviar_telegram(texto)
 
     if not args.dry_run and disparadas_watchlist:
         watchlist.guardar(entradas_watchlist)

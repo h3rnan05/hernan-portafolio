@@ -371,3 +371,89 @@ def test_formatear_entrada_es_mucho_mas_corto_que_la_narrativa():
         confianza_texto="Confianza: Alta -- jugada vista 42 veces, funcionó 68% de las veces.",
     )
     assert len(formatear_entrada(o)) < len(formatear(o)) / 2
+
+
+# ------------------------- integración de Telegram (2026-08-11) -------------------------
+
+def test_formatear_entrada_incluye_timing_y_cancelo_la_idea_si():
+    c = _candidato(temprano=True)
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, cfg=CONFIG)
+    texto = formatear_entrada(o)
+    assert "TIMING" in texto
+    assert "TEMPRANO" in texto
+    assert "Cancelo la idea si" in texto
+    assert f"${o.stop:,.2f}" in texto
+
+
+def test_formatear_entrada_menciona_missed_si_se_persigue():
+    c = _candidato()
+    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, cfg=CONFIG)
+    texto = formatear_entrada(o)
+    assert "MISSED" in texto   # "si sube demasiado... pasa a MISSED"
+
+
+def test_mensaje_watching_deja_claro_que_no_es_entrada():
+    from momentum_hunter.report import mensaje_watching
+    c = _candidato(accionable=False, temprano=True)
+    texto = mensaje_watching(c, CONFIG)
+    assert "EN VIGILANCIA" in texto
+    assert "ACME" in texto
+    assert "WATCHING" in texto
+    assert "Todavía NO es entrada." in texto
+    for palabra in JERGA_PROHIBIDA:
+        assert palabra not in texto
+
+
+def test_mensaje_watching_incluye_lo_que_esta_esperando():
+    from momentum_hunter.report import mensaje_watching
+    c = _candidato(accionable=False, temprano=True, patron="gap_and_go")
+    texto = mensaje_watching(c, CONFIG)
+    assert "Estoy esperando:" in texto
+
+
+def test_mensaje_invalidated_incluye_motivo_real_y_no_entrar():
+    from momentum_hunter.report import mensaje_invalidated
+    texto = mensaje_invalidated("RKLB", "El catalizador ya salió de la ventana de vigencia.", 78.30)
+    assert "INVALIDADA" in texto
+    assert "RKLB" in texto
+    assert "El catalizador ya salió de la ventana de vigencia." in texto
+    assert "$78.30" in texto
+    assert "NO ENTRAR." in texto
+
+
+def test_mensaje_invalidated_sin_zona_omite_esa_linea():
+    from momentum_hunter.report import mensaje_invalidated
+    texto = mensaje_invalidated("RKLB", "motivo", None)
+    assert "Entrada que se estaba esperando" not in texto
+
+
+def test_mensaje_missed_incluye_entrada_original_y_precio_actual():
+    from momentum_hunter.report import mensaje_missed
+    texto = mensaje_missed("RKLB", 78.40, 81.20)
+    assert "OPORTUNIDAD PERDIDA" in texto
+    assert "$78.40" in texto
+    assert "$81.20" in texto
+    assert "NO PERSEGUIR." in texto
+
+
+def test_mensaje_expired_es_corto_y_claro():
+    from momentum_hunter.report import mensaje_expired
+    texto = mensaje_expired("RKLB")
+    assert "EXPIRADA" in texto
+    assert "RKLB" in texto
+    assert "No operar." in texto
+    assert len(texto) < 200
+
+
+def test_ningun_mensaje_de_transicion_usa_jerga_tecnica():
+    from momentum_hunter.report import mensaje_expired, mensaje_invalidated, mensaje_missed, mensaje_watching
+    c = _candidato(accionable=False, temprano=True)
+    textos = [
+        mensaje_watching(c, CONFIG),
+        mensaje_invalidated("RKLB", "motivo", 5.0),
+        mensaje_missed("RKLB", 5.0, 5.5),
+        mensaje_expired("RKLB"),
+    ]
+    for texto in textos:
+        for palabra in JERGA_PROHIBIDA:
+            assert palabra not in texto

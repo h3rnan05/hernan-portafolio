@@ -552,3 +552,83 @@ Este servicio ya está desplegado en Render. Los cambios de este módulo
 requieren que Render redeploye (automático si el servicio está
 configurado con auto-deploy en push a `main`; si no, hay que redesplegar
 manualmente desde el dashboard de Render).
+
+## Momentum Opportunity Hunter -- comandos (`/momentum/webhook`)
+
+Namespace de webhook SEPARADO del resto de este servicio (2026-08-11):
+el wizards bot de arriba ya tiene su propio `/trade` -- para no chocar
+nombres de comando, momentum_hunter usa un bot de Telegram DISTINTO,
+con su propia ruta (`POST /momentum/webhook`), su propio secreto y su
+propio chat autorizado.
+
+READ-ONLY estricto: `momentum_commands.py` solo LEE
+`momentum_hunter/watchlist.json` (y `momentum_hunter/auditoria/{hoy}.json`
+para `/status`) vía la API de contenidos de GitHub -- nunca escribe
+nada, nunca se conecta a un broker, nunca coloca una orden. "Telegram
+solamente representa lo que decidió el State Engine" -- la fuente de
+verdad sigue siendo `momentum_hunter/run.py` (cron de GitHub Actions),
+que sigue siendo el ÚNICO proceso que escribe `watchlist.json`.
+
+Comandos:
+  - `/status` -- resumen corto (vigilancia, entradas confirmadas hoy,
+    latencia promedio medida hoy, última señal).
+  - `/radar` -- solo TRIGGERED de hoy + WATCHING activas, sin explicaciones largas.
+  - `/trade TICKER` -- lee el estado EXISTENTE de ese ticker (nunca
+    evalúa uno nuevo) y muestra los niveles que el pipeline YA calculó
+    en su chequeo más reciente (`EntradaWatchlist.ultima_entrada/
+    ultimo_stop/ultimo_objetivo`, ver `momentum_hunter/watchlist.py`).
+  - `/help` -- lista de comandos.
+
+Honestidad explícita: "Escaneadas" (tamaño del universo de la etapa 1)
+NO aparece en `/status` -- ese número solo vive en el log de la corrida
+de GitHub Actions, nunca se persiste en ningún archivo que este
+servicio pueda leer, y no se inventa.
+
+### Env vars adicionales (Render → Settings → Environment)
+
+  - `MOMENTUM_TELEGRAM_BOT_TOKEN` / `MOMENTUM_TELEGRAM_CHAT_ID` --
+    mismas variables que ya usa `momentum_hunter/run.py` para mandar
+    alertas por cron; si no existen, cae a `TELEGRAM_BOT_TOKEN`/
+    `TELEGRAM_CHAT_ID` (mismo bot que el wizards bot -- no recomendado,
+    mezclaría los dos flujos de mensajes).
+  - `MOMENTUM_TELEGRAM_WEBHOOK_SECRET` -- secreto del webhook de este
+    bot dedicado (si no existe, cae a `TELEGRAM_WEBHOOK_SECRET`, pero
+    entonces cualquiera con ese secreto podría hablarle a este endpoint
+    también -- se recomienda uno propio).
+  - `GITHUB_BOT_TOKEN` -- ya existe (lo reutiliza el resto del
+    servicio), necesita permiso de lectura sobre este repo.
+
+### Paso manual pendiente (el dueño del bot, no ejecutable desde acá)
+
+Después de desplegar, registrar el webhook contra el bot DEDICADO de
+momentum_hunter (el token real nunca debe compartirse con el asistente
+ni con un tercero):
+
+```
+curl "https://api.telegram.org/bot<MOMENTUM_TELEGRAM_BOT_TOKEN>/setWebhook?url=https://<ESTE-SERVICIO>.onrender.com/momentum/webhook&secret_token=<MOMENTUM_TELEGRAM_WEBHOOK_SECRET>"
+```
+
+## Limitaciones reales de la integración de Telegram (honestidad explícita)
+
+  - **Latencia**: `signal_latency_ms` y los campos por-transición
+    (`Transicion.latencia_desde_deteccion_ms`/`_evaluacion_ms`/
+    `_transicion_ms`, ver `momentum_hunter/watchlist.py`) miden desde
+    timestamps REALES -- nunca inventados. Pero el "timestamp de
+    detección" es cuándo llegó la VELA de 1 minuto de Yahoo Finance, no
+    el instante exacto del tick de mercado: Yahoo no expone eso con
+    datos gratis, así que la latencia medida siempre incluye ese margen
+    de hasta ~60 segundos que no es atribuible al bot.
+  - **Deduplicación**: cada transición del State Engine ocurre como
+    máximo una vez por diseño (una entrada nace en WATCHING una sola
+    vez, un estado terminal no se re-procesa -- ver docstring de
+    `run._actualizar_watchlist`), y el archivo se persiste ANTES de
+    intentar el envío a Telegram. La única ventana real que esto NO
+    puede cerrar: si el contenedor de GitHub Actions muere DESPUÉS de
+    mandar un mensaje pero ANTES de que el workflow haga el commit de
+    `watchlist.json` a `main`, la siguiente corrida no tiene forma de
+    saber que ya se mandó -- no es "exactly once" garantizado a nivel de
+    infraestructura, es "exactly once" a nivel de proceso individual más
+    persistencia previa al envío.
+  - **`/status` "Escaneadas"**: no disponible (ver arriba).
+  - **Horario de mercado en `/status`**: aproximación fija en UTC
+    (9:30am-4:00pm ET), sin calendario de feriados ni medio día.

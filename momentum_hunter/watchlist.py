@@ -53,7 +53,7 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -75,8 +75,24 @@ ESTADOS_TERMINALES = frozenset({ESTADO_TRIGGERED, ESTADO_INVALIDATED, ESTADO_MIS
 @dataclass(frozen=True)
 class Transicion:
     estado: str
-    timestamp: str   # ISO 8601 UTC
+    timestamp: str   # ISO 8601 UTC -- también es "el timestamp de la transición" para latencia
     motivo: str
+    # -- Latencia POR TRANSICIÓN (pedido explícito 2026-08-11, integración
+    # de Telegram: "para cada transición registra timestamp de detección,
+    # evaluación, transición, generación del mensaje, envío a Telegram").
+    # Antes esto solo existía para TRIGGERED (ver los campos a nivel
+    # `EntradaWatchlist` más abajo, que se conservan tal cual para no
+    # romper esa medición ya probada); esto lo generaliza a las 5
+    # transiciones sin duplicar la idea. Todo opcional y `None` por
+    # defecto -- nunca se inventa un timestamp que no se midió de verdad
+    # (ver `completar_latencia_transicion`).
+    deteccion_ts: str | None = None      # reloj: cuándo llegaron los datos que originaron esta transición
+    evaluacion_ts: str | None = None     # reloj: cuándo la lógica de decisión (evaluator o el TTL) resolvió esto
+    mensaje_generado_ts: str | None = None
+    telegram_enviado_ts: str | None = None
+    latencia_desde_deteccion_ms: float | None = None    # None si esta transición no tiene un dato puntual de origen
+    latencia_desde_evaluacion_ms: float | None = None
+    latencia_desde_transicion_ms: float | None = None    # SIEMPRE calculable -- referencia común a las 5 transiciones
 
 
 @dataclass
@@ -121,6 +137,19 @@ class EntradaWatchlist:
     mensaje_generado_ts: str | None = None   # reloj: cuándo se armó el texto del mensaje
     telegram_enviado_ts: str | None = None   # reloj: cuándo enviar_telegram() devolvió
     signal_latency_ms: float | None = None   # telegram_enviado_ts - market_event_ts
+    # -- Últimos niveles calculados (2026-08-11, integración de Telegram):
+    # `/trade` es un comando de SOLO LECTURA, sin acceso a datos de mercado
+    # en vivo -- "NO debe crear una nueva oportunidad... debe leer el
+    # estado existente y mostrar la información YA calculada". Esto cachea
+    # exactamente lo que la corrida normal (`run.py`) de todas formas ya
+    # calculó en el chequeo más reciente (`report.niveles_entrada_salida`/
+    # `zona_entrada`) -- ningún cálculo nuevo, solo persistencia (ver
+    # `actualizar_niveles`).
+    ultima_entrada: float | None = None
+    ultimo_stop: float | None = None
+    ultimo_objetivo: float | None = None
+    ultima_zona_entrada_baja: float | None = None   # nivel de ruptura -- "la entrada que se esperaba"
+    ultimos_niveles_ts: str | None = None
 
 
 def catalizador_de(e: EntradaWatchlist) -> Catalizador | None:
@@ -160,17 +189,75 @@ def _ahora_iso(ahora: datetime) -> str:
     return ahora.isoformat(timespec="seconds")
 
 
-def _transicionar(e: EntradaWatchlist, estado: str, motivo: str, ahora: datetime) -> None:
+def _transicionar(
+    e: EntradaWatchlist, estado: str, motivo: str, ahora: datetime,
+    deteccion_ts: str | None = None, evaluacion_ts: str | None = None,
+) -> None:
     ts = _ahora_iso(ahora)
     e.estado = estado
     e.actualizado_en = ts
-    e.transiciones.append(Transicion(estado=estado, timestamp=ts, motivo=motivo))
+    e.transiciones.append(Transicion(
+        estado=estado, timestamp=ts, motivo=motivo,
+        deteccion_ts=deteccion_ts, evaluacion_ts=evaluacion_ts,
+    ))
 
 
-def desde_candidato_diario(c, ahora: datetime) -> EntradaWatchlist:
+def completar_latencia_transicion(
+    e: EntradaWatchlist, mensaje_generado_ts: str, telegram_enviado_ts: str,
+) -> None:
+    """Completa la ÚLTIMA transición registrada con los dos timestamps que
+    solo se conocen DESPUÉS del intento real de envío (armar el texto,
+    mandarlo a Telegram) -- generaliza `registrar_latencia` (que solo
+    cubría TRIGGERED) a las 5 transiciones. `Transicion` es inmutable, así
+    que se reemplaza por una copia (`dataclasses.replace`).
+
+    Tres métricas, cada una `None` si su punto de partida no existe --
+    nunca se inventa un timestamp que no se midió:
+      - `latencia_desde_deteccion_ms`: "¿cuánto tardó desde que llegaron
+        los datos que mostraron la señal?" -- `None` para transiciones sin
+        un dato puntual de origen (EXPIRED es un TTL de reloj, no un dato
+        de mercado).
+      - `latencia_desde_evaluacion_ms`: "¿cuánto tardó desde que la
+        acción se volvió accionable/se resolvió el veredicto?".
+      - `latencia_desde_transicion_ms`: desde el instante en que el
+        State Engine cambió de estado -- SIEMPRE calculable, la métrica
+        de referencia común a las 5 transiciones."""
+    if not e.transiciones:
+        return
+    ultima = e.transiciones[-1]
+
+    def _delta_ms(inicio_iso: str | None) -> float | None:
+        if inicio_iso is None:
+            return None
+        try:
+            inicio = datetime.fromisoformat(inicio_iso)
+            fin = datetime.fromisoformat(telegram_enviado_ts)
+        except ValueError:
+            return None
+        return round((fin - inicio).total_seconds() * 1000.0, 1)
+
+    e.transiciones[-1] = replace(
+        ultima,
+        mensaje_generado_ts=mensaje_generado_ts,
+        telegram_enviado_ts=telegram_enviado_ts,
+        latencia_desde_deteccion_ms=_delta_ms(ultima.deteccion_ts),
+        latencia_desde_evaluacion_ms=_delta_ms(ultima.evaluacion_ts),
+        latencia_desde_transicion_ms=_delta_ms(ultima.timestamp),
+    )
+
+
+def desde_candidato_diario(
+    c, ahora: datetime, deteccion_ts: str | None = None, evaluacion_ts: str | None = None,
+) -> EntradaWatchlist:
     """Nueva entrada en WATCHING a partir de un `CandidatoDiario` de la
     etapa 1 (con catalizador ya confirmado -- `run.py` solo llama esto
-    para candidatos que ya pasaron ese filtro)."""
+    para candidatos que ya pasaron ese filtro).
+
+    `deteccion_ts`/`evaluacion_ts` (2026-08-11, integración de Telegram):
+    los mismos relojes que ya captura `run.main()` para la etapa 2
+    (llegada de las velas intradía / veredicto del evaluador) -- quedan
+    en la transición inicial WATCHING para que el mensaje de vigilancia
+    también tenga latencia medida, no solo TRIGGERED."""
     cat = c.catalizador
     ts = _ahora_iso(ahora)
     return EntradaWatchlist(
@@ -179,6 +266,7 @@ def desde_candidato_diario(c, ahora: datetime) -> EntradaWatchlist:
         transiciones=[Transicion(
             estado=ESTADO_WATCHING, timestamp=ts,
             motivo="Catalizador confirmado -- en observación.",
+            deteccion_ts=deteccion_ts, evaluacion_ts=evaluacion_ts,
         )],
         catalizador_tipo=cat.tipo if cat else None,
         catalizador_titular=cat.titular if cat else None,
@@ -192,20 +280,17 @@ def desde_candidato_diario(c, ahora: datetime) -> EntradaWatchlist:
     )
 
 
-def cargar(path: Path = PATH) -> list[EntradaWatchlist]:
-    """Un archivo corrupto no debe tumbar la corrida -- se ignora y se
-    reinicia vacía (mismo principio que `heartbeat.cargar_estado`).
+def parsear(data: object) -> list[EntradaWatchlist]:
+    """El parseo puro (dict ya cargado -> entradas) -- separado de
+    `cargar()` (2026-08-11, integración de Telegram) para que otros
+    procesos SIN filesystem local (el servicio de Telegram en Render, que
+    lee este mismo archivo vía la API de contenidos de GitHub) puedan
+    reutilizar exactamente esta misma tolerancia a corrupción en vez de
+    reimplementarla -- "no dupliques la lógica de estados en Telegram".
     Una entrada individual corrupta se descarta sola, sin perder las
     demás -- por eso TODO el parseo de una entrada (incluidas sus
     transiciones) vive dentro del mismo try/except, no solo la
     construcción final de `EntradaWatchlist`."""
-    if not path.exists():
-        return []
-    try:
-        data = json.loads(path.read_text())
-    except (json.JSONDecodeError, OSError) as e:
-        log.warning("watchlist corrupta (%s); se reinicia vacía", e)
-        return []
     if not isinstance(data, dict):
         log.warning("watchlist con formato inesperado (no es un objeto); se reinicia vacía")
         return []
@@ -226,6 +311,19 @@ def cargar(path: Path = PATH) -> list[EntradaWatchlist]:
     return entradas
 
 
+def cargar(path: Path = PATH) -> list[EntradaWatchlist]:
+    """Un archivo corrupto no debe tumbar la corrida -- se ignora y se
+    reinicia vacía (mismo principio que `heartbeat.cargar_estado`)."""
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        log.warning("watchlist corrupta (%s); se reinicia vacía", e)
+        return []
+    return parsear(data)
+
+
 def guardar(entradas: list[EntradaWatchlist], path: Path = PATH) -> None:
     data = {"entradas": [asdict(e) for e in entradas]}
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
@@ -237,6 +335,7 @@ def activas(entradas: list[EntradaWatchlist]) -> list[EntradaWatchlist]:
 
 def agregar_nuevas(
     entradas: list[EntradaWatchlist], candidatos, ahora: datetime,
+    deteccion_ts: str | None = None, evaluacion_ts: str | None = None,
 ) -> list[EntradaWatchlist]:
     """Agrega a WATCHING los `CandidatoDiario` (o cualquier objeto con
     `.ticker`) que todavía no estén en la watchlist ACTIVA -- un ticker
@@ -275,7 +374,7 @@ def agregar_nuevas(
 
     ya_conocidos = {e.ticker for e in entradas if _bloquea(e)}
     nuevas = [
-        desde_candidato_diario(c, ahora) for c in candidatos
+        desde_candidato_diario(c, ahora, deteccion_ts, evaluacion_ts) for c in candidatos
         if c.ticker not in ya_conocidos
     ]
     return entradas + nuevas
@@ -310,12 +409,18 @@ def purgar_antiguas(
     return resultado
 
 
-def marcar_invalidated(e: EntradaWatchlist, motivo: str, ahora: datetime) -> None:
-    _transicionar(e, ESTADO_INVALIDATED, motivo, ahora)
+def marcar_invalidated(
+    e: EntradaWatchlist, motivo: str, ahora: datetime,
+    deteccion_ts: str | None = None, evaluacion_ts: str | None = None,
+) -> None:
+    _transicionar(e, ESTADO_INVALIDATED, motivo, ahora, deteccion_ts, evaluacion_ts)
 
 
-def marcar_missed(e: EntradaWatchlist, motivo: str, ahora: datetime) -> None:
-    _transicionar(e, ESTADO_MISSED, motivo, ahora)
+def marcar_missed(
+    e: EntradaWatchlist, motivo: str, ahora: datetime,
+    deteccion_ts: str | None = None, evaluacion_ts: str | None = None,
+) -> None:
+    _transicionar(e, ESTADO_MISSED, motivo, ahora, deteccion_ts, evaluacion_ts)
 
 
 def marcar_triggered(
@@ -330,6 +435,21 @@ def marcar_triggered(
     e.market_event_ts = market_event_ts
     e.data_received_ts = data_received_ts
     e.evaluador_ts = evaluador_ts
+
+
+def actualizar_niveles(
+    e: EntradaWatchlist, entrada: float | None, stop: float | None, objetivo: float | None,
+    zona_entrada_baja: float | None, ahora: datetime,
+) -> None:
+    """Cachea los niveles que el pipeline YA calculó en este chequeo --
+    ver docstring de los campos en `EntradaWatchlist`. Ningún cálculo
+    nuevo se hace acá, solo persistencia de lo que `report.py` ya
+    resolvió con datos frescos."""
+    e.ultima_entrada = entrada
+    e.ultimo_stop = stop
+    e.ultimo_objetivo = objetivo
+    e.ultima_zona_entrada_baja = zona_entrada_baja
+    e.ultimos_niveles_ts = _ahora_iso(ahora)
 
 
 def registrar_latencia(e: EntradaWatchlist, mensaje_generado_ts: str, telegram_enviado_ts: str) -> None:
@@ -350,11 +470,22 @@ def registrar_latencia(e: EntradaWatchlist, mensaje_generado_ts: str, telegram_e
     e.signal_latency_ms = round((fin - inicio).total_seconds() * 1000.0, 1)
 
 
-def expirar_vencidas(entradas: list[EntradaWatchlist], minutos_maximos: int, ahora: datetime) -> None:
+def expirar_vencidas(
+    entradas: list[EntradaWatchlist], minutos_maximos: int, ahora: datetime,
+) -> list[EntradaWatchlist]:
     """TTL de WATCHING -- una candidata que lleva más de
     `minutos_maximos` sin confirmar nada expira sola, muta `entradas`
-    in-place (mismo patrón que las demás transiciones)."""
+    in-place (mismo patrón que las demás transiciones).
+
+    Devuelve las entradas recién expiradas EN ESTA LLAMADA (2026-08-11,
+    integración de Telegram: antes esta función no devolvía nada -- ahora
+    el caller necesita saber exactamente cuáles para mandar el mensaje
+    EXPIRED una sola vez, sin volver a evaluar el resto de `entradas`).
+    EXPIRED es un TTL de reloj, no un dato de mercado puntual -- por eso
+    su transición no lleva `deteccion_ts`/`evaluacion_ts` (quedan `None`,
+    ver docstring de `Transicion`)."""
     limite = timedelta(minutes=minutos_maximos)
+    expiradas: list[EntradaWatchlist] = []
     for e in entradas:
         if e.estado != ESTADO_WATCHING:
             continue
@@ -368,3 +499,5 @@ def expirar_vencidas(entradas: list[EntradaWatchlist], minutos_maximos: int, aho
                 f"Llevaba más de {minutos_maximos} minutos en observación sin confirmar nada.",
                 ahora,
             )
+            expiradas.append(e)
+    return expiradas

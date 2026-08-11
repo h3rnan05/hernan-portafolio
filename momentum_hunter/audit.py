@@ -92,6 +92,23 @@ def snapshot_candidato(
     }
 
 
+def resumen(data: dict) -> tuple[int, int]:
+    """(evaluados, descartados) sobre TODAS las corridas de un día, a
+    partir de un dict YA cargado (mismo formato que persiste
+    `registrar_corrida`) -- pura, sin I/O. Existe separada de
+    `registrar_corrida` (2026-08-11, integración de Telegram) para que
+    `telegram_bot` (servicio en Render, sin filesystem local -- lee este
+    mismo archivo vía la API de contenidos de GitHub) pueda reusar
+    exactamente este conteo para `/status` en vez de reimplementarlo."""
+    evaluados = 0
+    descartados = 0
+    for corrida in data.get("corridas", []):
+        candidatos = corrida.get("candidatos", [])
+        evaluados += len(candidatos)
+        descartados += sum(1 for c in candidatos if c.get("decision") != DECISION_ALERTADA)
+    return evaluados, descartados
+
+
 def registrar_corrida(
     snapshots: list[dict], dir_auditoria: Path = DIR_AUDITORIA, ahora: datetime | None = None,
 ) -> Path | None:

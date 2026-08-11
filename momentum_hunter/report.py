@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from momentum_hunter import classification
+from momentum_hunter import classification, evaluator
 from momentum_hunter.alerts import CandidatoIntradia
 from momentum_hunter.config import MomentumConfig
 from momentum_hunter.models import FactoresIntradia, Oportunidad
@@ -446,8 +446,92 @@ def formatear_entrada(o: Oportunidad) -> str:
         lineas += [f"✓ {b}" for b in o.por_que_ahora]
 
     lineas += ["", "⏱ ENTRADA: AHORA"]
+    # TIMING (pedido explícito, integración de Telegram): además de "cuándo
+    # actuar" (arriba), el veredicto del Early Opportunity Engine -- por
+    # qué esto no es una entrada tardía. `o.vale_la_pena` YA es
+    # exactamente `resultado.temprano` (ver `construir_oportunidad`); una
+    # alerta TRIGGERED solo existe si esto es `True` (ver evaluator.py),
+    # pero la rama defensiva no inventa un veredicto nuevo, solo lee el
+    # que ya se calculó.
+    lineas.append(
+        "⏱️ TIMING: TEMPRANO -- acaba de activarse" if o.vale_la_pena
+        else "⏱️ TIMING: revisa con cuidado antes de entrar"
+    )
+
+    if o.stop is not None:
+        lineas += ["", "❌ Cancelo la idea si:", f"Cae debajo de ${o.stop:,.2f}."]
 
     if o.zona_entrada_alta is not None:
-        lineas += ["", f"⚠️ Si pasa de ${o.zona_entrada_alta:,.2f}:", "NO PERSEGUIR."]
+        lineas += ["", f"⚠️ Si pasa de ${o.zona_entrada_alta:,.2f}:", "NO PERSEGUIR.",
+                   "Si sube demasiado por encima de la zona de entrada, la oportunidad pasa a MISSED."]
 
     return "\n".join(lineas)
+
+
+# --------------------------------------------------------------------
+# Mensajes de transición (integración de Telegram, 2026-08-11): uno por
+# cada estado del State Engine que NO es TRIGGERED (ese es
+# `formatear_entrada`, arriba) -- "Telegram solamente debe representar lo
+# que decidió el State Engine" (pedido explícito): estas funciones nunca
+# deciden nada, solo traducen a texto lo que `watchlist.py`/`run.py` ya
+# resolvieron. Mismo principio de cero jerga que el resto del módulo.
+# --------------------------------------------------------------------
+
+def mensaje_watching(candidato: CandidatoIntradia, cfg: MomentumConfig) -> str:
+    """WATCHING -- se manda UNA sola vez, en el instante en que la
+    candidata entra a vigilancia (ver `run._actualizar_watchlist`), nunca
+    en cada re-chequeo mientras sigue esperando (eso sería exactamente el
+    ruido que se pidió evitar). Reutiliza `zona_entrada` (mismos niveles
+    que ya usa `formatear_entrada`) y `evaluator.explicar_rechazo` (misma
+    explicación en lenguaje humano que ya usa `radar.py`) -- nunca
+    inventa una segunda redacción de la misma lógica."""
+    zona_baja, zona_alta = zona_entrada(candidato, cfg)
+    lineas = [f"👀 EN VIGILANCIA -- {candidato.ticker}", "", "Está preparando una posible entrada."]
+    if zona_baja is not None and zona_alta is not None:
+        lineas += ["", "📍 Zona de entrada:", f"${zona_baja:,.2f}-${zona_alta:,.2f}"]
+
+    condiciones = evaluator.explicar_rechazo(candidato.resultado, cfg)
+    if condiciones:
+        lineas += ["", "Estoy esperando:"]
+        lineas += [f"• {c}" for c in condiciones]
+
+    lineas += [
+        "", "Estado:", "🟡 WATCHING",
+        "", "Todavía NO es entrada.",
+        "", "Si se confirma, recibirás una alerta inmediatamente.",
+    ]
+    return "\n".join(lineas)
+
+
+def mensaje_invalidated(ticker: str, motivo: str, zona_baja: float | None) -> str:
+    """INVALIDATED -- el catalizador que puso al ticker en vigilancia ya
+    no es válido. `motivo` es el mismo texto en lenguaje humano que ya
+    queda guardado en la transición (`watchlist.marcar_invalidated`),
+    nunca una segunda explicación inventada acá."""
+    lineas = [f"❌ INVALIDADA -- {ticker}", "", "La idea quedó invalidada.", "", "Motivo:", motivo]
+    if zona_baja is not None:
+        lineas += ["", "Entrada que se estaba esperando:", f"${zona_baja:,.2f}"]
+    lineas += ["", "NO ENTRAR."]
+    return "\n".join(lineas)
+
+
+def mensaje_missed(ticker: str, zona_baja: float | None, precio_actual: float | None) -> str:
+    """MISSED -- el patrón se formó de verdad, pero el precio ya se alejó
+    demasiado para perseguirlo (Early Opportunity Engine dice "tarde",
+    confirmado varias veces seguidas -- ver `EntradaWatchlist.
+    tarde_consecutivas`). Nunca convierte esto en una entrada nueva solo
+    porque el precio sigue subiendo -- exactamente lo que se pidió evitar."""
+    lineas = [f"⚠️ OPORTUNIDAD PERDIDA -- {ticker}", ""]
+    if zona_baja is not None:
+        lineas += ["Entrada original:", f"${zona_baja:,.2f}", ""]
+    if precio_actual is not None:
+        lineas += ["Precio actual:", f"${precio_actual:,.2f}", ""]
+    lineas += ["La señal fue válida, pero ya llegamos tarde.", "", "NO PERSEGUIR."]
+    return "\n".join(lineas)
+
+
+def mensaje_expired(ticker: str) -> str:
+    """EXPIRED -- lleva más de `cfg.minutos_maximos_en_watching` sin
+    resolver. Sin precio ni nivel: un TTL de reloj no tiene un "dato de
+    mercado" que citar, sería inventar precisión que no existe."""
+    return f"⏰ EXPIRADA -- {ticker}\n\nLa oportunidad dejó de ser válida por tiempo.\n\nNo operar."
