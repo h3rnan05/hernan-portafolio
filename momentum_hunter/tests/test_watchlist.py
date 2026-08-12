@@ -20,10 +20,12 @@ from momentum_hunter.watchlist import (
     ESTADO_WATCHING,
     Transicion,
     activas,
+    actualizar_niveles,
     agregar_nuevas,
     cargar,
     catalizador_de,
     catalizador_vigente,
+    completar_latencia_transicion,
     desde_candidato_diario,
     expirar_vencidas,
     guardar,
@@ -31,6 +33,7 @@ from momentum_hunter.watchlist import (
     marcar_missed,
     marcar_triggered,
     meta_de,
+    parsear,
     purgar_antiguas,
     registrar_latencia,
 )
@@ -307,3 +310,70 @@ def test_cargar_json_que_no_es_un_objeto_se_reinicia_vacia(tmp_path):
     path = tmp_path / "watchlist.json"
     path.write_text(json.dumps([1, 2, 3]))   # válido como JSON, pero no es {"entradas": [...]}
     assert cargar(path) == []
+
+
+# ------------------------- parsear (integración de Telegram) -------------------------
+
+def test_parsear_es_lo_mismo_que_usa_cargar_reusable_sin_filesystem():
+    # `telegram_bot` (Render, sin filesystem local) descarga el JSON vía
+    # la API de GitHub y llama `parsear` directo -- debe dar exactamente
+    # el mismo resultado que `cargar` sobre un archivo real.
+    e = desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    data = {"entradas": [asdict(e)]}
+    recargadas = parsear(data)
+    assert len(recargadas) == 1
+    assert recargadas[0].ticker == "RKLB"
+
+
+def test_parsear_formato_inesperado_no_lanza():
+    assert parsear([1, 2, 3]) == []
+
+
+# ------------------------- latencia por transición (integración de Telegram) -------------------------
+
+def test_completar_latencia_transicion_calcula_las_tres_metricas():
+    e = desde_candidato_diario(_candidato_diario(), AHORA)
+    marcar_missed(
+        e, "x", AHORA, deteccion_ts="2026-08-11T14:00:00+00:00", evaluacion_ts="2026-08-11T14:00:01+00:00")
+    completar_latencia_transicion(e, "2026-08-11T14:00:02+00:00", "2026-08-11T14:00:05+00:00")
+    t = e.transiciones[-1]
+    assert t.mensaje_generado_ts == "2026-08-11T14:00:02+00:00"
+    assert t.telegram_enviado_ts == "2026-08-11T14:00:05+00:00"
+    assert t.latencia_desde_deteccion_ms == 5000.0
+    assert t.latencia_desde_evaluacion_ms == 4000.0
+    assert t.latencia_desde_transicion_ms == 5000.0   # transición ocurrió en AHORA == deteccion_ts en este caso
+
+
+def test_completar_latencia_transicion_sin_transiciones_no_lanza():
+    e = desde_candidato_diario(_candidato_diario(), AHORA)
+    e.transiciones = []
+    completar_latencia_transicion(e, "2026-08-11T14:00:02+00:00", "2026-08-11T14:00:05+00:00")   # no debe lanzar
+
+
+def test_expirar_vencidas_devuelve_las_recien_expiradas():
+    activa = desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    ya_expirada = desde_candidato_diario(_candidato_diario("VIEJA"), AHORA)
+    ya_expirada.estado = ESTADO_EXPIRED
+    aun_a_tiempo = desde_candidato_diario(_candidato_diario("OK"), AHORA + timedelta(minutes=59))
+
+    expiradas = expirar_vencidas(
+        [activa, ya_expirada, aun_a_tiempo], minutos_maximos=60, ahora=AHORA + timedelta(minutes=61))
+    assert [e.ticker for e in expiradas] == ["RKLB"]   # solo la que de verdad transicionó ESTA llamada
+
+
+# ------------------------- niveles cacheados para /trade (integración de Telegram) -------------------------
+
+def test_actualizar_niveles_cachea_exactamente_lo_pasado():
+    e = desde_candidato_diario(_candidato_diario(), AHORA)
+    actualizar_niveles(e, entrada=78.42, stop=76.90, objetivo=82.50, zona_entrada_baja=78.30, ahora=AHORA)
+    assert e.ultima_entrada == 78.42
+    assert e.ultimo_stop == 76.90
+    assert e.ultimo_objetivo == 82.50
+    assert e.ultima_zona_entrada_baja == 78.30
+    assert e.ultimos_niveles_ts == "2026-08-11T14:00:00+00:00"
+
+
+def test_actualizar_niveles_nunca_inventa_lo_que_no_llego():
+    e = desde_candidato_diario(_candidato_diario(), AHORA)
+    actualizar_niveles(e, entrada=None, stop=None, objetivo=None, zona_entrada_baja=None, ahora=AHORA)
+    assert e.ultima_entrada is None and e.ultimo_stop is None and e.ultimo_objetivo is None

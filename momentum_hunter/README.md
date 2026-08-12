@@ -447,15 +447,16 @@ python -m momentum_hunter.run --solo-watchlist              # chequeo liviano, c
 python -m momentum_hunter.run --solo-watchlist --dry-run    # calcula y muestra, no manda ni persiste
 ```
 
-### Lo que Fase 2 explícitamente NO incluye todavía
+### Lo que Fase 2 explícitamente NO incluyó (implementado después, ver "Fase 3" abajo)
 
 Priorización explícita del dueño del producto ("State Engine primero,
 todo lo demás depende de él" / "/trade después, aparte"):
 
-- **Comando `/trade TICKER --full`** (recibir comandos de Telegram, no
-  solo enviarlos) -- pospuesto a propósito, es un cambio de superficie
-  distinto (requiere webhook o polling de Telegram, no solo `requests.
-  post`).
+- **Comandos de Telegram** (`/trade`, `/status`, `/radar`) -- pospuestos
+  a propósito en Fase 2 (requerían un cambio de superficie distinto:
+  recibir webhooks, no solo enviar `requests.post`) -- implementados en
+  "Fase 3" (ver sección dedicada más abajo), en el servicio de Render ya
+  desplegado (`telegram_bot/`), no en este cron.
 - **Backtest/replay minuto a minuto** contra sesiones históricas, para
   poder responder objetivamente "¿el bot realmente habría detectado esto
   a tiempo?" -- pospuesto a propósito, después de que la vigilancia en
@@ -494,6 +495,100 @@ candidata al reiniciar el proceso), la instrumentación de latencia (se
 puede medir objetivamente qué tan rápido es el sistema, en vez de
 asumirlo), y la garantía de que el sistema nunca ejecuta nada por su
 cuenta -- toda decisión de entrar sigue siendo del dueño del producto.
+
+## Integración de Telegram en tiempo real, "Fase 3" (pedido 2026-08-11)
+
+Pedido explícito: "convertir el bot en una interfaz de decisión en
+tiempo real... ALERT FIRST, ANALYTICS SECOND". El State Engine de Fase 2
+sigue siendo la ÚNICA fuente de verdad -- esta fase NO le agrega
+decisiones nuevas, solo traduce cada transición a un mensaje corto y
+legible en 5-10 segundos, y agrega la capacidad de CONSULTAR (nunca
+ejecutar) ese estado desde Telegram.
+
+```
+WATCHLIST / STATE ENGINE  →  TRANSICIÓN  →  MENSAJE DE TELEGRAM
+```
+
+### Un mensaje por transición, nunca por "sigue subiendo"
+
+Cada uno de los 5 estados tiene su propio formato corto
+(`report.mensaje_watching`/`mensaje_invalidated`/`mensaje_missed`/
+`mensaje_expired`, y `formatear_entrada` para TRIGGERED):
+
+- **WATCHING** -- se manda UNA sola vez, en el instante en que la
+  candidata entra a vigilancia (no en cada re-chequeo mientras sigue
+  esperando). Incluye la zona de entrada y qué le falta
+  (`evaluator.explicar_rechazo`, reusado, nunca reinventado).
+- **TRIGGERED** -- entrada, stop, objetivo, R/R, por qué ahora, TIMING,
+  y "cancelo la idea si..." -- todo con valores que el pipeline YA
+  calculó, cero indicadores nuevos.
+- **INVALIDATED** -- motivo real (el mismo texto que ya queda en
+  `Transicion.motivo`), sin explicación larga.
+- **MISSED** -- entrada original vs. precio actual, "NO PERSEGUIR" --
+  nunca se convierte en una entrada nueva solo porque el precio sigue
+  subiendo.
+- **EXPIRED** -- venció el TTL, "No operar."
+
+### Deduplicación -- qué garantiza y qué NO
+
+Cada transición del State Engine ocurre, por diseño, como máximo una vez
+(una entrada nace en WATCHING una sola vez; un estado terminal
+-TRIGGERED/INVALIDATED/MISSED/EXPIRED- no se vuelve a evaluar, ver
+`watchlist.ESTADOS_TERMINALES` y `run._filtrar_ya_resueltas_hoy`). El
+archivo se persiste (`watchlist.guardar`) ANTES de intentar cualquier
+envío a Telegram -- si el proceso muere justo después de mandar un
+mensaje, el estado en disco ya refleja la transición.
+
+**Lo que esto NO puede garantizar** (honestidad explícita, sin declarar
+"exactly once" sin poder probarlo): si el contenedor de GitHub Actions
+muere DESPUÉS de enviar un mensaje pero ANTES de que el workflow haga el
+commit de `watchlist.json` a `main`, la siguiente corrida arranca desde
+el último estado COMMITEADO (anterior al envío) y puede reprocesar esa
+transición. Es una ventana real, de infraestructura (cron + commit de
+git), no de la lógica de decisión -- cerrarla del todo requeriría
+persistencia incremental fuera de este diseño (fuera de alcance de esta
+fase, ver "NO optimices infraestructura todavía").
+
+### Latencia -- qué se mide y qué no
+
+Cada transición (`watchlist.Transicion`) guarda, cuando el dato existe
+de verdad:
+
+- `deteccion_ts` -- cuándo llegaron los datos que originaron la
+  transición (`None` para EXPIRED -- un TTL de reloj, no un dato de
+  mercado puntual).
+- `evaluacion_ts` -- cuándo la lógica de decisión resolvió el veredicto.
+- `timestamp` -- cuándo cambió el estado (siempre existe).
+- `mensaje_generado_ts` / `telegram_enviado_ts` -- alrededor del envío real.
+- `latencia_desde_deteccion_ms` / `latencia_desde_evaluacion_ms` /
+  `latencia_desde_transicion_ms` -- calculadas SOLO si su punto de
+  partida existe, nunca inventadas.
+
+Limitación real (Yahoo Finance, datos gratis): "detección" es cuándo
+llegó la VELA de 1 minuto, no el tick exacto del mercado -- la latencia
+medida siempre incluye ese margen de hasta ~60 segundos que no es
+atribuible al bot. Ver `telegram_bot/README.md` para más detalle.
+
+### Comandos (`/trade`, `/status`, `/radar`, `/help`)
+
+momentum_hunter en sí sigue siendo puro cron (GitHub Actions), sin
+servidor propio -- no puede recibir webhooks. Los comandos se sirven
+desde el servicio de Telegram YA desplegado en Render
+(`telegram_bot/app.py`), en una ruta NUEVA y separada
+(`POST /momentum/webhook`, bot de Telegram DISTINTO al del wizards bot,
+que ya tenía su propio `/trade`) -- lee `watchlist.json`/`auditoria/`
+vía la API de contenidos de GitHub, nunca escribe nada. Ver
+`telegram_bot/README.md` para los comandos exactos, las env vars nuevas,
+y el paso manual pendiente (registrar el webhook con el token real, algo
+que solo el dueño del bot puede hacer).
+
+### Sigue siendo RESEARCH + SIGNAL + ALERT -- los comandos son READ-ONLY
+
+Ningún comando nuevo escribe `watchlist.json`, se conecta a un broker, ni
+coloca una orden -- `/trade TICKER` lee el estado EXISTENTE (los niveles
+que el pipeline ya cacheó en `EntradaWatchlist.ultima_entrada/
+ultimo_stop/ultimo_objetivo`, ver `watchlist.actualizar_niveles`), nunca
+evalúa un ticker nuevo bajo demanda.
 
 ## Filtros de universo (etapa 1)
 
@@ -569,16 +664,19 @@ horas, no una promesa de anticipación imposible.
   arriba), no segundos -- limitación de GitHub Actions + Yahoo gratis,
   no de la lógica de decisión.
 
-## Roadmap (fase 3)
+## Roadmap (fase 4)
 
-- **Comando `/trade TICKER --full`** por Telegram (pospuesto de Fase 2 a
-  propósito) -- recibir comandos, no solo enviarlos.
+- **`/trade TICKER --full`** con el tablero completo (Semáforo, señales
+  que confirman/fallan, ventana estimada) -- Fase 3 solo implementó la
+  versión corta (`/trade TICKER`, ver "Integración de Telegram" arriba).
 - **Backtest/replay minuto a minuto** contra sesiones históricas
-  (pospuesto de Fase 2 a propósito) -- para medir objetivamente qué tan
-  bien funciona la cadencia de 5 minutos en la práctica, en vez de solo
-  razonarlo por diseño.
-- Cobertura de pruebas dedicada para los 14 escenarios de robustez
-  pedidos que hoy solo están parcialmente cubiertos (ver "Fase 2" arriba).
+  (pospuesto explícitamente otra vez en Fase 3: "NO hagas un backtest en
+  esta fase") -- para medir objetivamente qué tan bien funciona la
+  cadencia de 5 minutos en la práctica, en vez de solo razonarlo por diseño.
+- **Interfaz de opciones** (pedido explícito de Fase 3, sección 15: dejar
+  espacio en el mensaje sin implementar selección automática) -- Acción/
+  Vencimiento/Strike/Prima/Delta/Riesgo máximo, cuando exista lógica real
+  de selección que no modifique el mensaje corto actual.
 - `DataProvider`/`NewsProvider` de pago para cotizaciones masivas y
   noticias en tiempo real con hora exacta (condición real para correr
   cada pocos minutos sobre el mercado completo).

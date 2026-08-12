@@ -332,7 +332,7 @@ def test_actualizar_watchlist_no_fabrica_latencia_al_disparar(monkeypatch, tmp_p
     c_diario = _candidato_diario("RKLB")
     c_intradia = _candidato_intradia("RKLB", accionable=True)
 
-    entradas, disparadas = run_mod._actualizar_watchlist(
+    entradas, disparadas, mensajes = run_mod._actualizar_watchlist(
         [c_diario], [c_intradia], {"RKLB"}, CFG, dry_run=False, ahora=AHORA)
 
     assert "RKLB" in disparadas
@@ -343,6 +343,7 @@ def test_actualizar_watchlist_no_fabrica_latencia_al_disparar(monkeypatch, tmp_p
     assert e.mensaje_generado_ts is None      # todavía no lo completó `main()`
     assert e.telegram_enviado_ts is None
     assert e.signal_latency_ms is None
+    assert mensajes == []   # RKLB terminó TRIGGERED, no WATCHING -- sin mensaje de menor prioridad
 
 
 def test_actualizar_watchlist_usa_dato_recibido_ts_real_no_evaluador_ts(monkeypatch, tmp_path):
@@ -353,7 +354,7 @@ def test_actualizar_watchlist_usa_dato_recibido_ts_real_no_evaluador_ts(monkeypa
     c_diario = _candidato_diario("RKLB")
     c_intradia = _candidato_intradia("RKLB", accionable=True)
 
-    entradas, disparadas = run_mod._actualizar_watchlist(
+    entradas, disparadas, _ = run_mod._actualizar_watchlist(
         [c_diario], [c_intradia], {"RKLB"}, CFG, dry_run=False, ahora=AHORA,
         dato_recibido_ts="2026-08-11T14:00:00+00:00")
 
@@ -364,13 +365,19 @@ def test_actualizar_watchlist_usa_dato_recibido_ts_real_no_evaluador_ts(monkeypa
 
 def test_actualizar_watchlist_tambien_debounced_antes_de_missed(monkeypatch, tmp_path):
     _preparar_watchlist(monkeypatch, tmp_path, [])
+    _parchear_efectos_secundarios(monkeypatch)
     c_diario = _candidato_diario("RKLB")
     c_intradia_tarde = _candidato_intradia("RKLB", accionable=False, temprano=False, patron="gap_and_go")
 
-    entradas, _ = run_mod._actualizar_watchlist(
+    entradas, _, mensajes = run_mod._actualizar_watchlist(
         [c_diario], [c_intradia_tarde], set(), CFG, dry_run=False, ahora=AHORA)
     e = entradas[0]
     assert e.estado == watchlist.ESTADO_WATCHING   # una sola lectura no basta
+    # `_actualizar_watchlist` YA NO manda ella misma -- devuelve el mensaje
+    # de menor prioridad para que `main()` lo mande DESPUÉS del TRIGGERED
+    # de esta corrida (prioridad máxima, ver su docstring).
+    assert len(mensajes) == 1
+    assert "EN VIGILANCIA" in mensajes[0]
     assert e.tarde_consecutivas == 1
 
 
