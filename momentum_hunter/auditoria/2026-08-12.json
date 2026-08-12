@@ -13985,6 +13985,152 @@
           "que_tendria_que_cambiar": []
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-12T20:58:19+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "CSCO",
+          "nombre": "Cisco Systems, Inc.",
+          "precio_actual": 119.0,
+          "factores_intradia": {
+            "precio_actual": 119.0,
+            "vwap": 123.3860171441388,
+            "ema9": 119.27192615747825,
+            "rvol_actual": null,
+            "aceleracion_volumen": null,
+            "gap_pct": 0.02108934626402924,
+            "maximo_dia": 134.23,
+            "maximo_premarket": 123.27,
+            "rango_apertura_max": 123.69999694824219,
+            "rango_apertura_min": 122.26000213623047,
+            "velas_desde_ruptura": null,
+            "macd": -0.32009524776751164,
+            "macd_signal": -0.3322265879621664
+          },
+          "meta": {
+            "float_acciones": 3817949517.0,
+            "short_pct_float": 0.0168,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Earnings To Watch: Cisco (CSCO) Reports Q2 Results Tomorrow",
+            "fuente": "StockStory",
+            "fecha": "2026-08-12T19:01:22Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 116.95406111666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 63.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 38.20965992929293,
+                "extension": 93.83653705792209,
+                "distancia_maximo_dia": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 75.9,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "DASH",
+          "nombre": "DoorDash, Inc.",
+          "precio_actual": 212.49,
+          "factores_intradia": {
+            "precio_actual": 212.49,
+            "vwap": 212.94770316482536,
+            "ema9": 212.45267110123717,
+            "rvol_actual": null,
+            "aceleracion_volumen": null,
+            "gap_pct": 0.004293077590549615,
+            "maximo_dia": 215.22000122070312,
+            "maximo_premarket": 215.0,
+            "rango_apertura_max": 214.09500122070312,
+            "rango_apertura_min": 211.39999389648438,
+            "velas_desde_ruptura": 0,
+            "macd": -0.15080041031330893,
+            "macd_signal": -0.15727580472460848
+          },
+          "meta": {
+            "float_acciones": 362703126.0,
+            "short_pct_float": 0.044499997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "How Investors Are Reacting To DoorDash (DASH) Drone Launch And Share Buybacks After Q2 Results",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-12T18:13:32Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 164.7874374,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 75.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 9.219734909090917,
+                "extension": 100.0,
+                "distancia_maximo_dia": 87.31529966908802,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 62.8,
+            "score_ajustado": 42.8,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        }
+      ]
     }
   ]
 }
