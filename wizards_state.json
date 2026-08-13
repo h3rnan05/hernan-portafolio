@@ -1,5 +1,5 @@
 {
-  "cash": 2689.2409999999995,
+  "cash": 1471.5209999999995,
   "posiciones": {
     "EFA": {
       "qty": 14,
@@ -13,6 +13,13 @@
       "entrada": 767.82,
       "stop": 751.39,
       "fecha": "2026-08-04 15:41 UTC",
+      "origen": "sistema"
+    },
+    "IWM": {
+      "qty": 4,
+      "entrada": 304.43,
+      "stop": 296.52,
+      "fecha": "2026-08-13 14:34 UTC",
       "origen": "sistema"
     }
   },
@@ -611,6 +618,10 @@
     {
       "ts": "2026-08-12 20:50 UTC",
       "equity": 4980.73
+    },
+    {
+      "ts": "2026-08-13 14:34 UTC",
+      "equity": 4991.87
     }
   ],
   "noticias_vistas": [
@@ -815,18 +826,13 @@
     {
       "ts": "2026-08-04 15:41 UTC",
       "evento": "🟢 COMPRA SPY (S&P 500): 1 @ $767.82 | ruptura de máx. 55d | stop $751.39 (riesgo $16.43 = 0.3% del equity)"
+    },
+    {
+      "ts": "2026-08-13 14:34 UTC",
+      "evento": "🟢 COMPRA IWM (Small caps EEUU): 4 @ $304.43 | ruptura de máx. 55d | stop $296.52 (riesgo $31.64 = 0.6% del equity)"
     }
   ],
   "noticias_evaluadas": [
-    "8a74fa8eb3a8",
-    "7781bf0c6d31",
-    "393ebbb01404",
-    "3f4d57817994",
-    "3e34fe4e20d9",
-    "8b0497427285",
-    "0f70be1afe6e",
-    "b5515cdbe14a",
-    "9c6d01d8f197",
     "d92e21adb276",
     "05ce016c339f",
     "7643edf28b96",
@@ -1317,6 +1323,15 @@
     "8fe58f4b46e6",
     "8e7fee97ba97",
     "54ef3be90e20",
-    "8784f69de005"
+    "8784f69de005",
+    "2b0611b99d4c",
+    "279f6be1fad2",
+    "5a636e806bac",
+    "83a1a37c8174",
+    "c1abb202939f",
+    "f0fcf377cba4",
+    "9de95f687b82",
+    "d77f28643590",
+    "116d602dc46e"
   ]
 }
