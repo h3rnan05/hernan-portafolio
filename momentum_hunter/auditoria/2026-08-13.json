@@ -19537,6 +19537,155 @@
           "que_tendria_que_cambiar": []
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-13T21:30:38+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "COHR",
+          "nombre": "Coherent Corp.",
+          "precio_actual": 330.01,
+          "factores_intradia": {
+            "precio_actual": 330.01,
+            "vwap": 341.09162907768547,
+            "ema9": 330.2508927485416,
+            "rvol_actual": null,
+            "aceleracion_volumen": null,
+            "gap_pct": -0.031181543235420415,
+            "maximo_dia": 361.989990234375,
+            "maximo_premarket": 352.49,
+            "rango_apertura_max": 361.989990234375,
+            "rango_apertura_min": 339.25,
+            "velas_desde_ruptura": null,
+            "macd": -0.027441262823003854,
+            "macd_signal": -0.03620623884047962
+          },
+          "meta": {
+            "float_acciones": 191245262.0,
+            "short_pct_float": 0.0542,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Coherent Stock Reverses Higher as AI Optics Forecast Beats Estimates",
+            "fuente": "GuruFocus.com",
+            "fecha": "2026-08-13T18:50:55Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 159.72811066666665,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 58.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 12.285993535353544,
+                "extension": 97.23475996545987,
+                "distancia_maximo_dia": 11.655042688696549,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 69.0,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "AMAT",
+          "nombre": "Applied Materials, Inc.",
+          "precio_actual": 505.8119,
+          "factores_intradia": {
+            "precio_actual": 505.8119,
+            "vwap": 549.8182495257854,
+            "ema9": 505.79412220891834,
+            "rvol_actual": null,
+            "aceleracion_volumen": null,
+            "gap_pct": 0.0005105183246807508,
+            "maximo_dia": 563.7550048828125,
+            "maximo_premarket": 557.0,
+            "rango_apertura_max": 552.989990234375,
+            "rango_apertura_min": 546.85498046875,
+            "velas_desde_ruptura": 0,
+            "macd": -1.920445135632292,
+            "macd_signal": -1.801317836726811
+          },
+          "meta": {
+            "float_acciones": 767552339.0,
+            "short_pct_float": 0.018,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Applied Materials Edges Above Views With Fiscal Q3 Results, Outlook",
+            "fuente": "Investor's Business Daily",
+            "fecha": "2026-08-13T20:40:56Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 49.71151733333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 68.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 78.96271676767677,
+                "extension": 44.40222935540646,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.9,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
