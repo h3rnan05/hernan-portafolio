@@ -9034,6 +9034,1856 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-13T17:06:50+00:00",
+      "candidatos_evaluados": 27,
+      "candidatos": [
+        {
+          "ticker": "PLTR",
+          "nombre": "Palantir Technologies Inc.",
+          "precio_actual": 175.36990356445312,
+          "factores_intradia": {
+            "precio_actual": 175.36990356445312,
+            "vwap": 175.02394296082852,
+            "ema9": 175.34921759325798,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.460089629602966,
+            "gap_pct": 0.015434983005594384,
+            "maximo_dia": 176.8000030517578,
+            "maximo_premarket": 173.8,
+            "rango_apertura_max": 175.9499053955078,
+            "rango_apertura_min": 173.07000732421875,
+            "velas_desde_ruptura": 1,
+            "macd": 0.06358331355434643,
+            "macd_signal": 0.05238550602979422
+          },
+          "meta": {
+            "float_acciones": 2061944329.0,
+            "short_pct_float": 0.0317,
+            "market_cap": 421244108800.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Palantir Technologies (PLTR) Is Up 8.0% After Raising 2026 Revenue Guidance On Stronger Q2 Results",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-13T04:31:14Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 755.3200375833333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 59.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 91.91120213450432,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 74.9,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "ORCL",
+          "nombre": "Oracle Corporation",
+          "precio_actual": 154.20849609375,
+          "factores_intradia": {
+            "precio_actual": 154.20849609375,
+            "vwap": 156.20424009881071,
+            "ema9": 153.9978087748734,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 1.0364795708929695,
+            "gap_pct": -0.008481230833186831,
+            "maximo_dia": 159.25999450683594,
+            "maximo_premarket": 153.7,
+            "rango_apertura_max": 154.77999877929688,
+            "rango_apertura_min": 151.91000366210938,
+            "velas_desde_ruptura": 1,
+            "macd": 0.11898782694586885,
+            "macd_signal": 0.07239389960568432
+          },
+          "meta": {
+            "float_acciones": 1677989576.0,
+            "short_pct_float": 0.0292,
+            "market_cap": 443405303808.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "MongoDB's Atlas Growth, AI-Native Customer Base in Focus Ahead of Q2 Results, RBC Says",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-13T15:21:23Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 105.17008653333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 45.35146270707071,
+                "aceleracion_volumen": 53.64795708929695,
+                "extension": 100.0,
+                "distancia_maximo_dia": 68.28143546828314,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 72.2,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "YUM",
+          "nombre": "Yum! Brands, Inc.",
+          "precio_actual": 151.5050048828125,
+          "factores_intradia": {
+            "precio_actual": 151.5050048828125,
+            "vwap": 152.91117420667172,
+            "ema9": 151.59696417897337,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.28635415862228747,
+            "gap_pct": 0.011041663579520784,
+            "maximo_dia": 154.77999877929688,
+            "maximo_premarket": 151.0,
+            "rango_apertura_max": 152.80999755859375,
+            "rango_apertura_min": 150.875,
+            "velas_desde_ruptura": null,
+            "macd": -0.09076954915477131,
+            "macd_signal": -0.09461832766493983
+          },
+          "meta": {
+            "float_acciones": 265625542.0,
+            "short_pct_float": 0.0317,
+            "market_cap": 41349976064.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Yum China completes $1.2bn acquisition of Pizza Hut brand in China",
+            "fuente": "Verdict Food Service",
+            "fecha": "2026-08-10T14:17:10Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4489.386777266667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 50.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 78.84097478800057,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 72.2,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "PFE",
+          "nombre": "Pfizer Inc.",
+          "precio_actual": 26.889999389648438,
+          "factores_intradia": {
+            "precio_actual": 26.889999389648438,
+            "vwap": 26.735149037561623,
+            "ema9": 26.886228142509374,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.5246410752469198,
+            "gap_pct": 0.006841516869233959,
+            "maximo_dia": 26.950000762939453,
+            "maximo_premarket": 26.45,
+            "rango_apertura_max": 26.510000228881836,
+            "rango_apertura_min": 26.40999984741211,
+            "velas_desde_ruptura": 0,
+            "macd": 0.002207060040952058,
+            "macd_signal": 0.0036293967277795953
+          },
+          "meta": {
+            "float_acciones": 5548689236.0,
+            "short_pct_float": 0.028299998,
+            "market_cap": 153178734592.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Spero Therapeutics Inc (SPRO) (Q2 2026) Earnings Call Highlights: FDA Approval of Utebzi and ...",
+            "fuente": "GuruFocus.com",
+            "fecha": "2026-08-13T05:01:24Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 725.1534864333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 60.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 2.4641075246919826,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.77360402254509,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 72.1,
+            "score_ajustado": 52.1,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "BAC",
+          "nombre": "Bank of America Corporation",
+          "precio_actual": 64.07499694824219,
+          "factores_intradia": {
+            "precio_actual": 64.07499694824219,
+            "vwap": 64.45599739817423,
+            "ema9": 64.07597187170187,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.46000686577411604,
+            "gap_pct": 0.006017580687236485,
+            "maximo_dia": 65.19999694824219,
+            "maximo_premarket": 65.09,
+            "rango_apertura_max": 65.19999694824219,
+            "rango_apertura_min": 64.80500030517578,
+            "velas_desde_ruptura": null,
+            "macd": -0.0060651947159300335,
+            "macd_signal": -0.0028197740047993395
+          },
+          "meta": {
+            "float_acciones": 6795063369.0,
+            "short_pct_float": 0.0,
+            "market_cap": 447955468288.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Bank of America to acquire 49.9% of India’s Jio Credit",
+            "fuente": "Retail Banker International",
+            "fecha": "2026-08-13T11:53:34Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 312.9868585166667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 50.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 82.7453979653855,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 69.8,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "TWLO",
+          "nombre": "Twilio Inc.",
+          "precio_actual": 253.00999450683594,
+          "factores_intradia": {
+            "precio_actual": 253.00999450683594,
+            "vwap": 251.54688558098977,
+            "ema9": 253.0719351244082,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.1780840799448656,
+            "gap_pct": 0.003122229696319032,
+            "maximo_dia": 253.99000549316406,
+            "maximo_premarket": 252.29,
+            "rango_apertura_max": 251.24000549316406,
+            "rango_apertura_min": 245.55999755859375,
+            "velas_desde_ruptura": null,
+            "macd": 0.23927798542959522,
+            "macd_signal": 0.3126744971513983
+          },
+          "meta": {
+            "float_acciones": 147069774.0,
+            "short_pct_float": 0.036199998,
+            "market_cap": 38849155072.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Bandwidth Q2 Results Raise the Stakes for Its AI Growth Strategy",
+            "fuente": "Zacks",
+            "fecha": "2026-08-11T17:34:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2852.5535564166667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "micro_pullback",
+            "temprano": true,
+            "early": {
+              "score": 52.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.14153720566576,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 69.4,
+            "score_ajustado": 49.4,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "BKR",
+          "nombre": "Baker Hughes Company",
+          "precio_actual": 63.45000076293945,
+          "factores_intradia": {
+            "precio_actual": 63.45000076293945,
+            "vwap": 63.397186048240634,
+            "ema9": 63.46305870703212,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.14996537897940454,
+            "gap_pct": -0.004978215633185161,
+            "maximo_dia": 64.9247,
+            "maximo_premarket": 64.9247,
+            "rango_apertura_max": 63.970001220703125,
+            "rango_apertura_min": 63.27000045776367,
+            "velas_desde_ruptura": null,
+            "macd": -0.04778297202840065,
+            "macd_signal": -0.05126503031925499
+          },
+          "meta": {
+            "float_acciones": 957503629.0,
+            "short_pct_float": 0.028299998,
+            "market_cap": 62985170944.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "contrato",
+            "titular": "Baker Hughes wins contract for Kutei Northern Hub subsea systems",
+            "fuente": "Offshore Technology",
+            "fecha": "2026-08-11T09:02:22Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3364.1869136666664,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 50.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 77.28600614156788,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 68.2,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "TPR",
+          "nombre": "Tapestry, Inc.",
+          "precio_actual": 130.21499633789062,
+          "factores_intradia": {
+            "precio_actual": 130.21499633789062,
+            "vwap": 130.76561415508098,
+            "ema9": 130.33520981433117,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.42630325482931997,
+            "gap_pct": -0.1368544802468958,
+            "maximo_dia": 154.54,
+            "maximo_premarket": 154.54,
+            "rango_apertura_max": 135.77999877929688,
+            "rango_apertura_min": 127.77999877929688,
+            "velas_desde_ruptura": null,
+            "macd": -0.1594694511651369,
+            "macd_signal": -0.1409576763280474
+          },
+          "meta": {
+            "float_acciones": 192671860.0,
+            "short_pct_float": 0.0956,
+            "market_cap": 26324404224.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Tapestry Outlook Misses Estimates at Midpoint Following Fourth-Quarter Earnings Beat",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-13T14:03:23Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 183.17027928333334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 41.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 68.2,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "BABA",
+          "nombre": "Alibaba Group Holding Limited",
+          "precio_actual": 121.84040069580078,
+          "factores_intradia": {
+            "precio_actual": 121.84040069580078,
+            "vwap": 122.67320584731893,
+            "ema9": 121.89583002316014,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 1.9420789402541228,
+            "gap_pct": -0.013616050266998341,
+            "maximo_dia": 126.09,
+            "maximo_premarket": 126.09,
+            "rango_apertura_max": 124.27999877929688,
+            "rango_apertura_min": 123.5,
+            "velas_desde_ruptura": null,
+            "macd": 0.01008902018305946,
+            "macd_signal": 0.0209675124788197
+          },
+          "meta": {
+            "float_acciones": 2182229876.0,
+            "short_pct_float": 0.0178,
+            "market_cap": 292234035200.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "JD.com Profit Beats Estimates After Food Delivery Fight Calms",
+            "fuente": "Bloomberg",
+            "fecha": "2026-08-13T10:05:19Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 421.2369898333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 72.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 66.2970948988879,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.0,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "EBAY",
+          "nombre": "eBay Inc.",
+          "precio_actual": 103.63300323486328,
+          "factores_intradia": {
+            "precio_actual": 103.63300323486328,
+            "vwap": 103.7453753171736,
+            "ema9": 103.63920164554955,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.47429305912596403,
+            "gap_pct": 0.00107516970947599,
+            "maximo_dia": 104.83999633789062,
+            "maximo_premarket": 103.15,
+            "rango_apertura_max": 103.55000305175781,
+            "rango_apertura_min": 102.41999816894531,
+            "velas_desde_ruptura": null,
+            "macd": 0.013495753017494394,
+            "macd_signal": 0.025286083915073164
+          },
+          "meta": {
+            "float_acciones": 376496700.0,
+            "short_pct_float": 0.039100002,
+            "market_cap": 46097547264.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Anthropic in talks to acquire Israeli AI startup Decart for $6 billion",
+            "fuente": "Quartz",
+            "fecha": "2026-08-13T12:14:09Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 292.4036804,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 51.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.48728400240202,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.0,
+            "score_ajustado": 47.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "TTWO",
+          "nombre": "Take-Two Interactive Software, Inc.",
+          "precio_actual": 241.38999938964844,
+          "factores_intradia": {
+            "precio_actual": 241.38999938964844,
+            "vwap": 241.52561799265305,
+            "ema9": 241.4453811731217,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.6907337723424272,
+            "gap_pct": 0.0031687418619791665,
+            "maximo_dia": 253.0,
+            "maximo_premarket": 253.0,
+            "rango_apertura_max": 245.4293975830078,
+            "rango_apertura_min": 243.28500366210938,
+            "velas_desde_ruptura": null,
+            "macd": 0.023326388484804284,
+            "macd_signal": 0.05685978172989804
+          },
+          "meta": {
+            "float_acciones": 180651155.0,
+            "short_pct_float": 0.0383,
+            "market_cap": 45133340672.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Take-Two Interactive shares edge lower as investors reassess Q1 results and guidance",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-08-10T10:36:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4710.353713133333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 52.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 19.073377234242717,
+                "extension": 100.0,
+                "distancia_maximo_dia": 54.110669524302104,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.0,
+            "score_ajustado": 47.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "GEV",
+          "nombre": "GE Vernova Inc.",
+          "precio_actual": 1054.780029296875,
+          "factores_intradia": {
+            "precio_actual": 1054.780029296875,
+            "vwap": 1037.30280625597,
+            "ema9": 1051.6984125816964,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.9899512606053312,
+            "gap_pct": 0.0034618477751896643,
+            "maximo_dia": 1054.780029296875,
+            "maximo_premarket": 1048.01,
+            "rango_apertura_max": 1046.83984375,
+            "rango_apertura_min": 1030.0400390625,
+            "velas_desde_ruptura": 3,
+            "macd": 2.4015532547334715,
+            "macd_signal": 2.06526994437948
+          },
+          "meta": {
+            "float_acciones": 259685895.0,
+            "short_pct_float": 0.032,
+            "market_cap": 279779442688.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Can GE Vernova's Strong Q2 Results Fuel Further Earnings Growth?",
+            "fuente": "Zacks",
+            "fecha": "2026-08-13T12:50:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 256.55375233333336,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 67.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 48.995126060533124,
+                "extension": 100.0,
+                "distancia_maximo_dia": 99.99999999999997,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 66.8,
+            "score_ajustado": 46.8,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "TMO",
+          "nombre": "Thermo Fisher Scientific Inc.",
+          "precio_actual": 596.989990234375,
+          "factores_intradia": {
+            "precio_actual": 596.989990234375,
+            "vwap": 601.2853185966467,
+            "ema9": 597.1389603472962,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 1.5228650137741047,
+            "gap_pct": 0.00543932639359269,
+            "maximo_dia": 606.75,
+            "maximo_premarket": 605.0,
+            "rango_apertura_max": 606.75,
+            "rango_apertura_min": 600.8099975585938,
+            "velas_desde_ruptura": null,
+            "macd": -0.38868974301306025,
+            "macd_signal": -0.3418599168050379
+          },
+          "meta": {
+            "float_acciones": 350631351.0,
+            "short_pct_float": 0.0135,
+            "market_cap": 220765028352.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Stronger Q2 Results And New Supply Deal Might Change The Case For Investing In LivaNova (LIVN)",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-12T23:16:37Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1069.93711035,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 74.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 83.9142813916357,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.7,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "MRSH",
+          "nombre": "Marsh & McLennan Companies, Inc.",
+          "precio_actual": 187.49000549316406,
+          "factores_intradia": {
+            "precio_actual": 187.49000549316406,
+            "vwap": 188.77000288341338,
+            "ema9": 187.54396562837024,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.24534360950545922,
+            "gap_pct": 0.005453768802118811,
+            "maximo_dia": 193.5,
+            "maximo_premarket": 193.5,
+            "rango_apertura_max": 191.27000427246094,
+            "rango_apertura_min": 189.88999938964844,
+            "velas_desde_ruptura": null,
+            "macd": -0.06642284021486944,
+            "macd_signal": -0.019005676561157068
+          },
+          "meta": {
+            "float_acciones": 457688555.0,
+            "short_pct_float": 0.015800001,
+            "market_cap": 89479503872.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Marsh's MMA to Acquire Accel, Bolstering Midwest Insurance Reach",
+            "fuente": "Zacks",
+            "fecha": "2026-08-11T15:59:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2947.553800033333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 49.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 68.94059686389697,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.7,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "QSR",
+          "nombre": "Restaurant Brands International Inc.",
+          "precio_actual": 76.47000122070312,
+          "factores_intradia": {
+            "precio_actual": 76.47000122070312,
+            "vwap": 76.78694573491744,
+            "ema9": 76.53783467833472,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.14791589819254888,
+            "gap_pct": 0.012817076968162202,
+            "maximo_dia": 77.45999908447266,
+            "maximo_premarket": 76.9325,
+            "rango_apertura_max": 76.5,
+            "rango_apertura_min": 75.7699966430664,
+            "velas_desde_ruptura": null,
+            "macd": -0.006355998278948505,
+            "macd_signal": 0.010780369571314181
+          },
+          "meta": {
+            "float_acciones": 292140681.0,
+            "short_pct_float": 0.059499998,
+            "market_cap": 35038617600.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Is Restaurant Brands International (QSR) A Bargain Following Its Latest Earnings Results?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-12T05:41:47Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2124.77049085,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 51.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 87.21923734223247,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.6,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "ALC",
+          "nombre": "Alcon Inc.",
+          "precio_actual": 73.04499816894531,
+          "factores_intradia": {
+            "precio_actual": 73.04499816894531,
+            "vwap": 73.34314607903046,
+            "ema9": 73.04439931721231,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.8205826300027226,
+            "gap_pct": 0.003941300738116425,
+            "maximo_dia": 74.06,
+            "maximo_premarket": 74.06,
+            "rango_apertura_max": 73.93000030517578,
+            "rango_apertura_min": 73.58000183105469,
+            "velas_desde_ruptura": 0,
+            "macd": 0.0025301643895545567,
+            "macd_signal": 0.0067876942607269265
+          },
+          "meta": {
+            "float_acciones": 443301970.0,
+            "short_pct_float": null,
+            "market_cap": 35293036544.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Alcon raises 2026 earnings growth outlook on positive Q2 results",
+            "fuente": "Medical Device Network",
+            "fecha": "2026-08-11T11:25:07Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3221.4371832333336,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 65.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 32.05826300027226,
+                "extension": 100.0,
+                "distancia_maximo_dia": 86.29487130630986,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.7,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "GLW",
+          "nombre": "Corning Incorporated",
+          "precio_actual": 165.6300048828125,
+          "factores_intradia": {
+            "precio_actual": 165.6300048828125,
+            "vwap": 166.15346057794838,
+            "ema9": 165.62816591088378,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 1.1608481568557867,
+            "gap_pct": -0.008600110012003628,
+            "maximo_dia": 168.8272,
+            "maximo_premarket": 168.8272,
+            "rango_apertura_max": 167.82000732421875,
+            "rango_apertura_min": 165.3300018310547,
+            "velas_desde_ruptura": 5,
+            "macd": 0.009502884065284434,
+            "macd_signal": -0.017565900584725357
+          },
+          "meta": {
+            "float_acciones": 772381075.0,
+            "short_pct_float": 0.023599999,
+            "market_cap": 142356021248.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Why Corning (GLW) Is Up 7.6% After Strong Q2 Results And AI-Focused Guidance",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-11T01:08:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3838.3538955333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 63.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 66.08481568557866,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.06232220170972,
+                "frescura_patron": 50.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.6,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "JD",
+          "nombre": "JD.com, Inc.",
+          "precio_actual": 28.949800491333008,
+          "factores_intradia": {
+            "precio_actual": 28.949800491333008,
+            "vwap": 29.552054477084745,
+            "ema9": 28.944722096563726,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.5451239085300311,
+            "gap_pct": -0.024992119591058667,
+            "maximo_dia": 31.85,
+            "maximo_premarket": 31.85,
+            "rango_apertura_max": 31.3700008392334,
+            "rango_apertura_min": 30.510000228881836,
+            "velas_desde_ruptura": 0,
+            "macd": 0.001581253574361341,
+            "macd_signal": -0.002893003223423146
+          },
+          "meta": {
+            "float_acciones": 1180427247.0,
+            "short_pct_float": 0.0199,
+            "market_cap": 39110479872.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "JD.com Profit Beats Estimates After Food Delivery Fight Calms",
+            "fuente": "Bloomberg",
+            "fecha": "2026-08-13T10:05:19Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 421.23726525,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 51.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 4.512390853003112,
+                "extension": 100.0,
+                "distancia_maximo_dia": 8.94193065409754,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.4,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "IBM",
+          "nombre": "International Business Machines Corporation",
+          "precio_actual": 235.3656005859375,
+          "factores_intradia": {
+            "precio_actual": 235.3656005859375,
+            "vwap": 236.4917293756965,
+            "ema9": 235.10929814232267,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.4431674345602754,
+            "gap_pct": 0.012458693510617559,
+            "maximo_dia": 242.99,
+            "maximo_premarket": 242.99,
+            "rango_apertura_max": 238.99000549316406,
+            "rango_apertura_min": 237.0399932861328,
+            "velas_desde_ruptura": 1,
+            "macd": 0.18255753444023526,
+            "macd_signal": 0.1636302061952172
+          },
+          "meta": {
+            "float_acciones": 919542007.0,
+            "short_pct_float": 0.026199998,
+            "market_cap": 221411000320.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "IBM and OpenAI Launch Enterprise AI Partnership With GPT-5.6 Integration",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-08-13T10:26:38Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 399.92064208333335,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 56.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 68.622579472149,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.8,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "SHOP",
+          "nombre": "Shopify Inc.",
+          "precio_actual": 153.86000061035156,
+          "factores_intradia": {
+            "precio_actual": 153.86000061035156,
+            "vwap": 153.0753950580573,
+            "ema9": 153.78132818234994,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.5891935921802878,
+            "gap_pct": 0.012565649515535234,
+            "maximo_dia": 154.92999267578125,
+            "maximo_premarket": 152.22,
+            "rango_apertura_max": 152.9499969482422,
+            "rango_apertura_min": 151.3759002685547,
+            "velas_desde_ruptura": 1,
+            "macd": 0.17049041236950302,
+            "macd_signal": 0.20208118909519862
+          },
+          "meta": {
+            "float_acciones": 1172544348.0,
+            "short_pct_float": 0.0167,
+            "market_cap": 197782913024.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "OpenAI Concludes $7 Billion Share Buyback Ahead of Potential IPO: Report",
+            "fuente": "Benzinga Private Markets",
+            "fecha": "2026-08-11T09:18:52Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3347.68734035,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 61.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 8.919359218028774,
+                "extension": 100.0,
+                "distancia_maximo_dia": 93.09370608653656,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 63.5,
+            "score_ajustado": 43.5,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "CAH",
+          "nombre": "Cardinal Health, Inc.",
+          "precio_actual": 232.16000366210938,
+          "factores_intradia": {
+            "precio_actual": 232.16000366210938,
+            "vwap": 232.4414363339206,
+            "ema9": 232.03299395354063,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.07142857142857144,
+            "gap_pct": -0.004953893252338897,
+            "maximo_dia": 239.1,
+            "maximo_premarket": 239.1,
+            "rango_apertura_max": 235.6699981689453,
+            "rango_apertura_min": 230.22000122070312,
+            "velas_desde_ruptura": 4,
+            "macd": 0.13234332567222395,
+            "macd_signal": 0.09997676849817473
+          },
+          "meta": {
+            "float_acciones": 224949570.0,
+            "short_pct_float": 0.0327,
+            "market_cap": 53984317440.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Earnings To Watch: Cardinal Health (CAH) Reports Q2 Results Tomorrow",
+            "fuente": "StockStory",
+            "fecha": "2026-08-11T20:29:22Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2677.1873651166666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 52.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 70.974502978291,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 62.8,
+            "score_ajustado": 42.8,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "CRM",
+          "nombre": "Salesforce, Inc.",
+          "precio_actual": 192.5,
+          "factores_intradia": {
+            "precio_actual": 192.5,
+            "vwap": 193.90203635987882,
+            "ema9": 192.38143688019994,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.31610675727516857,
+            "gap_pct": 0.018182284587613323,
+            "maximo_dia": 198.5,
+            "maximo_premarket": 198.5,
+            "rango_apertura_max": 196.897705078125,
+            "rango_apertura_min": 194.50999450683594,
+            "velas_desde_ruptura": 3,
+            "macd": 0.13415836867397957,
+            "macd_signal": 0.12720762212403944
+          },
+          "meta": {
+            "float_acciones": 763340760.0,
+            "short_pct_float": 0.041500002,
+            "market_cap": 157559226368.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Marc Benioff's Salesforce Spent a Record $27 Billion on Stock Buybacks in a Single Quarter to Fight What He Calls the \"SaaSpocalypse.\" Here's Why the Size of That Repurchase Matters.",
+            "fuente": "Motley Fool",
+            "fecha": "2026-08-13T12:50:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 256.55407338333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 54.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 69.77329974811086,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 62.7,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "DASH",
+          "nombre": "DoorDash, Inc.",
+          "precio_actual": 216.27999877929688,
+          "factores_intradia": {
+            "precio_actual": 216.27999877929688,
+            "vwap": 214.6953178734292,
+            "ema9": 216.0961752580631,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 1.9453565931246792,
+            "gap_pct": 0.005553167891556251,
+            "maximo_dia": 216.5945,
+            "maximo_premarket": 216.5945,
+            "rango_apertura_max": 213.6699981689453,
+            "rango_apertura_min": 210.14999389648438,
+            "velas_desde_ruptura": 4,
+            "macd": 0.22405209313802743,
+            "macd_signal": 0.18785846211751683
+          },
+          "meta": {
+            "float_acciones": 362703126.0,
+            "short_pct_float": 0.044499997,
+            "market_cap": 93656850432.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "How Investors Are Reacting To DoorDash (DASH) Drone Launch And Share Buybacks After Q2 Results",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-12T18:13:32Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1373.0207649166666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "micro_pullback",
+            "temprano": true,
+            "early": {
+              "score": 74.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 98.54797226751766,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 62.6,
+            "score_ajustado": 42.6,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "ALL",
+          "nombre": "The Allstate Corporation",
+          "precio_actual": 258.1499938964844,
+          "factores_intradia": {
+            "precio_actual": 258.1499938964844,
+            "vwap": 257.62328022310226,
+            "ema9": 258.10439169180813,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 1.1656854499579479,
+            "gap_pct": 0.006488444675855101,
+            "maximo_dia": 261.8,
+            "maximo_premarket": 261.8,
+            "rango_apertura_max": 258.7099914550781,
+            "rango_apertura_min": 256.864990234375,
+            "velas_desde_ruptura": 1,
+            "macd": 0.06552470697761237,
+            "macd_signal": 0.048509283311964066
+          },
+          "meta": {
+            "float_acciones": 245593341.0,
+            "short_pct_float": 0.00029999999,
+            "market_cap": 65287925760.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Allstate (ALL) Could Be 3% Above Fair Value Following Strong Q2 Results",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-12T17:11:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1435.5207879333332,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 71.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 66.56854499579478,
+                "extension": 100.0,
+                "distancia_maximo_dia": 86.05803627381347,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 62.6,
+            "score_ajustado": 42.6,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "MO",
+          "nombre": "Altria Group, Inc.",
+          "precio_actual": 65.47799682617188,
+          "factores_intradia": {
+            "precio_actual": 65.47799682617188,
+            "vwap": 65.66528726676555,
+            "ema9": 65.50632199216855,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.6392098068612753,
+            "gap_pct": 0.009630363048036866,
+            "maximo_dia": 66.02999877929688,
+            "maximo_premarket": 64.82,
+            "rango_apertura_max": 65.4000015258789,
+            "rango_apertura_min": 64.72000122070312,
+            "velas_desde_ruptura": null,
+            "macd": -0.03893167935612496,
+            "macd_signal": -0.029503004749180016
+          },
+          "meta": {
+            "float_acciones": 1631840739.0,
+            "short_pct_float": 0.0304,
+            "market_cap": 109368221696.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Altria Group (MO) Reported Q2 Results And Buybacks, Is It Trading At A Discount?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-11T22:14:36Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2571.954158916667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 55.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 13.920980686127528,
+                "extension": 100.0,
+                "distancia_maximo_dia": 91.64013382810965,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 62.0,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "VST",
+          "nombre": "Vistra Corp.",
+          "precio_actual": 145.8249969482422,
+          "factores_intradia": {
+            "precio_actual": 145.8249969482422,
+            "vwap": 145.9744541998951,
+            "ema9": 145.83503135957335,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.41246063494765506,
+            "gap_pct": -0.00293150189018415,
+            "maximo_dia": 147.77000427246094,
+            "maximo_premarket": 147.43,
+            "rango_apertura_max": 147.1999969482422,
+            "rango_apertura_min": 145.41000366210938,
+            "velas_desde_ruptura": null,
+            "macd": 0.021955452255184582,
+            "macd_signal": 0.020632784153253703
+          },
+          "meta": {
+            "float_acciones": 302454300.0,
+            "short_pct_float": 0.0299,
+            "market_cap": 48952397824.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Can GE Vernova's Strong Q2 Results Fuel Further Earnings Growth?",
+            "fuente": "Zacks",
+            "fecha": "2026-08-13T12:50:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 256.55419925,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 51.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 86.83760392513418,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.6,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "O",
+          "nombre": "Realty Income Corporation",
+          "precio_actual": 63.20000076293945,
+          "factores_intradia": {
+            "precio_actual": 63.20000076293945,
+            "vwap": 63.081022624851116,
+            "ema9": 63.18652053420129,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.7502203613926839,
+            "gap_pct": 0.002875863632161037,
+            "maximo_dia": 63.25899887084961,
+            "maximo_premarket": 62.9988,
+            "rango_apertura_max": 63.0,
+            "rango_apertura_min": 62.77000045776367,
+            "velas_desde_ruptura": 0,
+            "macd": 0.003723319155191973,
+            "macd_signal": 0.004663300257239489
+          },
+          "meta": {
+            "float_acciones": 922382801.0,
+            "short_pct_float": 0.0545,
+            "market_cap": 59785773056.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Is Realty Income Stock Worth Holding After Its Q2 Earnings Results?",
+            "fuente": "Zacks",
+            "fecha": "2026-08-11T15:22:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2984.5542389833336,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 64.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 25.022036139268387,
+                "extension": 100.0,
+                "distancia_maximo_dia": 99.06735628190056,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 59.4,
+            "score_ajustado": 39.4,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        }
+      ]
     }
   ]
 }
