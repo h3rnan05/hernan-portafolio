@@ -5991,9 +5991,9 @@
     {
       "ticker": "ORCL",
       "nombre": "Oracle Corporation",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-13T15:37:51+00:00",
-      "actualizado_en": "2026-08-13T15:37:51+00:00",
+      "actualizado_en": "2026-08-13T18:05:55+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -6006,6 +6006,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-13T18:05:55+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-13T18:05:56+00:00",
+          "telegram_enviado_ts": "2026-08-13T18:05:56+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 1000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -6027,11 +6039,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 154.3300018310547,
-      "ultimo_stop": 153.38423957581037,
-      "ultimo_objetivo": 156.22152634154332,
-      "ultima_zona_entrada_baja": 154.15501464905566,
-      "ultimos_niveles_ts": "2026-08-13T17:11:22+00:00"
+      "ultima_entrada": 154.02499389648438,
+      "ultimo_stop": 153.20403368939154,
+      "ultimo_objetivo": 155.66691431067005,
+      "ultima_zona_entrada_baja": 153.97390320541862,
+      "ultimos_niveles_ts": "2026-08-13T18:05:55+00:00"
     }
   ]
 }
