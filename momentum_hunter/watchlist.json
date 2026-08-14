@@ -7418,9 +7418,9 @@
     {
       "ticker": "COHR",
       "nombre": "Coherent Corp.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-13T19:44:53+00:00",
-      "actualizado_en": "2026-08-13T19:44:53+00:00",
+      "actualizado_en": "2026-08-14T14:09:31+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -7433,6 +7433,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-14T14:09:31+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-14T14:09:32+00:00",
+          "telegram_enviado_ts": "2026-08-14T14:09:33+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -7454,18 +7466,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 330.01,
-      "ultimo_stop": 311.1789442225865,
-      "ultimo_objetivo": 367.672111554827,
-      "ultima_zona_entrada_baja": 330.2508927485416,
-      "ultimos_niveles_ts": "2026-08-13T21:30:37+00:00"
+      "ultima_entrada": 341.70001220703125,
+      "ultimo_stop": 329.57823716040207,
+      "ultimo_objetivo": 365.9435623002896,
+      "ultima_zona_entrada_baja": 342.1902927984901,
+      "ultimos_niveles_ts": "2026-08-14T14:09:31+00:00"
     },
     {
       "ticker": "AMAT",
       "nombre": "Applied Materials, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-13T20:55:36+00:00",
-      "actualizado_en": "2026-08-13T20:55:36+00:00",
+      "actualizado_en": "2026-08-14T14:09:31+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -7478,6 +7490,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-14T14:09:31+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-14T14:09:33+00:00",
+          "telegram_enviado_ts": "2026-08-14T14:09:33+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -7499,11 +7523,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 505.8119,
-      "ultimo_stop": 503.26515159787374,
-      "ultimo_objetivo": 510.90539680425246,
-      "ultima_zona_entrada_baja": 505.79412220891834,
-      "ultimos_niveles_ts": "2026-08-13T21:30:37+00:00"
+      "ultima_entrada": 511.4599914550781,
+      "ultimo_stop": 493.8455265590123,
+      "ultimo_objetivo": 546.6889212472098,
+      "ultima_zona_entrada_baja": 512.6535544771062,
+      "ultimos_niveles_ts": "2026-08-14T14:09:31+00:00"
     }
   ]
 }
