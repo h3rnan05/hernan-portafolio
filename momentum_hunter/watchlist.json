@@ -17288,9 +17288,9 @@
     {
       "ticker": "AMZN",
       "nombre": "Amazon.com, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T15:42:31+00:00",
-      "actualizado_en": "2026-08-19T15:42:31+00:00",
+      "actualizado_en": "2026-08-19T18:03:11+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17298,6 +17298,18 @@
           "motivo": "Catalizador confirmado -- en observación.",
           "deteccion_ts": "2026-08-19T15:42:31+00:00",
           "evaluacion_ts": "2026-08-19T15:42:31+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-19T18:03:11+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
           "mensaje_generado_ts": null,
           "telegram_enviado_ts": null,
           "latencia_desde_deteccion_ms": null,
@@ -17369,11 +17381,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 272.5849914550781,
-      "ultimo_stop": 271.20762047018445,
-      "ultimo_objetivo": 275.33973342486547,
-      "ultima_zona_entrada_baja": 272.5704728343562,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 273.5400085449219,
+      "ultimo_stop": 271.8779105644639,
+      "ultimo_objetivo": 276.86420450583785,
+      "ultima_zona_entrada_baja": 273.2441312205667,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "EQNR",
@@ -17414,11 +17426,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 42.29499816894531,
-      "ultimo_stop": 41.75571250915527,
-      "ultimo_objetivo": 43.37356948852539,
-      "ultima_zona_entrada_baja": 42.30142252957276,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 42.29999923706055,
+      "ultimo_stop": 41.76071357727051,
+      "ultimo_objetivo": 43.378570556640625,
+      "ultima_zona_entrada_baja": 42.3006720751698,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "CVX",
@@ -17459,11 +17471,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 206.3699951171875,
-      "ultimo_stop": 204.1103515625,
-      "ultimo_objetivo": 210.8892822265625,
-      "ultima_zona_entrada_baja": 206.40132009088413,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 206.72999572753906,
+      "ultimo_stop": 205.63409650598408,
+      "ultimo_objetivo": 208.92179417064904,
+      "ultima_zona_entrada_baja": 206.66743367435586,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "ARES",
@@ -17504,11 +17516,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 144.1199951171875,
-      "ultimo_stop": 143.380621445783,
-      "ultimo_objetivo": 145.59874245999652,
-      "ultima_zona_entrada_baja": 144.10112708118893,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 143.89500427246094,
+      "ultimo_stop": 142.83946647444947,
+      "ultimo_objetivo": 146.00607986848388,
+      "ultima_zona_entrada_baja": 143.89604940781712,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "SHOP",
@@ -17549,11 +17561,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 146.27999877929688,
-      "ultimo_stop": 142.49424961635046,
-      "ultimo_objetivo": 153.8514971051897,
-      "ultima_zona_entrada_baja": 146.31290557144206,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 147.09500122070312,
+      "ultimo_stop": 146.24442496486265,
+      "ultimo_objetivo": 148.79615373238408,
+      "ultima_zona_entrada_baja": 146.97932157272626,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "KKR",
@@ -17594,11 +17606,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 111.11959838867188,
-      "ultimo_stop": 108.81566946847099,
-      "ultimo_objetivo": 115.72745622907365,
-      "ultima_zona_entrada_baja": 111.17195263795776,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 111.02999877929688,
+      "ultimo_stop": 108.72606985909599,
+      "ultimo_objetivo": 115.63785661969865,
+      "ultima_zona_entrada_baja": 111.03685726045657,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "LOW",
@@ -17639,11 +17651,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 221.5,
-      "ultimo_stop": 220.1740863428153,
-      "ultimo_objetivo": 224.15182731436943,
-      "ultima_zona_entrada_baja": 221.28048878674903,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 222.1649932861328,
+      "ultimo_stop": 220.5422840888125,
+      "ultimo_objetivo": 225.41041168077345,
+      "ultima_zona_entrada_baja": 221.65053677267588,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "WMT",
@@ -17684,11 +17696,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 115.93000030517578,
-      "ultimo_stop": 115.26236316274901,
-      "ultimo_objetivo": 117.26527459002932,
-      "ultima_zona_entrada_baja": 115.8415710178382,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 115.6500015258789,
+      "ultimo_stop": 114.53714452471051,
+      "ultimo_objetivo": 117.8757155282157,
+      "ultima_zona_entrada_baja": 115.70568677222994,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "COST",
@@ -17729,11 +17741,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 968.635009765625,
-      "ultimo_stop": 962.9320327304808,
-      "ultimo_objetivo": 980.0409638359133,
-      "ultima_zona_entrada_baja": 967.7708871663124,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 966.9299926757812,
+      "ultimo_stop": 958.7247205461774,
+      "ultimo_objetivo": 983.3405369349889,
+      "ultima_zona_entrada_baja": 967.7756978593175,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "HD",
@@ -17774,11 +17786,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 344.4200134277344,
-      "ultimo_stop": 342.535617721678,
-      "ultimo_objetivo": 348.1888048398471,
-      "ultima_zona_entrada_baja": 344.2569022328422,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 345.07000732421875,
+      "ultimo_stop": 342.8103569032992,
+      "ultimo_objetivo": 349.5893081660579,
+      "ultima_zona_entrada_baja": 344.533022013366,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "TJX",
@@ -17819,11 +17831,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 145.82000732421875,
-      "ultimo_stop": 144.1017941066197,
-      "ultimo_objetivo": 149.25643375941684,
-      "ultima_zona_entrada_baja": 145.85847515480214,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 145.78500366210938,
+      "ultimo_stop": 144.06679044451033,
+      "ultimo_objetivo": 149.22143009730746,
+      "ultima_zona_entrada_baja": 145.80431028335843,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "DE",
@@ -17864,11 +17876,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 586.6599731445312,
-      "ultimo_stop": 579.4564012799945,
-      "ultimo_objetivo": 601.0671168736048,
-      "ultima_zona_entrada_baja": 586.8958954815298,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 587.39501953125,
+      "ultimo_stop": 583.8467836935939,
+      "ultimo_objetivo": 594.4914912065622,
+      "ultima_zona_entrada_baja": 586.7806871292402,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "AAPL",
@@ -17956,11 +17968,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 102.36000061035156,
-      "ultimo_stop": 101.60285786220005,
-      "ultimo_objetivo": 103.87428610665458,
-      "ultima_zona_entrada_baja": 102.38923330975656,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 102.31999969482422,
+      "ultimo_stop": 101.70902855673245,
+      "ultimo_objetivo": 103.54194197100776,
+      "ultima_zona_entrada_baja": 102.22012920274618,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "TGT",
@@ -18001,11 +18013,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 161.55499267578125,
-      "ultimo_stop": 158.27736925356425,
-      "ultimo_objetivo": 168.11023952021526,
-      "ultima_zona_entrada_baja": 161.63403784157484,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 160.80999755859375,
+      "ultimo_stop": 156.86024523124118,
+      "ultimo_objetivo": 168.7095022132989,
+      "ultima_zona_entrada_baja": 161.12457824076077,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     },
     {
       "ticker": "UBER",
@@ -18046,11 +18058,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 77.94999694824219,
-      "ultimo_stop": 76.73700819893709,
-      "ultimo_objetivo": 80.37597444685238,
-      "ultima_zona_entrada_baja": 78.03760741722306,
-      "ultimos_niveles_ts": "2026-08-19T17:37:50+00:00"
+      "ultima_entrada": 78.30999755859375,
+      "ultimo_stop": 77.83567729746862,
+      "ultimo_objetivo": 79.25863808084401,
+      "ultima_zona_entrada_baja": 78.22681135423981,
+      "ultimos_niveles_ts": "2026-08-19T18:03:11+00:00"
     }
   ]
 }
