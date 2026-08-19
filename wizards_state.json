@@ -1,5 +1,5 @@
 {
-  "cash": 1471.5209999999995,
+  "cash": 24.14099999999962,
   "posiciones": {
     "EFA": {
       "qty": 14,
@@ -20,6 +20,13 @@
       "entrada": 304.43,
       "stop": 296.52,
       "fecha": "2026-08-13 14:34 UTC",
+      "origen": "sistema"
+    },
+    "DBA": {
+      "qty": 51,
+      "entrada": 28.38,
+      "stop": 27.82,
+      "fecha": "2026-08-19 14:59 UTC",
       "origen": "sistema"
     }
   },
@@ -790,6 +797,10 @@
     {
       "ts": "2026-08-19 14:24 UTC",
       "equity": 4957.12
+    },
+    {
+      "ts": "2026-08-19 14:59 UTC",
+      "equity": 4966.39
     }
   ],
   "noticias_vistas": [
@@ -998,12 +1009,13 @@
     {
       "ts": "2026-08-13 14:34 UTC",
       "evento": "🟢 COMPRA IWM (Small caps EEUU): 4 @ $304.43 | ruptura de máx. 55d | stop $296.52 (riesgo $31.64 = 0.6% del equity)"
+    },
+    {
+      "ts": "2026-08-19 14:59 UTC",
+      "evento": "🟢 COMPRA DBA (Agricultura (canasta)): 51 @ $28.38 | ruptura de máx. 55d | stop $27.82 (riesgo $28.56 = 0.6% del equity)"
     }
   ],
   "noticias_evaluadas": [
-    "2f6467b1eb8d",
-    "49d6f26d428a",
-    "686128780ad4",
     "91c39ef1da59",
     "42b9d1437c88",
     "d63879ae9dc6",
@@ -1500,6 +1512,9 @@
     "05386ea0e330",
     "d116a99ae86d",
     "9b7ce69a3d4a",
-    "8b4bc68329d0"
+    "8b4bc68329d0",
+    "b5bdc2b99ce0",
+    "6e503470736c",
+    "bf31967b6a40"
   ]
 }
