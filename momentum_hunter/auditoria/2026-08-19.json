@@ -16359,6 +16359,296 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-19T19:24:14+00:00",
+      "candidatos_evaluados": 4,
+      "candidatos": [
+        {
+          "ticker": "TGT",
+          "nombre": "Target Corporation",
+          "precio_actual": 160.89500427246094,
+          "factores_intradia": {
+            "precio_actual": 160.89500427246094,
+            "vwap": 159.9112749734068,
+            "ema9": 160.80839431513667,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.48268733850129203,
+            "gap_pct": -0.031073754051396733,
+            "maximo_dia": 161.9799041748047,
+            "maximo_premarket": 159.97,
+            "rango_apertura_max": 158.3000030517578,
+            "rango_apertura_min": 146.2100067138672,
+            "velas_desde_ruptura": 0,
+            "macd": -0.014624280944360635,
+            "macd_signal": -0.08602650224629209
+          },
+          "meta": {
+            "float_acciones": 452651404.0,
+            "short_pct_float": 0.0369,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Target Raises Full-Year Outlook as Tariff Refunds Boost Second-Quarter Earnings",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-19T15:45:20Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 218.90221121666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 59.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 93.30225617880994,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 76.3,
+            "score_ajustado": 56.3,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "UBER",
+          "nombre": "Uber Technologies, Inc.",
+          "precio_actual": 78.06999969482422,
+          "factores_intradia": {
+            "precio_actual": 78.06999969482422,
+            "vwap": 77.50821869282072,
+            "ema9": 78.11729314908698,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.3445450413375429,
+            "gap_pct": 0.0028116090187224048,
+            "maximo_dia": 79.30999755859375,
+            "maximo_premarket": 75.47,
+            "rango_apertura_max": 75.3499984741211,
+            "rango_apertura_min": 73.9697036743164,
+            "velas_desde_ruptura": null,
+            "macd": -0.04138210188092728,
+            "macd_signal": -0.05227642384871689
+          },
+          "meta": {
+            "float_acciones": 2036166908.0,
+            "short_pct_float": 0.0241,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "UBER or LYFT: Which Player Is Better-Placed Post-Q2 Earnings Results?",
+            "fuente": "Zacks",
+            "fecha": "2026-08-19T16:20:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 184.23561043333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 51.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.36517586760195,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "DOV",
+          "nombre": "Dover Corporation",
+          "precio_actual": 202.25999450683594,
+          "factores_intradia": {
+            "precio_actual": 202.25999450683594,
+            "vwap": 202.7204286755221,
+            "ema9": 202.14264647164754,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.5425392670157069,
+            "gap_pct": -0.0007386678729821893,
+            "maximo_dia": 204.4600067138672,
+            "maximo_premarket": 203.2,
+            "rango_apertura_max": 203.49000549316406,
+            "rango_apertura_min": 201.58999633789062,
+            "velas_desde_ruptura": 1,
+            "macd": -0.010721151254728056,
+            "macd_signal": -0.02343184845198598
+          },
+          "meta": {
+            "float_acciones": 133707834.0,
+            "short_pct_float": 0.0335,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "General Industrial Machinery Stocks Q2 Results: Benchmarking Dover (NYSE:DOV)",
+            "fuente": "StockStory",
+            "fecha": "2026-08-19T18:06:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 78.20230758333334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 72.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 61.695571161616165,
+                "aceleracion_volumen": 4.253926701570684,
+                "extension": 100.0,
+                "distancia_maximo_dia": 89.2398897838731,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 60.4,
+            "score_ajustado": 40.4,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "TRV",
+          "nombre": "The Travelers Companies, Inc.",
+          "precio_actual": 364.010009765625,
+          "factores_intradia": {
+            "precio_actual": 364.010009765625,
+            "vwap": 365.49501175008197,
+            "ema9": 364.28933453956967,
+            "rvol_actual": 0.0,
+            "aceleracion_volumen": 0.9100560306694192,
+            "gap_pct": -0.0005299184141258502,
+            "maximo_dia": 371.3900146484375,
+            "maximo_premarket": 369.93,
+            "rango_apertura_max": 368.32501220703125,
+            "rango_apertura_min": 365.0150146484375,
+            "velas_desde_ruptura": null,
+            "macd": -0.13398815732711,
+            "macd_signal": -0.11951858243680372
+          },
+          "meta": {
+            "float_acciones": 207356944.0,
+            "short_pct_float": 0.0401,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Will Travelers’ New Data-Savvy Director and Better Q2 Results Reframe TRV’s Risk-Reward Narrative?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-19T18:11:22Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 72.86901211666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 75.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 64.92787144444443,
+                "aceleracion_volumen": 41.005603066941916,
+                "extension": 100.0,
+                "distancia_maximo_dia": 80.12869330965044,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.0,
+            "score_ajustado": 0.0,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
