@@ -1,120 +1,6 @@
 {
   "entradas": [
     {
-      "ticker": "CSCO",
-      "nombre": "Cisco Systems, Inc.",
-      "estado": "expired",
-      "creado_en": "2026-08-12T19:22:18+00:00",
-      "actualizado_en": "2026-08-12T21:27:37+00:00",
-      "transiciones": [
-        {
-          "estado": "watching",
-          "timestamp": "2026-08-12T19:22:18+00:00",
-          "motivo": "Catalizador confirmado -- en observación.",
-          "deteccion_ts": "2026-08-12T19:22:18+00:00",
-          "evaluacion_ts": "2026-08-12T19:22:18+00:00",
-          "mensaje_generado_ts": null,
-          "telegram_enviado_ts": null,
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": null
-        },
-        {
-          "estado": "expired",
-          "timestamp": "2026-08-12T21:27:37+00:00",
-          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
-          "deteccion_ts": null,
-          "evaluacion_ts": null,
-          "mensaje_generado_ts": null,
-          "telegram_enviado_ts": null,
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": null
-        }
-      ],
-      "catalizador_tipo": "earnings",
-      "catalizador_titular": "Earnings To Watch: Cisco (CSCO) Reports Q2 Results Tomorrow",
-      "catalizador_fuente": "StockStory",
-      "catalizador_fecha": "2026-08-12T19:01:22Z",
-      "catalizador_confirmado": true,
-      "catalizador_fuentes_adicionales": [],
-      "shares_float": 3817949517.0,
-      "short_pct_float": 0.0168,
-      "es_large_cap": true,
-      "score_base": 75.9,
-      "atr_diario": 3.9449996948242188,
-      "gap_pct_congelado": 0.02117415133518205,
-      "tarde_consecutivas": 0,
-      "market_event_ts": null,
-      "data_received_ts": null,
-      "evaluador_ts": null,
-      "mensaje_generado_ts": null,
-      "telegram_enviado_ts": null,
-      "signal_latency_ms": null,
-      "ultima_entrada": 119.84,
-      "ultimo_stop": 118.53686504532631,
-      "ultimo_objetivo": 122.4462699093474,
-      "ultima_zona_entrada_baja": 119.13252768374504,
-      "ultimos_niveles_ts": "2026-08-12T21:27:37+00:00"
-    },
-    {
-      "ticker": "DASH",
-      "nombre": "DoorDash, Inc.",
-      "estado": "expired",
-      "creado_en": "2026-08-12T19:22:18+00:00",
-      "actualizado_en": "2026-08-12T21:27:37+00:00",
-      "transiciones": [
-        {
-          "estado": "watching",
-          "timestamp": "2026-08-12T19:22:18+00:00",
-          "motivo": "Catalizador confirmado -- en observación.",
-          "deteccion_ts": "2026-08-12T19:22:18+00:00",
-          "evaluacion_ts": "2026-08-12T19:22:18+00:00",
-          "mensaje_generado_ts": null,
-          "telegram_enviado_ts": null,
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": null
-        },
-        {
-          "estado": "expired",
-          "timestamp": "2026-08-12T21:27:37+00:00",
-          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
-          "deteccion_ts": null,
-          "evaluacion_ts": null,
-          "mensaje_generado_ts": null,
-          "telegram_enviado_ts": null,
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": null
-        }
-      ],
-      "catalizador_tipo": "buyback",
-      "catalizador_titular": "How Investors Are Reacting To DoorDash (DASH) Drone Launch And Share Buybacks After Q2 Results",
-      "catalizador_fuente": "Simply Wall St.",
-      "catalizador_fecha": "2026-08-12T18:13:32Z",
-      "catalizador_confirmado": true,
-      "catalizador_fuentes_adicionales": [],
-      "shares_float": 362703126.0,
-      "short_pct_float": 0.044499997,
-      "es_large_cap": true,
-      "score_base": 62.8,
-      "atr_diario": 8.376429966517858,
-      "gap_pct_congelado": 0.004150966428360849,
-      "tarde_consecutivas": 0,
-      "market_event_ts": null,
-      "data_received_ts": null,
-      "evaluador_ts": null,
-      "mensaje_generado_ts": null,
-      "telegram_enviado_ts": null,
-      "signal_latency_ms": null,
-      "ultima_entrada": 212.49,
-      "ultimo_stop": 211.3978361965848,
-      "ultimo_objetivo": 214.67432760683045,
-      "ultima_zona_entrada_baja": 212.46013688098975,
-      "ultimos_niveles_ts": "2026-08-12T21:27:37+00:00"
-    },
-    {
       "ticker": "TWLO",
       "nombre": "Twilio Inc.",
       "estado": "expired",
@@ -17290,9 +17176,9 @@
     {
       "ticker": "JNJ",
       "nombre": "Johnson & Johnson",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17305,6 +17191,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:07+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:07+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 7000.0
         }
       ],
       "catalizador_tipo": "fda",
@@ -17326,18 +17224,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 273.0,
-      "ultimo_stop": 271.1082132734331,
-      "ultimo_objetivo": 276.78357345313384,
-      "ultima_zona_entrada_baja": 272.4705661039528,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 271.6000061035156,
+      "ultimo_stop": 268.882504599435,
+      "ultimo_objetivo": 277.0350091116769,
+      "ultima_zona_entrada_baja": 271.99875753829315,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "CVX",
       "nombre": "Chevron Corporation",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17350,6 +17248,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:07+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:07+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 7000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -17371,18 +17281,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 205.66,
-      "ultimo_stop": 204.63132279741924,
-      "ultimo_objetivo": 207.7173544051615,
-      "ultima_zona_entrada_baja": 205.6596209019289,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 207.14999389648438,
+      "ultimo_stop": 204.89035034179688,
+      "ultimo_objetivo": 211.66928100585938,
+      "ultima_zona_entrada_baja": 207.40220110568447,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "EQNR",
       "nombre": "Equinor ASA",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17395,6 +17305,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:07+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:08+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 8000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -17416,18 +17338,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 42.28,
-      "ultimo_stop": 42.03795063873372,
-      "ultimo_objetivo": 42.764098722532566,
-      "ultima_zona_entrada_baja": 42.057528213976276,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 42.77000045776367,
+      "ultimo_stop": 42.52918362199311,
+      "ultimo_objetivo": 43.25163412930479,
+      "ultima_zona_entrada_baja": 42.74289811255589,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "ARES",
       "nombre": "Ares Management Corporation",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17440,6 +17362,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:08+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:08+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 8000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -17461,18 +17395,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 143.45,
-      "ultimo_stop": 142.61482727522616,
-      "ultimo_objetivo": 145.12034544954764,
-      "ultima_zona_entrada_baja": 143.26394609832352,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 143.72000122070312,
+      "ultimo_stop": 142.8941665140414,
+      "ultimo_objetivo": 145.3716706340266,
+      "ultima_zona_entrada_baja": 143.5161031890551,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "SHOP",
       "nombre": "Shopify Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17485,6 +17419,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "El catalizador ya salió de la ventana de vigencia.",
+          "deteccion_ts": "2026-08-20T13:39:05+00:00",
+          "evaluacion_ts": "2026-08-20T13:39:06+00:00",
+          "mensaje_generado_ts": "2026-08-20T13:39:06+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:07+00:00",
+          "latencia_desde_deteccion_ms": 2000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 7000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -17506,18 +17452,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 146.6999,
-      "ultimo_stop": 145.8542753886764,
-      "ultimo_objetivo": 148.39114922264724,
-      "ultima_zona_entrada_baja": 146.58721144590592,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 144.63059997558594,
+      "ultimo_stop": 140.83449390956335,
+      "ultimo_objetivo": 152.2228121076311,
+      "ultima_zona_entrada_baja": 145.208106575903,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "KKR",
       "nombre": "KKR & Co. Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17530,6 +17476,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:08+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:09+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 9000.0
         }
       ],
       "catalizador_tipo": "guidance",
@@ -17551,18 +17509,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 110.46,
-      "ultimo_stop": 109.88292470597423,
-      "ultimo_objetivo": 111.61415058805152,
-      "ultima_zona_entrada_baja": 110.43510020700928,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 109.37999725341797,
+      "ultimo_stop": 108.55564498399286,
+      "ultimo_objetivo": 111.02870179226818,
+      "ultima_zona_entrada_baja": 109.38586480198498,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "LOW",
       "nombre": "Lowe's Companies, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17575,6 +17533,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:09+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:09+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 9000.0
         }
       ],
       "catalizador_tipo": "guidance",
@@ -17596,18 +17566,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 220.0,
-      "ultimo_stop": 217.14821461268835,
-      "ultimo_objetivo": 225.7035707746233,
-      "ultima_zona_entrada_baja": 220.64079449831846,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 214.0500030517578,
+      "ultimo_stop": 212.71318151079006,
+      "ultimo_objetivo": 216.7236461336933,
+      "ultima_zona_entrada_baja": 214.2630227626933,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "WMT",
       "nombre": "Walmart Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17620,6 +17590,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:09+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:10+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 10000.0
         }
       ],
       "catalizador_tipo": "guidance",
@@ -17641,18 +17623,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 114.59,
-      "ultimo_stop": 113.94240245651471,
-      "ultimo_objetivo": 115.88519508697058,
-      "ultima_zona_entrada_baja": 114.51497734323087,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 105.24500274658203,
+      "ultimo_stop": 104.11714581080845,
+      "ultimo_objetivo": 107.50071661812919,
+      "ultima_zona_entrada_baja": 105.3599971582335,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "HD",
       "nombre": "Home Depot, Inc. (The)",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17665,6 +17647,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:10+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:10+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 10000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -17686,18 +17680,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 344.36,
-      "ultimo_stop": 342.6075722118942,
-      "ultimo_objetivo": 347.86485557621165,
-      "ultima_zona_entrada_baja": 344.32921830341127,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 334.1400146484375,
+      "ultimo_stop": 329.7496588570731,
+      "ultimo_objetivo": 342.9207262311663,
+      "ultima_zona_entrada_baja": 334.4225773824177,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "COST",
       "nombre": "Costco Wholesale Corporation",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17710,6 +17704,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:10+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:10+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 10000.0
         }
       ],
       "catalizador_tipo": "guidance",
@@ -17731,18 +17737,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 957.6,
-      "ultimo_stop": 949.3817862374442,
-      "ultimo_objetivo": 974.0364275251117,
-      "ultima_zona_entrada_baja": 958.0643022260965,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 938.8306884765625,
+      "ultimo_stop": 933.46956771811,
+      "ultimo_objetivo": 949.5529299934674,
+      "ultima_zona_entrada_baja": 938.1603695659397,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "TJX",
       "nombre": "The TJX Companies, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17755,6 +17761,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:10+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:11+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 11000.0
         }
       ],
       "catalizador_tipo": "guidance",
@@ -17776,18 +17794,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 145.395,
-      "ultimo_stop": 144.60159496647555,
-      "ultimo_objetivo": 146.98181006704894,
-      "ultima_zona_entrada_baja": 145.3282361472116,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 141.42999267578125,
+      "ultimo_stop": 139.7117794581822,
+      "ultimo_objetivo": 144.86641911097934,
+      "ultima_zona_entrada_baja": 141.5151972072756,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "DE",
       "nombre": "Deere & Company",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17800,6 +17818,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:11+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:11+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 11000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -17821,18 +17851,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 582.21,
-      "ultimo_stop": 578.8551643852209,
-      "ultimo_objetivo": 588.9196712295584,
-      "ultima_zona_entrada_baja": 581.7639843067547,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 596.094970703125,
+      "ultimo_stop": 592.1559883423372,
+      "ultimo_objetivo": 603.9729354247006,
+      "ultima_zona_entrada_baja": 596.1104623685867,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "HSBC",
       "nombre": "HSBC Holdings plc",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T19:36:36+00:00",
-      "actualizado_en": "2026-08-19T19:36:36+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17845,6 +17875,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:11+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:12+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 12000.0
         }
       ],
       "catalizador_tipo": "upgrade_analista",
@@ -17866,18 +17908,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 103.65,
-      "ultimo_stop": 102.56745292247125,
-      "ultimo_objetivo": 105.81509415505752,
-      "ultima_zona_entrada_baja": 103.08286725876508,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 103.18000030517578,
+      "ultimo_stop": 102.56107206797084,
+      "ultimo_objetivo": 104.41785677958566,
+      "ultima_zona_entrada_baja": 103.07645433966918,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "GE",
       "nombre": "GE Aerospace",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T20:02:18+00:00",
-      "actualizado_en": "2026-08-19T20:02:18+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17890,6 +17932,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:12+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:12+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 12000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -17911,18 +17965,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 356.75,
-      "ultimo_stop": 352.01678575788225,
-      "ultimo_objetivo": 366.2164284842355,
-      "ultima_zona_entrada_baja": 356.93673745219434,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 353.30999755859375,
+      "ultimo_stop": 348.576783316476,
+      "ultimo_objetivo": 362.77642604282926,
+      "ultima_zona_entrada_baja": 353.44017994443345,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "UBER",
       "nombre": "Uber Technologies, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T20:02:18+00:00",
-      "actualizado_en": "2026-08-19T20:02:18+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17935,6 +17989,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:12+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:13+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 13000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -17956,18 +18022,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 78.28,
-      "ultimo_stop": 77.81749355712032,
-      "ultimo_objetivo": 79.20501288575937,
-      "ultima_zona_entrada_baja": 78.20853623831188,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 78.80000305175781,
+      "ultimo_stop": 77.37595667157855,
+      "ultimo_objetivo": 81.64809581211634,
+      "ultima_zona_entrada_baja": 78.84681102555544,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "CRWD",
       "nombre": "CrowdStrike Holdings, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T20:02:18+00:00",
-      "actualizado_en": "2026-08-19T20:02:18+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -17980,6 +18046,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:13+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:13+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 13000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -18001,18 +18079,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 202.3,
-      "ultimo_stop": 200.7859402553795,
-      "ultimo_objetivo": 205.32811948924103,
-      "ultima_zona_entrada_baja": 201.79491482952713,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 195.2899932861328,
+      "ultimo_stop": 190.64088657924108,
+      "ultimo_objetivo": 204.58820669991627,
+      "ultima_zona_entrada_baja": 195.75794036641716,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     },
     {
       "ticker": "PANW",
       "nombre": "Palo Alto Networks, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-19T20:02:18+00:00",
-      "actualizado_en": "2026-08-19T20:02:18+00:00",
+      "actualizado_en": "2026-08-20T13:39:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -18025,6 +18103,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-20T13:39:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-20T13:39:13+00:00",
+          "telegram_enviado_ts": "2026-08-20T13:39:13+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 13000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -18046,11 +18136,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 359.69,
-      "ultimo_stop": 357.5979607517522,
-      "ultimo_objetivo": 363.87407849649554,
-      "ultima_zona_entrada_baja": 359.6914443347692,
-      "ultimos_niveles_ts": "2026-08-19T20:58:24+00:00"
+      "ultima_entrada": 353.125,
+      "ultimo_stop": 351.1767326226148,
+      "ultimo_objetivo": 357.0215347547704,
+      "ultima_zona_entrada_baja": 352.9414398217234,
+      "ultimos_niveles_ts": "2026-08-20T13:39:00+00:00"
     }
   ]
 }
