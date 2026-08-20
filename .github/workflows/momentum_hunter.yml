@@ -12,12 +12,26 @@
 # ET, ajustar el cron en horario de invierno) -- a diferencia del
 # screener, que corre una vez antes de la apertura.
 #
-# `--limit 500` por defecto (también en corridas programadas): escanear
+# `--limit 1000` por defecto (también en corridas programadas): escanear
 # TODO el universo NYSE+NASDAQ+AMEX con Yahoo por-ticker en cada corrida
 # es lento y arriesga que Yahoo bloquee la IP del runner (ver la
 # limitación documentada en momentum_hunter/universe.py). Para producción
 # real varias veces por hora, hay que inyectar un DataProvider de pago
 # con cotizaciones masivas -- la abstracción ya lo permite.
+#
+# Bug real encontrado el 2026-08-20: `universe.py` ordena el universo por
+# capitalización de mercado DESCENDENTE (ver ese módulo) -- con
+# `--limit 500`, cualquier ticker que caiga en la posición 501+ por ese
+# ranking NUNCA se escanea, sin importar qué tan en movimiento esté ese
+# día. Moderna (MRNA) estaba en la posición #530 el día que se perdió la
+# oportunidad -- ni siquiera llegó a pedirse su barra diaria, mucho menos
+# a evaluarse. Subir a 1000 no elimina la clase de bug (cualquier límite
+# fijo sigue teniendo un corte duro en algún punto), pero cubre con
+# margen a acciones de mediana capitalización conocidas y líquidas como
+# MRNA, que rotan alrededor de esa zona del ranking. Verificado contra
+# las corridas reales: `--limit 500` tarda ~7-8 min (vs. 25 min de
+# presupuesto) -- hay margen de sobra para duplicar la cobertura sin
+# arriesgar el timeout ni acercarse al límite de Yahoo.
 #
 # Secrets (opcionales): MOMENTUM_TELEGRAM_BOT_TOKEN/_CHAT_ID (chat
 # dedicado, recomendado) o, si no existen, cae a TELEGRAM_BOT_TOKEN/
@@ -33,7 +47,7 @@ on:
       limit:
         description: "Escanear solo los primeros N tickers (vacío = universo completo, lento)"
         required: false
-        default: "500"
+        default: "1000"
       universo:
         description: "Ruta a un archivo de watchlist propio (vacío = NYSE+NASDAQ+AMEX completo)"
         required: false
@@ -49,7 +63,7 @@ permissions:
 jobs:
   cazar:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -67,7 +81,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          LIMIT="${{ github.event.inputs.limit || '500' }}"
+          LIMIT="${{ github.event.inputs.limit || '1000' }}"
           UNIVERSO="${{ github.event.inputs.universo }}"
           ARGS=""
           [ -n "$LIMIT" ] && ARGS="$ARGS --limit $LIMIT"

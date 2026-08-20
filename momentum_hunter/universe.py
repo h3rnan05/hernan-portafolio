@@ -22,7 +22,27 @@ screener documenta para "todo el mercado" vs. S&P 500). `run.py` expone
 veces al día, necesitaría un proveedor de cotizaciones masivas de pago
 (Polygon, Finnhub, IEX Cloud) que devuelva precio/volumen de miles de
 tickers en una sola llamada -- no un `DataProvider` nuevo por ticker.
-Anotado, no resuelto: mismo tipo de límite que ya acepta `screener/`."""
+Anotado, no resuelto: mismo tipo de límite que ya acepta `screener/`.
+
+Bug real encontrado el 2026-08-20 (Moderna/MRNA no se avisó a tiempo):
+este módulo NUNCA ordena la lista -- `_parsear_nasdaqlisted`/
+`_parsear_otherlisted` preservan el orden del archivo fuente tal cual.
+Pero cuando NASDAQ Trader falla (como el 404 documentado arriba) y
+`_descargar_con_respaldo` cae al listado de la SEC
+(`company_tickers_exchange.json`), ESE archivo llega ya ordenado por
+capitalización de mercado descendente -- `_parsear_sec_tickers` lo pasa
+tal cual, sin re-ordenar. El efecto combinado con `run.py --limit N` es
+un corte duro por RANKING de market cap: cualquier ticker en la posición
+N+1 en adelante queda completamente fuera de la etapa 1, sin importar su
+movimiento ese día. MRNA estaba en la posición #530 -- ni siquiera se
+pidió su barra diaria. Esto además favorece estructuralmente a las
+empresas más grandes del mercado sobre exactamente el universo que este
+bot dice priorizar ("mayoritariamente small-cap/low float", ver
+momentum_hunter/README.md) -- una small-cap real (market cap bajo
+`config.market_cap_max`) probablemente cae muy por debajo de cualquier
+límite razonable en este ranking. Mitigado parcialmente subiendo el
+límite por defecto (ver .github/workflows/momentum_hunter.yml), pero
+NO resuelto de fondo: sigue siendo un corte duro, solo que más generoso."""
 
 from __future__ import annotations
 
