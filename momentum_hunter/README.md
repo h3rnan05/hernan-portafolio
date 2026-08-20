@@ -645,6 +645,24 @@ horas, no una promesa de anticipación imposible.
   `DataProvider` de pago con cotizaciones masivas (Polygon, Alpaca,
   Tradier) -- la interfaz ya lo permite sin tocar `factors/intradia.py`,
   `classification.py`, `early_opportunity.py` ni `evaluator.py`.
+- **`--limit N` corta por ranking, no por relevancia -- bug real
+  encontrado el 2026-08-20 (Moderna/MRNA no se avisó a tiempo).** Cuando
+  el universo cae al respaldo de la SEC (ver `universe.py`, activo desde
+  el 404 de NASDAQ Trader del 2026-07-27), la lista llega ordenada por
+  capitalización de mercado descendente -- `--limit` corta esa lista tal
+  cual, así que cualquier ticker más allá de la posición N queda
+  completamente fuera de la etapa 1, sin importar qué tan en movimiento
+  esté ese día. MRNA estaba en la posición #530; con el `--limit 500` de
+  ese momento, ni siquiera se le pidió la barra diaria. Subido a 1000
+  (ver `.github/workflows/momentum_hunter.yml`, verificado contra
+  tiempos reales de corrida: ~7-8 min con 500, presupuesto de 25-30 min)
+  como mitigación inmediata -- pero sigue siendo un corte duro, y
+  estructuralmente favorece a las empresas más grandes del mercado sobre
+  el universo small-cap que este bot dice priorizar. No resuelto de
+  fondo: requeriría no depender de un ranking por market cap para decidir
+  qué N tickers escanear (rotación del universo entre corridas, un
+  proveedor de cotizaciones masivas, o un pre-filtro barato de
+  gap/volumen antes de gastar la llamada cara de barras diarias).
 - **Sesión de mercado aproximada.** `factors/intradia.py` asume apertura
   13:30 UTC / cierre 20:00 UTC (horario de verano ET) para distinguir
   premarket de sesión regular -- se corre 1 hora en horario de invierno,
