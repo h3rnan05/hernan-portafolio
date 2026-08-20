@@ -7,6 +7,8 @@ real (ver `alpaca_client.py`).
 USO
   python -m momentum_paper_trader.run              # coloca órdenes paper reales (cuenta de práctica)
   python -m momentum_paper_trader.run --dry-run     # calcula y muestra, no coloca nada ni requiere credenciales
+  python -m momentum_paper_trader.run --verificar-conexion  # GET /v2/account -- confirma que las
+                                                      # credenciales conectan, nunca coloca una orden
 
 VARIABLES DE ENTORNO
   ALPACA_PAPER_API_KEY / ALPACA_PAPER_API_SECRET
@@ -33,6 +35,9 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry-run", action="store_true",
                      help="calcula y muestra qué órdenes colocaría, sin llamar a Alpaca ni requerir credenciales")
+    ap.add_argument("--verificar-conexion", action="store_true",
+                     help="GET /v2/account de solo lectura -- confirma que las credenciales conectan, "
+                          "nunca coloca una orden ni requiere que exista una señal TRIGGERED")
     args = ap.parse_args()
 
     api_key = os.getenv("ALPACA_PAPER_API_KEY")
@@ -42,6 +47,16 @@ def main() -> None:
         return
 
     client = AlpacaPaperClient(api_key or "", api_secret or "")
+
+    if args.verificar_conexion:
+        cuenta = client.info_cuenta()
+        log.info(
+            "conexión OK -- cuenta paper %s, estado=%s, poder de compra=$%s",
+            cuenta.get("account_number", "?"), cuenta.get("status", "?"),
+            cuenta.get("buying_power", "?"),
+        )
+        return
+
     nuevas = ejecutar(client, CONFIG, dry_run=args.dry_run)
     log.info("%d orden(es) paper colocada(s)", len(nuevas))
 

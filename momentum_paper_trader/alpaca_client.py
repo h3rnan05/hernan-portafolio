@@ -44,6 +44,16 @@ class AlpacaPaperClient:
         }
         self._timeout = timeout
 
+    def info_cuenta(self) -> dict:
+        """Consulta de solo lectura (`GET /v2/account`) -- nunca coloca
+        ni modifica nada, solo confirma que las credenciales conectan de
+        verdad con el entorno paper. Pensada para verificar la conexión
+        sin depender de que exista una señal TRIGGERED real (ver
+        `run.py --verificar-conexion`)."""
+        r = requests.get(f"{_BASE_URL}/account", headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        return r.json()
+
     def colocar_orden_bracket(
         self, ticker: str, cantidad: int, entrada: float, stop: float, objetivo: float,
     ) -> OrdenBracket:

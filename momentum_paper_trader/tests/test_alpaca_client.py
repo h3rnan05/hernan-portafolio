@@ -14,6 +14,31 @@ def test_base_url_es_siempre_paper_nunca_live():
     assert alpaca_client._BASE_URL != "https://api.alpaca.markets/v2"
 
 
+def test_info_cuenta_usa_get_de_solo_lectura_al_endpoint_paper(monkeypatch):
+    llamadas = []
+
+    class _FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"account_number": "PA123", "status": "ACTIVE", "buying_power": "100000"}
+
+    def _fake_get(url, headers, timeout):
+        llamadas.append((url, headers, timeout))
+        return _FakeResponse()
+
+    monkeypatch.setattr(alpaca_client.requests, "get", _fake_get)
+
+    client = AlpacaPaperClient("clave", "secreto")
+    cuenta = client.info_cuenta()
+
+    assert cuenta["status"] == "ACTIVE"
+    url, headers, _ = llamadas[0]
+    assert url == "https://paper-api.alpaca.markets/v2/account"
+    assert headers["APCA-API-KEY-ID"] == "clave"
+
+
 def test_colocar_orden_bracket_arma_el_payload_correcto(monkeypatch):
     llamadas = []
 

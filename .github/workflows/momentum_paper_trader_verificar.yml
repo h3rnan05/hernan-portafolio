@@ -1,0 +1,44 @@
+# Verificación de conexión bajo demanda del paper trader (2026-08-20,
+# pedido explícito: "quiero ver si ya funciona en Alpaca"). Corre
+# `python -m momentum_paper_trader.run --verificar-conexion` -- una
+# consulta de SOLO LECTURA (GET /v2/account) contra el entorno paper,
+# nunca coloca ni modifica una orden. Existe separado de
+# momentum_hunter.yml/momentum_hunter_watchlist.yml para poder probar la
+# conexión sin depender de que exista una señal TRIGGERED real en ese
+# momento.
+#
+# Solo workflow_dispatch -- nunca en cron, es una herramienta de
+# diagnóstico manual, no parte del pipeline automático.
+
+name: momentum-paper-trader-verificar-conexion
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q -r momentum_paper_trader/requirements.txt
+
+      - name: Verificar conexión con Alpaca (solo lectura)
+        env:
+          ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
+        run: |
+          if [ -z "$ALPACA_PAPER_API_KEY" ] || [ -z "$ALPACA_PAPER_API_SECRET" ]; then
+            echo "::error::ALPACA_PAPER_API_KEY/_SECRET no están configurados como secrets del repo"
+            exit 1
+          fi
+          python -m momentum_paper_trader.run --verificar-conexion
