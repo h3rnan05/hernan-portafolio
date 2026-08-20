@@ -51,11 +51,26 @@ jobs:
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: python -m momentum_hunter.run --solo-watchlist
 
+      # Paper trading (pedido explícito 2026-08-12): mismo paso que
+      # momentum_hunter.yml -- ver ese archivo y momentum_paper_trader/README.md.
+      - name: Paper trading (Alpaca, cuenta de práctica)
+        env:
+          ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
+          MOMENTUM_TELEGRAM_BOT_TOKEN: ${{ secrets.MOMENTUM_TELEGRAM_BOT_TOKEN }}
+          MOMENTUM_TELEGRAM_CHAT_ID: ${{ secrets.MOMENTUM_TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          pip install -q -r momentum_paper_trader/requirements.txt
+          python -m momentum_paper_trader.run
+
       - name: Persistir watchlist/tracker/auditoría
         run: |
           git config user.name "momentum-opportunity-hunter"
           git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
-          for f in momentum_hunter/watchlist.json momentum_hunter/alertas_enviadas.json; do
+          for f in momentum_hunter/watchlist.json momentum_hunter/alertas_enviadas.json \
+                   momentum_paper_trader/ordenes.json; do
             [ -f "$f" ] && git add "$f" || true
           done
           [ -d momentum_hunter/auditoria ] && git add momentum_hunter/auditoria || true
