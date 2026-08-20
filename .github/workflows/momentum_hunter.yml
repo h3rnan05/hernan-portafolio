@@ -74,12 +74,31 @@ jobs:
           [ -n "$UNIVERSO" ] && ARGS="$ARGS --universo $UNIVERSO"
           python -m momentum_hunter.run $ARGS
 
+      # Paper trading (pedido explícito 2026-08-12): consume las señales
+      # TRIGGERED que acaba de resolver el paso de arriba y coloca
+      # órdenes bracket en una cuenta de PRÁCTICA de Alpaca -- sistema
+      # separado (ver momentum_paper_trader/README.md), nunca dinero
+      # real. Sin ALPACA_PAPER_API_KEY/_SECRET, el comando no hace nada
+      # (mismo principio que los secrets de Telegram).
+      - name: Paper trading (Alpaca, cuenta de práctica)
+        env:
+          ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
+          MOMENTUM_TELEGRAM_BOT_TOKEN: ${{ secrets.MOMENTUM_TELEGRAM_BOT_TOKEN }}
+          MOMENTUM_TELEGRAM_CHAT_ID: ${{ secrets.MOMENTUM_TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          pip install -q -r momentum_paper_trader/requirements.txt
+          python -m momentum_paper_trader.run
+
       - name: Persistir universo/tracker/auditoría
         run: |
           git config user.name "momentum-opportunity-hunter"
           git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
           for f in momentum_hunter/universo_cache.json momentum_hunter/alertas_enviadas.json \
-                   momentum_hunter/estado_diario.json momentum_hunter/watchlist.json; do
+                   momentum_hunter/estado_diario.json momentum_hunter/watchlist.json \
+                   momentum_paper_trader/ordenes.json; do
             [ -f "$f" ] && git add "$f" || true
           done
           # Auditoría completa de cada corrida (Principio 9: cada alerta
