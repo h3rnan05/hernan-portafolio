@@ -114,7 +114,7 @@ def test_coloca_orden_para_triggered_nueva_cuando_la_ia_aprueba(monkeypatch, tmp
     wl_path, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert len(nuevas) == 1
     assert client.ordenes_colocadas == [("RKLB", 65, 78.42, 76.90, 82.50)]
@@ -134,7 +134,7 @@ def test_la_ia_recibe_el_contexto_de_la_cuenta(monkeypatch, tmp_path):
     *_, contextos = _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=5000.0, posiciones=[{"symbol": "TTWO"}])
 
-    executor.ejecutar(client, CFG, dry_run=False)
+    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert len(contextos) == 1
     assert "5,000.00" in contextos[0]
@@ -146,7 +146,7 @@ def test_no_coloca_orden_cuando_la_ia_rechaza(monkeypatch, tmp_path):
     wl_path, rev_path, enviados, _ = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_NO_ENTRA)
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert nuevas == []
     assert client.ordenes_colocadas == []   # nunca se llamó a Alpaca
@@ -167,7 +167,7 @@ def test_rechazo_de_la_ia_no_se_vuelve_a_preguntar(monkeypatch, tmp_path):
     _parchear(monkeypatch, tmp_path, [e], revisiones_previas=[previa], decision=_DECISION_ENTRA)
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert nuevas == []
     assert client.ordenes_colocadas == []   # ni siquiera se volvió a pedir criterio a la IA
@@ -182,7 +182,7 @@ def test_no_duplica_orden_ya_procesada(monkeypatch, tmp_path):
     _parchear(monkeypatch, tmp_path, [e], revisiones_previas=[previa])
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert nuevas == []
     assert client.ordenes_colocadas == []   # nunca se volvió a llamar a Alpaca
@@ -195,7 +195,7 @@ def test_no_opera_si_la_cuenta_no_se_puede_leer(monkeypatch, tmp_path):
     _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cuenta_rota=True)
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert nuevas == []
     assert client.ordenes_colocadas == []   # fail-closed: sin lectura de cuenta, nada se opera
@@ -206,7 +206,7 @@ def test_no_duplica_ticker_con_posicion_ya_abierta(monkeypatch, tmp_path):
     *_, contextos = _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=10_000.0, posiciones=[{"symbol": "RKLB"}])
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert nuevas == []
     assert client.ordenes_colocadas == []
@@ -218,7 +218,7 @@ def test_no_duplica_ticker_con_orden_pendiente(monkeypatch, tmp_path):
     _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=10_000.0, ordenes=[{"symbol": "RKLB"}])
 
-    assert executor.ejecutar(client, CFG, dry_run=False) == []
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
     assert client.ordenes_colocadas == []
 
 
@@ -228,7 +228,7 @@ def test_respeta_el_maximo_de_posiciones_simultaneas(monkeypatch, tmp_path):
     ocupadas = [{"symbol": s} for s in ("AAA", "BBB", "CCC", "DDD", "EEE")]
     client = _FakeAlpacaClient(cash=10_000.0, posiciones=ocupadas)
 
-    assert executor.ejecutar(client, CFG, dry_run=False) == []   # 5 abiertas = techo alcanzado
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []   # 5 abiertas = techo alcanzado
     assert client.ordenes_colocadas == []
 
 
@@ -240,7 +240,7 @@ def test_el_efectivo_real_recorta_la_cantidad_nunca_usa_margen(monkeypatch, tmp_
     _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=1000.0)
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert len(nuevas) == 1
     assert client.ordenes_colocadas[0][1] == int(1000.0 // 78.42)
@@ -254,7 +254,7 @@ def test_dos_ordenes_en_la_misma_corrida_no_gastan_el_mismo_efectivo(monkeypatch
     _parchear(monkeypatch, tmp_path, [e_a, e_b])
     client = _FakeAlpacaClient(cash=6000.0)
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert len(nuevas) == 2
     restante = 6000.0 - client.ordenes_colocadas[0][1] * 78.42
@@ -266,7 +266,7 @@ def test_fraccion_de_la_ia_reduce_la_cantidad(monkeypatch, tmp_path):
     _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA_MITAD)
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert len(nuevas) == 1
     assert client.ordenes_colocadas[0][1] == 32   # int(65 * 0.5)
@@ -279,7 +279,7 @@ def test_fraccion_que_no_alcanza_para_una_accion_no_opera_pero_queda_registrada(
     _, rev_path, enviados, _ = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA_MITAD)
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert nuevas == []
     assert client.ordenes_colocadas == []
@@ -292,7 +292,7 @@ def test_mensaje_incluye_el_tamano_cuando_la_fraccion_es_parcial(monkeypatch, tm
     *_, enviados, _ = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA_MITAD)
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    executor.ejecutar(client, CFG, dry_run=False)
+    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert "50% del normal" in enviados[0]
 
@@ -304,7 +304,7 @@ def test_ignora_entradas_no_triggered(monkeypatch, tmp_path):
     _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient()
 
-    assert executor.ejecutar(client, CFG, dry_run=False) == []
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
     assert client.ordenes_colocadas == []
 
 
@@ -314,7 +314,7 @@ def test_sin_niveles_cacheados_se_omite_sin_inventar_precio(monkeypatch, tmp_pat
     _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    assert executor.ejecutar(client, CFG, dry_run=False) == []
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
     assert client.ordenes_colocadas == []
 
 
@@ -323,7 +323,7 @@ def test_riesgo_insuficiente_para_una_accion_se_omite(monkeypatch, tmp_path):
     _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=50_000.0)
 
-    assert executor.ejecutar(client, CFG, dry_run=False) == []
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
     assert client.ordenes_colocadas == []
 
 
@@ -338,7 +338,7 @@ def test_dry_run_no_llama_a_alpaca_ni_a_la_ia_ni_manda_telegram_ni_persiste(monk
     monkeypatch.setattr(ia_decision, "decidir", _no_deberia_llamarse)
     client = _FakeAlpacaClient(cuenta_rota=True)   # ni la cuenta debería tocarse
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=True)
+    nuevas = executor.ejecutar(client, CFG, dry_run=True, ahora=AHORA)
 
     assert nuevas == []
     assert client.ordenes_colocadas == []
@@ -352,7 +352,7 @@ def test_fallo_de_alpaca_en_un_ticker_no_tumba_el_resto(monkeypatch, tmp_path):
     _parchear(monkeypatch, tmp_path, [e_falla, e_ok])
     client = _FakeAlpacaClient(cash=20_000.0, falla_para={"ROTO"})
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert [n.ticker for n in nuevas] == ["OK"]
     assert client.ordenes_colocadas == [("OK", 65, 78.42, 76.90, 82.50)]
@@ -364,7 +364,7 @@ def test_multiples_triggered_simultaneas_generan_ordenes_independientes(monkeypa
     wl_path, rev_path, enviados, _ = _parchear(monkeypatch, tmp_path, [e_a, e_b])
     client = _FakeAlpacaClient(cash=50_000.0)
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert {n.ticker for n in nuevas} == {"MEJOR", "SEGUNDA"}
     assert len(enviados) == 2
@@ -377,7 +377,7 @@ def test_sizing_respeta_el_riesgo_configurado(monkeypatch, tmp_path):
     client = _FakeAlpacaClient(cash=50_000.0)
     cfg = PaperTraderConfig(riesgo_dolares_por_operacion=250.0)
 
-    executor.ejecutar(client, cfg, dry_run=False)
+    executor.ejecutar(client, cfg, dry_run=False, ahora=AHORA)
 
     assert client.ordenes_colocadas == [("RKLB", 250, 10.0, 9.0, 12.0)]
 
@@ -388,3 +388,80 @@ def test_nunca_menciona_broker_real_ni_ejecucion_fuera_de_paper():
     bajo = fuente.lower()
     for prohibida in ("api.alpaca.markets", "live", "interactive_brokers", "ibapi"):
         assert prohibida not in bajo
+
+
+# ------------------------- niveles rancios (2026-08-21) -------------------------
+# El precio de entrada se congela cuando momentum_hunter evalúa la señal,
+# pero la orden se coloca después: hasta ~9 min más tarde en el escaneo
+# completo, y DÍAS más tarde si una corrida del trader falla y la señal
+# queda TRIGGERED sin revisar (los estados terminales se conservan varios
+# días). Sin este tope, el bot compraría a un precio que ya no existe.
+
+def _con_niveles_de_hace(minutos: float, ticker="RKLB"):
+    from datetime import timedelta
+    e = _entrada_triggered(ticker)
+    e.ultimos_niveles_ts = (datetime.now(UTC) - timedelta(minutes=minutos)).isoformat(timespec="seconds")
+    return e
+
+
+def test_niveles_frescos_si_operan(monkeypatch, tmp_path):
+    e = _con_niveles_de_hace(2)
+    _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=10_000.0)
+
+    assert len(executor.ejecutar(client, CFG, dry_run=False)) == 1
+
+
+def test_niveles_viejos_no_operan(monkeypatch, tmp_path):
+    e = _con_niveles_de_hace(60)   # una hora
+    _, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=10_000.0)
+
+    assert executor.ejecutar(client, CFG, dry_run=False) == []
+    assert client.ordenes_colocadas == []
+    assert enviados == []
+    assert contextos == []   # ni se gastó una consulta a la IA
+
+
+def test_niveles_de_hace_dias_no_operan(monkeypatch, tmp_path):
+    # El escenario real que motivó el arreglo: la watchlist conserva
+    # entradas TRIGGERED varios días.
+    e = _con_niveles_de_hace(60 * 24 * 4)   # cuatro días
+    _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=10_000.0)
+
+    assert executor.ejecutar(client, CFG, dry_run=False) == []
+    assert client.ordenes_colocadas == []
+
+
+def test_niveles_viejos_no_se_marcan_como_revisados(monkeypatch, tmp_path):
+    # Clave: la señal puede seguir siendo buena, lo viejo es el PRECIO.
+    # No debe quemarse la oportunidad -- el siguiente re-chequeo
+    # recalcula los niveles y ahí sí se opera.
+    e = _con_niveles_de_hace(60)
+    _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=10_000.0)
+
+    executor.ejecutar(client, CFG, dry_run=False)
+
+    assert estado.cargar(rev_path) == []   # sin registro -> se reintenta luego
+
+
+def test_sin_timestamp_de_niveles_no_se_bloquea(monkeypatch, tmp_path):
+    # Ausencia de dato no es evidencia de que esté viejo -- no se inventa
+    # el dato que falta en ninguna de las dos direcciones.
+    e = _entrada_triggered()
+    e.ultimos_niveles_ts = None
+    _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=10_000.0)
+
+    assert len(executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)) == 1
+
+
+def test_timestamp_corrupto_no_lanza_ni_bloquea(monkeypatch, tmp_path):
+    e = _entrada_triggered()
+    e.ultimos_niveles_ts = "no-es-una-fecha"
+    _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=10_000.0)
+
+    assert len(executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)) == 1

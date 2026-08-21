@@ -30,6 +30,23 @@ class PaperTraderConfig:
     # Un trader disciplinado con $5,000 no debería estar en 8 jugadas a
     # la vez; 5 ya es generoso.
     maximo_posiciones_abiertas: int = 5
+    # Antigüedad máxima de los niveles (entrada/stop/objetivo) para
+    # colocar una orden con ellos. El precio de entrada se congela cuando
+    # momentum_hunter evalúa la señal, pero la orden se coloca después:
+    # en el escaneo completo, hasta ~9 minutos más tarde (el paso del
+    # trader corre al final de un job de ~11 min). Y si una corrida del
+    # trader falla, la señal queda TRIGGERED sin revisar y se conserva
+    # varios días (ver `watchlist.RETENCION_DIAS_TERMINALES`) -- sin este
+    # tope, la corrida siguiente colocaría una orden con el precio de
+    # hace días. En momentum eso no es un detalle: es comprar a un precio
+    # que ya no existe.
+    #
+    # 15 minutos = 3x la cadencia del re-chequeo de watchlist (cada 5
+    # min, ver momentum_hunter_watchlist.yml). Tolera un par de corridas
+    # perdidas sin tolerar un precio rancio. No se pierde la operación:
+    # el siguiente re-chequeo recalcula los niveles y la orden se coloca
+    # ahí, con precios de verdad.
+    minutos_maximos_niveles: float = 15.0
 
     def validar(self) -> None:
         if self.riesgo_dolares_por_operacion <= 0:
@@ -38,6 +55,8 @@ class PaperTraderConfig:
             raise ValueError("minimo_acciones debe ser >= 1")
         if self.maximo_posiciones_abiertas < 1:
             raise ValueError("maximo_posiciones_abiertas debe ser >= 1")
+        if self.minutos_maximos_niveles <= 0:
+            raise ValueError("minutos_maximos_niveles debe ser > 0")
 
 
 CONFIG = PaperTraderConfig()
