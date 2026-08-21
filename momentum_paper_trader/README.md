@@ -37,24 +37,81 @@ igual si este módulo se desinstala.
 1. Lee `momentum_hunter/watchlist.json` (mismo parseo tolerante a
    corrupción que ya usa `momentum_hunter.watchlist.cargar`, sin
    duplicar esa lógica).
-2. Busca entradas en estado `TRIGGERED` que todavía no generaron una
-   orden (dedup persistido en `ordenes.json`, por `ticker` + `creado_en`
-   -- la misma entrada nunca genera dos órdenes, pero el mismo ticker
-   disparando en días distintos sí genera órdenes independientes).
-3. Calcula el tamaño de la posición por **riesgo fijo en dólares**
-   (`PaperTraderConfig.riesgo_dolares_por_operacion`, default $100):
-   `acciones = riesgo ÷ (entrada − stop)`, redondeado hacia abajo. Nunca
-   arriesga más de lo configurado; si el riesgo no alcanza para 1 acción
-   entera, omite la orden en vez de redondear hacia arriba.
-4. Coloca una **orden bracket** (Alpaca maneja el stop-loss y el
+2. Busca entradas en estado `TRIGGERED` que todavía no tienen una
+   revisión registrada (dedup persistido en `revisiones.json`, por
+   `ticker` + `creado_en` -- la misma entrada nunca se revisa dos veces,
+   pero el mismo ticker disparando en días distintos sí se revisa por
+   separado).
+3. Le pide su criterio a la IA (`ia_decision.decidir`, ver la sección de
+   abajo) sobre esa señal concreta. Si la IA dice que no, la revisión
+   queda registrada igual (con el razonamiento) y ahí termina -- nunca
+   se coloca una orden.
+4. Si la IA aprueba, calcula el tamaño de la posición por **riesgo fijo
+   en dólares** (`PaperTraderConfig.riesgo_dolares_por_operacion`,
+   default $100): `acciones = riesgo ÷ (entrada − stop)`, redondeado
+   hacia abajo. Nunca arriesga más de lo configurado; si el riesgo no
+   alcanza para 1 acción entera, omite la orden en vez de redondear
+   hacia arriba (este chequeo ocurre ANTES de consultar a la IA, para no
+   gastar una llamada en una señal que de todas formas no se podría
+   operar).
+5. Coloca una **orden bracket** (Alpaca maneja el stop-loss y el
    take-profit como OCO automáticamente, sin que este sistema tenga que
    vigilar la posición después) usando exactamente los tres números que
    `momentum_hunter` ya calculó y cacheó
    (`EntradaWatchlist.ultima_entrada/ultimo_stop/ultimo_objetivo`) --
-   nunca un precio nuevo, nunca un cálculo propio.
-5. Manda una confirmación por Telegram (mismo bot/chat de
-   `momentum_hunter`, `enviar_telegram` reusado sin duplicar) y persiste
-   la orden en `ordenes.json`.
+   nunca un precio nuevo, ni del código ni de la IA.
+6. Manda una confirmación por Telegram (mismo bot/chat de
+   `momentum_hunter`, `enviar_telegram` reusado sin duplicar), **con el
+   razonamiento de la IA incluido** (pedido explícito del usuario: "cada
+   que haga un trade, que me avise qué hizo"), y persiste la revisión en
+   `revisiones.json`.
+
+## La capa de decisión con IA (`ia_decision.py`)
+
+Esto es una **reversión deliberada y explícita** del principio original
+de `momentum_hunter` ("ninguna IA decide, solo genera texto" -- ver su
+README). El usuario pidió puntualmente (2026-08-21) que el bot "actúe
+autónomamente" con el criterio de un trader, no solo mecánicamente, y
+confirmó por escrito, ante una pregunta directa, que: (a) el sistema
+sigue siendo 100% paper trading, y (b) sí quiere que una IA (Claude) tome
+la decisión de entrar o no. Esta sección documenta esa decisión y sus
+guardarraíles, para que quede tan trazable como cualquier otra regla de
+este repo.
+
+**Por qué esto no reabre la puerta que `momentum_hunter` cerró:** el
+límite original protegía la parte del sistema que decide qué es una
+oportunidad real entre miles de candidatas ruidosas -- ahí, una
+alucinación del modelo podría fabricar una señal de la nada. Acá la IA
+nunca ve "miles de candidatas": solo entradas que YA pasaron el filtro
+mecánico completo de `momentum_hunter` (catalizador confirmado, float,
+volumen relativo, ruptura de nivel) Y el veto fatal del escéptico
+(`momentum_hunter/skeptic.py`) -- por construcción, nunca por promesa del
+prompt, porque este módulo solo lee entradas en estado `TRIGGERED`. Su
+única pregunta es "¿esta señal concreta, con esta evidencia concreta,
+vale la pena arriesgar el dinero (simulado)?", nunca "¿existe una señal
+aquí?".
+
+Guardarraíles, todos verificables en el código (no solo en el prompt):
+
+- **Nunca inventa un precio.** `entrada`/`stop`/`objetivo` siempre son
+  los que ya cacheó `EntradaWatchlist` -- la IA solo puede decidir
+  SÍ/NO, nunca "a qué precio" (ver la forma de `DecisionIA`: no tiene
+  ningún campo de precio).
+- **Fail-closed en todos los caminos.** Sin `ANTHROPIC_API_KEY`,
+  respuesta no-JSON, JSON con forma inesperada, confianza insuficiente,
+  o cualquier excepción de red/API -> siempre `entrar=False`. Nunca
+  "entrar de todos modos" ante una falla. Mismo principio que
+  `telegram_bot/idea_evaluator.py`.
+- **Cinturón y tirantes sobre el propio LLM.** La regla dura del prompt
+  ("confianza >= 7 para entrar") se re-valida en código -- no se confía
+  ciegamente en que el modelo la haya aplicado bien.
+- **Auditoría completa.** Cada revisión -- apruebe o rechace -- queda
+  registrada en `revisiones.json` con el razonamiento completo, así que
+  toda decisión de la IA es reconstruible después.
+- **Una sola oportunidad por señal.** Una vez revisada (con cualquier
+  resultado), una entrada TRIGGERED no se le vuelve a preguntar a la IA
+  -- evita tanto gastar llamadas de más como darle al modelo múltiples
+  tiradas de dado sobre la misma señal hasta que diga que sí por azar.
 
 ## Uso
 
@@ -74,6 +131,10 @@ ya se actualizó) -- ver esos workflows.
   las de la cuenta live). Sin ellas, el comando no hace nada (mismo
   principio que `momentum_hunter.run.enviar_telegram`: falta de
   secrets nunca es un error fatal).
+- `ANTHROPIC_API_KEY` -- para la capa de decisión con IA
+  (`ia_decision.py`). Mismo secret que ya usan `news_analyst.yml` y
+  `wizards_bot.yml` en este repo, reutilizado acá. Sin ella, no se opera
+  (fail-closed, ver arriba).
 - `MOMENTUM_TELEGRAM_BOT_TOKEN`/`_CHAT_ID` (o su fallback) -- las mismas
   que ya usa `momentum_hunter` para las confirmaciones.
 

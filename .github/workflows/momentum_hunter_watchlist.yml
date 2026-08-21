@@ -57,6 +57,10 @@ jobs:
         env:
           ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
           ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
+          # Capa de decisión con IA (ver momentum_paper_trader/ia_decision.py)
+          # -- mismo secret que ya usan news_analyst.yml/wizards_bot.yml, sin
+          # ANTHROPIC_API_KEY no se opera (fail-closed).
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MOMENTUM_TELEGRAM_BOT_TOKEN: ${{ secrets.MOMENTUM_TELEGRAM_BOT_TOKEN }}
           MOMENTUM_TELEGRAM_CHAT_ID: ${{ secrets.MOMENTUM_TELEGRAM_CHAT_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -70,7 +74,7 @@ jobs:
           git config user.name "momentum-opportunity-hunter"
           git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
           for f in momentum_hunter/watchlist.json momentum_hunter/alertas_enviadas.json \
-                   momentum_paper_trader/ordenes.json; do
+                   momentum_paper_trader/revisiones.json; do
             [ -f "$f" ] && git add "$f" || true
           done
           [ -d momentum_hunter/auditoria ] && git add momentum_hunter/auditoria || true
