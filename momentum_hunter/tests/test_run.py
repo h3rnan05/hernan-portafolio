@@ -15,6 +15,7 @@ from momentum_hunter.run import (
     _construir_candidato_intradia,
     construir_candidatos_diarios,
     construir_candidatos_intradia,
+    tamano_estimado,
 )
 from momentum_hunter.scoring import Puntuacion
 
@@ -97,6 +98,82 @@ def test_small_cap_se_sigue_descartando_por_market_cap_max():
         ["TST"], barras, provider, CFG, con_catalizadores=False, bandas={"TST": "small"},
     )
     assert candidatos == []
+
+
+# ------------------------- bug real 2026-08-21: el techo de tamaño se saltaba -------------------------
+# `meta.market_cap is not None and meta.market_cap > techo` hacía
+# cortocircuito cuando Yahoo NO mandaba la capitalización (51% de las
+# veces, medido sobre 3.161 candidatas auditadas). Resultado real: NOK
+# (~$44 mil millones, 4.443M de float) entró seis veces a la banda
+# small-cap. La banda "small" filtraba de hecho por PRECIO, no por
+# tamaño de empresa.
+
+def test_tamano_usa_market_cap_cuando_existe():
+    b = _barras("X", precio=10.0, vol_prom=500_000.0)
+    valor, origen = tamano_estimado(Metadata(ticker="X", market_cap=1_500_000_000.0), b)
+    assert valor == 1_500_000_000.0
+    assert origen == "market_cap"
+
+
+def test_tamano_cae_a_precio_por_float_sin_market_cap():
+    # El caso NOK exacto: sin capitalización, pero con float enorme.
+    b = _barras("NOK", precio=9.97, vol_prom=5_000_000.0)
+    valor, origen = tamano_estimado(
+        Metadata(ticker="NOK", market_cap=None, shares_float=4_443_588_231.0), b)
+    assert origen == "precio x float"
+    assert valor == 4_443_588_231.0 * 9.97   # ~$44,3 mil millones
+
+
+def test_tamano_none_cuando_no_hay_ni_cap_ni_float():
+    b = _barras("X", precio=10.0, vol_prom=500_000.0)
+    valor, origen = tamano_estimado(Metadata(ticker="X", market_cap=None, shares_float=None), b)
+    assert valor is None
+    assert origen == "sin dato"
+
+
+def test_small_cap_sin_market_cap_pero_float_enorme_se_descarta():
+    # La regresión que importa: antes esto PASABA el filtro y contaminaba
+    # la banda small-cap con una mega-cap barata.
+    barras = {"NOK": _barras("NOK", precio=9.97, vol_prom=5_000_000.0)}
+    meta = {"NOK": Metadata(ticker="NOK", market_cap=None, shares_float=4_443_588_231.0)}
+    candidatos = construir_candidatos_diarios(
+        ["NOK"], barras, _FakeProvider(meta), CFG, con_catalizadores=False, bandas={"NOK": "small"},
+    )
+    assert candidatos == []
+
+
+def test_small_cap_de_verdad_sin_market_cap_sigue_pasando():
+    # El fix no debe cerrarle la puerta a una small-cap legítima cuyo
+    # market_cap Yahoo no manda: 15M de float x $4 = $60M, bien bajo el techo.
+    barras = {"TINY": _barras("TINY", precio=4.0, vol_prom=500_000.0)}
+    meta = {"TINY": Metadata(ticker="TINY", market_cap=None, shares_float=15_000_000.0)}
+    candidatos = construir_candidatos_diarios(
+        ["TINY"], barras, _FakeProvider(meta), CFG, con_catalizadores=False, bandas={"TINY": "small"},
+    )
+    assert len(candidatos) == 1
+
+
+def test_small_cap_con_tamano_no_verificable_se_descarta():
+    # Fail-closed: sin capitalización NI float no se puede comprobar que
+    # sea small-cap, y el techo es lo único que define esa banda.
+    barras = {"???": _barras("???", precio=4.0, vol_prom=500_000.0)}
+    meta = {"???": Metadata(ticker="???", market_cap=None, shares_float=None)}
+    candidatos = construir_candidatos_diarios(
+        ["???"], barras, _FakeProvider(meta), CFG, con_catalizadores=False, bandas={"???": "small"},
+    )
+    assert candidatos == []
+
+
+def test_large_cap_se_salta_el_techo_aunque_falte_el_market_cap():
+    # La banda large NO debe verse afectada por el fix: ese techo es
+    # justamente lo que la define.
+    barras = {"BIG": _barras("BIG", precio=178.0, vol_prom=2_000_000.0)}
+    meta = {"BIG": Metadata(ticker="BIG", market_cap=None, shares_float=4_000_000_000.0)}
+    candidatos = construir_candidatos_diarios(
+        ["BIG"], barras, _FakeProvider(meta), CFG, con_catalizadores=False, bandas={"BIG": "large"},
+    )
+    assert len(candidatos) == 1
+    assert candidatos[0].es_large_cap is True
 
 
 def test_sin_bandas_se_comporta_como_small_cap_de_siempre():

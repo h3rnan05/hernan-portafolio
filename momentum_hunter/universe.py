@@ -42,12 +42,23 @@ momentum_hunter/README.md) -- una small-cap real (market cap bajo
 `config.market_cap_max`) probablemente cae muy por debajo de cualquier
 límite razonable en este ranking. Mitigado parcialmente subiendo el
 límite por defecto (ver .github/workflows/momentum_hunter.yml), pero
-NO resuelto de fondo: sigue siendo un corte duro, solo que más generoso."""
+NO resuelto de fondo: sigue siendo un corte duro, solo que más generoso.
+
+RESUELTO el 2026-08-21 (`ventana_rotativa`, ver abajo). La auditoría de
+12 días confirmó lo que el párrafo anterior anticipaba, y peor de lo
+estimado: de 3.161 candidatas evaluadas, 3.155 eran large-cap. La banda
+small-cap -- la tesis entera de este bot -- procesó SEIS registros, y los
+seis eran el mismo ticker (NOK, ~$44 mil millones, que además entraba por
+un segundo bug: ver `run.tamano_estimado`). Con el corte fijo `[:1000]`
+solo el 13,1% del universo era alcanzable y el otro 86,9% no se escaneaba
+jamás. La ventana rotativa cubre los 7.647 símbolos en 8 corridas (~4 h
+de mercado) sin costar una llamada extra."""
 
 from __future__ import annotations
 
 import json
 import logging
+import math
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -224,6 +235,53 @@ def cargar(refrescar: bool = False, excluir_etf: bool = True) -> list[Simbolo]:
 
 def tickers(refrescar: bool = False) -> list[str]:
     return [s.ticker for s in cargar(refrescar)]
+
+
+MINUTOS_POR_CORRIDA = 30   # cadencia real del escaneo completo (ver momentum_hunter.yml)
+
+
+def ventana_rotativa(
+    simbolos: list[str], limite: int, ahora: datetime | None = None,
+) -> list[str]:
+    """Una porción distinta del universo en cada corrida, avanzando en
+    orden y volviendo al principio al terminar -- en vez de `simbolos[:N]`,
+    que tomaba SIEMPRE el mismo extremo de la lista.
+
+    Por qué importa (medido el 2026-08-21 sobre 3.161 candidatas
+    auditadas): cuando NASDAQ Trader falla y se cae al respaldo de la
+    SEC, ese listado llega ordenado por capitalización DESCENDENTE. Con
+    un corte fijo `[:1000]`, el bot solo veía las 1.000 empresas más
+    grandes del mercado -- 3.155 de 3.161 candidatas resultaron
+    large-cap, y la banda small-cap (la tesis entera de este bot) recibió
+    6 registros en 12 días, todos de un mismo ticker. Las small-caps de
+    verdad quedaban miles de posiciones más abajo y NUNCA se escaneaban.
+
+    La rotación elimina ese sesgo sin costar una llamada extra: cada
+    corrida cubre `limite` símbolos distintos y el universo completo se
+    recorre entero cada `ceil(total/limite)` corridas (con 7.647 símbolos
+    y 1.000 por corrida: 8 corridas, ~4 horas de mercado). Un ticker con
+    catalizador que hoy no cae en la ventana entra en la siguiente
+    pasada; lo que ya está en la watchlist se sigue revisando cada 5
+    minutos aparte (`--solo-watchlist`), así que la vigilancia de lo ya
+    descubierto no depende de esta rotación.
+
+    Determinista a propósito -- la ventana se deriva del reloj, no de un
+    contador persistido: dos corridas del mismo tramo de 30 minutos miran
+    lo mismo (idempotente ante reintentos), y no hay estado nuevo que
+    committear ni que se pueda corromper."""
+    if limite <= 0 or limite >= len(simbolos):
+        return simbolos
+    ahora = ahora or datetime.now(UTC)
+    n_ventanas = math.ceil(len(simbolos) / limite)
+    slot = int(ahora.timestamp() // (MINUTOS_POR_CORRIDA * 60)) % n_ventanas
+    inicio = slot * limite
+    # `wrap` al final: la última ventana se completa con el principio de
+    # la lista en vez de quedar corta, para que toda corrida evalúe el
+    # mismo número de tickers (presupuesto de tiempo estable en CI).
+    ventana = simbolos[inicio:inicio + limite]
+    if len(ventana) < limite:
+        ventana += simbolos[: limite - len(ventana)]
+    return ventana
 
 
 def desde_archivo(path: str) -> list[str]:
