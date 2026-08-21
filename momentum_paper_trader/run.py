@@ -50,10 +50,17 @@ def main() -> None:
 
     if args.verificar_conexion:
         cuenta = client.info_cuenta()
+        # `buying_power` puede ser un múltiplo del efectivo real si la
+        # cuenta tiene margen habilitado (día-trading 4x es el default
+        # de Alpaca) -- `cash`/`equity`/`portfolio_value` son los que de
+        # verdad reflejan el capital depositado, para no confundir una
+        # cosa con la otra al confirmar qué cuenta es esta.
         log.info(
-            "conexión OK -- cuenta paper %s, estado=%s, poder de compra=$%s",
+            "conexión OK -- cuenta paper %s, estado=%s -- efectivo=$%s, equity=$%s, "
+            "valor de cartera=$%s, poder de compra=$%s",
             cuenta.get("account_number", "?"), cuenta.get("status", "?"),
-            cuenta.get("buying_power", "?"),
+            cuenta.get("cash", "?"), cuenta.get("equity", "?"),
+            cuenta.get("portfolio_value", "?"), cuenta.get("buying_power", "?"),
         )
         return
 
