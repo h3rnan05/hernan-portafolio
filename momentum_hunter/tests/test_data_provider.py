@@ -2,7 +2,100 @@
 
 from __future__ import annotations
 
-from momentum_hunter.data.provider import _num, _parece_cef, _parece_spac
+from momentum_hunter.data.provider import YahooProvider, _num, _parece_cef, _parece_spac
+
+
+class _FakeResponse:
+    def __init__(self, payload: dict) -> None:
+        self._payload = payload
+
+    def json(self) -> dict:
+        return self._payload
+
+
+def _chart_payload(volumenes: list[float | None]) -> dict:
+    n = len(volumenes)
+    ts = list(range(1_700_000_000, 1_700_000_000 + n * 60, 60))
+    precios = [100.0 + i for i in range(n)]
+    return {
+        "chart": {"result": [{
+            "timestamp": ts,
+            "indicators": {"quote": [{
+                "open": precios, "close": precios, "high": precios, "low": precios,
+                "volume": volumenes,
+            }]},
+        }]},
+    }
+
+
+# ------------------------- bug real 2026-08-20: volumen None -> 0 inventado -------------------------
+# La vela más reciente (en formación) de Yahoo suele llegar con precio ya
+# confirmado pero `volume: null` -- el agregado de volumen va con
+# retraso. `float(v or 0)` convertía eso en un CERO real, dejando
+# `rvol_actual` en 0.0 de forma sistemática para todo ticker, todos los
+# días -- bloqueando para siempre la pregunta "¿está entrando dinero
+# ahora?" del evaluador. Este es el bug que hizo que MRNA (y todo lo
+# demás) nunca se alertara a tiempo.
+
+def test_barras_intradia_descarta_la_vela_con_volumen_none_no_la_pone_en_cero(monkeypatch):
+    # 5 velas reales + la última en formación, sin volumen todavía --
+    # `barras_intradia` exige >= 5 velas válidas, así que se necesitan
+    # al menos 6 en total para aislar el descarte de la última.
+    payload = _chart_payload([1000.0, 2000.0, 3000.0, 1500.0, 2500.0, None])
+    monkeypatch.setattr(
+        "momentum_hunter.data.provider.requests.get", lambda *a, **kw: _FakeResponse(payload))
+
+    provider = YahooProvider(pausa=0)
+    resultado = provider.barras_intradia(["ACME"])
+
+    assert "ACME" in resultado
+    bi = resultado["ACME"]
+    assert len(bi) == 5   # la vela con volumen None se descartó entera, no se coló con volumen 0
+    assert 0.0 not in bi.volume   # ningún cero inventado
+
+
+def test_barras_intradia_preserva_un_volumen_cero_real_y_explicito(monkeypatch):
+    # Un 0 explícito de Yahoo (de verdad no hubo operaciones ese minuto)
+    # es un dato real -- distinto de `None` (dato ausente) -- y debe
+    # conservarse, no descartarse también.
+    payload = _chart_payload([1000.0, 0.0, 3000.0, 1500.0, 2500.0])
+    monkeypatch.setattr(
+        "momentum_hunter.data.provider.requests.get", lambda *a, **kw: _FakeResponse(payload))
+
+    provider = YahooProvider(pausa=0)
+    resultado = provider.barras_intradia(["ACME"])
+
+    bi = resultado["ACME"]
+    assert len(bi) == 5
+    assert bi.volume == [1000.0, 0.0, 3000.0, 1500.0, 2500.0]
+
+
+def test_barras_diarias_descarta_la_vela_con_volumen_none_no_la_pone_en_cero(monkeypatch):
+    payload = _chart_payload([500_000.0, 600_000.0, None])
+    monkeypatch.setattr(
+        "momentum_hunter.data.provider.requests.get", lambda *a, **kw: _FakeResponse(payload))
+
+    provider = YahooProvider(pausa=0)
+    resultado = provider.barras(["ACME"])
+
+    # barras() exige >= 20 velas válidas -- con solo 2 tras descartar la
+    # de volumen None, el ticker se omite (comportamiento correcto, no
+    # es lo que este test verifica). Se prueba el parseo directo en su
+    # lugar para aislar la lógica del descarte.
+    assert resultado == {}
+
+
+def test_barras_una_directa_descarta_volumen_none(monkeypatch):
+    payload = _chart_payload([500_000.0] * 25 + [None])
+    monkeypatch.setattr(
+        "momentum_hunter.data.provider.requests.get", lambda *a, **kw: _FakeResponse(payload))
+
+    provider = YahooProvider(pausa=0)
+    b = provider._barras_una("ACME", "1y")
+
+    assert b is not None
+    assert len(b) == 25   # la vela final con volumen None se descartó
+    assert 0.0 not in b.volume
 
 
 def test_parece_spac_detecta_nombre_tipico():
