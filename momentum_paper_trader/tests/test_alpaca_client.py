@@ -142,3 +142,40 @@ def test_error_http_se_propaga_para_que_el_executor_lo_capture(monkeypatch):
         assert False, "debía lanzar"
     except RuntimeError:
         pass
+
+
+def test_cerrar_posiciones_cancela_ordenes_y_usa_endpoint_paper(monkeypatch):
+    # cancel_orders=true importa: las patas del bracket siguen vivas
+    # mientras haya posición, y cerrar sin cancelarlas puede rebotar.
+    llamadas = []
+
+    class _FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return [{"symbol": "RKLB", "status": 200}]
+
+    def _fake_delete(url, params, headers, timeout):
+        llamadas.append((url, params))
+        return _FakeResponse()
+
+    monkeypatch.setattr(alpaca_client.requests, "delete", _fake_delete)
+    client = AlpacaPaperClient("clave", "secreto")
+
+    assert client.cerrar_todas_las_posiciones() == [{"symbol": "RKLB", "status": 200}]
+    url, params = llamadas[0]
+    assert url == "https://paper-api.alpaca.markets/v2/positions"
+    assert params["cancel_orders"] == "true"
+
+
+def test_cerrar_posiciones_tolera_respuesta_inesperada(monkeypatch):
+    class _FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"message": "no positions"}   # dict, no lista
+
+    monkeypatch.setattr(alpaca_client.requests, "delete", lambda *a, **kw: _FakeResponse())
+    assert AlpacaPaperClient("c", "s").cerrar_todas_las_posiciones() == []

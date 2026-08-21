@@ -22,8 +22,9 @@ from __future__ import annotations
 import argparse
 import logging
 import os
+from datetime import UTC, datetime
 
-from momentum_paper_trader import seguimiento
+from momentum_paper_trader import cierre, seguimiento
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import CONFIG
 from momentum_paper_trader.executor import ejecutar
@@ -92,6 +93,14 @@ def main() -> None:
             cambiadas = seguimiento.revisar(client)
             if cambiadas:
                 log.info("%d trade(s) cambiaron de estado", len(cambiadas))
+
+            # Cierre diario ANTES de evaluar señales nuevas: si estamos
+            # en los últimos minutos de la sesión, lo que toca es
+            # liquidar, no abrir algo que quedaría desprotegido esta
+            # misma noche (ver `cierre.py`).
+            cerradas = cierre.cerrar_si_toca(client, CONFIG, datetime.now(UTC))
+            if cerradas:
+                log.info("%d posición(es) liquidada(s) por cierre del día", len(cerradas))
 
         nuevas = ejecutar(client, CONFIG, dry_run=args.dry_run)
         log.info("%d orden(es) paper colocada(s)", len(nuevas))
