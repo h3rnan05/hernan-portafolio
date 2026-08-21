@@ -39,6 +39,21 @@ def test_guardar_y_cargar_roundtrip_revision_rechazada(tmp_path):
     assert recargadas[0].order_id is None
 
 
+def test_registro_viejo_sin_campos_de_seguimiento_sigue_cargando(tmp_path):
+    # `resultado`/`pnl` se agregaron después -- un revisiones.json ya
+    # committeado sin esos campos debe cargar sin migración (defaults).
+    path = tmp_path / "revisiones.json"
+    path.write_text(json.dumps({"revisiones": [{
+        "ticker": "RKLB", "creado_en": "2026-08-11T14:00:00+00:00", "entro": True,
+        "confianza": 8, "razonamiento": "x", "timestamp": "t", "order_id": "abc",
+        "cantidad": 65, "precio_entrada": 78.42, "stop": 76.9, "objetivo": 82.5,
+    }]}))
+    recargadas = cargar(path)
+    assert len(recargadas) == 1
+    assert recargadas[0].resultado is None
+    assert recargadas[0].pnl is None
+
+
 def test_cargar_archivo_corrupto_no_lanza(tmp_path):
     path = tmp_path / "revisiones.json"
     path.write_text("{esto no es json")

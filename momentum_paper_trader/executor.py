@@ -8,7 +8,18 @@ la tomó `momentum_hunter/run.py`; acá se decide si, dado que ya pasó ese
 filtro, vale la pena arriesgar dinero (simulado) en ella. Los niveles
 siempre son los que el pipeline YA calculó (`EntradaWatchlist.
 ultima_entrada/ultimo_stop/ultimo_objetivo`, ver `momentum_hunter/
-watchlist.py`) -- ni el código ni la IA inventan un precio nuevo."""
+watchlist.py`) -- ni el código ni la IA inventan un precio nuevo.
+
+Guardarraíles DETERMINISTAS de cartera (antes y por encima de cualquier
+criterio de la IA -- los límites de riesgo nunca dependen de un LLM):
+  - nunca dos apuestas vivas sobre el mismo ticker (posición abierta u
+    orden pendiente en Alpaca = ticker comprometido),
+  - nunca más de `cfg.maximo_posiciones_abiertas` jugadas simultáneas,
+  - nunca una orden cuyo costo exceda el EFECTIVO real de la cuenta
+    (`cash`, nunca `buying_power` -- el margen 4x de Alpaca no es
+    capital nuestro y este sistema no opera apalancado),
+  - si la cuenta no se puede leer, no se opera nada en esta corrida
+    (fail-closed, mismo principio que toda esta capa)."""
 
 from __future__ import annotations
 
@@ -45,15 +56,62 @@ def _mensaje_confirmacion(orden: OrdenBracket, decision: ia_decision.DecisionIA)
     razonamiento de la IA (pedido explícito del usuario: "cada que haga
     un trade, que me avise qué hizo") -- no solo los niveles mecánicos."""
     riesgo = (orden.precio_entrada - orden.stop) * orden.cantidad
+    linea_tamano = (
+        f"Tamaño: {decision.fraccion:.0%} del normal (convicción parcial)\n"
+        if decision.fraccion < 1.0 else "")
     return (
         f"🧪 [PAPER] ORDEN COLOCADA -- {orden.ticker}\n\n"
         f"Cantidad: {orden.cantidad}\n"
         f"Entrada (limit): ${orden.precio_entrada:,.2f}\n"
         f"Stop: ${orden.stop:,.2f}\n"
         f"Objetivo: ${orden.objetivo:,.2f}\n"
-        f"Riesgo: ${riesgo:,.2f}\n\n"
+        f"Riesgo: ${riesgo:,.2f}\n"
+        f"{linea_tamano}\n"
         f"🤖 Por qué entró (confianza {decision.confianza}/10):\n{decision.razonamiento}\n\n"
         f"Cuenta de práctica -- ningún dinero real se movió."
+    )
+
+
+class _EstadoCuenta:
+    """Snapshot de la cuenta paper al inicio de la corrida, actualizado
+    localmente a medida que se colocan órdenes -- para que dos señales en
+    la misma corrida no gasten el mismo efectivo dos veces ni excedan el
+    máximo de posiciones entre las dos."""
+
+    def __init__(self, efectivo: float, equity: float, tickers_comprometidos: set[str]) -> None:
+        self.efectivo = efectivo
+        self.equity = equity
+        self.tickers_comprometidos = tickers_comprometidos
+
+    def contexto_para_ia(self) -> str:
+        ocupadas = ", ".join(sorted(self.tickers_comprometidos)) or "ninguna"
+        return (
+            f"Efectivo disponible: ${self.efectivo:,.2f} (equity total: ${self.equity:,.2f})\n"
+            f"Posiciones/órdenes ya comprometidas ({len(self.tickers_comprometidos)}): {ocupadas}"
+        )
+
+    def registrar_orden(self, ticker: str, costo: float) -> None:
+        self.efectivo -= costo
+        self.tickers_comprometidos.add(ticker)
+
+
+def _leer_cuenta(client: AlpacaPaperClient) -> _EstadoCuenta | None:
+    """None si la cuenta no se puede leer -- la corrida entonces NO opera
+    (fail-closed): sin saber el efectivo real y qué ya está comprometido,
+    colocar órdenes sería operar a ciegas."""
+    try:
+        cuenta = client.info_cuenta()
+        posiciones = client.posiciones()
+        abiertas = client.ordenes_abiertas()
+    except Exception as ex:
+        log.warning("no se pudo leer el estado de la cuenta paper -- no se opera: %s", ex)
+        return None
+    comprometidos = {p.get("symbol") for p in posiciones} | {o.get("symbol") for o in abiertas}
+    comprometidos.discard(None)
+    return _EstadoCuenta(
+        efectivo=float(cuenta.get("cash") or 0.0),
+        equity=float(cuenta.get("equity") or 0.0),
+        tickers_comprometidos=comprometidos,
     )
 
 
@@ -71,11 +129,21 @@ def ejecutar(
     revisiones_previas = estado.cargar()
     nuevas: list[estado.RevisionIA] = []
 
-    for e in entradas:
-        if e.estado != watchlist.ESTADO_TRIGGERED:
-            continue
-        if estado.ya_revisada(revisiones_previas, e.ticker, e.creado_en):
-            continue
+    pendientes = [
+        e for e in entradas
+        if e.estado == watchlist.ESTADO_TRIGGERED
+        and not estado.ya_revisada(revisiones_previas, e.ticker, e.creado_en)
+    ]
+    if not pendientes:
+        return nuevas
+
+    cuenta: _EstadoCuenta | None = None
+    if not dry_run:
+        cuenta = _leer_cuenta(client)
+        if cuenta is None:
+            return nuevas
+
+    for e in pendientes:
         if e.ultima_entrada is None or e.ultimo_stop is None or e.ultimo_objetivo is None:
             log.warning(
                 "%s: TRIGGERED sin niveles cacheados -- se omite (no se inventa un precio)", e.ticker)
@@ -95,7 +163,27 @@ def ejecutar(
                 e.ticker, cantidad, e.ultima_entrada, e.ultimo_stop, e.ultimo_objetivo)
             continue
 
-        decision = ia_decision.decidir(e)
+        # -- Guardarraíles deterministas de cartera (ANTES de gastar una
+        # llamada a la IA en una señal que igual no se podría operar) --
+        assert cuenta is not None
+        if e.ticker in cuenta.tickers_comprometidos:
+            log.info("%s: ya hay una posición u orden viva con este ticker -- se omite", e.ticker)
+            continue
+        if len(cuenta.tickers_comprometidos) >= cfg.maximo_posiciones_abiertas:
+            log.info(
+                "%s: la cuenta ya está en el máximo de %d posiciones simultáneas -- se omite",
+                e.ticker, cfg.maximo_posiciones_abiertas)
+            continue
+        if cantidad * e.ultima_entrada > cuenta.efectivo:
+            # Se reduce al efectivo real disponible (nunca margen) -- si
+            # ni eso alcanza para 1 acción, se omite.
+            cantidad = int(cuenta.efectivo // e.ultima_entrada)
+            if cantidad < cfg.minimo_acciones:
+                log.info("%s: el efectivo disponible no alcanza ni para 1 acción -- se omite", e.ticker)
+                continue
+            log.info("%s: cantidad reducida a %d por efectivo disponible", e.ticker, cantidad)
+
+        decision = ia_decision.decidir(e, cuenta.contexto_para_ia())
         timestamp = datetime.now(UTC).isoformat(timespec="seconds")
 
         if not decision.entrar:
@@ -105,6 +193,24 @@ def ejecutar(
             revisiones_previas.append(estado.RevisionIA(
                 ticker=e.ticker, creado_en=e.creado_en, entro=False,
                 confianza=decision.confianza, razonamiento=decision.razonamiento,
+                timestamp=timestamp,
+            ))
+            estado.guardar(revisiones_previas)
+            continue
+
+        # Convicción parcial = riesgo parcial: la fracción de la IA solo
+        # puede REDUCIR la cantidad (ya viene recortada a [0.25, 1.0]).
+        cantidad = int(cantidad * decision.fraccion)
+        if cantidad < cfg.minimo_acciones:
+            log.info(
+                "%s: la fracción %.0f%% pedida por la IA no alcanza para 1 acción -- no se opera",
+                e.ticker, decision.fraccion * 100)
+            revisiones_previas.append(estado.RevisionIA(
+                ticker=e.ticker, creado_en=e.creado_en, entro=False,
+                confianza=decision.confianza,
+                razonamiento=(decision.razonamiento
+                              + " (La fracción de posición pedida no alcanzó para 1 acción entera "
+                              "-- no se operó.)"),
                 timestamp=timestamp,
             ))
             estado.guardar(revisiones_previas)
@@ -129,6 +235,7 @@ def ejecutar(
         revisiones_previas.append(registro)
         nuevas.append(registro)
         estado.guardar(revisiones_previas)
+        cuenta.registrar_orden(e.ticker, cantidad * e.ultima_entrada)
         enviar_telegram(_mensaje_confirmacion(orden, decision))
         log.info("%s: orden paper colocada (%s)", e.ticker, orden.order_id)
 

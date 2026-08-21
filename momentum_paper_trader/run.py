@@ -23,12 +23,30 @@ import argparse
 import logging
 import os
 
+from momentum_paper_trader import seguimiento
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import CONFIG
 from momentum_paper_trader.executor import ejecutar
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("momentum_paper_trader.run")
+
+
+def _avisar_falla(ex: Exception) -> None:
+    """Autonomía real significa que el sistema reporta sus PROPIAS fallas
+    -- si el trader se rompe en silencio, el usuario vuelve a tener que
+    revisar logs a mano, que es exactamente lo que esto elimina. Mejor
+    esfuerzo: si hasta Telegram falla, al menos queda el log."""
+    from momentum_hunter.run import enviar_telegram
+    try:
+        enviar_telegram(
+            f"⚠️ [PAPER] El paper trader falló en esta corrida:\n"
+            f"{type(ex).__name__}: {ex}\n\n"
+            f"No se colocó nada nuevo. La próxima corrida del cron lo reintenta sola; "
+            f"si este aviso se repite varias veces seguidas, algo necesita arreglo."
+        )
+    except Exception:
+        log.exception("tampoco se pudo avisar la falla por Telegram")
 
 
 def main() -> None:
@@ -64,8 +82,27 @@ def main() -> None:
         )
         return
 
-    nuevas = ejecutar(client, CONFIG, dry_run=args.dry_run)
-    log.info("%d orden(es) paper colocada(s)", len(nuevas))
+    try:
+        # Primero el seguimiento de los trades YA colocados (entradas
+        # llenadas, objetivos, stops -- con su aviso por Telegram cada
+        # uno): las novedades de lo que ya está en juego importan aunque
+        # esta corrida no traiga ninguna señal nueva. Solo con
+        # credenciales reales -- en dry-run no hay órdenes que seguir.
+        if not args.dry_run:
+            cambiadas = seguimiento.revisar(client)
+            if cambiadas:
+                log.info("%d trade(s) cambiaron de estado", len(cambiadas))
+
+        nuevas = ejecutar(client, CONFIG, dry_run=args.dry_run)
+        log.info("%d orden(es) paper colocada(s)", len(nuevas))
+    except Exception as ex:
+        # El workflow corre este paso con continue-on-error -- la falla
+        # se AVISA por Telegram (autonomía: el sistema reporta sus
+        # propios problemas) y se relanza para que quede el traceback
+        # completo en los logs de Actions, sin bloquear el persist de
+        # momentum_hunter.
+        _avisar_falla(ex)
+        raise
 
 
 if __name__ == "__main__":

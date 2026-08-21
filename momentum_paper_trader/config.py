@@ -24,12 +24,20 @@ class PaperTraderConfig:
     # el stop de esta señal (stop muy amplio, riesgo muy chico), se omite
     # la orden en vez de redondear hacia arriba y arriesgar de más.
     minimo_acciones: int = 1
+    # Techo de posiciones/órdenes vivas simultáneas -- guardarraíl
+    # DETERMINISTA del executor (se cuenta contra la cuenta real de
+    # Alpaca, no contra un registro local), nunca una decisión de la IA.
+    # Un trader disciplinado con $5,000 no debería estar en 8 jugadas a
+    # la vez; 5 ya es generoso.
+    maximo_posiciones_abiertas: int = 5
 
     def validar(self) -> None:
         if self.riesgo_dolares_por_operacion <= 0:
             raise ValueError("riesgo_dolares_por_operacion debe ser > 0")
         if self.minimo_acciones < 1:
             raise ValueError("minimo_acciones debe ser >= 1")
+        if self.maximo_posiciones_abiertas < 1:
+            raise ValueError("maximo_posiciones_abiertas debe ser >= 1")
 
 
 CONFIG = PaperTraderConfig()
