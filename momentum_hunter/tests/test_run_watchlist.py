@@ -485,3 +485,118 @@ def test_filtrar_ya_resueltas_hoy_excluye_expired():
         [o], [e], {}, ahora=AHORA + timedelta(hours=1))
     assert resultado == []
     assert excluidos == {"RKLB"}
+
+
+# ------------------------- invalidación por tesis rota (2026-08-21) -------------------------
+# Antes de este bloque, WATCHING solo se abandonaba por reloj (TTL),
+# calendario (catalizador vencido) o "ya vamos tarde". No había ninguna
+# salida por lo que hiciera el PRECIO: medido sobre 329 entradas reales,
+# 267 salieron por reloj, 35 por calendario, 4 por tarde y CERO porque la
+# tesis se rompiera. Una candidata podía desplomarse en observación y el
+# bot la seguía mirando hasta que se acabara el temporizador.
+
+def _entrada_vigilada(ticker="RKLB", stop=5.00, ahora=AHORA):
+    e = watchlist.desde_candidato_diario(_candidato_diario(ticker), ahora)
+    watchlist.actualizar_niveles(e, 5.30, stop, 5.90, 5.25, ahora)
+    return e
+
+
+def test_precio_bajo_el_stop_invalida_la_idea():
+    e = _entrada_vigilada(stop=5.00)
+    c = _candidato_intradia("RKLB", accionable=False)
+    c.factores.precio_actual = 4.80   # por debajo del stop de la idea
+
+    mensaje = run_mod._evaluar_no_disparada(e, c, CFG, AHORA)
+
+    assert e.estado == watchlist.ESTADO_INVALIDATED
+    assert mensaje is not None and "INVALIDADA" in mensaje
+    assert "4.80" in mensaje and "5.00" in mensaje   # ambos precios, sin inventar nada
+
+
+def test_precio_justo_en_el_stop_no_invalida():
+    # El corte es estricto (`<`): tocar el stop no es perderlo.
+    e = _entrada_vigilada(stop=5.00)
+    c = _candidato_intradia("RKLB", accionable=False)
+    c.factores.precio_actual = 5.00
+
+    assert run_mod._evaluar_no_disparada(e, c, CFG, AHORA) is None
+    assert e.estado == watchlist.ESTADO_WATCHING
+
+
+def test_precio_sano_sigue_en_observacion():
+    e = _entrada_vigilada(stop=5.00)
+    c = _candidato_intradia("RKLB", accionable=False)
+    c.factores.precio_actual = 5.20
+
+    assert run_mod._evaluar_no_disparada(e, c, CFG, AHORA) is None
+    assert e.estado == watchlist.ESTADO_WATCHING
+
+
+def test_sin_stop_cacheado_no_se_inventa_una_invalidacion():
+    # Una entrada que todavía no tiene niveles calculados no puede
+    # romper una tesis que aún no existe.
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    e.stop_tesis = None
+    c = _candidato_intradia("RKLB", accionable=False)
+    c.factores.precio_actual = 0.01
+
+    run_mod._evaluar_no_disparada(e, c, CFG, AHORA)
+    assert e.estado == watchlist.ESTADO_WATCHING
+
+
+def test_sin_precio_actual_no_se_inventa_una_invalidacion():
+    e = _entrada_vigilada(stop=5.00)
+    c = _candidato_intradia("RKLB", accionable=False)
+    c.factores.precio_actual = None
+
+    run_mod._evaluar_no_disparada(e, c, CFG, AHORA)
+    assert e.estado != watchlist.ESTADO_INVALIDATED
+
+
+def test_tesis_rota_gana_sobre_el_conteo_de_tarde():
+    # "Tarde" es una lectura del instante y reversible; el precio por
+    # debajo del stop es objetivo y definitivo. No debe quedar
+    # enmascarado por el contador de MISSED.
+    e = _entrada_vigilada(stop=5.00)
+    c = _candidato_intradia("RKLB", accionable=False, temprano=False, patron="gap_and_go")
+    c.factores.precio_actual = 4.50
+
+    run_mod._evaluar_no_disparada(e, c, CFG, AHORA)
+
+    assert e.estado == watchlist.ESTADO_INVALIDATED
+    assert e.tarde_consecutivas == 0   # no se contaminó el contador de MISSED
+
+
+def test_catalizador_vencido_sigue_invalidando_cuando_el_precio_esta_sano():
+    # Regresión: la causa vieja de INVALIDATED no debe romperse.
+    e = watchlist.desde_candidato_diario(
+        _candidato_diario("RKLB", fecha_catalizador="2026-07-01T13:45:00+00:00"), AHORA)
+    watchlist.actualizar_niveles(e, 5.30, 5.00, 5.90, 5.25, AHORA)
+    c = _candidato_intradia("RKLB", accionable=False)
+    c.factores.precio_actual = 5.20   # precio sano
+
+    mensaje = run_mod._evaluar_no_disparada(e, c, CFG, AHORA)
+
+    assert e.estado == watchlist.ESTADO_INVALIDATED
+    assert "ventana de vigencia" in mensaje
+
+
+def test_stop_tesis_se_congela_y_no_persigue_al_precio():
+    # El defecto que una prueba encontró al implementar esto:
+    # `ultimo_stop` se recalcula en cada chequeo, así que baja con el
+    # precio y la tesis nunca se daría por rota. El congelado no se toca.
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    watchlist.actualizar_niveles(e, 5.30, 5.00, 5.90, 5.25, AHORA)
+    assert e.stop_tesis == 5.00
+
+    watchlist.actualizar_niveles(e, 4.60, 4.30, 5.10, 4.55, AHORA)   # todo bajó
+    assert e.ultimo_stop == 4.30     # el vigente sí sigue al mercado
+    assert e.stop_tesis == 5.00      # el de la tesis no se movió
+
+
+def test_stop_tesis_se_congela_aunque_el_primer_calculo_llegue_vacio():
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    watchlist.actualizar_niveles(e, None, None, None, None, AHORA)
+    assert e.stop_tesis is None      # no se congela un None
+    watchlist.actualizar_niveles(e, 5.30, 5.00, 5.90, 5.25, AHORA)
+    assert e.stop_tesis == 5.00      # se congela en el primer valor real
