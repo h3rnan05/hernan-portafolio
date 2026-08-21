@@ -39,6 +39,56 @@ def test_info_cuenta_usa_get_de_solo_lectura_al_endpoint_paper(monkeypatch):
     assert headers["APCA-API-KEY-ID"] == "clave"
 
 
+def test_posiciones_y_ordenes_abiertas_son_gets_de_solo_lectura(monkeypatch):
+    llamadas = []
+
+    class _FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return [{"symbol": "RKLB"}]
+
+    def _fake_get(url, headers, timeout, params=None):
+        llamadas.append((url, params))
+        return _FakeResponse()
+
+    monkeypatch.setattr(alpaca_client.requests, "get", _fake_get)
+    client = AlpacaPaperClient("clave", "secreto")
+
+    assert client.posiciones() == [{"symbol": "RKLB"}]
+    assert client.ordenes_abiertas() == [{"symbol": "RKLB"}]
+
+    assert llamadas[0][0] == "https://paper-api.alpaca.markets/v2/positions"
+    assert llamadas[1][0] == "https://paper-api.alpaca.markets/v2/orders"
+    assert llamadas[1][1]["status"] == "open"
+
+
+def test_estado_orden_pide_nested_para_ver_las_patas_del_bracket(monkeypatch):
+    llamadas = []
+
+    class _FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"id": "orden-123", "status": "filled", "legs": []}
+
+    def _fake_get(url, headers, timeout, params=None):
+        llamadas.append((url, params))
+        return _FakeResponse()
+
+    monkeypatch.setattr(alpaca_client.requests, "get", _fake_get)
+    client = AlpacaPaperClient("clave", "secreto")
+
+    datos = client.estado_orden("orden-123")
+
+    assert datos["status"] == "filled"
+    url, params = llamadas[0]
+    assert url == "https://paper-api.alpaca.markets/v2/orders/orden-123"
+    assert params["nested"] == "true"
+
+
 def test_colocar_orden_bracket_arma_el_payload_correcto(monkeypatch):
     llamadas = []
 

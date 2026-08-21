@@ -54,6 +54,37 @@ class AlpacaPaperClient:
         r.raise_for_status()
         return r.json()
 
+    def posiciones(self) -> list[dict]:
+        """Posiciones abiertas de la cuenta paper (`GET /v2/positions`)
+        -- solo lectura. El executor las usa como guardarraíl determinista
+        (no duplicar ticker, no exceder el máximo de posiciones) y como
+        contexto para la IA ("con qué está cargada la cuenta ahora")."""
+        r = requests.get(f"{_BASE_URL}/positions", headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        return r.json()
+
+    def ordenes_abiertas(self) -> list[dict]:
+        """Órdenes todavía vivas (`GET /v2/orders?status=open`) -- solo
+        lectura. Complementa `posiciones()`: una orden límite de entrada
+        que aún no se llenó no es una posición, pero SÍ compromete el
+        ticker (colocar otra sería duplicar la apuesta)."""
+        r = requests.get(
+            f"{_BASE_URL}/orders", params={"status": "open", "limit": 100},
+            headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        return r.json()
+
+    def estado_orden(self, order_id: str) -> dict:
+        """Estado actual de una orden y sus patas OCO (`GET /v2/orders/
+        {id}?nested=true`) -- solo lectura. `nested=true` trae las dos
+        patas del bracket (`legs`), que es como `seguimiento.py` sabe si
+        la salida fue por objetivo o por stop y a qué precio real."""
+        r = requests.get(
+            f"{_BASE_URL}/orders/{order_id}", params={"nested": "true"},
+            headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        return r.json()
+
     def colocar_orden_bracket(
         self, ticker: str, cantidad: int, entrada: float, stop: float, objetivo: float,
     ) -> OrdenBracket:

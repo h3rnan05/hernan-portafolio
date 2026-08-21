@@ -42,29 +42,79 @@ igual si este módulo se desinstala.
    `ticker` + `creado_en` -- la misma entrada nunca se revisa dos veces,
    pero el mismo ticker disparando en días distintos sí se revisa por
    separado).
-3. Le pide su criterio a la IA (`ia_decision.decidir`, ver la sección de
-   abajo) sobre esa señal concreta. Si la IA dice que no, la revisión
-   queda registrada igual (con el razonamiento) y ahí termina -- nunca
-   se coloca una orden.
-4. Si la IA aprueba, calcula el tamaño de la posición por **riesgo fijo
+3. Aplica los **guardarraíles deterministas de cartera** (antes y por
+   encima de cualquier criterio de la IA -- los límites de riesgo nunca
+   dependen de un LLM): lee la cuenta REAL de Alpaca y omite la señal si
+   el ticker ya tiene una posición u orden viva, si la cuenta ya está en
+   el máximo de posiciones simultáneas
+   (`PaperTraderConfig.maximo_posiciones_abiertas`, default 5), o si el
+   EFECTIVO real no alcanza (siempre `cash`, nunca `buying_power` -- el
+   margen 4x de Alpaca no es capital nuestro y este sistema no opera
+   apalancado). Si la cuenta no se puede leer, no se opera nada en esa
+   corrida (fail-closed).
+4. Le pide su criterio a la IA (`ia_decision.decidir`, ver la sección de
+   abajo) sobre esa señal concreta, con el estado de la cuenta como
+   contexto. Si la IA dice que no, la revisión queda registrada igual
+   (con el razonamiento) y ahí termina -- nunca se coloca una orden.
+5. Si la IA aprueba, calcula el tamaño de la posición por **riesgo fijo
    en dólares** (`PaperTraderConfig.riesgo_dolares_por_operacion`,
    default $100): `acciones = riesgo ÷ (entrada − stop)`, redondeado
    hacia abajo. Nunca arriesga más de lo configurado; si el riesgo no
    alcanza para 1 acción entera, omite la orden en vez de redondear
    hacia arriba (este chequeo ocurre ANTES de consultar a la IA, para no
    gastar una llamada en una señal que de todas formas no se podría
-   operar).
-5. Coloca una **orden bracket** (Alpaca maneja el stop-loss y el
+   operar). La IA puede además pedir una **fracción del tamaño normal**
+   (0.25--1.0: convicción parcial = riesgo parcial) -- solo reduce,
+   nunca aumenta; cualquier valor fuera de rango se ignora en código.
+6. Coloca una **orden bracket** (Alpaca maneja el stop-loss y el
    take-profit como OCO automáticamente, sin que este sistema tenga que
    vigilar la posición después) usando exactamente los tres números que
    `momentum_hunter` ya calculó y cacheó
    (`EntradaWatchlist.ultima_entrada/ultimo_stop/ultimo_objetivo`) --
    nunca un precio nuevo, ni del código ni de la IA.
-6. Manda una confirmación por Telegram (mismo bot/chat de
+7. Manda una confirmación por Telegram (mismo bot/chat de
    `momentum_hunter`, `enviar_telegram` reusado sin duplicar), **con el
    razonamiento de la IA incluido** (pedido explícito del usuario: "cada
    que haga un trade, que me avise qué hizo"), y persiste la revisión en
    `revisiones.json`.
+
+## Seguimiento del ciclo de vida (`seguimiento.py`)
+
+Colocar la orden es el principio de la historia, no el final. En cada
+corrida, ANTES de buscar señales nuevas, el sistema consulta el estado
+real de cada orden viva en Alpaca y avisa por Telegram **exactamente una
+vez** por cada transición:
+
+- **Entrada ejecutada** -- se llenó la compra, con el precio real de
+  ejecución (puede diferir del límite).
+- **🎯 Objetivo alcanzado** -- salió por take-profit, con la ganancia
+  realizada en dólares.
+- **🛑 Stop ejecutado** -- salió por stop-loss, con la pérdida realizada.
+- **Orden no ejecutada** -- la entrada límite expiró/se canceló sin
+  llenarse: sin posición, sin riesgo.
+
+El anti-duplicado es la persistencia misma (`resultado`/`pnl` en
+`revisiones.json`, guardado ANTES de enviar -- mismo orden
+persistir-antes-de-enviar que ya usa `momentum_hunter`). Un fallo
+consultando una orden se loguea y se sigue con las demás.
+
+## Autonomía: el sistema reporta sus propias fallas
+
+El propósito declarado de este bot es que el usuario NO tenga que estar
+verificando a cada rato si algo está mal. Eso exige dos cosas más allá de
+operar bien:
+
+- Si el paper trader falla en una corrida (excepción no manejada), manda
+  un aviso `⚠️ [PAPER]` por Telegram con el error antes de relanzarlo --
+  una falla silenciosa devolvería al usuario a revisar logs a mano.
+- El paso del workflow corre con `continue-on-error`: una falla del
+  trader **nunca** bloquea la persistencia de watchlist/auditoría de
+  `momentum_hunter` (que va después en el mismo job).
+
+Lo que este sistema NO hace solo (y avisa cuando lo detecta): si una
+posición queda llena pero sus dos salidas del bracket mueren
+(expiradas/canceladas), avisa por Telegram para que se revise en el
+dashboard -- nunca coloca salidas nuevas por su cuenta.
 
 ## La capa de decisión con IA (`ia_decision.py`)
 
@@ -90,6 +140,30 @@ prompt, porque este módulo solo lee entradas en estado `TRIGGERED`. Su
 única pregunta es "¿esta señal concreta, con esta evidencia concreta,
 vale la pena arriesgar el dinero (simulado)?", nunca "¿existe una señal
 aquí?".
+
+**Con qué evidencia decide** (toda reunida por sistemas deterministas ya
+probados -- esta capa solo la junta, nunca pide datos nuevos ni recalcula
+nada):
+
+- lo que la entrada TRIGGERED trae congelado: catalizador (tipo, titular,
+  fuente, fecha), float, short interest, score del pipeline, y los
+  niveles entrada/stop/objetivo;
+- la lectura intradía más reciente del ticker en la auditoría del día
+  (`momentum_hunter/auditoria/` -- RVOL, VWAP, aceleración de volumen, y
+  el veredicto del evaluador en esa lectura: una TRIGGERED con el
+  momentum ya apagado es una trampa clásica que así se detecta);
+- el historial REAL del sistema con ese tipo de catalizador
+  (`momentum_hunter.memoria` sobre el tracker: win rate medido con
+  muestra suficiente, o la admisión honesta de que no existe);
+- la historia de transiciones de esa entrada en la watchlist (cuánto
+  tardó en disparar, qué la confirmó);
+- el estado actual de la cuenta paper (efectivo real, qué posiciones ya
+  están comprometidas) -- para que "la cuenta ya está cargada" pese en
+  la decisión, igual que le pesaría a un trader.
+
+Cada sección es "mejor esfuerzo": si un archivo no está o no parsea, la
+IA decide sin esa sección -- nunca se cae la corrida por evidencia
+incompleta, y nunca se fabrica la parte que falta.
 
 Guardarraíles, todos verificables en el código (no solo en el prompt):
 

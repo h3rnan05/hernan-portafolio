@@ -95,6 +95,11 @@ jobs:
       # real. Sin ALPACA_PAPER_API_KEY/_SECRET, el comando no hace nada
       # (mismo principio que los secrets de Telegram).
       - name: Paper trading (Alpaca, cuenta de práctica)
+        # Una falla del trader nunca debe bloquear el paso de persistir
+        # watchlist/auditoría de momentum_hunter (que viene después) --
+        # el trader ya avisa sus propias fallas por Telegram (ver
+        # momentum_paper_trader/run.py::_avisar_falla).
+        continue-on-error: true
         env:
           ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
           ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}

@@ -41,6 +41,19 @@ class RevisionIA:
     precio_entrada: float | None = None
     stop: float | None = None
     objetivo: float | None = None
+    # -- Ciclo de vida del trade (ver `seguimiento.py`): cada cambio de
+    # `resultado` se avisa por Telegram exactamente una vez -- persistir
+    # el estado ES el mecanismo anti-duplicado, igual que `alertas_
+    # enviadas.json` en momentum_hunter. `None` = sin novedades todavía
+    # (o sin orden). Los campos son opcionales con default para que los
+    # registros viejos (sin ellos) sigan cargando sin migración.
+    resultado: str | None = None   # "abierta" | "objetivo" | "stop" | "cerrada" | "no_ejecutada"
+    pnl: float | None = None       # ganancia/pérdida realizada en dólares (solo al cerrar)
+
+
+# `resultado` que ya no puede cambiar -- `seguimiento.revisar` no vuelve a
+# consultar Alpaca por estas (la historia del trade ya terminó).
+RESULTADOS_TERMINALES = frozenset({"objetivo", "stop", "cerrada", "no_ejecutada"})
 
 
 def _clave(ticker: str, creado_en: str) -> str:

@@ -54,6 +54,11 @@ jobs:
       # Paper trading (pedido explícito 2026-08-12): mismo paso que
       # momentum_hunter.yml -- ver ese archivo y momentum_paper_trader/README.md.
       - name: Paper trading (Alpaca, cuenta de práctica)
+        # Una falla del trader nunca debe bloquear el paso de persistir
+        # watchlist/alertas de momentum_hunter (que viene después) -- el
+        # trader ya avisa sus propias fallas por Telegram (ver
+        # momentum_paper_trader/run.py::_avisar_falla).
+        continue-on-error: true
         env:
           ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
           ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
