@@ -49,6 +49,7 @@ from momentum_hunter import (
     evaluator,
     heartbeat,
     memoria,
+    mercado,
     outcomes,
     radar,
     report,
@@ -71,7 +72,7 @@ from momentum_hunter.config import CONFIG, MomentumConfig
 from momentum_hunter.data.provider import DataProvider, YahooProvider
 from momentum_hunter.factors import intradia as fi
 from momentum_hunter.factors import momentum as mom
-from momentum_hunter.models import Barras
+from momentum_hunter.models import Barras, Metadata
 from momentum_hunter.scoring import puntuar
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -490,7 +491,7 @@ def _modo_actualizar_resultados(cfg: MomentumConfig) -> None:
 def _actualizar_watchlist(
     shortlist: list[CandidatoDiario], candidatos_intradia: list[CandidatoIntradia],
     elegidas_tickers: set[str], cfg: MomentumConfig, dry_run: bool, ahora: datetime | None = None,
-    dato_recibido_ts: str | None = None,
+    dato_recibido_ts: str | None = None, clima: mercado.ClimaMercado | None = None,
 ) -> tuple[list, dict[str, object], list[str]]:
     """State Engine (2026-08-11, "Fase 2"): toda candidata con
     catalizador confirmado que llega a la etapa 2 entra a vigilancia
@@ -583,7 +584,8 @@ def _actualizar_watchlist(
             watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
             disparadas[c.ticker] = e
         else:
-            mensaje = _evaluar_no_disparada(e, c, cfg, ahora, dato_recibido_ts, evaluacion_ts_creacion)
+            mensaje = _evaluar_no_disparada(
+                e, c, cfg, ahora, dato_recibido_ts, evaluacion_ts_creacion, clima)
             if mensaje is not None:
                 mensajes_pendientes.append(mensaje)
 
@@ -666,6 +668,7 @@ def _filtrar_ya_resueltas_hoy(
 def _evaluar_no_disparada(
     e, c: CandidatoIntradia, cfg: MomentumConfig, ahora: datetime,
     deteccion_ts: str | None = None, evaluacion_ts: str | None = None,
+    clima: mercado.ClimaMercado | None = None,
 ) -> str | None:
     """Traduce el resultado de una candidata que NO disparó esta vez a
     una transición de watchlist (o ninguna, si sigue en observación) --
@@ -711,6 +714,8 @@ def _evaluar_no_disparada(
     niveles = report.niveles_entrada_salida(c.factores, c.atr_diario)
     zona_baja, _ = report.zona_entrada(c, cfg)
     watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
+    if clima is not None:
+        e.clima_mercado = clima.veredicto
 
     r = c.resultado
     # -- La tesis se rompió por PRECIO (2026-08-21) --
@@ -773,6 +778,9 @@ def revisar_watchlist(
     ahora = ahora or datetime.now(UTC)
     entradas = watchlist.cargar()
     vigiladas = watchlist.activas(entradas)
+    # Una sola lectura del índice por corrida, compartida por todas las
+    # vigiladas -- el clima es del mercado, no de cada ticker.
+    clima = mercado.evaluar(provider) if vigiladas else None
     if not vigiladas:
         log.info("watchlist vacía -- nada que re-chequear")
         entradas = watchlist.purgar_antiguas(entradas, ahora)
@@ -840,7 +848,8 @@ def revisar_watchlist(
                 oportunidad.zona_entrada_baja, ahora)
             pendientes.append(("triggered", e, oportunidad))
         else:
-            mensaje = _evaluar_no_disparada(e, candidato, cfg, ahora, dato_recibido_ts, evaluacion_ts)
+            mensaje = _evaluar_no_disparada(
+                e, candidato, cfg, ahora, dato_recibido_ts, evaluacion_ts, clima)
             if mensaje is not None:
                 pendientes.append(("estado", e, mensaje))
 
@@ -990,9 +999,11 @@ def main() -> None:
     oportunidades, vetadas, snapshots = seleccionar_y_auditar(
         candidatos_intradia, CONFIG, n_universo=len(tickers))
 
+    clima = mercado.evaluar(provider)
+    log.info("clima de mercado: %s", clima.veredicto)
     entradas_watchlist, disparadas_watchlist, mensajes_menor_prioridad = _actualizar_watchlist(
         shortlist, candidatos_intradia, {o.ticker for o in oportunidades}, CONFIG, args.dry_run,
-        dato_recibido_ts=dato_recibido_ts)
+        dato_recibido_ts=dato_recibido_ts, clima=clima)
 
     oportunidades_nuevas, ya_resueltas_hoy = _filtrar_ya_resueltas_hoy(
         oportunidades, entradas_watchlist, disparadas_watchlist)
