@@ -85,6 +85,28 @@ class AlpacaPaperClient:
         r.raise_for_status()
         return r.json()
 
+    def cerrar_todas_las_posiciones(self) -> list[dict]:
+        """Liquida TODAS las posiciones abiertas a mercado y cancela las
+        órdenes vivas (`DELETE /v2/positions?cancel_orders=true`).
+
+        `cancel_orders=true` importa: las dos patas del bracket
+        (take-profit y stop-loss) siguen vivas mientras haya posición, y
+        cerrar sin cancelarlas primero puede rebotar por cantidad
+        insuficiente -- Alpaca hace las dos cosas en el orden correcto
+        con este parámetro.
+
+        A MERCADO, no limitada: el objetivo es no quedarse con una
+        posición desprotegida de un día para otro (ver `cierre.py`), y
+        una orden limitada podría no llenarse justo cuando lo que se
+        necesita es salir sí o sí. Es la única parte del sistema que usa
+        órdenes a mercado, y solo para SALIR -- nunca para entrar."""
+        r = requests.delete(
+            f"{_BASE_URL}/positions", params={"cancel_orders": "true"},
+            headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        datos = r.json()
+        return datos if isinstance(datos, list) else []
+
     def colocar_orden_bracket(
         self, ticker: str, cantidad: int, entrada: float, stop: float, objetivo: float,
     ) -> OrdenBracket:

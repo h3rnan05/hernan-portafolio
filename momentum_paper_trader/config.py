@@ -47,6 +47,18 @@ class PaperTraderConfig:
     # el siguiente re-chequeo recalcula los niveles y la orden se coloca
     # ahí, con precios de verdad.
     minutos_maximos_niveles: float = 15.0
+    # Liquidar todo antes del cierre en vez de dejar posiciones abiertas
+    # de un día para otro (ver `cierre.py`). Las patas de salida del
+    # bracket son órdenes "del día": si no se ejecutan, se cancelan al
+    # cerrar y la posición queda SIN stop y SIN objetivo durante la
+    # noche. Además, este bot evalúa movimientos intradía -- mantener
+    # una posición hasta mañana es una apuesta distinta (huecos de
+    # apertura, noticias nocturnas) que nada en este sistema analiza.
+    cerrar_antes_del_cierre: bool = True
+    # 10 min antes de las 20:00 UTC = 19:50 UTC (15:50 ET en verano).
+    # El re-chequeo corre cada 5 min, así que siempre cae al menos una
+    # corrida dentro de la ventana.
+    minutos_antes_del_cierre: int = 10
 
     def validar(self) -> None:
         if self.riesgo_dolares_por_operacion <= 0:
@@ -57,6 +69,10 @@ class PaperTraderConfig:
             raise ValueError("maximo_posiciones_abiertas debe ser >= 1")
         if self.minutos_maximos_niveles <= 0:
             raise ValueError("minutos_maximos_niveles debe ser > 0")
+        if not 0 < self.minutos_antes_del_cierre < 390:
+            # 390 min = la sesión regular completa (6,5 h): más que eso
+            # significaría "cerrar antes de abrir".
+            raise ValueError("minutos_antes_del_cierre debe estar entre 1 y 389")
 
 
 CONFIG = PaperTraderConfig()

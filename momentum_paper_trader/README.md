@@ -116,6 +116,41 @@ posición queda llena pero sus dos salidas del bracket mueren
 (expiradas/canceladas), avisa por Telegram para que se revise en el
 dashboard -- nunca coloca salidas nuevas por su cuenta.
 
+## Cierre diario (`cierre.py`)
+
+**El hueco que tapa** (encontrado el 2026-08-21): las órdenes bracket se
+mandan con `time_in_force: "day"`, así que sus dos patas de salida se
+cancelan solas al cerrar el mercado. Si la compra se llenó a media
+mañana y para el cierre no tocó ni el stop ni el objetivo, la posición
+quedaba abierta durante la noche **sin stop y sin objetivo** --
+desprotegida ante cualquier hueco de apertura al día siguiente.
+`seguimiento.py` sabía detectarlo y avisarlo, pero avisar no es
+arreglarlo.
+
+**Qué hace ahora**: a `cfg.minutos_antes_del_cierre` del cierre (19:50
+UTC por defecto), liquida todas las posiciones a mercado, cancela las
+órdenes vivas y manda un resumen por Telegram con el resultado de cada
+una y del día. El re-chequeo corre cada 5 minutos hasta las 20:00, así
+que siempre cae al menos una corrida dentro de la ventana. Idempotente
+por construcción: la segunda corrida no encuentra posiciones y no hace
+nada -- sin estado persistido.
+
+**Por qué es lo correcto para ESTE bot**, no solo una protección: todo
+el sistema evalúa movimientos intradía (catalizador del día, patrones de
+Ross Cameron, ventanas de minutos). Mantener una posición hasta mañana
+es una apuesta distinta -- huecos de apertura, noticias nocturnas -- que
+nada en este pipeline analiza. Cerrar es el default honesto.
+
+Es la única parte del sistema que usa órdenes **a mercado**, y solo para
+SALIR: al cerrar hay que salir sí o sí, y una orden limitada podría no
+llenarse justo cuando más falta hace. Para ENTRAR nunca se usa mercado.
+
+**Limitación honesta**: la ventana usa la convención de horario de verano
+(cierre 20:00 UTC) que ya usan los cron y `factors/intradia`. En horario
+de invierno el mercado cierra a las 21:00 UTC y esta ventana quedaría una
+hora antes de tiempo. Anotado y no resuelto: requiere un calendario de
+mercado real que este proyecto no tiene.
+
 ## La capa de decisión con IA (`ia_decision.py`)
 
 Esto es una **reversión deliberada y explícita** del principio original
