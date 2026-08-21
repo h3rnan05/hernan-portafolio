@@ -569,6 +569,44 @@ llegó la VELA de 1 minuto, no el tick exacto del mercado -- la latencia
 medida siempre incluye ese margen de hasta ~60 segundos que no es
 atribuible al bot. Ver `telegram_bot/README.md` para más detalle.
 
+#### Latencia REAL de punta a punta (medida 2026-08-21)
+
+Medido sobre 60 corridas programadas reales del re-chequeo de watchlist
+(el camino por el que dispara una señal) más 201 transiciones con
+latencia registrada:
+
+| Etapa | p50 | p90 | máximo medido |
+|---|---|---|---|
+| Espera al siguiente chequeo (cron de 5 min) | 2,5 min | 5 min | 5 min |
+| **Retraso de GitHub en arrancar el cron** | **2,2 min** | 3,9 min | 4,9 min |
+| Duración del análisis | 32 s | 4,2 min | 10,7 min |
+| Envío a Telegram | 13 s | 22 s | 27 s |
+| **Total evento de mercado → orden colocada** | **~5 min** | **~13 min** | **~20 min** |
+
+**El código tarda 32 segundos; el resto es infraestructura.** Los dos
+cuellos de botella son ajenos a la lógica: el cron de GitHub Actions no
+baja de 5 minutos, y además arranca tarde ~2 minutos en promedio (nunca
+puntual, medido). Optimizar el código no mueve esta aguja.
+
+Consecuencia para el trading, dicha sin maquillar: para un operador de
+momentum, 5-13 minutos es tarde. Lo que amortigua el golpe es que la
+entrada es una orden LIMITADA al precio calculado, nunca a mercado: si
+el precio se escapó durante la demora, la orden simplemente no se llena.
+El retraso se paga en oportunidades perdidas, no en entradas caras --
+la falla menos peligrosa de las dos. (Y desde el 2026-08-21 hay además
+un tope de frescura: ver `momentum_paper_trader.config.
+minutos_maximos_niveles`.)
+
+**Anotado para el futuro, NO implementado**: la única forma real de bajar
+de 5 minutos es sacar el bot del cron de GitHub Actions y ponerlo en un
+proceso siempre encendido (el mismo tipo de alojamiento que ya usa
+`telegram_bot/` en Render), revisando cada ~30 segundos. Eso llevaría el
+total a menos de un minuto. Es un cambio de arquitectura, no un ajuste, y
+la decisión explícita (2026-08-21) fue esperar: primero hace falta saber
+si las señales sirven. Acelerar un sistema que elige mal solo hace que
+pierda más rápido. Re-evaluar cuando `outcomes.py` tenga resultados
+medidos que justifiquen la inversión.
+
 ### Comandos (`/trade`, `/status`, `/radar`, `/help`)
 
 momentum_hunter en sí sigue siendo puro cron (GitHub Actions), sin
