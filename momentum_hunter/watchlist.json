@@ -18069,11 +18069,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 108.57499694824219,
-      "ultimo_stop": 105.5889652797154,
-      "ultimo_objetivo": 114.54706028529577,
-      "ultima_zona_entrada_baja": 108.6495123650734,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultima_entrada": 108.56999969482422,
+      "ultimo_stop": 105.58396802629743,
+      "ultimo_objetivo": 114.5420630318778,
+      "ultima_zona_entrada_baja": 108.63281949307797,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "MO",
@@ -18115,10 +18115,10 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "ultima_entrada": 66.0993,
-      "ultimo_stop": 65.64677105544892,
-      "ultimo_objetivo": 67.00435788910215,
-      "ultima_zona_entrada_baja": 65.97665432708435,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimo_stop": 65.64702543687102,
+      "ultimo_objetivo": 67.00384912625796,
+      "ultima_zona_entrada_baja": 65.97690998680504,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "PM",
@@ -18162,8 +18162,8 @@
       "ultima_entrada": 188.22000122070312,
       "ultimo_stop": 186.13214438302177,
       "ultimo_objetivo": 192.39571489606584,
-      "ultima_zona_entrada_baja": 188.38094121014956,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultima_zona_entrada_baja": 188.38149083174568,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "BTI",
@@ -18205,10 +18205,10 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "ultima_entrada": 56.209999084472656,
-      "ultimo_stop": 55.61571325574602,
-      "ultimo_objetivo": 57.39857074192592,
-      "ultima_zona_entrada_baja": 56.21386217317787,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimo_stop": 55.61714172363281,
+      "ultimo_objetivo": 57.395713806152344,
+      "ultima_zona_entrada_baja": 56.21356665548188,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "COST",
@@ -18250,10 +18250,10 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "ultima_entrada": 947.5,
-      "ultimo_stop": 939.7210261393801,
-      "ultimo_objetivo": 963.0579477212398,
+      "ultimo_stop": 939.7202024567772,
+      "ultimo_objetivo": 963.0595950864456,
       "ultima_zona_entrada_baja": 947.6930826854699,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "INTU",
@@ -18294,11 +18294,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 367.0299987792969,
-      "ultimo_stop": 365.03136189800125,
-      "ultimo_objetivo": 371.0272725418881,
-      "ultima_zona_entrada_baja": 366.86569034975,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultima_entrada": 367.05999755859375,
+      "ultimo_stop": 365.03733165508135,
+      "ultimo_objetivo": 371.10532936561856,
+      "ultima_zona_entrada_baja": 366.8716901056094,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "EQNR",
@@ -18340,17 +18340,17 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "ultima_entrada": 42.845001220703125,
-      "ultimo_stop": 42.619700458809994,
-      "ultimo_objetivo": 43.295602744489386,
-      "ultima_zona_entrada_baja": 42.83386980784924,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimo_stop": 42.61976884929601,
+      "ultimo_objetivo": 43.29546596351736,
+      "ultima_zona_entrada_baja": 42.83393854200604,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "IBM",
       "nombre": "International Business Machines Corporation",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-08-21T19:40:26+00:00",
-      "actualizado_en": "2026-08-21T19:40:26+00:00",
+      "actualizado_en": "2026-08-21T20:09:17+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -18363,6 +18363,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-08-21T20:09:17+00:00",
+          "motivo": "El patrón se activó hace 320 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-08-21T20:09:26+00:00",
+          "evaluacion_ts": "2026-08-21T20:09:26+00:00",
+          "mensaje_generado_ts": "2026-08-21T20:09:26+00:00",
+          "telegram_enviado_ts": "2026-08-21T20:09:27+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 10000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -18377,7 +18389,7 @@
       "score_base": 70.6,
       "atr_diario": 6.537144252232143,
       "gap_pct_congelado": 8.560174698082443e-05,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -18388,7 +18400,7 @@
       "ultimo_stop": 232.34812709263392,
       "ultimo_objetivo": 242.15384347098217,
       "ultima_zona_entrada_baja": 235.17999267578125,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "MRVL",
@@ -18433,7 +18445,7 @@
       "ultimo_stop": 228.3625041416713,
       "ultimo_objetivo": 254.66500636509488,
       "ultima_zona_entrada_baja": 237.17202413933308,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "GE",
@@ -18475,10 +18487,10 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "ultima_entrada": 348.44000244140625,
-      "ultimo_stop": 343.64964730399,
-      "ultimo_objetivo": 358.0207127162388,
-      "ultima_zona_entrada_baja": 348.99498847079656,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimo_stop": 343.66214643205916,
+      "ultimo_objetivo": 357.99571446010043,
+      "ultima_zona_entrada_baja": 348.9927514327166,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "QCOM",
@@ -18523,7 +18535,7 @@
       "ultimo_stop": 160.1803334260344,
       "ultimo_objetivo": 162.60933314793124,
       "ultima_zona_entrada_baja": 160.98525972465768,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "LOW",
@@ -18567,8 +18579,8 @@
       "ultima_entrada": 216.02999877929688,
       "ultimo_stop": 213.1664276123047,
       "ultimo_objetivo": 221.75714111328125,
-      "ultima_zona_entrada_baja": 216.6526854727245,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultima_zona_entrada_baja": 216.65296019963645,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "NTAP",
@@ -18610,10 +18622,10 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "ultima_entrada": 192.27999877929688,
-      "ultimo_stop": 188.40446308680944,
-      "ultimo_objetivo": 200.03107016427174,
+      "ultimo_stop": 188.4248204912458,
+      "ultimo_objetivo": 199.990355355399,
       "ultima_zona_entrada_baja": 192.3550341170816,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "EXPD",
@@ -18655,10 +18667,10 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "ultima_entrada": 187.76499938964844,
-      "ultimo_stop": 186.72258144274488,
-      "ultimo_objetivo": 189.84983528345555,
-      "ultima_zona_entrada_baja": 187.86469405970126,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimo_stop": 185.24678584507532,
+      "ultimo_objetivo": 192.80142647879467,
+      "ultima_zona_entrada_baja": 187.87010947003088,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "EXPE",
@@ -18699,18 +18711,18 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 321.7300109863281,
-      "ultimo_stop": 315.4728698730469,
-      "ultimo_objetivo": 334.2442932128906,
-      "ultima_zona_entrada_baja": 322.1021241039883,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultima_entrada": 321.63,
+      "ultimo_stop": 315.37285888671875,
+      "ultimo_objetivo": 334.1442822265625,
+      "ultima_zona_entrada_baja": 322.0076992831907,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "TEVA",
       "nombre": "Teva Pharmaceutical Industries Limited",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-08-21T19:40:26+00:00",
-      "actualizado_en": "2026-08-21T19:40:26+00:00",
+      "actualizado_en": "2026-08-21T20:09:17+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -18723,6 +18735,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-08-21T20:09:17+00:00",
+          "motivo": "El patrón se activó hace 383 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-08-21T20:09:26+00:00",
+          "evaluacion_ts": "2026-08-21T20:09:26+00:00",
+          "mensaje_generado_ts": "2026-08-21T20:09:27+00:00",
+          "telegram_enviado_ts": "2026-08-21T20:09:28+00:00",
+          "latencia_desde_deteccion_ms": 2000.0,
+          "latencia_desde_evaluacion_ms": 2000.0,
+          "latencia_desde_transicion_ms": 11000.0
         }
       ],
       "catalizador_tipo": "buyback",
@@ -18737,7 +18761,7 @@
       "score_base": 62.7,
       "atr_diario": 0.8864282880510602,
       "gap_pct_congelado": -0.0005433430322603577,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -18748,7 +18772,7 @@
       "ultimo_stop": 36.88178661891392,
       "ultimo_objetivo": 38.21142905099052,
       "ultima_zona_entrada_baja": 36.95500183105469,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "AMAT",
@@ -18790,10 +18814,10 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "ultima_entrada": 492.32,
-      "ultimo_stop": 489.5784297277473,
-      "ultimo_objetivo": 497.8031405445054,
-      "ultima_zona_entrada_baja": 492.0386228419571,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimo_stop": 489.59435069942697,
+      "ultimo_objetivo": 497.77129860114604,
+      "ultima_zona_entrada_baja": 492.0546238185196,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "MTSI",
@@ -18838,7 +18862,7 @@
       "ultimo_stop": 256.68720572335377,
       "ultimo_objetivo": 286.78257097516746,
       "ultima_zona_entrada_baja": 266.883195554396,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "MSFT",
@@ -18880,10 +18904,10 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "ultima_entrada": 483.3500061035156,
-      "ultimo_stop": 478.0782220023019,
-      "ultimo_objetivo": 493.89357430594305,
+      "ultimo_stop": 480.4507243459312,
+      "ultimo_objetivo": 489.1485696186845,
       "ultima_zona_entrada_baja": 483.4725360156008,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "GOOGL",
@@ -18925,10 +18949,10 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "ultima_entrada": 344.74,
-      "ultimo_stop": 342.70616016252484,
-      "ultimo_objetivo": 348.80767967495035,
+      "ultimo_stop": 342.0491587552176,
+      "ultimo_objetivo": 350.1216824895648,
       "ultima_zona_entrada_baja": 345.0149968600251,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "TRV",
@@ -18972,15 +18996,15 @@
       "ultima_entrada": 363.5799865722656,
       "ultimo_stop": 360.08677673339844,
       "ultimo_objetivo": 370.56640625,
-      "ultima_zona_entrada_baja": 364.0118875940966,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultima_zona_entrada_baja": 364.0135335478374,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "APO",
       "nombre": "Apollo Global Management, Inc.",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-08-21T19:40:26+00:00",
-      "actualizado_en": "2026-08-21T19:40:26+00:00",
+      "actualizado_en": "2026-08-21T20:09:17+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -18993,6 +19017,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-08-21T20:09:17+00:00",
+          "motivo": "El patrón se activó hace 363 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-08-21T20:09:26+00:00",
+          "evaluacion_ts": "2026-08-21T20:09:26+00:00",
+          "mensaje_generado_ts": "2026-08-21T20:09:28+00:00",
+          "telegram_enviado_ts": "2026-08-21T20:09:28+00:00",
+          "latencia_desde_deteccion_ms": 2000.0,
+          "latencia_desde_evaluacion_ms": 2000.0,
+          "latencia_desde_transicion_ms": 11000.0
         }
       ],
       "catalizador_tipo": "rumor",
@@ -19009,7 +19045,7 @@
       "score_base": 56.4,
       "atr_diario": 5.0885723658970425,
       "gap_pct_congelado": 0.00915527373843514,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -19017,10 +19053,10 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "ultima_entrada": 132.6999969482422,
-      "ultimo_stop": 131.97361119482963,
-      "ultimo_objetivo": 134.1527684550673,
+      "ultimo_stop": 131.9476630757132,
+      "ultimo_objetivo": 134.20466469330017,
       "ultima_zona_entrada_baja": 131.88999938964844,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "CRCL",
@@ -19064,8 +19100,8 @@
       "ultima_entrada": 87.91999816894531,
       "ultimo_stop": 85.17310578482491,
       "ultimo_objetivo": 93.41378293718611,
-      "ultima_zona_entrada_baja": 88.09710384541052,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultima_zona_entrada_baja": 88.09743368547709,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "BMRN",
@@ -19106,11 +19142,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 66.68499755859375,
-      "ultimo_stop": 65.52071189880371,
-      "ultimo_objetivo": 69.01356887817383,
-      "ultima_zona_entrada_baja": 66.75864318177085,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultima_entrada": 66.7,
+      "ultimo_stop": 65.53571434020996,
+      "ultimo_objetivo": 69.02857131958008,
+      "ultima_zona_entrada_baja": 66.74691454541669,
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     },
     {
       "ticker": "AAPL",
@@ -19157,7 +19193,7 @@
       "ultimo_stop": 306.2164426531111,
       "ultimo_objetivo": 315.827154976981,
       "ultima_zona_entrada_baja": 309.73172077448095,
-      "ultimos_niveles_ts": "2026-08-21T20:01:50+00:00"
+      "ultimos_niveles_ts": "2026-08-21T20:09:17+00:00"
     }
   ]
 }
