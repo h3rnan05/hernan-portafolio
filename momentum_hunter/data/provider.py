@@ -146,14 +146,23 @@ class YahooProvider(DataProvider):
                     op, cl, hi, low, v = (
                         q["open"][i], q["close"][i], q["high"][i], q["low"][i], q["volume"][i]
                     )
-                    if None in (op, cl, hi, low):
+                    # Bug real (2026-08-20, "por qué no avisó de MRNA a
+                    # tiempo"): la vela de HOY todavía en formación suele
+                    # llegar con precio ya confirmado pero `volume=None`
+                    # (el agregado de volumen de Yahoo va con retraso) --
+                    # `float(v or 0)` lo convertía en CERO real en vez de
+                    # dato faltante, contaminando `rvol`/`volumen_promedio`
+                    # con un "no entró nada de dinero" inventado. Se
+                    # descarta la vela entera, igual que ya se hace con
+                    # OHLC ausente -- nunca se inventa un volumen de cero.
+                    if None in (op, cl, hi, low, v):
                         continue
                     fechas.append(str(epoch))
                     o.append(float(op))
                     c.append(float(cl))
                     h.append(float(hi))
                     lo.append(float(low))
-                    vol.append(float(v or 0))
+                    vol.append(float(v))
                 if c:
                     return Barras(ticker, fechas, o, c, h, lo, vol)
                 return None
@@ -194,14 +203,22 @@ class YahooProvider(DataProvider):
                     op, cl, hi, low, v = (
                         q["open"][i], q["close"][i], q["high"][i], q["low"][i], q["volume"][i]
                     )
-                    if None in (op, cl, hi, low):
+                    # Mismo bug real que en `_barras_una` (ver ese
+                    # comentario) -- la vela en formación de la sesión
+                    # actual llega con `volume=None` seguido, y
+                    # `float(v or 0)` lo convertía en CERO real. Esto
+                    # dejaba `rvol_actual` (usa SOLO la última vela) en
+                    # 0.0 de forma sistemática, para todo ticker, todos
+                    # los días -- la pregunta "¿está entrando dinero
+                    # ahora?" del evaluador nunca podía pasar, nunca.
+                    if None in (op, cl, hi, low, v):
                         continue
                     marcas.append(_epoch_a_iso(epoch))
                     o.append(float(op))
                     c.append(float(cl))
                     h.append(float(hi))
                     lo.append(float(low))
-                    vol.append(float(v or 0))
+                    vol.append(float(v))
                 if c:
                     return BarraIntradia(ticker, marcas, o, c, h, lo, vol)
                 return None
