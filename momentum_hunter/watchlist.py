@@ -150,6 +150,12 @@ class EntradaWatchlist:
     ultimo_objetivo: float | None = None
     ultima_zona_entrada_baja: float | None = None   # nivel de ruptura -- "la entrada que se esperaba"
     ultimos_niveles_ts: str | None = None
+    # Congelado la PRIMERA vez que se calcularon niveles y nunca
+    # reescrito (ver `actualizar_niveles`): el nivel que hacía válida la
+    # idea cuando la tuvimos. `ultimo_stop` se recalcula en cada chequeo
+    # y por eso persigue al precio; este no. Es contra este contra el que
+    # se mide si la tesis se rompió (ver `run._evaluar_no_disparada`).
+    stop_tesis: float | None = None
 
 
 def catalizador_de(e: EntradaWatchlist) -> Catalizador | None:
@@ -450,6 +456,17 @@ def actualizar_niveles(
     e.ultimo_objetivo = objetivo
     e.ultima_zona_entrada_baja = zona_entrada_baja
     e.ultimos_niveles_ts = _ahora_iso(ahora)
+    # El stop de la TESIS se congela la primera vez y no se vuelve a
+    # tocar -- mismo principio que `gap_pct_congelado`/`atr_diario`/el
+    # catalizador: son el retrato del momento en que nació la idea.
+    # `ultimo_stop` se recalcula en cada chequeo con datos frescos, así
+    # que persigue al precio hacia abajo; compararlo con el precio actual
+    # para detectar una tesis rota nunca dispararía (encontrado por una
+    # prueba al implementar esa detección, 2026-08-21). El congelado es
+    # el único que responde "¿el precio perdió el nivel que hacía válida
+    # esta idea CUANDO la tuvimos?".
+    if e.stop_tesis is None and stop is not None:
+        e.stop_tesis = stop
 
 
 def registrar_latencia(e: EntradaWatchlist, mensaje_generado_ts: str, telegram_enviado_ts: str) -> None:

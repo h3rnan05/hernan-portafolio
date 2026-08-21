@@ -695,12 +695,50 @@ def _evaluar_no_disparada(
     documenta explícitamente "el patrón se formó pero ya no estamos a
     tiempo" (ver docstring del módulo `watchlist.py`) -- sin patrón real,
     la candidata sigue en WATCHING (nunca hay nada que "perder"), sujeta
-    solo al TTL normal de `expirar_vencidas`."""
+    solo al TTL normal de `expirar_vencidas`.
+
+    Considerado y NO implementado (2026-08-21): una segunda causa de
+    invalidación por "se murió el volumen" (rvol cayendo por debajo de
+    su propio promedio varias lecturas seguidas). Es una idea razonable
+    -- un catalizador cuya energía se apagó ya no va a mover nada -- pero
+    exigiría un umbral nuevo que hoy no se puede calibrar contra nada:
+    el sistema todavía no tiene una sola alerta medida, y elegir ese
+    número "a ojo" es exactamente lo que produjo el `score_minimo_alerta`
+    inalcanzable de 85 (ver `config.py`). Queda anotado para decidirlo
+    con datos, usando `replay.py`, cuando existan. La invalidación por
+    PRECIO sí se implementa porque no necesita ningún umbral nuevo:
+    reutiliza el stop que el pipeline ya calculó."""
     niveles = report.niveles_entrada_salida(c.factores, c.atr_diario)
     zona_baja, _ = report.zona_entrada(c, cfg)
     watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
 
     r = c.resultado
+    # -- La tesis se rompió por PRECIO (2026-08-21) --
+    # Antes de este bloque, las únicas salidas de WATCHING eran el reloj
+    # (TTL de `expirar_vencidas`), el calendario (catalizador vencido) y
+    # "ya vamos tarde". No había ninguna salida por lo que hiciera el
+    # PRECIO: una candidata podía desplomarse mientras estaba en
+    # observación y el bot la seguía mirando hasta que se acabara el
+    # temporizador. Medido sobre las 329 entradas reales acumuladas: 267
+    # salieron por reloj, 35 por calendario, 4 por tarde y CERO porque la
+    # tesis se rompiera -- el estado INVALIDATED existía, pero solo una
+    # de sus causas estaba implementada.
+    #
+    # El umbral no es nuevo ni inventado: es el MISMO stop que el
+    # pipeline ya calculó para este setup (`ultimo_stop`, cacheado en
+    # `actualizar_niveles` unas líneas más arriba). Si el precio ya está
+    # por debajo del punto donde habríamos salido corriendo, no queda
+    # nada que vigilar -- entrar ahí sería comprar algo que ya invalidó
+    # su propia tesis. Va PRIMERO porque es objetivo y definitivo: no
+    # debe quedar enmascarado por el conteo de "tarde", que es una
+    # lectura del instante y reversible.
+    precio = c.factores.precio_actual
+    if precio is not None and e.stop_tesis is not None and precio < e.stop_tesis:
+        motivo = (f"El precio (${precio:,.2f}) cayó por debajo del stop de la idea "
+                  f"(${e.stop_tesis:,.2f}) -- la tesis se rompió antes de que llegara la entrada.")
+        watchlist.marcar_invalidated(e, motivo, ahora, deteccion_ts, evaluacion_ts)
+        return report.mensaje_invalidated(e.ticker, motivo, zona_baja)
+
     if r.patron is not None and not r.temprano and r.early is not None:
         e.tarde_consecutivas += 1
         if e.tarde_consecutivas >= cfg.verificaciones_tarde_para_missed:
