@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
-from momentum_hunter.data.provider import YahooProvider, _num, _parece_cef, _parece_spac
+from momentum_hunter.data.provider import (
+    YahooProvider,
+    _num,
+    _parece_cef,
+    _parece_spac,
+    _velas_finales_en_formacion,
+)
 
 
 class _FakeResponse:
@@ -96,6 +102,61 @@ def test_barras_una_directa_descarta_volumen_none(monkeypatch):
     assert b is not None
     assert len(b) == 25   # la vela final con volumen None se descartó
     assert 0.0 not in b.volume
+
+
+# ------------------------- bug real 2026-08-21: volumen 0 EXPLÍCITO (no None) -------------------------
+# El fix de arriba no bastaba -- confirmado contra la respuesta cruda de
+# Yahoo (IBM en vivo): la vela en curso casi siempre llega con volumen 0
+# explícito, no `None` -- el minuto todavía no acumuló ningún trade en
+# el instante exacto de la consulta. Esta es la razón real de que
+# `momentum_paper_trader` nunca haya colocado una orden.
+
+def test_velas_finales_en_formacion_cuenta_los_ceros_del_final():
+    assert _velas_finales_en_formacion([100.0, 200.0, 300.0, 0.0]) == 1
+    assert _velas_finales_en_formacion([100.0, 200.0, 0.0, 0.0]) == 2
+    assert _velas_finales_en_formacion([100.0, 200.0, 300.0]) == 0
+
+
+def test_velas_finales_en_formacion_no_toca_un_cero_en_medio_de_la_sesion():
+    # Una acción líquida que de verdad no operó un minuto completo en
+    # medio del día es rarísimo, pero posible -- eso NO es "en
+    # formación", y no debe recortarse.
+    assert _velas_finales_en_formacion([100.0, 0.0, 300.0, 400.0]) == 0
+
+
+def test_velas_finales_en_formacion_deja_al_menos_una_vela():
+    assert _velas_finales_en_formacion([0.0, 0.0, 0.0]) == 2
+
+
+def test_barras_intradia_recorta_la_vela_en_formacion_con_volumen_cero_explicito(monkeypatch):
+    # Mismo escenario que se vio en la respuesta real de Yahoo para IBM:
+    # la última vela trae precio confirmado pero volumen 0 literal.
+    payload = _chart_payload([1000.0, 2000.0, 3000.0, 1500.0, 2500.0, 0.0])
+    monkeypatch.setattr(
+        "momentum_hunter.data.provider.requests.get", lambda *a, **kw: _FakeResponse(payload))
+
+    provider = YahooProvider(pausa=0)
+    bi = provider.barras_intradia(["ACME"])["ACME"]
+
+    assert len(bi) == 5   # la vela en formación (volumen 0) se recortó
+    assert bi.volume[-1] == 2500.0   # queda la última vela YA CERRADA, con volumen real
+    assert 0.0 not in bi.volume
+
+
+def test_rvol_actual_deja_de_ser_siempre_cero_con_el_fix(monkeypatch):
+    # La prueba de fondo: antes de este fix, rvol_actual daba 0.0 sin
+    # importar los datos reales -- acá se confirma que ahora refleja el
+    # volumen de la última vela YA CERRADA, no la que sigue en formación.
+    from momentum_hunter.factors.intradia import rvol_actual
+
+    payload = _chart_payload([1000.0, 1000.0, 1000.0, 1000.0, 1000.0, 8000.0, 0.0])
+    monkeypatch.setattr(
+        "momentum_hunter.data.provider.requests.get", lambda *a, **kw: _FakeResponse(payload))
+
+    provider = YahooProvider(pausa=0)
+    bi = provider.barras_intradia(["ACME"])["ACME"]
+
+    assert rvol_actual(bi) == 8.0   # 8000 / promedio(1000,1000,1000,1000,1000) -- ya no es 0.0
 
 
 def test_parece_spac_detecta_nombre_tipico():
