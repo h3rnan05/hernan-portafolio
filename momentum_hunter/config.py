@@ -92,10 +92,18 @@ class MomentumConfig:
     # emitir una alerta: 0 en 3.161. No era selectividad, era un techo
     # por encima del máximo de su propia función de scoring.
     #
-    # 60,0 sale de simular los mismos 12 días: 85->0 alertas, 75->0,
-    # 70->1 ticker, 60->5 tickers en 3 días (~3/semana, coherente con
-    # `limite_diario_alertas: 3`), 55->21 tickers y 61/semana (ruido).
-    # Hay un acantilado claro entre 60 y 55.
+    # 60,0 sale de simular los mismos 12 días (ver `replay.py`, que
+    # convirtió ese análisis en herramienta repetible). Corrección
+    # 2026-08-21: la primera simulación, hecha a mano, daba "60 -> 5
+    # tickers" asumiendo SIN DECLARARLO que todas tenían riesgo/
+    # recompensa válido -- pero `riesgo_definido` (una de las cuatro
+    # condiciones obligatorias de `accionable`) no se guardaba en la
+    # auditoría hasta ese mismo día. El rango honesto es 0-13 alertas en
+    # 60, 0-6 en 65, 0-4 en 70 y exactamente 0 en 75 y 85. Lo único
+    # firme es la forma de la curva: el acantilado entre 60 y 55 (donde
+    # el techo salta de 13 a 155) y que 75+ es inalcanzable.
+    #
+    #   python -m momentum_hunter.replay        <- re-medir con esto
     #
     # Por qué PROVISIONAL: esa simulación se hizo sobre datos que eran
     # 3.155/3.161 large-cap, por el sesgo de universo que se corrigió el
