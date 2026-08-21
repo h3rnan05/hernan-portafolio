@@ -156,6 +156,13 @@ class EntradaWatchlist:
     # y por eso persigue al precio; este no. Es contra este contra el que
     # se mide si la tesis se rompió (ver `run._evaluar_no_disparada`).
     stop_tesis: float | None = None
+    # Cómo venía el mercado GENERAL en el chequeo más reciente
+    # ("favorable"/"debil"/"desconocido", ver `mercado.py`). Viaja en la
+    # entrada porque la watchlist es el único canal entre el buscador y
+    # el ejecutor: así la capa de decisión con IA puede pesarlo sin
+    # volver a pedir datos ni duplicar la lógica. `None` = todavía no se
+    # midió (entradas creadas antes del 2026-08-21).
+    clima_mercado: str | None = None
 
 
 def catalizador_de(e: EntradaWatchlist) -> Catalizador | None:

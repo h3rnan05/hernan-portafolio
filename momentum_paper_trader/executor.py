@@ -36,6 +36,32 @@ from momentum_paper_trader.config import PaperTraderConfig
 log = logging.getLogger("momentum_paper_trader.executor")
 
 
+def _niveles_rancios(e, cfg: PaperTraderConfig, ahora: datetime) -> float | None:
+    """Antigüedad en minutos de los niveles si superan el tope, o `None`
+    si están frescos (o si no hay timestamp con qué juzgarlos).
+
+    El precio de entrada se congela cuando momentum_hunter evalúa la
+    señal, pero la orden se coloca después. Sin este chequeo, una señal
+    que quedó TRIGGERED y sin revisar (porque una corrida del trader
+    falló) generaría, días más tarde, una orden con el precio de
+    entonces -- comprar a un precio que ya no existe.
+
+    Sin `ultimos_niveles_ts` no se bloquea nada: es un campo que se
+    empezó a guardar después, y su ausencia no es evidencia de que los
+    niveles estén viejos (mismo criterio que el resto del repo: no
+    inventar el dato que falta, en ninguna de las dos direcciones)."""
+    if not e.ultimos_niveles_ts:
+        return None
+    try:
+        calculados = datetime.fromisoformat(e.ultimos_niveles_ts)
+    except (TypeError, ValueError):
+        return None
+    if calculados.tzinfo is None:
+        calculados = calculados.replace(tzinfo=UTC)
+    minutos = (ahora - calculados).total_seconds() / 60.0
+    return minutos if minutos > cfg.minutos_maximos_niveles else None
+
+
 def _tamano_posicion(entrada: float, stop: float, cfg: PaperTraderConfig) -> int:
     """Acciones = riesgo en dólares ÷ distancia al stop -- nunca un
     número de acciones fijo, para que el riesgo real de cada trade sea
@@ -117,6 +143,7 @@ def _leer_cuenta(client: AlpacaPaperClient) -> _EstadoCuenta | None:
 
 def ejecutar(
     client: AlpacaPaperClient, cfg: PaperTraderConfig = PaperTraderConfig(), dry_run: bool = False,
+    ahora: datetime | None = None,
 ) -> list[estado.RevisionIA]:
     """Devuelve las revisiones NUEVAS que terminaron en una orden colocada
     en esta corrida (no las que la IA rechazó -- esas no colocan nada que
@@ -125,6 +152,7 @@ def ejecutar(
     a Alpaca, nunca llama a la IA, y nunca persiste nada (mismo principio
     que `momentum_hunter.run`)."""
     cfg.validar()
+    ahora = ahora or datetime.now(UTC)
     entradas = watchlist.cargar()
     revisiones_previas = estado.cargar()
     nuevas: list[estado.RevisionIA] = []
@@ -147,6 +175,16 @@ def ejecutar(
         if e.ultima_entrada is None or e.ultimo_stop is None or e.ultimo_objetivo is None:
             log.warning(
                 "%s: TRIGGERED sin niveles cacheados -- se omite (no se inventa un precio)", e.ticker)
+            continue
+
+        # No se registra como revisada: la señal puede seguir siendo
+        # buena, lo que está viejo es el PRECIO. El siguiente re-chequeo
+        # (cada 5 min) recalcula los niveles y la orden se coloca ahí.
+        rancios = _niveles_rancios(e, cfg, ahora)
+        if rancios is not None:
+            log.info(
+                "%s: los niveles tienen %.0f min (tope %.0f) -- se espera a que se recalculen "
+                "en vez de operar un precio viejo", e.ticker, rancios, cfg.minutos_maximos_niveles)
             continue
 
         cantidad = _tamano_posicion(e.ultima_entrada, e.ultimo_stop, cfg)
@@ -184,7 +222,7 @@ def ejecutar(
             log.info("%s: cantidad reducida a %d por efectivo disponible", e.ticker, cantidad)
 
         decision = ia_decision.decidir(e, cuenta.contexto_para_ia())
-        timestamp = datetime.now(UTC).isoformat(timespec="seconds")
+        timestamp = ahora.isoformat(timespec="seconds")
 
         if not decision.entrar:
             log.info(

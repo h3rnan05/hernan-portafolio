@@ -94,7 +94,12 @@ entras).
 distancia al objetivo justifica claramente el riesgo al stop?
 5. CALIDAD ESTRUCTURAL: float, interés en corto, large cap -- ¿el perfil \
 encaja con un movimiento explosivo sostenible?
-6. CONTEXTO DE LA CUENTA: si la cuenta ya está cargada de posiciones o el \
+6. CLIMA DEL MERCADO GENERAL: si viene "debil", el mercado entero está \
+remando en contra y las rupturas al alza fallan más seguido -- exige más \
+convicción o entra con fracción reducida. Si viene "favorable", no es una \
+razón para relajar el resto de los criterios. "desconocido" no es ni bueno \
+ni malo: simplemente no pesa.
+7. CONTEXTO DE LA CUENTA: si la cuenta ya está cargada de posiciones o el \
 efectivo está justo, sé MÁS selectivo, no menos. No perseguir euforia: si \
 la evidencia huele a FOMO tardío más que a ruptura temprana, rechaza.
 
@@ -228,6 +233,14 @@ def construir_paquete_evidencia(e: EntradaWatchlist, contexto_cuenta: str | None
         secciones.append(
             f"Historial real del sistema con catalizadores tipo "
             f"'{e.catalizador_tipo}':\n{historial}")
+
+    # Cómo venía el mercado GENERAL en el último chequeo (ver
+    # `momentum_hunter/mercado.py`). Decisión explícita del usuario
+    # (2026-08-21): esto NO bloquea la operación -- llega como un dato
+    # más para que la IA lo pese, igual que lo pesaría un trader antes
+    # de comprar una ruptura en un día en que todo se está cayendo.
+    if e.clima_mercado:
+        secciones.append(f"Clima del mercado general: {e.clima_mercado}")
 
     if contexto_cuenta:
         secciones.append(f"Estado actual de la cuenta paper:\n{contexto_cuenta}")
