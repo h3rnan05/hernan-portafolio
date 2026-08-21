@@ -77,6 +77,26 @@ def _epoch_a_iso(epoch: int) -> str:
     return datetime.fromtimestamp(int(epoch), tz=UTC).isoformat(timespec="seconds")
 
 
+def _velas_finales_en_formacion(vol: list[float]) -> int:
+    """Cuántas velas al FINAL de la lista tienen volumen exactamente 0.0
+    -- bug real (2026-08-21, "por qué no ha metido ningún trade"): la
+    vela en curso de Yahoo casi siempre llega así, un 0 REAL (no
+    `None`) -- el minuto todavía no terminó de acumular ningún trade en
+    el instante exacto de la consulta. Confirmado contra la respuesta
+    cruda de Yahoo: la vela anterior a esa suele venir enteramente
+    `None` (ya se descarta antes de llegar acá) y la última con precio
+    ya confirmado pero volumen en 0 -- ambas son la MISMA vela en
+    formación, solo en distintos instantes de esa formación. Un 0 real
+    en medio de la sesión (una acción líquida que de verdad no operó un
+    minuto completo) es rarísimo pero posible -- por eso solo se
+    recortan las del FINAL, nunca las de adentro, y siempre se deja al
+    menos una vela aunque todas sean 0 (mejor un dato raro que ninguno)."""
+    n = 0
+    while n < len(vol) - 1 and vol[-1 - n] == 0.0:
+        n += 1
+    return n
+
+
 def _num(v: object) -> float | None:
     try:
         f = float(v)  # type: ignore[arg-type]
@@ -163,6 +183,12 @@ class YahooProvider(DataProvider):
                     h.append(float(hi))
                     lo.append(float(low))
                     vol.append(float(v))
+                recortar = _velas_finales_en_formacion(vol)
+                if recortar:
+                    fechas, o, c, h, lo, vol = (
+                        fechas[:-recortar], o[:-recortar], c[:-recortar], h[:-recortar],
+                        lo[:-recortar], vol[:-recortar],
+                    )
                 if c:
                     return Barras(ticker, fechas, o, c, h, lo, vol)
                 return None
@@ -219,6 +245,21 @@ class YahooProvider(DataProvider):
                     h.append(float(hi))
                     lo.append(float(low))
                     vol.append(float(v))
+                # Corrección 2026-08-21 ("por qué no ha metido ningún
+                # trade"): el fix de arriba (None -> se descarta) no
+                # bastaba -- confirmado contra la respuesta cruda de
+                # Yahoo, la vela en curso casi siempre llega con volumen
+                # 0 EXPLÍCITO (no None): el minuto todavía no acumuló
+                # ningún trade en el instante exacto de la consulta.
+                # `rvol_actual` (usa solo la última vela) seguía en 0.0
+                # siempre, para todo ticker -- ver `_velas_finales_en_
+                # formacion`.
+                recortar = _velas_finales_en_formacion(vol)
+                if recortar:
+                    marcas, o, c, h, lo, vol = (
+                        marcas[:-recortar], o[:-recortar], c[:-recortar], h[:-recortar],
+                        lo[:-recortar], vol[:-recortar],
+                    )
                 if c:
                     return BarraIntradia(ticker, marcas, o, c, h, lo, vol)
                 return None
