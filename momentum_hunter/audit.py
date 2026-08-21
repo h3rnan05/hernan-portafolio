@@ -84,6 +84,11 @@ def snapshot_candidato(
             "penalizaciones": list(r.penalizaciones),
             "score_base": r.score_base,
             "score_ajustado": r.score_ajustado,
+            # `riesgo_definido` es una de las cuatro condiciones
+            # OBLIGATORIAS de `accionable` (ver `evaluator.evaluar`) pero
+            # no se guardaba: auditando por qué el bot nunca alertó, era
+            # el único eje imposible de diagnosticar desde estos archivos.
+            "riesgo_definido": r.riesgo_definido,
             "accionable": r.accionable,
         },
         "decision": decision,

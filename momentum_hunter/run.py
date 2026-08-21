@@ -100,6 +100,55 @@ def enviar_telegram(texto: str) -> None:
             log.warning("envío a Telegram falló: %s", e)
 
 
+def tamano_estimado(meta: Metadata, b: Barras) -> tuple[float | None, str]:
+    """(valor en dólares, de dónde salió) para el techo `market_cap_max`.
+
+    Bug real encontrado el 2026-08-21 auditando por qué el bot nunca
+    alertó: el chequeo anterior era `meta.market_cap is not None and
+    meta.market_cap > cfg.market_cap_max`, así que un `market_cap`
+    AUSENTE hacía cortocircuito y se saltaba el techo por completo. Y
+    Yahoo lo devuelve ausente el 51% de las veces (medido sobre 3.161
+    candidatas auditadas). El resultado: NOK -- ~$44 mil millones, 4.443
+    millones de acciones de float -- entró seis veces a la banda
+    small-cap, que es donde el bot dice cazar. La banda "small" filtraba
+    de hecho por PRECIO ($0,75-$20), no por tamaño de empresa.
+
+    El respaldo es `precio x shares_float`: no es la capitalización
+    completa (el float excluye acciones restringidas/insiders), así que
+    SUBESTIMA -- y eso es justo lo que se quiere de un techo: si ya con
+    el float estimado se pasa del límite, la empresa es grande sin
+    ninguna duda. Con este respaldo el tamaño es verificable en el 100%
+    de las candidatas auditadas, contra 48,8% antes.
+
+    Nunca inventa un número: si no hay ni capitalización ni float, el
+    valor es `None` y el llamador decide (ver `_excede_techo_de_tamano`,
+    que rechaza lo no verificable en vez de dejarlo pasar)."""
+    if meta.market_cap is not None:
+        return meta.market_cap, "market_cap"
+    precio = b.close[-1] if b.close else None
+    if meta.shares_float is not None and precio is not None and precio > 0:
+        return meta.shares_float * precio, "precio x float"
+    return None, "sin dato"
+
+
+def _excede_techo_de_tamano(meta: Metadata, b: Barras, cfg: MomentumConfig) -> bool:
+    """True = se descarta de la banda small-cap. Un tamaño NO verificable
+    también se descarta: el techo es lo único que separa "small-cap" de
+    "cualquier cosa barata", así que no poder comprobarlo es motivo
+    suficiente para no tratarla como small-cap (mismo principio
+    fail-closed del resto del repo -- nunca se asume el dato que falta).
+    La banda large-cap se salta este chequeo entera: ese techo es
+    justamente lo que la define."""
+    valor, origen = tamano_estimado(meta, b)
+    if valor is None:
+        log.debug("%s: sin capitalización ni float -- no se puede verificar tamaño", meta.ticker)
+        return True
+    if valor > cfg.market_cap_max:
+        log.debug("%s: tamaño ~$%.0f (%s) excede el techo small-cap", meta.ticker, valor, origen)
+        return True
+    return False
+
+
 def _banda_de_universo(b: Barras, cfg: MomentumConfig) -> str | None:
     """"small" o "large", o None si no califica para ninguna banda.
     Large-cap (2026-08-07) es COMPLEMENTARIA a small-cap, no la
@@ -150,7 +199,7 @@ def construir_candidatos_diarios(
             es_large_cap = bandas.get(t) == "large"
             if meta.es_etf or (cfg.excluir_spac and meta.es_spac) or (cfg.excluir_cef and meta.es_cef):
                 continue
-            if not es_large_cap and meta.market_cap is not None and meta.market_cap > cfg.market_cap_max:
+            if not es_large_cap and _excede_techo_de_tamano(meta, b, cfg):
                 continue
             vol_prom = _volumen_promedio(b)
             if meta.es_adr and (vol_prom is None or vol_prom < cfg.liquidez_minima_adr):
@@ -409,7 +458,12 @@ def _cargar_tickers(args: argparse.Namespace) -> list[str]:
     else:
         ticks = universe.tickers(refrescar=args.refrescar_universo)
     if args.limit:
-        ticks = ticks[: args.limit]
+        # Ventana ROTATIVA, no `ticks[:N]` -- ver `universe.ventana_rotativa`
+        # para el sesgo de tamaño que ese corte fijo causaba. Un universo
+        # explícito (`--universo archivo.txt`) es una lista curada por el
+        # usuario: ahí sí se respeta el orden y se corta por el principio.
+        ticks = (ticks[: args.limit] if args.universo
+                 else universe.ventana_rotativa(ticks, args.limit))
     return ticks
 
 

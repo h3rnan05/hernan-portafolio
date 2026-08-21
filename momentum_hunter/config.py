@@ -83,7 +83,28 @@ class MomentumConfig:
     })
 
     # --- Umbrales de alerta (Prompt 7: calidad antes que cantidad) ---
-    score_minimo_alerta: float = 85.0
+    # PROVISIONAL -- recalibrar con datos de small-cap (ver más abajo).
+    # Estaba en 85.0, un valor INALCANZABLE: auditadas 3.161 candidatas
+    # reales de 12 días, el `score_base` más alto jamás producido fue
+    # 81,2 (mediana 66). Y como `score_ajustado = score_base -
+    # penalizaciones` (las penalizaciones solo restan), el score final
+    # nunca podía superar al base. El bot era aritméticamente incapaz de
+    # emitir una alerta: 0 en 3.161. No era selectividad, era un techo
+    # por encima del máximo de su propia función de scoring.
+    #
+    # 60,0 sale de simular los mismos 12 días: 85->0 alertas, 75->0,
+    # 70->1 ticker, 60->5 tickers en 3 días (~3/semana, coherente con
+    # `limite_diario_alertas: 3`), 55->21 tickers y 61/semana (ruido).
+    # Hay un acantilado claro entre 60 y 55.
+    #
+    # Por qué PROVISIONAL: esa simulación se hizo sobre datos que eran
+    # 3.155/3.161 large-cap, por el sesgo de universo que se corrigió el
+    # 2026-08-21 (ver `universe.ventana_rotativa` y `run.tamano_estimado`).
+    # El scoring está calibrado para explosiones de small-cap, así que la
+    # distribución de scores va a cambiar cuando entren small-caps de
+    # verdad. Recalibrar sobre la nueva distribución antes de darlo por
+    # bueno -- no heredar este número sin volver a medirlo.
+    score_minimo_alerta: float = 60.0
     rvol_minimo_alerta: float = 4.0           # volumen actual / promedio 20 sesiones (filtro grueso, etapa 1)
     requiere_catalizador_confirmado: bool = True
     # Techo de seguridad, no un objetivo -- la selectividad real la hace
