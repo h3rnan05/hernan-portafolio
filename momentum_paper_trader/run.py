@@ -33,6 +33,20 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(messag
 log = logging.getLogger("momentum_paper_trader.run")
 
 
+def _clima_de_la_watchlist() -> str | None:
+    """El clima de mercado que midió momentum_hunter en su chequeo más
+    reciente (ver `momentum_hunter/mercado.py`) -- se lee de la watchlist
+    en vez de volver a pedirlo, que es el mismo canal por el que ya viaja
+    todo entre los dos sistemas. Mejor esfuerzo: sin dato, la IA decide
+    el cierre sin esa sección."""
+    try:
+        from momentum_hunter import watchlist
+        climas = [e.clima_mercado for e in watchlist.cargar() if e.clima_mercado]
+        return climas[-1] if climas else None
+    except Exception:
+        return None
+
+
 def _avisar_falla(ex: Exception) -> None:
     """Autonomía real significa que el sistema reporta sus PROPIAS fallas
     -- si el trader se rompe en silencio, el usuario vuelve a tener que
@@ -98,7 +112,7 @@ def main() -> None:
             # en los últimos minutos de la sesión, lo que toca es
             # liquidar, no abrir algo que quedaría desprotegido esta
             # misma noche (ver `cierre.py`).
-            cerradas = cierre.cerrar_si_toca(client, CONFIG, datetime.now(UTC))
+            cerradas = cierre.cerrar_si_toca(client, CONFIG, datetime.now(UTC), clima=_clima_de_la_watchlist())
             if cerradas:
                 log.info("%d posición(es) liquidada(s) por cierre del día", len(cerradas))
 

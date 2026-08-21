@@ -128,18 +128,34 @@ desprotegida ante cualquier hueco de apertura al día siguiente.
 arreglarlo.
 
 **Qué hace ahora**: a `cfg.minutos_antes_del_cierre` del cierre (19:50
-UTC por defecto), liquida todas las posiciones a mercado, cancela las
-órdenes vivas y manda un resumen por Telegram con el resultado de cada
-una y del día. El re-chequeo corre cada 5 minutos hasta las 20:00, así
-que siempre cae al menos una corrida dentro de la ventana. Idempotente
-por construcción: la segunda corrida no encuentra posiciones y no hace
-nada -- sin estado persistido.
+UTC por defecto), **la IA decide posición por posición** si cerrarla o
+aguantarla hasta mañana. El re-chequeo corre cada 5 minutos hasta las
+20:00, así que siempre cae al menos una corrida dentro de la ventana.
 
-**Por qué es lo correcto para ESTE bot**, no solo una protección: todo
-el sistema evalúa movimientos intradía (catalizador del día, patrones de
-Ross Cameron, ventanas de minutos). Mantener una posición hasta mañana
-es una apuesta distinta -- huecos de apertura, noticias nocturnas -- que
-nada en este pipeline analiza. Cerrar es el default honesto.
+La primera versión liquidaba todo con una regla fija. El usuario señaló
+(2026-08-21) que una regla mecánica no distingue "esto se rompió" de
+"esto va lento pero sigue vivo" -- que es exactamente lo que la capa de
+IA existe para juzgar: *"el objetivo de crear la IA que tome las
+decisiones de inversión es para eso"*. Tenía razón.
+
+**Condición innegociable para aguantar**: si la IA decide mantener una
+posición, se le coloca un STOP NUEVO que sobrevive a la noche
+(`time_in_force: "gtc"`). Aguantar sin protección sería peor que
+cualquiera de las dos opciones, y es el estado que este módulo nació
+para eliminar. Si el stop protector no se puede colocar, **se cierra**
+-- no hay tercera vía. Igual si falta el precio para calcularlo.
+
+**Fail-closed hacia CERRAR** en todos los caminos: sin `ANTHROPIC_API_KEY`,
+error de red, respuesta no parseable, o convicción < 7 para aguantar. La
+dirección es deliberada: de las dos opciones, aguantar es la que tiene
+el peor caso desconocido (un hueco de apertura nocturno). Sin una
+decisión de verdad, se toma la de riesgo acotado.
+
+**Aviso honesto, y el prompt de la IA se lo dice explícitamente**: un
+stop NO protege contra un hueco de apertura. Si cierra en $50 con stop
+en $48 y abre en $40, la venta se ejecuta cerca de $40. Reduce el riesgo
+nocturno, no lo elimina. Ese mismo aviso va en el mensaje de Telegram
+cada vez que se aguanta algo.
 
 Es la única parte del sistema que usa órdenes **a mercado**, y solo para
 SALIR: al cerrar hay que salir sí o sí, y una orden limitada podría no
