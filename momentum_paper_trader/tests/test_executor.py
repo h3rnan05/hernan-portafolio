@@ -1,5 +1,5 @@
-"""Pruebas del orquestador -- sin red real (Alpaca mockeado por
-completo) y sin tocar el `watchlist.json`/`ordenes.json` reales del
+"""Pruebas del orquestador -- sin red real (Alpaca y la IA mockeados por
+completo) y sin tocar el `watchlist.json`/`revisiones.json` reales del
 repo (`cargar`/`guardar` parcheados a archivos temporales, mismo patrón
 que `momentum_hunter/tests/test_run_watchlist.py`)."""
 
@@ -12,11 +12,16 @@ from momentum_hunter.alerts import CandidatoDiario
 from momentum_hunter.catalysts.detector import Catalizador
 from momentum_hunter.models import FactoresMomentum, Metadata
 from momentum_hunter.scoring import Puntuacion
-from momentum_paper_trader import estado, executor
+from momentum_paper_trader import estado, executor, ia_decision
 from momentum_paper_trader.config import PaperTraderConfig
 
 AHORA = datetime(2026, 8, 11, 14, 0, 0, tzinfo=UTC)
 CFG = PaperTraderConfig()
+
+_DECISION_ENTRA = ia_decision.DecisionIA(
+    entrar=True, confianza=9, razonamiento="catalizador sólido, asimetría clara")
+_DECISION_NO_ENTRA = ia_decision.DecisionIA(
+    entrar=False, confianza=3, razonamiento="noticia vieja, ya corrió")
 
 
 class _FakeAlpacaClient:
@@ -54,7 +59,7 @@ def _entrada_triggered(
     return e
 
 
-def _parchear(monkeypatch, tmp_path, entradas_watchlist, ordenes_previas=None):
+def _parchear(monkeypatch, tmp_path, entradas_watchlist, revisiones_previas=None, decision=_DECISION_ENTRA):
     # Referencias a las funciones reales ANTES de que monkeypatch las
     # reemplace en el módulo -- evita recursión infinita al parchear
     # `cargar`/`guardar` (mismo patrón que `momentum_hunter/tests/
@@ -65,19 +70,21 @@ def _parchear(monkeypatch, tmp_path, entradas_watchlist, ordenes_previas=None):
     monkeypatch.setattr(watchlist, "cargar", lambda p=wl_path: real_wl_cargar(p))
 
     real_estado_cargar, real_estado_guardar = estado.cargar, estado.guardar
-    ord_path = tmp_path / "ordenes.json"
-    real_estado_guardar(ordenes_previas or [], ord_path)
-    monkeypatch.setattr(estado, "cargar", lambda p=ord_path: real_estado_cargar(p))
-    monkeypatch.setattr(estado, "guardar", lambda os_, p=ord_path: real_estado_guardar(os_, p))
+    rev_path = tmp_path / "revisiones.json"
+    real_estado_guardar(revisiones_previas or [], rev_path)
+    monkeypatch.setattr(estado, "cargar", lambda p=rev_path: real_estado_cargar(p))
+    monkeypatch.setattr(estado, "guardar", lambda rs, p=rev_path: real_estado_guardar(rs, p))
+
+    monkeypatch.setattr(ia_decision, "decidir", lambda e: decision)
 
     enviados: list[str] = []
     monkeypatch.setattr(executor, "enviar_telegram", lambda texto: enviados.append(texto))
-    return wl_path, ord_path, enviados
+    return wl_path, rev_path, enviados
 
 
-def test_coloca_orden_para_triggered_nueva(monkeypatch, tmp_path):
+def test_coloca_orden_para_triggered_nueva_cuando_la_ia_aprueba(monkeypatch, tmp_path):
     e = _entrada_triggered()
-    wl_path, ord_path, enviados = _parchear(monkeypatch, tmp_path, [e])
+    wl_path, rev_path, enviados = _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient()
 
     nuevas = executor.ejecutar(client, CFG, dry_run=False)
@@ -87,18 +94,53 @@ def test_coloca_orden_para_triggered_nueva(monkeypatch, tmp_path):
     assert len(enviados) == 1
     assert "[PAPER]" in enviados[0]
     assert "RKLB" in enviados[0]
+    assert "catalizador sólido" in enviados[0]   # razonamiento de la IA, no solo niveles mecánicos
 
-    persistidas = estado.cargar(ord_path)
+    persistidas = estado.cargar(rev_path)
     assert len(persistidas) == 1
+    assert persistidas[0].entro is True
     assert persistidas[0].order_id == "orden-RKLB"
+
+
+def test_no_coloca_orden_cuando_la_ia_rechaza(monkeypatch, tmp_path):
+    e = _entrada_triggered()
+    wl_path, rev_path, enviados = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_NO_ENTRA)
+    client = _FakeAlpacaClient()
+
+    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+
+    assert nuevas == []
+    assert client.ordenes_colocadas == []   # nunca se llamó a Alpaca
+    assert enviados == []   # sin orden, sin mensaje de confirmación
+
+    # Pero SÍ queda registrada la revisión -- para no volver a preguntar.
+    persistidas = estado.cargar(rev_path)
+    assert len(persistidas) == 1
+    assert persistidas[0].entro is False
+    assert persistidas[0].order_id is None
+
+
+def test_rechazo_de_la_ia_no_se_vuelve_a_preguntar(monkeypatch, tmp_path):
+    e = _entrada_triggered()
+    previa = estado.RevisionIA(
+        ticker="RKLB", creado_en=e.creado_en, entro=False, confianza=3,
+        razonamiento="ya se revisó y no", timestamp="x")
+    _parchear(monkeypatch, tmp_path, [e], revisiones_previas=[previa], decision=_DECISION_ENTRA)
+    client = _FakeAlpacaClient()
+
+    nuevas = executor.ejecutar(client, CFG, dry_run=False)
+
+    assert nuevas == []
+    assert client.ordenes_colocadas == []   # ni siquiera se volvió a pedir criterio a la IA
 
 
 def test_no_duplica_orden_ya_procesada(monkeypatch, tmp_path):
     e = _entrada_triggered()
-    previa = estado.OrdenRegistrada(
-        ticker="RKLB", creado_en=e.creado_en, order_id="orden-vieja", cantidad=65,
-        precio_entrada=78.42, stop=76.90, objetivo=82.50, timestamp="x")
-    _parchear(monkeypatch, tmp_path, [e], ordenes_previas=[previa])
+    previa = estado.RevisionIA(
+        ticker="RKLB", creado_en=e.creado_en, entro=True, confianza=9,
+        razonamiento="x", timestamp="x", order_id="orden-vieja", cantidad=65,
+        precio_entrada=78.42, stop=76.90, objetivo=82.50)
+    _parchear(monkeypatch, tmp_path, [e], revisiones_previas=[previa])
     client = _FakeAlpacaClient()
 
     nuevas = executor.ejecutar(client, CFG, dry_run=False)
@@ -144,9 +186,14 @@ def test_riesgo_insuficiente_para_una_accion_se_omite(monkeypatch, tmp_path):
     assert client.ordenes_colocadas == []
 
 
-def test_dry_run_no_llama_a_alpaca_ni_manda_telegram_ni_persiste(monkeypatch, tmp_path):
+def test_dry_run_no_llama_a_alpaca_ni_a_la_ia_ni_manda_telegram_ni_persiste(monkeypatch, tmp_path):
     e = _entrada_triggered()
-    wl_path, ord_path, enviados = _parchear(monkeypatch, tmp_path, [e])
+
+    def _no_debería_llamarse(e):
+        raise AssertionError("dry-run no debería consultar a la IA")
+
+    wl_path, rev_path, enviados = _parchear(monkeypatch, tmp_path, [e])
+    monkeypatch.setattr(ia_decision, "decidir", _no_debería_llamarse)
     client = _FakeAlpacaClient()
 
     nuevas = executor.ejecutar(client, CFG, dry_run=True)
@@ -154,7 +201,7 @@ def test_dry_run_no_llama_a_alpaca_ni_manda_telegram_ni_persiste(monkeypatch, tm
     assert nuevas == []
     assert client.ordenes_colocadas == []
     assert enviados == []
-    assert estado.cargar(ord_path) == []
+    assert estado.cargar(rev_path) == []
 
 
 def test_fallo_de_alpaca_en_un_ticker_no_tumba_el_resto(monkeypatch, tmp_path):
@@ -172,14 +219,14 @@ def test_fallo_de_alpaca_en_un_ticker_no_tumba_el_resto(monkeypatch, tmp_path):
 def test_multiples_triggered_simultaneas_generan_ordenes_independientes(monkeypatch, tmp_path):
     e_a = _entrada_triggered("MEJOR")
     e_b = _entrada_triggered("SEGUNDA")
-    wl_path, ord_path, enviados = _parchear(monkeypatch, tmp_path, [e_a, e_b])
+    wl_path, rev_path, enviados = _parchear(monkeypatch, tmp_path, [e_a, e_b])
     client = _FakeAlpacaClient()
 
     nuevas = executor.ejecutar(client, CFG, dry_run=False)
 
     assert {n.ticker for n in nuevas} == {"MEJOR", "SEGUNDA"}
     assert len(enviados) == 2
-    assert len(estado.cargar(ord_path)) == 2
+    assert len(estado.cargar(rev_path)) == 2
 
 
 def test_sizing_respeta_el_riesgo_configurado(monkeypatch, tmp_path):
