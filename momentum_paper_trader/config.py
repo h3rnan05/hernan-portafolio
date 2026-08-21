@@ -59,6 +59,13 @@ class PaperTraderConfig:
     # El re-chequeo corre cada 5 min, así que siempre cae al menos una
     # corrida dentro de la ventana.
     minutos_antes_del_cierre: int = 10
+    # Si la IA decide aguantar una posición hasta mañana, se le pone un
+    # stop nuevo que sobrevive a la noche, a este porcentaje por debajo
+    # del precio actual. 3% es deliberadamente holgado: un stop nocturno
+    # demasiado ajustado se ejecuta con cualquier ruido de la apertura,
+    # que es justo cuando más ruido hay. No protege contra un hueco (ver
+    # `alpaca_client.colocar_stop_protector`).
+    colchon_stop_nocturno: float = 0.03
 
     def validar(self) -> None:
         if self.riesgo_dolares_por_operacion <= 0:
@@ -73,6 +80,8 @@ class PaperTraderConfig:
             # 390 min = la sesión regular completa (6,5 h): más que eso
             # significaría "cerrar antes de abrir".
             raise ValueError("minutos_antes_del_cierre debe estar entre 1 y 389")
+        if not 0 < self.colchon_stop_nocturno < 1:
+            raise ValueError("colchon_stop_nocturno debe estar entre 0 y 1 (fracción)")
 
 
 CONFIG = PaperTraderConfig()

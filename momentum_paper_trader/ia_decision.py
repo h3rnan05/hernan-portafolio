@@ -119,6 +119,109 @@ proteger el capital (aunque sea simulado) es el trabajo. Rechazar una \
 señal mediocre también es una decisión de trader, y de las buenas."""
 
 
+SYSTEM_PROMPT_CIERRE = """\
+Eres el trader decidiendo qué hacer con una posición abierta a diez \
+minutos del cierre del mercado, dentro de un sistema de PAPER TRADING \
+(dinero simulado, nunca real). La posición se abrió HOY sobre un \
+catalizador del día y no ha tocado ni su stop ni su objetivo.
+
+Tienes dos opciones y ninguna es gratis:
+
+CERRAR: tomas el resultado que haya, bueno o malo, y duermes tranquilo. \
+Es lo coherente con la estrategia de este bot, que analiza movimientos \
+INTRADÍA -- nada en el sistema evalúa el riesgo de mantener algo abierto \
+de un día para otro.
+
+AGUANTAR: la posición sigue viva hasta mañana con un stop de protección \
+nuevo. Solo tiene sentido si la tesis del día SIGUE INTACTA y el \
+movimiento simplemente va lento -- no si "va a recuperarse". Aguantar \
+esperando que un perdedor se dé la vuelta es el error clásico que arruina \
+cuentas: por eso existía el stop.
+
+Riesgo que debes pesar al aguantar: durante la noche pueden salir \
+noticias y la acción puede abrir con un hueco muy por debajo del stop. \
+El stop reduce el riesgo nocturno, NO lo elimina -- si abre en hueco, la \
+venta se ejecuta al precio de apertura, no al del stop.
+
+Criterios para aguantar (deben cumplirse casi todos, no solo uno):
+1. El catalizador sigue vigente y no se ha agotado en el precio.
+2. La posición está en ganancia o cerca de plano -- una pérdida abierta \
+al cierre casi siempre es la tesis diciendo que se equivocó.
+3. El mercado general no viene débil.
+4. El movimiento se ve pausado/consolidando, no revertido.
+
+Si dudas, CIERRA. Es la opción cuyo peor caso es conocido.
+
+Responde SOLO con JSON válido, sin markdown:
+{
+  "cerrar": true | false,
+  "confianza": 1-10,
+  "razonamiento": "2-3 frases en español, claras y concretas sobre el \
+PORQUÉ -- esto se le muestra directo al usuario en Telegram"
+}
+
+Regla dura: "cerrar": false (aguantar) requiere confianza >= 7."""
+
+
+@dataclass(frozen=True)
+class DecisionCierre:
+    cerrar: bool
+    confianza: int
+    razonamiento: str
+
+
+_CIERRE_POR_DEFECTO = DecisionCierre(
+    cerrar=True, confianza=0,
+    razonamiento=("No se pudo obtener el criterio de la IA para esta posición -- se cierra "
+                  "por seguridad: aguantar sin una decisión es el único desenlace que nadie eligió."),
+)
+
+
+def decidir_cierre(contexto: str) -> DecisionCierre:
+    """¿Cerrar esta posición antes del cierre, o aguantarla hasta mañana?
+
+    Fail-closed hacia CERRAR en todos los caminos (sin credencial, error
+    de red, respuesta no parseable, confianza insuficiente). La dirección
+    importa y es deliberada: de las dos opciones, aguantar es la que
+    tiene el peor caso desconocido -- un hueco de apertura nocturno.
+    Cuando no hay una decisión de verdad, se toma la de riesgo acotado."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        log.info("sin ANTHROPIC_API_KEY -- se cierra la posición por defecto")
+        return _CIERRE_POR_DEFECTO
+
+    try:
+        client = Anthropic(api_key=api_key)
+        msg = client.messages.create(
+            model=MODEL, max_tokens=400, system=SYSTEM_PROMPT_CIERRE,
+            messages=[{"role": "user", "content": contexto}],
+        )
+        crudo = "".join(b.text for b in msg.content if b.type == "text").strip()
+    except Exception as ex:
+        log.warning("falló la consulta de cierre a la IA: %s", ex)
+        return _CIERRE_POR_DEFECTO
+
+    if crudo.startswith("```"):
+        crudo = crudo.strip("`").removeprefix("json").strip()
+    try:
+        v = json.loads(crudo)
+        cerrar = bool(v["cerrar"])
+        confianza = int(v["confianza"])
+        razonamiento = str(v["razonamiento"])
+    except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+        log.warning("la IA no devolvió un veredicto de cierre usable: %r", crudo)
+        return _CIERRE_POR_DEFECTO
+
+    # Cinturón y tirantes: aguantar exige convicción alta. Un "aguantar"
+    # con confianza 4 se convierte en cerrar, igual que en `decidir`.
+    if not cerrar and confianza < 7:
+        return DecisionCierre(
+            cerrar=True, confianza=confianza,
+            razonamiento=(razonamiento + " (Convicción insuficiente para aguantar "
+                          "de un día para otro -- se cierra.)"))
+    return DecisionCierre(cerrar=cerrar, confianza=confianza, razonamiento=razonamiento)
+
+
 @dataclass(frozen=True)
 class DecisionIA:
     entrar: bool

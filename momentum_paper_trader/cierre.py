@@ -9,12 +9,24 @@ OBJETIVO -- desprotegida contra cualquier hueco de apertura del día
 siguiente. `seguimiento.py` sabe detectar ese estado y avisarlo, pero
 avisar no es arreglarlo.
 
-LA DECISIÓN (usuario, 2026-08-21): liquidar todo antes del cierre. Es
-además lo coherente con la estrategia -- este bot busca movimientos
-INTRADÍA (catalizador del día, patrones de Ross Cameron, ventana de
-minutos); mantener una posición de un día para otro es una apuesta
-distinta, con riesgos distintos (huecos de apertura, noticias nocturnas)
-que nada en este sistema evalúa. Cerrar es el default honesto.
+LA DECISIÓN LA TOMA LA IA, posición por posición (usuario, 2026-08-21:
+"el objetivo de crear la IA que tome las decisiones de inversión es para
+eso"). La primera versión de este módulo liquidaba todo con una regla
+fija; el usuario señaló, con razón, que una regla mecánica no distingue
+"esto se rompió" de "esto va lento pero sigue vivo", que es justo lo que
+la capa de IA existe para juzgar.
+
+CONDICIÓN INNEGOCIABLE PARA AGUANTAR: si la IA decide mantener una
+posición, se le coloca un STOP NUEVO que sobrevive a la noche
+(`time_in_force: "gtc"`, ver `alpaca_client.colocar_stop_protector`).
+Aguantar sin protección sería peor que cualquiera de las dos opciones, y
+es exactamente el estado que este módulo nació para eliminar. Si el stop
+protector no se puede colocar, se cierra -- no hay tercera vía.
+
+AVISO HONESTO: un stop no protege contra un hueco de apertura. Si cierra
+en $50 con stop en $48 y abre en $40, la venta sale cerca de $40. Reduce
+el riesgo nocturno, no lo elimina. Por eso el prompt de la IA se lo dice
+explícitamente y el default ante cualquier duda es cerrar.
 
 CUÁNDO. `cfg.minutos_antes_del_cierre` antes de las 20:00 UTC (16:00 ET),
 o sea 19:50 UTC por defecto. El re-chequeo de watchlist corre cada 5
@@ -36,6 +48,7 @@ from datetime import datetime
 from momentum_hunter.factors.intradia import HORA_CIERRE_UTC
 from momentum_hunter.run import enviar_telegram
 
+from momentum_paper_trader import ia_decision
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig
 
@@ -64,42 +77,92 @@ def _num(v) -> float | None:
         return None
 
 
-def _mensaje(posiciones: list[dict]) -> str:
-    """Un resumen de lo que se liquidó, con el resultado de cada una.
-    `unrealized_pl` es la ganancia/pérdida en el momento de cerrar: como
-    se liquida a mercado en ese instante, es la cifra realizada salvo por
-    el deslizamiento de los segundos siguientes -- se dice "aprox." en
-    vez de fingir precisión que no se midió."""
-    lineas = ["🧪 [PAPER] CIERRE DEL DÍA", "",
-              "Se liquidó todo antes del cierre para no dejar posiciones "
-              "desprotegidas durante la noche.", ""]
+def _contexto_posicion(p: dict, clima: str | None = None) -> str:
+    """Lo que la IA necesita para decidir sobre ESTA posición -- todo del
+    payload que Alpaca ya devuelve, ningún dato nuevo que pedir."""
+    pl = _num(p.get("unrealized_pl"))
+    plpc = _num(p.get("unrealized_plpc"))
+    entrada = _num(p.get("avg_entry_price"))
+    actual = _num(p.get("current_price"))
+    lineas = [
+        f"Ticker: {p.get('symbol', '?')}",
+        f"Cantidad: {int(_num(p.get('qty')) or 0)} acciones",
+        f"Precio de entrada: ${entrada:,.2f}" if entrada else "Precio de entrada: desconocido",
+        f"Precio actual: ${actual:,.2f}" if actual else "Precio actual: desconocido",
+    ]
+    if pl is not None:
+        pct = f" ({plpc * 100:+.2f}%)" if plpc is not None else ""
+        lineas.append(f"Resultado abierto: {'+' if pl >= 0 else '-'}${abs(pl):,.2f}{pct}")
+    if clima:
+        lineas.append(f"Clima del mercado general hoy: {clima}")
+    lineas.append("Faltan minutos para el cierre del mercado.")
+    return "\n".join(lineas)
+
+
+def _stop_protector(p: dict, cfg: PaperTraderConfig) -> float | None:
+    """Dónde poner el stop que sobrevive la noche.
+
+    No se inventa un nivel: se usa el precio actual menos el mismo
+    porcentaje de colchón que `cfg.colchon_stop_nocturno`. Es
+    deliberadamente simple y explícito -- el stop original del bracket ya
+    no existe a esta hora (murió con la sesión), y reconstruirlo desde el
+    ATR exigiría volver a pedir datos de mercado que este módulo no
+    tiene."""
+    actual = _num(p.get("current_price")) or _num(p.get("avg_entry_price"))
+    if actual is None or actual <= 0:
+        return None
+    return round(actual * (1 - cfg.colchon_stop_nocturno), 2)
+
+
+def _mensaje(cerradas: list[tuple[dict, str]], aguantadas: list[tuple[dict, str, float]]) -> str:
+    """Un resumen de lo que se decidió, con el razonamiento de la IA en
+    cada caso -- mismo principio que el mensaje de apertura: el usuario
+    debe saber QUÉ hizo el bot y POR QUÉ, no solo el número."""
+    lineas = ["🧪 [PAPER] CIERRE DEL DÍA", ""]
     total = 0.0
-    for p in posiciones:
-        ticker = p.get("symbol", "?")
-        cantidad = _num(p.get("qty")) or 0
-        pl = _num(p.get("unrealized_pl"))
-        if pl is not None:
-            total += pl
-            signo = "+" if pl >= 0 else "-"
-            lineas.append(f"{ticker}: {int(cantidad)} acciones, {signo}${abs(pl):,.2f} aprox.")
-        else:
-            lineas.append(f"{ticker}: {int(cantidad)} acciones")
-    if any(_num(p.get("unrealized_pl")) is not None for p in posiciones):
-        signo = "+" if total >= 0 else "-"
-        lineas += ["", f"Resultado del día: {signo}${abs(total):,.2f} aprox."]
-    lineas += ["", "Cuenta de práctica -- ningún dinero real se movió."]
+    hay_pl = False
+
+    if cerradas:
+        lineas.append("Cerradas:")
+        for p, razon in cerradas:
+            pl = _num(p.get("unrealized_pl"))
+            cab = f"• {p.get('symbol', '?')}"
+            if pl is not None:
+                hay_pl = True
+                total += pl
+                cab += f": {'+' if pl >= 0 else '-'}${abs(pl):,.2f} aprox."
+            lineas += [cab, f"  🤖 {razon}"]
+        lineas.append("")
+
+    if aguantadas:
+        lineas.append("Se mantienen hasta mañana:")
+        for p, razon, stop in aguantadas:
+            pl = _num(p.get("unrealized_pl"))
+            cab = f"• {p.get('symbol', '?')}"
+            if pl is not None:
+                cab += f": {'+' if pl >= 0 else '-'}${abs(pl):,.2f} abierto"
+            lineas += [cab, f"  🤖 {razon}", f"  Stop de protección puesto en ${stop:,.2f}"]
+        lineas += ["", "Aviso: un stop no protege contra un hueco de apertura. Si abre muy "
+                   "por debajo, la venta se ejecuta al precio de apertura."]
+        lineas.append("")
+
+    if hay_pl:
+        lineas += [f"Resultado realizado hoy: {'+' if total >= 0 else '-'}${abs(total):,.2f} aprox.", ""]
+    lineas.append("Cuenta de práctica -- ningún dinero real se movió.")
     return "\n".join(lineas)
 
 
 def cerrar_si_toca(
     client: AlpacaPaperClient, cfg: PaperTraderConfig, ahora: datetime,
+    clima: str | None = None,
 ) -> list[dict]:
-    """Liquida todo si estamos en la ventana de cierre. Devuelve las
-    posiciones que había (vacío si no tocaba o si no había ninguna).
+    """Decide posición por posición si cerrarla o aguantarla, con la IA.
+    Devuelve las que se CERRARON (vacío si no tocaba, no había, o se
+    aguantaron todas).
 
-    Nunca lanza: un fallo acá no debe tumbar la corrida ni impedir que el
-    resto del trader funcione -- se loguea y se reintenta en la corrida
-    siguiente, que todavía está dentro de la ventana."""
+    Nunca lanza: un fallo acá no debe tumbar la corrida. Cualquier
+    posición cuya decisión o cuya protección falle se CIERRA -- ver el
+    docstring del módulo sobre por qué el default va en esa dirección."""
     if not cfg.cerrar_antes_del_cierre or not en_ventana_de_cierre(ahora, cfg):
         return []
 
@@ -113,11 +176,46 @@ def cerrar_si_toca(
         return []
 
     try:
-        client.cerrar_todas_las_posiciones()
+        abiertas = client.ordenes_abiertas()
     except Exception as ex:
-        log.warning("falló el cierre diario de posiciones: %s", ex)
-        return []
+        log.warning("no se pudieron leer las órdenes abiertas: %s", ex)
+        abiertas = []
 
-    log.info("cierre diario: %d posición(es) liquidada(s)", len(posiciones))
-    enviar_telegram(_mensaje(posiciones))
-    return posiciones
+    cerradas: list[tuple[dict, str]] = []
+    aguantadas: list[tuple[dict, str, float]] = []
+
+    for p in posiciones:
+        ticker = p.get("symbol", "?")
+        decision = ia_decision.decidir_cierre(_contexto_posicion(p, clima))
+
+        if not decision.cerrar:
+            stop = _stop_protector(p, cfg)
+            cantidad = int(_num(p.get("qty")) or 0)
+            if stop is not None and cantidad > 0:
+                try:
+                    # Las patas del bracket siguen vivas: hay que
+                    # cancelarlas antes o el stop nuevo rebota por
+                    # cantidad insuficiente.
+                    client.cancelar_ordenes_de(ticker, abiertas)
+                    client.colocar_stop_protector(ticker, cantidad, stop)
+                    aguantadas.append((p, decision.razonamiento, stop))
+                    log.info("%s: se aguanta hasta mañana con stop en $%.2f", ticker, stop)
+                    continue
+                except Exception as ex:
+                    log.warning(
+                        "%s: la IA quería aguantar pero falló el stop protector (%s) -- se cierra",
+                        ticker, ex)
+            else:
+                log.warning("%s: no se pudo calcular un stop protector -- se cierra", ticker)
+
+        try:
+            client.cerrar_posicion(ticker)
+        except Exception as ex:
+            log.warning("%s: falló el cierre de la posición: %s", ticker, ex)
+            continue
+        cerradas.append((p, decision.razonamiento))
+        log.info("%s: cerrada al final del día", ticker)
+
+    if cerradas or aguantadas:
+        enviar_telegram(_mensaje(cerradas, aguantadas))
+    return [p for p, _ in cerradas]

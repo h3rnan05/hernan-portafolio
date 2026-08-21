@@ -245,3 +245,55 @@ def test_historial_catalizador_usa_la_frase_honesta_de_memoria(monkeypatch):
 
     assert frase is not None
     assert "no puedo" in frase or "Todavía no tengo" in frase   # sin muestra = admisión honesta
+
+
+# ------------------------- decisión de cierre (2026-08-21) -------------------------
+
+def _parchear_cierre(monkeypatch, **kwargs):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test-fake")
+    fake = _FakeAnthropicClient(**kwargs)
+    monkeypatch.setattr(ia_decision, "Anthropic", lambda api_key: fake)
+    return fake
+
+
+def test_cierre_la_ia_puede_aguantar_con_conviccion(monkeypatch):
+    _parchear_cierre(monkeypatch, respuesta=(
+        '{"cerrar": false, "confianza": 8, "razonamiento": "el catalizador sigue vigente"}'))
+    d = ia_decision.decidir_cierre("Ticker: RKLB")
+    assert d.cerrar is False
+    assert "catalizador" in d.razonamiento
+
+
+def test_cierre_aguantar_con_poca_conviccion_se_convierte_en_cerrar(monkeypatch):
+    # Cinturón y tirantes: aguantar de un día para otro exige confianza >= 7.
+    _parchear_cierre(monkeypatch, respuesta=(
+        '{"cerrar": false, "confianza": 4, "razonamiento": "quizás se recupere"}'))
+    d = ia_decision.decidir_cierre("Ticker: RKLB")
+    assert d.cerrar is True
+    assert "Convicción insuficiente" in d.razonamiento
+
+
+def test_cierre_sin_api_key_cierra_por_defecto(monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    assert ia_decision.decidir_cierre("x").cerrar is True
+
+
+def test_cierre_error_de_red_cierra_por_defecto(monkeypatch):
+    _parchear_cierre(monkeypatch, excepcion=RuntimeError("timeout"))
+    assert ia_decision.decidir_cierre("x").cerrar is True
+
+
+def test_cierre_json_invalido_cierra_por_defecto(monkeypatch):
+    _parchear_cierre(monkeypatch, respuesta="no soy json")
+    assert ia_decision.decidir_cierre("x").cerrar is True
+
+
+def test_cierre_json_con_forma_rara_cierra_por_defecto(monkeypatch):
+    _parchear_cierre(monkeypatch, respuesta='{"otra_cosa": 1}')
+    assert ia_decision.decidir_cierre("x").cerrar is True
+
+
+def test_cierre_tolera_markdown(monkeypatch):
+    _parchear_cierre(monkeypatch, respuesta=(
+        '```json\n{"cerrar": true, "confianza": 9, "razonamiento": "se agotó"}\n```'))
+    assert ia_decision.decidir_cierre("x").cerrar is True

@@ -107,6 +107,63 @@ class AlpacaPaperClient:
         datos = r.json()
         return datos if isinstance(datos, list) else []
 
+    def cerrar_posicion(self, ticker: str) -> dict:
+        """Liquida UNA posición a mercado (`DELETE /v2/positions/{symbol}`).
+
+        Existe además de `cerrar_todas_las_posiciones` porque el cierre
+        del día se decide posición por posición (ver `cierre.py`): la IA
+        puede querer cerrar una y aguantar otra."""
+        r = requests.delete(
+            f"{_BASE_URL}/positions/{ticker}", headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        return r.json()
+
+    def cancelar_ordenes_de(self, ticker: str, ordenes_abiertas: list[dict]) -> int:
+        """Cancela las órdenes vivas de un ticker. Devuelve cuántas
+        canceló. Necesario antes de reemplazar las salidas: las patas del
+        bracket siguen vivas y colocar otra orden de venta encima
+        rebotaría por cantidad insuficiente.
+
+        Un fallo cancelando una orden concreta no aborta el resto -- se
+        cuenta solo lo que de verdad se canceló."""
+        canceladas = 0
+        for o in ordenes_abiertas:
+            if o.get("symbol") != ticker or not o.get("id"):
+                continue
+            try:
+                r = requests.delete(
+                    f"{_BASE_URL}/orders/{o['id']}", headers=self._headers, timeout=self._timeout)
+                r.raise_for_status()
+                canceladas += 1
+            except Exception as ex:
+                log.warning("%s: no se pudo cancelar la orden %s: %s", ticker, o["id"], ex)
+        return canceladas
+
+    def colocar_stop_protector(self, ticker: str, cantidad: int, stop: float) -> str:
+        """Stop de venta que SOBREVIVE a la noche (`time_in_force: "gtc"`).
+
+        Las patas del bracket son órdenes "del día" y mueren al cerrar el
+        mercado. Cuando la IA decide aguantar una posición hasta mañana
+        (ver `cierre.py`), aguantar sin stop sería la peor de las dos
+        opciones: este stop es la condición para poder hacerlo.
+
+        AVISO HONESTO, documentado también en el README: un stop NO
+        protege contra un hueco de apertura. Si la acción cierra en $50
+        con stop en $48 y abre en $40, la venta se ejecuta cerca de $40,
+        no de $48. Reduce el riesgo nocturno, no lo elimina."""
+        payload = {
+            "symbol": ticker,
+            "qty": str(cantidad),
+            "side": "sell",
+            "type": "stop",
+            "stop_price": f"{stop:.2f}",
+            "time_in_force": "gtc",
+        }
+        r = requests.post(
+            f"{_BASE_URL}/orders", json=payload, headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        return r.json().get("id", "")
+
     def colocar_orden_bracket(
         self, ticker: str, cantidad: int, entrada: float, stop: float, objetivo: float,
     ) -> OrdenBracket:
