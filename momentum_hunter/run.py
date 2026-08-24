@@ -55,6 +55,7 @@ from momentum_hunter import (
     report,
     skeptic,
     stats,
+    telemetria,
     tracker,
     universe,
     vigilancia,
@@ -174,6 +175,7 @@ def _banda_de_universo(b: Barras, cfg: MomentumConfig) -> str | None:
 def construir_candidatos_diarios(
     tickers_validos: list[str], barras: dict[str, Barras], provider: DataProvider,
     cfg: MomentumConfig, con_catalizadores: bool, bandas: dict[str, str] | None = None,
+    metricas: telemetria.Metricas | None = None,
 ) -> list[CandidatoDiario]:
     """Etapa 1 -- núcleo puro y testeable: recibe todo ya inyectado
     (barras, metadata, catalizadores), nunca llama red directamente. Un
@@ -188,7 +190,7 @@ def construir_candidatos_diarios(
     siempre."""
     bandas = bandas or {}
     metadata = provider.metadata(tickers_validos)
-    noticias = YahooNewsProvider() if con_catalizadores else None
+    noticias = YahooNewsProvider(metricas) if con_catalizadores else None
 
     candidatos: list[CandidatoDiario] = []
     for t in tickers_validos:
@@ -206,10 +208,24 @@ def construir_candidatos_diarios(
             if meta.es_adr and (vol_prom is None or vol_prom < cfg.liquidez_minima_adr):
                 continue
 
+            banda = "large" if es_large_cap else "small"
+            if metricas is not None:
+                metricas.sumar(metricas.operables, banda)
+
             factores = mom.calcular(b)
             catalizador = None
             if noticias is not None:
-                catalizador = detectar_catalizador(noticias.titulares(t), cfg)
+                titulares = noticias.titulares(t)
+                # La distinción que responde la pregunta abierta del
+                # 2026-08-24: "tenía ALGUNA noticia" es cobertura de la
+                # fuente; "tenía catalizador" es que además calificó.
+                # Separarlas dice si las small-caps mueren por falta de
+                # cobertura o por falta de noticias relevantes.
+                if metricas is not None and titulares:
+                    metricas.sumar(metricas.con_alguna_noticia, banda)
+                catalizador = detectar_catalizador(titulares, cfg)
+                if metricas is not None and catalizador is not None:
+                    metricas.sumar(metricas.con_catalizador, banda)
 
             puntuacion = puntuar(t, b.close[-1], vol_prom, factores, catalizador, meta, cfg)
             candidatos.append(CandidatoDiario(
@@ -219,6 +235,8 @@ def construir_candidatos_diarios(
             ))
         except Exception as e:
             log.warning("candidato diario %s falló: %s", t, e)
+            if metricas is not None:
+                metricas.registrar_error("candidato_diario", e)
     return candidatos
 
 
@@ -953,7 +971,13 @@ def main() -> None:
         revisar_watchlist(CONFIG, YahooProvider(), args.dry_run)
         return
 
+    metricas = telemetria.Metricas(modo="escaneo")
     tickers = _cargar_tickers(args)
+    metricas.universo_escaneado = len(tickers)
+    try:
+        metricas.universo_total = len(universe.tickers()) if not args.universo else len(tickers)
+    except Exception as e:
+        metricas.registrar_error("universo", e)
     log.info("universo candidato: %d tickers", len(tickers))
 
     provider = YahooProvider()
@@ -968,7 +992,7 @@ def main() -> None:
         return
 
     candidatos_diarios = construir_candidatos_diarios(
-        validos, barras, provider, CONFIG, not args.no_catalizadores, bandas)
+        validos, barras, provider, CONFIG, not args.no_catalizadores, bandas, metricas)
     shortlist = candidatos_para_etapa_intradia(candidatos_diarios, CONFIG)
     log.info("etapa 1 -- candidatos con catalizador confirmado: %d -- pasan a intradía: %d",
               sum(1 for c in candidatos_diarios if c.catalizador is not None), len(shortlist))
@@ -995,6 +1019,27 @@ def main() -> None:
     )
     dato_recibido_ts = _reloj_dato_recibido.get("ts") or _ahora_iso_run(datetime.now(UTC))
     log.info("etapa 2 -- candidatos evaluados: %d", len(candidatos_intradia))
+
+    # Etapa 2 en números: cuál de las cuatro condiciones obligatorias
+    # está matando las candidatas, y qué score máximo se alcanzó -- este
+    # último es la alarma temprana contra un umbral inalcanzable, el
+    # error que costó semanas (ver `config.score_minimo_alerta`).
+    for c in candidatos_intradia:
+        r = c.resultado
+        metricas.sumar(metricas.evaluadas, "large" if c.es_large_cap else "small")
+        if r.patron is not None:
+            metricas.paso_patron += 1
+        if r.temprano:
+            metricas.paso_temprano += 1
+        if getattr(r, "riesgo_definido", False):
+            metricas.paso_riesgo += 1
+        if r.dinero_entrando:
+            metricas.paso_dinero += 1
+        if r.score_ajustado >= CONFIG.score_minimo_alerta:
+            metricas.paso_umbral += 1
+        if r.accionable:
+            metricas.sumar(metricas.accionables, "large" if c.es_large_cap else "small")
+        metricas.score_maximo = max(metricas.score_maximo, r.score_ajustado or 0.0)
 
     oportunidades, vetadas, snapshots = seleccionar_y_auditar(
         candidatos_intradia, CONFIG, n_universo=len(tickers))
@@ -1079,6 +1124,12 @@ def main() -> None:
             log.info("vigilancia: %d cambio(s) de estado avisado(s)", len(avisos))
 
     _revisar_resumen_cierre(args.dry_run, ya_avisado_radar=bool(resumen_radar))
+
+    # Telemetría al final: la foto completa de la corrida (embudo por
+    # banda, qué condición mató a las candidatas, qué errores hubo). En
+    # dry-run no se persiste -- igual que el resto del estado.
+    if not args.dry_run:
+        telemetria.registrar_corrida(metricas)
 
 
 if __name__ == "__main__":

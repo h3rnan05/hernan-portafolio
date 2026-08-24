@@ -83,6 +83,10 @@ jobs:
             [ -f "$f" ] && git add "$f" || true
           done
           [ -d momentum_hunter/auditoria ] && git add momentum_hunter/auditoria || true
+          # Telemetría: el embudo por banda y los errores de cada corrida
+          # (ver momentum_hunter/telemetria.py) -- es lo que alimenta el
+          # reporte semanal de los viernes.
+          [ -d momentum_hunter/telemetria ] && git add momentum_hunter/telemetria || true
           git diff --cached --quiet || git commit -m "momentum_hunter: re-chequeo de watchlist [skip ci]"
           git pull --rebase origin main || true
           git push
