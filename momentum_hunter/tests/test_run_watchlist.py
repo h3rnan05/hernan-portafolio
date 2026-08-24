@@ -600,3 +600,179 @@ def test_stop_tesis_se_congela_aunque_el_primer_calculo_llegue_vacio():
     assert e.stop_tesis is None      # no se congela un None
     watchlist.actualizar_niveles(e, 5.30, 5.00, 5.90, 5.25, AHORA)
     assert e.stop_tesis == 5.00      # se congela en el primer valor real
+
+
+# ------------------------- refresco de niveles de las TRIGGERED (2026-08-24) -------------------------
+# El bug que impedía operar: una señal TRIGGERED nunca volvía a
+# actualizar sus precios (`activas()` solo devuelve WATCHING), así que
+# quien los consumiera con un tope de frescura la descartaba para
+# siempre después del primer intento. Ver
+# `watchlist.con_niveles_que_refrescar`.
+
+def _triggered_con_niveles(ticker="RKLB", cuando=None) -> watchlist.EntradaWatchlist:
+    cuando = cuando or AHORA
+    e = watchlist.desde_candidato_diario(_candidato_diario(ticker), cuando)
+    watchlist.marcar_triggered(e, "m", "d", "ev", cuando)
+    watchlist.actualizar_niveles(e, 5.00, 4.80, 5.60, 5.00, cuando)
+    return e
+
+
+def test_una_triggered_refresca_sus_niveles_en_la_corrida_siguiente(monkeypatch, tmp_path):
+    e = _triggered_con_niveles()
+    ts_viejo = e.ultimos_niveles_ts
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+    monkeypatch.setattr(
+        run_mod, "_construir_candidato_intradia",
+        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=True))
+
+    despues = AHORA + timedelta(minutes=20)
+    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=despues)
+
+    recargada = watchlist.cargar(path)[0]
+    assert recargada.ultimos_niveles_ts != ts_viejo, "los niveles siguen congelados"
+    assert recargada.ultimos_niveles_ts == despues.isoformat(timespec="seconds")
+
+
+def test_refrescar_no_reabre_ni_re_dispara_la_triggered(monkeypatch, tmp_path):
+    # TRIGGERED es terminal: refrescar precios no genera una transición
+    # nueva ni un segundo aviso por Telegram.
+    e = _triggered_con_niveles()
+    transiciones_antes = len(e.transiciones)
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    enviados, registrados, auditados = _parchear_efectos_secundarios(monkeypatch)
+    monkeypatch.setattr(
+        run_mod, "_construir_candidato_intradia",
+        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=True))
+
+    run_mod.revisar_watchlist(
+        CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=20))
+
+    recargada = watchlist.cargar(path)[0]
+    assert recargada.estado == watchlist.ESTADO_TRIGGERED
+    assert len(recargada.transiciones) == transiciones_antes
+    assert enviados == []
+
+
+def test_el_stop_de_la_tesis_no_se_mueve_al_refrescar(monkeypatch, tmp_path):
+    # Si el refresco reescribiera `stop_tesis`, la detección de "tesis
+    # rota" dejaría de disparar (perseguiría al precio hacia abajo).
+    e = _triggered_con_niveles()
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+    monkeypatch.setattr(
+        run_mod, "_construir_candidato_intradia",
+        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=True))
+
+    run_mod.revisar_watchlist(
+        CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=20))
+
+    assert watchlist.cargar(path)[0].stop_tesis == 4.80
+
+
+def test_una_watchlist_solo_con_triggered_no_se_da_por_vacia(monkeypatch, tmp_path):
+    # Antes, sin WATCHING la corrida salía temprano ("watchlist vacía")
+    # y no refrescaba nada.
+    e = _triggered_con_niveles()
+    ts_viejo = e.ultimos_niveles_ts
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+    monkeypatch.setattr(
+        run_mod, "_construir_candidato_intradia",
+        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=True))
+
+    run_mod.revisar_watchlist(
+        CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=20))
+
+    assert watchlist.cargar(path)[0].ultimos_niveles_ts != ts_viejo
+
+
+def test_sin_datos_del_proveedor_el_refresco_no_rompe_la_corrida(monkeypatch, tmp_path):
+    # Refrescar es un extra: que falle nunca debe tumbar el chequeo.
+    e = _triggered_con_niveles()
+    ts_viejo = e.ultimos_niveles_ts
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+
+    run_mod.revisar_watchlist(
+        CFG, _FakeProviderIntradia(set()), dry_run=False, ahora=AHORA + timedelta(minutes=20))
+
+    assert watchlist.cargar(path)[0].ultimos_niveles_ts == ts_viejo   # sin datos, sin cambio
+
+
+def test_un_fallo_calculando_niveles_no_tumba_la_corrida(monkeypatch, tmp_path):
+    e = _triggered_con_niveles()
+    _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+
+    def _explota(*a, **kw):
+        raise RuntimeError("proveedor devolvió basura")
+
+    monkeypatch.setattr(run_mod, "_construir_candidato_intradia", _explota)
+
+    run_mod.revisar_watchlist(   # no debe lanzar
+        CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=20))
+
+
+def test_una_triggered_de_hace_dias_ya_no_se_refresca(monkeypatch, tmp_path):
+    # Las TRIGGERED se conservan 7 días: sin tope se pedirían velas para
+    # todas, cada 5 minutos, durante una semana.
+    vieja = _triggered_con_niveles("VIEJA", cuando=AHORA - timedelta(days=2))
+    ts_viejo = vieja.ultimos_niveles_ts
+    path = _preparar_watchlist(monkeypatch, tmp_path, [vieja])
+    _parchear_efectos_secundarios(monkeypatch)
+    monkeypatch.setattr(
+        run_mod, "_construir_candidato_intradia",
+        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=True))
+
+    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"VIEJA"}), dry_run=False, ahora=AHORA)
+
+    assert watchlist.cargar(path)[0].ultimos_niveles_ts == ts_viejo
+
+
+def test_el_refresco_llama_a_la_construccion_real_con_los_argumentos_correctos(monkeypatch, tmp_path):
+    # Los demás tests parchean `_construir_candidato_intradia` con
+    # `lambda ticker, *a, **kw`, que se traga CUALQUIER orden de
+    # argumentos -- y esa firma tiene tres parámetros seguidos
+    # (`atr_diario`, `score_base`, `cierre_anterior`) fáciles de
+    # intercambiar sin que nada falle ruidosamente. Este test captura
+    # los argumentos reales y los compara con los nombres de la firma.
+    import inspect
+
+    e = _triggered_con_niveles()
+    _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+
+    real = run_mod._construir_candidato_intradia
+    firma = inspect.signature(real)
+    capturado: dict = {}
+
+    def _espia(*args, **kwargs):
+        capturado.update(firma.bind(*args, **kwargs).arguments)
+        return None   # que no siga: solo interesa cómo se llamó
+
+    monkeypatch.setattr(run_mod, "_construir_candidato_intradia", _espia)
+    run_mod.revisar_watchlist(
+        CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=20))
+
+    assert capturado["ticker"] == "RKLB"
+    assert capturado["es_large_cap"] is True
+    assert capturado["atr_diario"] == e.atr_diario
+    assert capturado["score_base"] == e.score_base
+    assert capturado["cierre_anterior"] is None
+    assert capturado["gap_pct_fallback"] == e.gap_pct_congelado
+
+
+def test_el_refresco_no_persiste_en_dry_run(monkeypatch, tmp_path):
+    e = _triggered_con_niveles()
+    ts_viejo = e.ultimos_niveles_ts
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+    monkeypatch.setattr(
+        run_mod, "_construir_candidato_intradia",
+        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=True))
+
+    run_mod.revisar_watchlist(
+        CFG, _FakeProviderIntradia({"RKLB"}), dry_run=True, ahora=AHORA + timedelta(minutes=20))
+
+    assert watchlist.cargar(path)[0].ultimos_niveles_ts == ts_viejo

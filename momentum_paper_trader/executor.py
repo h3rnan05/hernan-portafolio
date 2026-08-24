@@ -18,8 +18,13 @@ criterio de la IA -- los límites de riesgo nunca dependen de un LLM):
   - nunca una orden cuyo costo exceda el EFECTIVO real de la cuenta
     (`cash`, nunca `buying_power` -- el margen 4x de Alpaca no es
     capital nuestro y este sistema no opera apalancado),
-  - si la cuenta no se puede leer, no se opera nada en esta corrida
-    (fail-closed, mismo principio que toda esta capa)."""
+  - nunca una posición que pase de `cfg.maximo_pct_efectivo_por_posicion`
+    del tamaño total de la cuenta (sin esto una acción cara se come el
+    capital entero y el límite de posiciones no significa nada),
+  - nunca una orden con el mercado cerrado (quedaría encolada para la
+    apertura siguiente, con un precio de hoy -- ver `_mercado_cerrado`),
+  - si la cuenta o el reloj no se pueden leer, no se opera nada en esta
+    corrida (fail-closed, mismo principio que toda esta capa)."""
 
 from __future__ import annotations
 
@@ -60,6 +65,38 @@ def _niveles_rancios(e, cfg: PaperTraderConfig, ahora: datetime) -> float | None
         calculados = calculados.replace(tzinfo=UTC)
     minutos = (ahora - calculados).total_seconds() / 60.0
     return minutos if minutos > cfg.minutos_maximos_niveles else None
+
+
+def _mercado_cerrado(client: AlpacaPaperClient) -> str | None:
+    """Motivo por el que NO se debe colocar una orden de entrada ahora, o
+    `None` si el mercado está abierto y operable.
+
+    POR QUÉ EXISTE (encontrado el 2026-08-24 revisando el camino
+    completo). Los dos workflows que invocan este módulo corren con cron
+    `13-20 * * 1-5`, o sea desde las 13:00 hasta las 20:55 UTC -- pero la
+    sesión regular va de 13:30 a 20:00 UTC (en verano). Eso deja corridas
+    antes de la apertura y casi una hora de corridas después del cierre.
+    Una orden bracket colocada ahí no se rechaza: queda ENCOLADA para la
+    apertura siguiente, y se ejecutaría al día siguiente con un precio
+    límite calculado el día anterior -- exactamente lo que
+    `minutos_maximos_niveles` existe para impedir, pero por un camino que
+    ese chequeo no ve (los niveles estaban frescos cuando se colocó).
+
+    Se pregunta a Alpaca (`GET /v2/clock`) en vez de comparar contra una
+    hora hardcodeada: es la única fuente del proyecto que sabe de
+    feriados, medias sesiones y horario de invierno (en invierno la
+    sesión es 14:30-21:00 UTC y cualquier constante de verano se
+    equivoca por una hora entera).
+
+    FAIL-CLOSED: si el reloj no se puede leer, no se opera. Mismo
+    principio que `_leer_cuenta` -- ante la duda, no colocar."""
+    try:
+        reloj = client.reloj_mercado()
+    except Exception as ex:
+        return f"no se pudo leer el reloj del mercado ({type(ex).__name__})"
+    if not reloj.get("is_open"):
+        return "el mercado está cerrado -- una orden ahora quedaría encolada para mañana"
+    return None
 
 
 def _tamano_posicion(entrada: float, stop: float, cfg: PaperTraderConfig) -> int:
@@ -167,6 +204,14 @@ def ejecutar(
 
     cuenta: _EstadoCuenta | None = None
     if not dry_run:
+        # Antes que nada: ¿el mercado está abierto? Una orden colocada
+        # fuera de sesión no falla, queda encolada para mañana (ver
+        # `_mercado_cerrado`). No se registra ninguna revisión: la señal
+        # sigue viva para la próxima corrida dentro de sesión.
+        cerrado = _mercado_cerrado(client)
+        if cerrado is not None:
+            log.info("no se colocan órdenes en esta corrida: %s", cerrado)
+            return nuevas
         cuenta = _leer_cuenta(client)
         if cuenta is None:
             return nuevas
@@ -212,6 +257,28 @@ def ejecutar(
                 "%s: la cuenta ya está en el máximo de %d posiciones simultáneas -- se omite",
                 e.ticker, cfg.maximo_posiciones_abiertas)
             continue
+        # Techo de concentración ANTES del de efectivo: sin él, una
+        # acción cara se come la cuenta entera y `maximo_posiciones_
+        # abiertas` deja de significar nada (ver config).
+        #
+        # Se mide contra el EQUITY (tamaño total de la cuenta), no contra
+        # el efectivo que queda: con el efectivo, cada posición nueva se
+        # dimensionaría contra un número más chico que la anterior (35%,
+        # luego 35% del 65% restante, luego 35% de eso...) y el tamaño de
+        # una jugada dependería de en qué orden llegó la señal, no de su
+        # mérito. Contra el equity la regla es una sola y estable:
+        # ninguna posición pasa del 35% de la cuenta.
+        tope = cuenta.equity * cfg.maximo_pct_efectivo_por_posicion
+        if cantidad * e.ultima_entrada > tope:
+            cantidad = int(tope // e.ultima_entrada)
+            if cantidad < cfg.minimo_acciones:
+                log.info(
+                    "%s: a $%.2f, ni 1 acción cabe en el %.0f%% de la cuenta -- se omite",
+                    e.ticker, e.ultima_entrada, cfg.maximo_pct_efectivo_por_posicion * 100)
+                continue
+            log.info(
+                "%s: cantidad reducida a %d por el tope de concentración", e.ticker, cantidad)
+
         if cantidad * e.ultima_entrada > cuenta.efectivo:
             # Se reduce al efectivo real disponible (nunca margen) -- si
             # ni eso alcanza para 1 acción, se omite.

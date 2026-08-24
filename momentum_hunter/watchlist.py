@@ -346,6 +346,61 @@ def activas(entradas: list[EntradaWatchlist]) -> list[EntradaWatchlist]:
     return [e for e in entradas if e.estado == ESTADO_WATCHING]
 
 
+# Cuánto tiempo después del disparo se le siguen refrescando los niveles
+# a una TRIGGERED. Una sesión regular dura 6,5 h (13:30-20:00 UTC); 8
+# cubre la sesión entera con margen. Pasado eso, la ventana de esa señal
+# ya se cerró: refrescar sus niveles solo gastaría pedidos de velas por
+# un ticker que nadie va a operar (las TRIGGERED se conservan 7 días,
+# ver `RETENCION_DIAS_TERMINALES`, y sin este tope se refrescarían todas,
+# cada 5 minutos, durante una semana).
+HORAS_REFRESCO_NIVELES = 8
+
+
+def con_niveles_que_refrescar(
+    entradas: list[EntradaWatchlist], ahora: datetime,
+    horas: float = HORAS_REFRESCO_NIVELES,
+) -> list[EntradaWatchlist]:
+    """TRIGGERED recientes cuyos niveles conviene mantener al día -- NO
+    para re-evaluarlas (TRIGGERED es terminal y no se reabre), solo para
+    que `ultima_entrada/ultimo_stop/ultimo_objetivo` no se queden
+    congelados en el instante del disparo.
+
+    Bug real encontrado el 2026-08-24: `activas()` devuelve solo
+    WATCHING, así que en cuanto una señal pasaba a TRIGGERED sus niveles
+    dejaban de actualizarse para siempre. Cualquier consumidor de esos
+    niveles (el comando `/trade`, o un sistema externo que lea este
+    archivo) recibía a partir de ahí el precio congelado del instante
+    del disparo, cada vez más viejo, sin forma de distinguirlo de uno
+    fresco salvo por `ultimos_niveles_ts` -- y un consumidor prudente
+    que compare ese timestamp contra un tope de frescura descartaba la
+    señal para siempre después del primer intento fallido.
+
+    Refrescarlos no reabre la decisión ni cambia el estado -- TRIGGERED
+    sigue siendo terminal. Solo mantiene al día el precio que este
+    módulo ya venía cacheando, que es exactamente para lo que se agregó
+    ese caché (ver los campos `ultima_entrada`/`ultimo_stop`/
+    `ultimo_objetivo`).
+
+    `actualizado_en` es el momento de la transición a TRIGGERED, y
+    `actualizar_niveles` no lo toca -- así la ventana no se auto-renueva
+    con cada refresco."""
+    limite = timedelta(hours=horas)
+    recientes = []
+    for e in entradas:
+        if e.estado != ESTADO_TRIGGERED:
+            continue
+        try:
+            disparada = datetime.fromisoformat(e.actualizado_en)
+        except (TypeError, ValueError):
+            # Sin fecha legible no se refresca: acá el lado seguro es no
+            # gastar pedidos de velas (a diferencia de `purgar_antiguas`,
+            # donde el lado seguro era no borrar). No debería pasar.
+            continue
+        if ahora - disparada <= limite:
+            recientes.append(e)
+    return recientes
+
+
 def agregar_nuevas(
     entradas: list[EntradaWatchlist], candidatos, ahora: datetime,
     deteccion_ts: str | None = None, evaluacion_ts: str | None = None,

@@ -74,6 +74,21 @@ class AlpacaPaperClient:
         r.raise_for_status()
         return r.json()
 
+    def reloj_mercado(self) -> dict:
+        """Estado del mercado según Alpaca (`GET /v2/clock`) -- solo
+        lectura. Devuelve `is_open`, `next_open` y `next_close`.
+
+        Es la ÚNICA fuente de verdad de calendario que este proyecto
+        tiene: el resto del sistema deduce el horario de constantes
+        hardcodeadas en horario de verano (ver `momentum_hunter.factors.
+        intradia.HORA_CIERRE_UTC`), que en invierno se corren una hora, y
+        no sabe nada de feriados ni de medias sesiones. El executor lo
+        usa para no colocar órdenes de entrada con el mercado cerrado
+        (ver `executor._mercado_cerrado`)."""
+        r = requests.get(f"{_BASE_URL}/clock", headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        return r.json()
+
     def estado_orden(self, order_id: str) -> dict:
         """Estado actual de una orden y sus patas OCO (`GET /v2/orders/
         {id}?nested=true`) -- solo lectura. `nested=true` trae las dos
@@ -164,6 +179,17 @@ class AlpacaPaperClient:
         r.raise_for_status()
         return r.json().get("id", "")
 
+    @staticmethod
+    def _precio(v: float) -> str:
+        """Alpaca exige como máximo 2 decimales para precios >= $1 y
+        admite 4 para sub-dólar. Formatear todo con .2f rompía el
+        segundo caso: un stop calculado en $0,7512 se enviaba como
+        "0.75" -- un precio DISTINTO del que el pipeline decidió, y en
+        acciones baratas esa diferencia es grande en porcentaje. Este
+        bot opera desde $0,75 (ver `momentum_hunter.config.precio_min`),
+        así que el caso es real, no teórico."""
+        return f"{v:.4f}" if v < 1 else f"{v:.2f}"
+
     def colocar_orden_bracket(
         self, ticker: str, cantidad: int, entrada: float, stop: float, objetivo: float,
     ) -> OrdenBracket:
@@ -173,16 +199,27 @@ class AlpacaPaperClient:
         más las dos patas de salida (`take_profit`/`stop_loss`) en el
         mismo pedido -- Alpaca las maneja como OCO automáticamente, sin
         que este sistema tenga que vigilar la posición después."""
+        # Validación previa: Alpaca rechaza un bracket cuyos niveles no
+        # estén ordenados, y ese rechazo llega como un error HTTP opaco
+        # que el executor solo puede loguear. Comprobarlo acá convierte
+        # un fallo remoto confuso en uno local y explícito.
+        if not (objetivo > entrada > stop > 0):
+            raise ValueError(
+                f"{ticker}: niveles inconsistentes para un bracket de compra "
+                f"(objetivo {objetivo} > entrada {entrada} > stop {stop} > 0)")
+        if cantidad < 1:
+            raise ValueError(f"{ticker}: cantidad debe ser >= 1, se recibió {cantidad}")
+
         payload = {
             "symbol": ticker,
             "qty": str(cantidad),
             "side": "buy",
             "type": "limit",
-            "limit_price": f"{entrada:.2f}",
+            "limit_price": self._precio(entrada),
             "time_in_force": "day",
             "order_class": "bracket",
-            "take_profit": {"limit_price": f"{objetivo:.2f}"},
-            "stop_loss": {"stop_price": f"{stop:.2f}"},
+            "take_profit": {"limit_price": self._precio(objetivo)},
+            "stop_loss": {"stop_price": self._precio(stop)},
         }
         r = requests.post(
             f"{_BASE_URL}/orders", json=payload, headers=self._headers, timeout=self._timeout)

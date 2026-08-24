@@ -179,3 +179,58 @@ def test_cerrar_posiciones_tolera_respuesta_inesperada(monkeypatch):
 
     monkeypatch.setattr(alpaca_client.requests, "delete", lambda *a, **kw: _FakeResponse())
     assert AlpacaPaperClient("c", "s").cerrar_todas_las_posiciones() == []
+
+
+def test_precio_sub_dolar_conserva_cuatro_decimales():
+    # El bot opera desde $0,75: con .2f un stop de $0,7512 se enviaba
+    # como "0.75", un precio distinto del que decidió el pipeline.
+    assert AlpacaPaperClient._precio(0.7512) == "0.7512"
+    assert AlpacaPaperClient._precio(0.9999) == "0.9999"
+
+
+def test_precio_normal_usa_dos_decimales():
+    assert AlpacaPaperClient._precio(1245.050048828125) == "1245.05"
+    assert AlpacaPaperClient._precio(1.0) == "1.00"
+
+
+def test_bracket_con_niveles_invertidos_falla_localmente(monkeypatch):
+    # Mejor un error local y explícito que un rechazo remoto opaco.
+    monkeypatch.setattr(alpaca_client.requests, "post",
+                        lambda *a, **kw: (_ for _ in ()).throw(AssertionError("no debió llamarse")))
+    client = AlpacaPaperClient("c", "s")
+    for entrada, stop, objetivo in ((10.0, 12.0, 15.0), (10.0, 9.0, 8.0), (0.0, -1.0, 1.0)):
+        try:
+            client.colocar_orden_bracket("X", 10, entrada, stop, objetivo)
+            assert False, "debía lanzar"
+        except ValueError:
+            pass
+
+
+def test_bracket_con_cantidad_cero_falla_localmente(monkeypatch):
+    monkeypatch.setattr(alpaca_client.requests, "post",
+                        lambda *a, **kw: (_ for _ in ()).throw(AssertionError("no debió llamarse")))
+    try:
+        AlpacaPaperClient("c", "s").colocar_orden_bracket("X", 0, 10.0, 9.0, 12.0)
+        assert False, "debía lanzar"
+    except ValueError:
+        pass
+
+
+def test_reloj_mercado_es_un_get_de_solo_lectura_al_endpoint_paper(monkeypatch):
+    llamadas = []
+
+    class _FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"is_open": True, "next_close": "2026-08-24T20:00:00-00:00"}
+
+    def _fake_get(url, headers, timeout, params=None):
+        llamadas.append(url)
+        return _FakeResponse()
+
+    monkeypatch.setattr(alpaca_client.requests, "get", _fake_get)
+
+    assert AlpacaPaperClient("clave", "secreto").reloj_mercado()["is_open"] is True
+    assert llamadas[0] == "https://paper-api.alpaca.markets/v2/clock"

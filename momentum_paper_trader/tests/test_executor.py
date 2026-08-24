@@ -30,11 +30,22 @@ class _FakeAlpacaClient:
     def __init__(
         self, falla_para: set[str] | None = None, cash: float = 5000.0,
         posiciones: list[dict] | None = None, ordenes: list[dict] | None = None,
-        cuenta_rota: bool = False,
+        cuenta_rota: bool = False, equity: float | None = None,
+        mercado_abierto: bool = True, reloj_roto: bool = False,
     ) -> None:
         self.ordenes_colocadas: list[tuple] = []
+        # Por defecto el mercado está abierto: casi todos los tests son
+        # sobre qué se decide DENTRO de sesión.
+        self._mercado_abierto = mercado_abierto
+        self._reloj_roto = reloj_roto
         self._falla_para = falla_para or set()
         self._cash = cash
+        # Por defecto equity == cash (cuenta sin nada desplegado). Se
+        # separan cuando el test necesita que el EFECTIVO sea el límite:
+        # el tope de concentración se mide contra el equity, así que en
+        # una cuenta 100% líquida nunca puede ser el efectivo el que
+        # muerda primero.
+        self._equity = cash if equity is None else equity
         self._posiciones = posiciones or []
         self._ordenes = ordenes or []
         self._cuenta_rota = cuenta_rota
@@ -42,7 +53,12 @@ class _FakeAlpacaClient:
     def info_cuenta(self) -> dict:
         if self._cuenta_rota:
             raise RuntimeError("Alpaca caído")
-        return {"cash": str(self._cash), "equity": str(self._cash)}
+        return {"cash": str(self._cash), "equity": str(self._equity)}
+
+    def reloj_mercado(self) -> dict:
+        if self._reloj_roto:
+            raise RuntimeError("Alpaca caído")
+        return {"is_open": self._mercado_abierto}
 
     def posiciones(self) -> list[dict]:
         return self._posiciones
@@ -110,9 +126,12 @@ def _parchear(monkeypatch, tmp_path, entradas_watchlist, revisiones_previas=None
 
 
 def test_coloca_orden_para_triggered_nueva_cuando_la_ia_aprueba(monkeypatch, tmp_path):
+    # $20.000 para que el tope de concentración no sea lo que manda acá:
+    # este test es sobre el sizing por riesgo (65 acciones = $5.097, el
+    # 25% de la cuenta), no sobre el techo.
     e = _entrada_triggered()
     wl_path, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
-    client = _FakeAlpacaClient(cash=10_000.0)
+    client = _FakeAlpacaClient(cash=20_000.0)
 
     nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
@@ -236,9 +255,14 @@ def test_el_efectivo_real_recorta_la_cantidad_nunca_usa_margen(monkeypatch, tmp_
     # Sizing por riesgo pide 65 acciones (~$5,097) pero solo hay $1,000
     # de efectivo -- se recorta a lo que el CASH real permite (12), nunca
     # se toca el buying_power con margen.
+    #
+    # Cuenta de $20.000 con solo $1.000 líquidos (el resto ya desplegado
+    # en otras posiciones): así el tope de concentración da holgura
+    # ($7.000) y lo que muerde es el efectivo, que es lo que este test
+    # comprueba.
     e = _entrada_triggered()
     _parchear(monkeypatch, tmp_path, [e])
-    client = _FakeAlpacaClient(cash=1000.0)
+    client = _FakeAlpacaClient(cash=1000.0, equity=20_000.0)
 
     nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
@@ -247,12 +271,14 @@ def test_el_efectivo_real_recorta_la_cantidad_nunca_usa_margen(monkeypatch, tmp_
 
 
 def test_dos_ordenes_en_la_misma_corrida_no_gastan_el_mismo_efectivo(monkeypatch, tmp_path):
-    # $6,000: la primera orden (~$5,097) deja ~$903 -- la segunda debe
-    # dimensionarse contra el efectivo RESTANTE, no contra el inicial.
+    # $6,000 de efectivo: la primera orden (~$5,097) deja ~$903 -- la
+    # segunda debe dimensionarse contra el efectivo RESTANTE, no contra
+    # el inicial. Equity alto para que el tope de concentración no
+    # recorte y lo único en juego sea el efectivo que ya se gastó.
     e_a = _entrada_triggered("MEJOR")
     e_b = _entrada_triggered("SEGUNDA")
     _parchear(monkeypatch, tmp_path, [e_a, e_b])
-    client = _FakeAlpacaClient(cash=6000.0)
+    client = _FakeAlpacaClient(cash=6000.0, equity=30_000.0)
 
     nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
@@ -264,7 +290,7 @@ def test_dos_ordenes_en_la_misma_corrida_no_gastan_el_mismo_efectivo(monkeypatch
 def test_fraccion_de_la_ia_reduce_la_cantidad(monkeypatch, tmp_path):
     e = _entrada_triggered()
     _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA_MITAD)
-    client = _FakeAlpacaClient(cash=10_000.0)
+    client = _FakeAlpacaClient(cash=20_000.0)   # sin tope de por medio: 65 -> 32
 
     nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
@@ -513,3 +539,90 @@ def test_un_no_real_de_la_ia_si_quema_la_senal(monkeypatch, tmp_path):
 
     persistidas = estado.cargar(rev_path)
     assert len(persistidas) == 1 and persistidas[0].entro is False
+# ------------------------- tope de concentración (2026-08-24) -------------------------
+# Con LLY a $1.245 el recorte por efectivo dejaba 4 acciones = $4.980,
+# el 99,6% de la cuenta en UNA posición: el riesgo por trade seguía bien,
+# pero quedaba cero capital para el resto del día.
+
+def test_una_accion_cara_no_se_come_toda_la_cuenta(monkeypatch, tmp_path):
+    e = _entrada_triggered(entrada=1245.05, stop=1237.63, objetivo=1259.88)
+    _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=5000.0)
+
+    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+
+    assert client.ordenes_colocadas, "debería operar, solo que más chico"
+    cantidad = client.ordenes_colocadas[0][1]
+    costo = cantidad * 1245.05
+    assert costo <= 5000 * CFG.maximo_pct_efectivo_por_posicion
+    assert cantidad == 1   # 35% de $5.000 = $1.750 -> una sola acción
+
+
+def test_si_ni_una_accion_cabe_en_el_tope_se_omite(monkeypatch, tmp_path):
+    # Acción carísima: ni una entra en el 35% del efectivo.
+    e = _entrada_triggered(entrada=3000.0, stop=2990.0, objetivo=3050.0)
+    _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=5000.0)
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert client.ordenes_colocadas == []
+
+
+def test_el_tope_no_estorba_a_una_accion_normal(monkeypatch, tmp_path):
+    # $78 x 65 acciones = $5.097; con $50.000 de efectivo el tope son
+    # $17.500, así que el sizing por riesgo manda sin recortes.
+    e = _entrada_triggered()
+    _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=50_000.0)
+
+    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+
+    assert client.ordenes_colocadas[0][1] == 65
+
+
+# ------------------------- fuera de horario de mercado (2026-08-24) -------------------------
+# Los workflows corren con cron 13-20 UTC = 13:00 a 20:55, pero la sesión
+# regular es 13:30-20:00. Una orden colocada fuera de sesión no falla:
+# queda encolada para la apertura siguiente. Ver `executor._mercado_cerrado`.
+
+def test_con_el_mercado_cerrado_no_se_coloca_nada(monkeypatch, tmp_path):
+    e = _entrada_triggered()
+    _, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=20_000.0, mercado_abierto=False)
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert client.ordenes_colocadas == []
+    assert enviados == []
+    assert contextos == []   # ni siquiera se gasta una llamada a la IA
+
+
+def test_el_mercado_cerrado_no_quema_la_senal(monkeypatch, tmp_path):
+    # Clave: sin registro de revisión, la corrida de mañana la reintenta.
+    e = _entrada_triggered()
+    _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=20_000.0, mercado_abierto=False)
+
+    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+
+    assert estado.cargar(rev_path) == []
+
+
+def test_reloj_ilegible_es_fail_closed(monkeypatch, tmp_path):
+    # Ante la duda no se opera -- mismo criterio que con la cuenta.
+    e = _entrada_triggered()
+    _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=20_000.0, reloj_roto=True)
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert client.ordenes_colocadas == []
+
+
+def test_el_dry_run_no_consulta_el_reloj(monkeypatch, tmp_path):
+    # En dry-run no se toca Alpaca en absoluto (mismo principio que el
+    # resto del módulo), así que un reloj roto no debe estorbar.
+    e = _entrada_triggered()
+    _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=20_000.0, reloj_roto=True)
+
+    assert executor.ejecutar(client, CFG, dry_run=True, ahora=AHORA) == []
+    assert client.ordenes_colocadas == []
