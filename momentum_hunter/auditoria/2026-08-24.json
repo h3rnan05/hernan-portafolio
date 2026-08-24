@@ -5432,6 +5432,83 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-24T17:43:15+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "LODE",
+          "nombre": "Comstock Inc.",
+          "precio_actual": 3.5250000953674316,
+          "factores_intradia": {
+            "precio_actual": 3.5250000953674316,
+            "vwap": 3.349985156074862,
+            "ema9": 3.5239399302381593,
+            "rvol_actual": 0.1731039143317565,
+            "aceleracion_volumen": 0.481098377734782,
+            "gap_pct": -0.008522719191002408,
+            "maximo_dia": 3.58,
+            "maximo_premarket": 3.58,
+            "rango_apertura_max": 3.5250000953674316,
+            "rango_apertura_min": 3.4200000762939453,
+            "velas_desde_ruptura": 2,
+            "macd": 0.009402445445300778,
+            "macd_signal": 0.01181000211543654
+          },
+          "meta": {
+            "float_acciones": 68911255.0,
+            "short_pct_float": 0.0926,
+            "market_cap": 267875504.0,
+            "bolsa": "AMEX"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Mackay Gold Closes the Acquisition of Comstock's Mining Assets in Nevada",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-24T13:34:04Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 249.18771526666666,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 53.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 75.28500338602746,
+                "distancia_maximo_dia": 84.63689814732722,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        }
+      ]
     }
   ]
 }
