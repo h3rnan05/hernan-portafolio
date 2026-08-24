@@ -7868,6 +7868,150 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-24T20:46:04+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "GTLB",
+          "nombre": "GitLab Inc.",
+          "precio_actual": 42.029998779296875,
+          "factores_intradia": {
+            "precio_actual": 42.029998779296875,
+            "vwap": 41.93463772425159,
+            "ema9": 42.029989947556174,
+            "rvol_actual": 3.540485573592187,
+            "aceleracion_volumen": 2.320487755427148,
+            "gap_pct": -0.004079629863579023,
+            "maximo_dia": 42.9552,
+            "maximo_premarket": 42.9552,
+            "rango_apertura_max": 41.849998474121094,
+            "rango_apertura_min": 41.060001373291016,
+            "velas_desde_ruptura": 74,
+            "macd": -0.0019643502999286966,
+            "macd_signal": 0.010221699135733661
+          },
+          "meta": {
+            "float_acciones": 138857757.0,
+            "short_pct_float": 0.1148,
+            "market_cap": 7098866688.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Gitlab Facing Tough Setup Ahead of Q2 Results, UBS Says",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-21T15:39:47Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4626.2888167500005,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 62.8,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 74 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 78.46125217195765,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 74 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 68.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "AAP",
+          "nombre": "Advance Auto Parts, Inc.",
+          "precio_actual": 43.63,
+          "factores_intradia": {
+            "precio_actual": 43.63,
+            "vwap": 43.611583498151326,
+            "ema9": 43.41848840168346,
+            "rvol_actual": 4.965977261125259,
+            "aceleracion_volumen": 3.452034299348154,
+            "gap_pct": 0.011037984635855,
+            "maximo_dia": 44.65999984741211,
+            "maximo_premarket": 43.09,
+            "rango_apertura_max": 44.18000030517578,
+            "rango_apertura_min": 43.04999923706055,
+            "velas_desde_ruptura": 2,
+            "macd": 0.1012233562906033,
+            "macd_signal": 0.06850194066230805
+          },
+          "meta": {
+            "float_acciones": 55417000.0,
+            "short_pct_float": 0.29659998,
+            "market_cap": 2632163328.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Advance Auto Parts Posted Disappointing Q2 Results Amid Sales Miss, RBC Says",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-21T14:55:30Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4670.572179383334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 77.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 76.93685958505903,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        }
+      ]
     }
   ]
 }
