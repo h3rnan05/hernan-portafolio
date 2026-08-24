@@ -224,6 +224,17 @@ def ejecutar(
         decision = ia_decision.decidir(e, cuenta.contexto_para_ia())
         timestamp = ahora.isoformat(timespec="seconds")
 
+        if getattr(decision, "fallo_tecnico", False):
+            # NO se registra como revisada: no hubo decisión que
+            # registrar. Un fallo de infraestructura no debe quemar la
+            # señal del día -- mismo criterio que ya se aplica más abajo
+            # cuando falla la orden en Alpaca. La próxima corrida (a 5
+            # minutos) lo reintenta.
+            log.warning(
+                "%s: no se pudo obtener decisión de la IA -- se reintentará: %s",
+                e.ticker, decision.razonamiento)
+            continue
+
         if not decision.entrar:
             log.info(
                 "%s: la IA no entra (confianza %d/10) -- %s",
