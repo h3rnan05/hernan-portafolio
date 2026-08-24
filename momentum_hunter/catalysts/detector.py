@@ -173,11 +173,25 @@ class YahooNewsProvider(NewsProvider):
     llamada falla, devuelve lista vacía (el pipeline entonces no
     encuentra catalizador y descarta el ticker -- nunca inventa uno)."""
 
+    def __init__(self, metricas=None) -> None:
+        """`metricas` opcional (`telemetria.Metricas`): si viene, se
+        registra CADA fallo de la fuente de noticias en vez de que
+        desaparezca en el `except` de abajo. Sin él, el comportamiento
+        es idéntico al de siempre -- ninguna llamada existente se rompe."""
+        self._metricas = metricas
+
     def titulares(self, ticker: str) -> list[Titular]:
         try:
             import yfinance as yf
             items = yf.Ticker(ticker).news or []
-        except Exception:
+        except Exception as ex:
+            # Se sigue devolviendo [] -- un ticker que falla nunca tumba
+            # la corrida. Pero ahora el fallo queda CONTADO: hasta el
+            # 2026-08-24 desaparecía en silencio, y "no había
+            # catalizadores" era indistinguible de "la fuente estaba
+            # caída". Ver `telemetria.py`.
+            if self._metricas is not None:
+                self._metricas.registrar_error("noticias", ex)
             return []
         out = []
         for item in items:

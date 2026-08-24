@@ -1,0 +1,43 @@
+name: momentum-hunter-reporte-semanal
+
+# Viernes, 20:15 UTC -- 15 minutos después del cierre del mercado
+# (20:00 UTC en horario de verano). Deja margen para que la última
+# corrida del día termine y committee su telemetría antes de leerla.
+#
+# Misma limitación honesta que el resto de los cron del proyecto: la
+# hora asume horario de verano. En invierno el mercado cierra a las
+# 21:00 UTC y este reporte saldría 45 min antes del cierre -- perdería
+# la última hora de la sesión del viernes, no el resto de la semana.
+on:
+  schedule:
+    - cron: "15 20 * * 5"
+  workflow_dispatch:
+
+concurrency:
+  group: momentum-opportunity-hunter
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  reportar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q -r momentum_hunter/requirements.txt
+
+      - name: Enviar reporte semanal
+        env:
+          MOMENTUM_TELEGRAM_BOT_TOKEN: ${{ secrets.MOMENTUM_TELEGRAM_BOT_TOKEN }}
+          MOMENTUM_TELEGRAM_CHAT_ID: ${{ secrets.MOMENTUM_TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python -m momentum_hunter.reporte_semanal
