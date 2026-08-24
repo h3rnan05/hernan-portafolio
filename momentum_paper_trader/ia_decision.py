@@ -163,6 +163,54 @@ PORQUÉ -- esto se le muestra directo al usuario en Telegram"
 Regla dura: "cerrar": false (aguantar) requiere confianza >= 7."""
 
 
+# Presupuesto de tokens de la respuesta. Subido de 500/400 a estos
+# valores tras el fallo REAL del 2026-08-24: la primera señal que llegó
+# a la IA en la historia del bot (LLY, tras la corrección del umbral)
+# recibió HTTP 200 pero con texto VACÍO, y el fail-closed la descartó.
+# Un presupuesto ajustado es la causa más probable de una respuesta sin
+# bloque de texto -- si el modelo gasta el cupo antes de emitir el JSON,
+# `msg.content` puede no traer ningún bloque "text". Duplicar el margen
+# cuesta céntimos por llamada; perder la señal cuesta el día entero.
+MAX_TOKENS_ENTRADA = 2000
+MAX_TOKENS_CIERRE = 1500
+
+
+def _texto_de(msg, ticker: str) -> str:
+    """Concatena los bloques de texto de la respuesta.
+
+    Cuando sale vacío deja constancia de POR QUÉ -- `stop_reason` y los
+    tipos de bloque que sí vinieron. El 2026-08-24 esa información no se
+    registraba y hubo que deducir la causa desde fuera; con esto, la
+    próxima vez el log lo dice directamente."""
+    partes = [b.text for b in msg.content if getattr(b, "type", None) == "text"]
+    texto = "".join(partes).strip()
+    if not texto:
+        tipos = [getattr(b, "type", "?") for b in msg.content]
+        log.warning(
+            "%s: la IA respondió sin texto -- stop_reason=%s, bloques=%s",
+            ticker, getattr(msg, "stop_reason", "?"), tipos or "ninguno")
+    return texto
+
+
+def _pedir_texto(client, *, model, max_tokens, system, contenido, ticker: str) -> str:
+    """Una llamada, y UN reintento si la respuesta viene vacía.
+
+    El reintento es barato y cubre el caso transitorio; si el segundo
+    intento también vuelve vacío, el llamador falla cerrado como siempre
+    -- reintentar en bucle sería peor que no operar."""
+    for intento in (1, 2):
+        msg = client.messages.create(
+            model=model, max_tokens=max_tokens, system=system,
+            messages=[{"role": "user", "content": contenido}],
+        )
+        texto = _texto_de(msg, ticker)
+        if texto:
+            return texto
+        if intento == 1:
+            log.info("%s: respuesta vacía de la IA, reintentando una vez", ticker)
+    return ""
+
+
 @dataclass(frozen=True)
 class DecisionCierre:
     cerrar: bool
@@ -192,11 +240,9 @@ def decidir_cierre(contexto: str) -> DecisionCierre:
 
     try:
         client = Anthropic(api_key=api_key)
-        msg = client.messages.create(
-            model=MODEL, max_tokens=400, system=SYSTEM_PROMPT_CIERRE,
-            messages=[{"role": "user", "content": contexto}],
-        )
-        crudo = "".join(b.text for b in msg.content if b.type == "text").strip()
+        crudo = _pedir_texto(
+            client, model=MODEL, max_tokens=MAX_TOKENS_CIERRE, system=SYSTEM_PROMPT_CIERRE,
+            contenido=contexto, ticker="cierre")
     except Exception as ex:
         log.warning("falló la consulta de cierre a la IA: %s", ex)
         return _CIERRE_POR_DEFECTO
@@ -379,16 +425,9 @@ def decidir(e: EntradaWatchlist, contexto_cuenta: str | None = None) -> Decision
 
     try:
         client = Anthropic(api_key=api_key)
-        msg = client.messages.create(
-            model=MODEL,
-            max_tokens=500,
-            system=SYSTEM_PROMPT,
-            messages=[{
-                "role": "user",
-                "content": construir_paquete_evidencia(e, contexto_cuenta),
-            }],
-        )
-        crudo = "".join(b.text for b in msg.content if b.type == "text").strip()
+        crudo = _pedir_texto(
+            client, model=MODEL, max_tokens=MAX_TOKENS_ENTRADA, system=SYSTEM_PROMPT,
+            contenido=construir_paquete_evidencia(e, contexto_cuenta), ticker=e.ticker)
     except Exception as ex:
         log.warning("%s: falló la consulta a la IA: %s", e.ticker, ex)
         return _DECISION_FALLBACK_ERROR

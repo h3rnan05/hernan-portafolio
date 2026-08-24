@@ -297,3 +297,111 @@ def test_cierre_tolera_markdown(monkeypatch):
     _parchear_cierre(monkeypatch, respuesta=(
         '```json\n{"cerrar": true, "confianza": 9, "razonamiento": "se agotó"}\n```'))
     assert ia_decision.decidir_cierre("x").cerrar is True
+
+
+# ------------------------- respuesta vacía (fallo real 2026-08-24) -------------------------
+# La PRIMERA señal que llegó a la IA en la historia del bot (LLY, tras
+# corregir el umbral) recibió HTTP 200 pero con texto VACÍO, y el
+# fail-closed la descartó. Causa más probable: presupuesto de tokens
+# ajustado (500) -- si el modelo lo agota antes de emitir el JSON,
+# `msg.content` puede no traer ningún bloque "text".
+
+class _FakeMessageVacio:
+    def __init__(self, stop_reason="max_tokens", bloques=None):
+        self.content = bloques if bloques is not None else []
+        self.stop_reason = stop_reason
+
+
+class _MessagesSecuencia:
+    """Devuelve respuestas distintas en cada llamada -- para probar el
+    reintento."""
+    def __init__(self, respuestas):
+        self._respuestas = list(respuestas)
+        self.llamadas = 0
+
+    def create(self, **kwargs):
+        self.llamadas += 1
+        self.kwargs = kwargs
+        r = self._respuestas.pop(0) if self._respuestas else self._respuestas
+        return r
+
+
+class _ClienteSecuencia:
+    def __init__(self, respuestas):
+        self.messages = _MessagesSecuencia(respuestas)
+
+
+def test_presupuesto_de_tokens_es_holgado():
+    # El valor que causó el fallo era 500; no debe volver a quedarse corto.
+    assert ia_decision.MAX_TOKENS_ENTRADA >= 1500
+    assert ia_decision.MAX_TOKENS_CIERRE >= 1000
+
+
+def test_respuesta_vacia_reintenta_una_vez_y_puede_recuperarse(monkeypatch):
+    _evidencia_hermetica(monkeypatch)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    bueno = _FakeMessage('{"entrar": true, "confianza": 9, "razonamiento": "ruptura limpia"}')
+    cliente = _ClienteSecuencia([_FakeMessageVacio(), bueno])
+    monkeypatch.setattr(ia_decision, "Anthropic", lambda api_key: cliente)
+
+    d = ia_decision.decidir(_entrada_triggered())
+
+    assert cliente.messages.llamadas == 2   # reintentó
+    assert d.entrar is True                  # y se recuperó
+
+
+def test_dos_respuestas_vacias_fallan_cerrado_sin_reintentar_en_bucle(monkeypatch):
+    _evidencia_hermetica(monkeypatch)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    cliente = _ClienteSecuencia([_FakeMessageVacio(), _FakeMessageVacio()])
+    monkeypatch.setattr(ia_decision, "Anthropic", lambda api_key: cliente)
+
+    d = ia_decision.decidir(_entrada_triggered())
+
+    assert cliente.messages.llamadas == 2   # exactamente dos, no un bucle
+    assert d.entrar is False                 # fail-closed intacto
+
+
+def test_se_usa_el_presupuesto_grande_en_la_llamada(monkeypatch):
+    _evidencia_hermetica(monkeypatch)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    cliente = _ClienteSecuencia([_FakeMessage('{"entrar": false, "confianza": 2, "razonamiento": "x"}')])
+    monkeypatch.setattr(ia_decision, "Anthropic", lambda api_key: cliente)
+
+    ia_decision.decidir(_entrada_triggered())
+
+    assert cliente.messages.kwargs["max_tokens"] == ia_decision.MAX_TOKENS_ENTRADA
+
+
+def test_texto_vacio_deja_constancia_del_motivo(caplog):
+    # El 2026-08-24 hubo que deducir la causa desde fuera porque el log
+    # no decía nada. Ahora debe decir stop_reason y los tipos de bloque.
+    import logging
+    with caplog.at_level(logging.WARNING):
+        assert ia_decision._texto_de(_FakeMessageVacio(stop_reason="max_tokens"), "LLY") == ""
+    assert "max_tokens" in caplog.text
+    assert "LLY" in caplog.text
+
+
+def test_bloques_no_texto_se_ignoran_pero_se_reportan(caplog):
+    import logging
+
+    class _BloqueThinking:
+        type = "thinking"
+
+    with caplog.at_level(logging.WARNING):
+        msg = _FakeMessageVacio(bloques=[_BloqueThinking()])
+        assert ia_decision._texto_de(msg, "LLY") == ""
+    assert "thinking" in caplog.text
+
+
+def test_decidir_cierre_tambien_reintenta_si_viene_vacio(monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    bueno = _FakeMessage('{"cerrar": true, "confianza": 8, "razonamiento": "se agotó"}')
+    cliente = _ClienteSecuencia([_FakeMessageVacio(), bueno])
+    monkeypatch.setattr(ia_decision, "Anthropic", lambda api_key: cliente)
+
+    d = ia_decision.decidir_cierre("Ticker: LLY")
+
+    assert cliente.messages.llamadas == 2
+    assert d.cerrar is True
