@@ -3968,6 +3968,159 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-24T16:53:08+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "GTLB",
+          "nombre": "GitLab Inc.",
+          "precio_actual": 41.68000030517578,
+          "factores_intradia": {
+            "precio_actual": 41.68000030517578,
+            "vwap": 41.92898224092594,
+            "ema9": 41.660994453488456,
+            "rvol_actual": 0.859909410242189,
+            "aceleracion_volumen": 0.40919195287318,
+            "gap_pct": -0.004079629863579023,
+            "maximo_dia": 42.9552,
+            "maximo_premarket": 42.9552,
+            "rango_apertura_max": 41.849998474121094,
+            "rango_apertura_min": 41.060001373291016,
+            "velas_desde_ruptura": 0,
+            "macd": -0.027763104775672787,
+            "macd_signal": -0.04535472377377372
+          },
+          "meta": {
+            "float_acciones": 138857757.0,
+            "short_pct_float": 0.1148,
+            "market_cap": 7032995840.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Gitlab Facing Tough Setup Ahead of Q2 Results, UBS Says",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-21T15:39:47Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4393.34199395,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 57.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 70.31326370674051,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "AAP",
+          "nombre": "Advance Auto Parts Inc.",
+          "precio_actual": 43.72999954223633,
+          "factores_intradia": {
+            "precio_actual": 43.72999954223633,
+            "vwap": 44.106039032321846,
+            "ema9": 43.81900890156717,
+            "rvol_actual": 1.1913197519929142,
+            "aceleracion_volumen": 1.3911060433295326,
+            "gap_pct": 0.011037984635855,
+            "maximo_dia": 44.65999984741211,
+            "maximo_premarket": 43.09,
+            "rango_apertura_max": 44.18000030517578,
+            "rango_apertura_min": 43.04999923706055,
+            "velas_desde_ruptura": null,
+            "macd": -0.06646177790616292,
+            "macd_signal": -0.04557824240887559
+          },
+          "meta": {
+            "float_acciones": 55417000.0,
+            "short_pct_float": 0.29659998,
+            "market_cap": null,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Advance Auto Parts Posted Disappointing Q2 Results Amid Sales Miss, RBC Says",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-21T14:55:30Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4437.625356150001,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 71.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 89.11060433295326,
+                "extension": 100.0,
+                "distancia_maximo_dia": 79.17598951291372,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
