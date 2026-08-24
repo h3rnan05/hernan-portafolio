@@ -6629,6 +6629,233 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-24T19:18:35+00:00",
+      "candidatos_evaluados": 3,
+      "candidatos": [
+        {
+          "ticker": "GTLB",
+          "nombre": "GitLab Inc.",
+          "precio_actual": 41.970001220703125,
+          "factores_intradia": {
+            "precio_actual": 41.970001220703125,
+            "vwap": 41.91437187673132,
+            "ema9": 41.93137036850596,
+            "rvol_actual": 0.7019040776001437,
+            "aceleracion_volumen": 1.4823069403714566,
+            "gap_pct": -0.0043186253324817995,
+            "maximo_dia": 42.9552,
+            "maximo_premarket": 42.9552,
+            "rango_apertura_max": 41.849998474121094,
+            "rango_apertura_min": 41.060001373291016,
+            "velas_desde_ruptura": 0,
+            "macd": -0.0007176816695206867,
+            "macd_signal": 0.0029047108939231443
+          },
+          "meta": {
+            "float_acciones": 138857757.0,
+            "short_pct_float": 0.1148,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Gitlab Facing Tough Setup Ahead of Q2 Results, UBS Says",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-21T15:39:47Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4538.78152875,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 77.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 98.23069403714567,
+                "extension": 100.0,
+                "distancia_maximo_dia": 77.06450489587124,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 63.4,
+            "score_ajustado": 43.4,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "AAP",
+          "nombre": "Advance Auto Parts Inc.",
+          "precio_actual": 43.07500076293945,
+          "factores_intradia": {
+            "precio_actual": 43.07500076293945,
+            "vwap": 43.72924985590593,
+            "ema9": 43.059269453558514,
+            "rvol_actual": 0.9797391616479878,
+            "aceleracion_volumen": 1.0437568157033805,
+            "gap_pct": 0.011275535486900364,
+            "maximo_dia": 44.65999984741211,
+            "maximo_premarket": 43.09,
+            "rango_apertura_max": 44.18000030517578,
+            "rango_apertura_min": 43.04999923706055,
+            "velas_desde_ruptura": 5,
+            "macd": 0.04944855716910013,
+            "macd_signal": 0.043298738373477474
+          },
+          "meta": {
+            "float_acciones": 55417000.0,
+            "short_pct_float": 0.29659998,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Advance Auto Parts Posted Disappointing Q2 Results Amid Sales Miss, RBC Says",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-21T14:55:30Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4583.064907216667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 59.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 54.37568157033805,
+                "extension": 100.0,
+                "distancia_maximo_dia": 64.50964868141395,
+                "frescura_patron": 50.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LODE",
+          "nombre": "Comstock Inc.",
+          "precio_actual": 3.5299999713897705,
+          "factores_intradia": {
+            "precio_actual": 3.5299999713897705,
+            "vwap": 3.413563224617596,
+            "ema9": 3.533401509846405,
+            "rvol_actual": 0.3235294117647059,
+            "aceleracion_volumen": 0.6725592607472881,
+            "gap_pct": -0.012729865686374025,
+            "maximo_dia": 3.58,
+            "maximo_premarket": 3.58,
+            "rango_apertura_max": 3.5250000953674316,
+            "rango_apertura_min": 3.4200000762939453,
+            "velas_desde_ruptura": null,
+            "macd": -0.005419722592707732,
+            "macd_signal": -0.004114920533858502
+          },
+          "meta": {
+            "float_acciones": 68911255.0,
+            "short_pct_float": 0.0926,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Mackay Gold Closes the Acquisition of Comstock's Mining Assets in Nevada",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-24T13:34:04Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 344.4982691166667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 54.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 17.255926074728812,
+                "extension": 95.43329909720548,
+                "distancia_maximo_dia": 86.0335115613884,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
