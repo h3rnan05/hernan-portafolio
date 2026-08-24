@@ -465,3 +465,51 @@ def test_timestamp_corrupto_no_lanza_ni_bloquea(monkeypatch, tmp_path):
     client = _FakeAlpacaClient(cash=10_000.0)
 
     assert len(executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)) == 1
+
+
+# ------------------------- un fallo técnico no quema la señal (2026-08-24) -------------------------
+# Pasó de verdad: la API de la IA respondió vacío para LLY, se registró
+# como "revisada" y la señal quedó muerta aunque el arreglo llegara diez
+# minutos después. Un fallo de infraestructura no es una decisión.
+
+_FALLO_TECNICO = ia_decision.DecisionIA(
+    entrar=False, confianza=0, razonamiento="no se pudo obtener veredicto",
+    fallo_tecnico=True)
+
+
+def test_fallo_tecnico_de_la_ia_no_se_registra_como_revisada(monkeypatch, tmp_path):
+    e = _entrada_triggered()
+    _, rev_path, enviados, _ = _parchear(monkeypatch, tmp_path, [e], decision=_FALLO_TECNICO)
+    client = _FakeAlpacaClient(cash=10_000.0)
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert client.ordenes_colocadas == []
+    assert enviados == []
+    # Clave: sin registro -> la próxima corrida lo reintenta.
+    assert estado.cargar(rev_path) == []
+
+
+def test_tras_un_fallo_tecnico_la_siguiente_corrida_si_opera(monkeypatch, tmp_path):
+    # La secuencia real: falla, se arregla, y la señal sigue viva.
+    e = _entrada_triggered()
+    _, rev_path, enviados, _ = _parchear(monkeypatch, tmp_path, [e], decision=_FALLO_TECNICO)
+    client = _FakeAlpacaClient(cash=10_000.0)
+    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+
+    monkeypatch.setattr(ia_decision, "decidir", lambda e, contexto_cuenta=None: _DECISION_ENTRA)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+
+    assert len(nuevas) == 1
+    assert client.ordenes_colocadas != []
+
+
+def test_un_no_real_de_la_ia_si_quema_la_senal(monkeypatch, tmp_path):
+    # La otra mitad: cuando la IA SÍ decidió, no se le vuelve a preguntar.
+    e = _entrada_triggered()
+    _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_NO_ENTRA)
+    client = _FakeAlpacaClient(cash=10_000.0)
+
+    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+
+    persistidas = estado.cargar(rev_path)
+    assert len(persistidas) == 1 and persistidas[0].entro is False

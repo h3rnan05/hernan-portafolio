@@ -274,15 +274,29 @@ class DecisionIA:
     confianza: int
     razonamiento: str
     fraccion: float = 1.0   # 0.25-1.0 -- SOLO reduce el tamaño, nunca lo aumenta
+    # True = no se pudo OBTENER una decisión (sin credencial, red caída,
+    # respuesta ilegible). Distinto de que la IA dijera que no.
+    #
+    # Importa porque el executor registra cada revisión para no repetirla:
+    # un "no" de la IA debe quemar la señal (ya se juzgó), pero un fallo
+    # técnico NO -- si no, un problema de infraestructura de un minuto
+    # descarta la oportunidad del día entero. Pasó de verdad el
+    # 2026-08-24 con LLY: la API respondió vacío, se registró como
+    # revisada, y la señal quedó muerta aunque el arreglo llegara diez
+    # minutos después. Mismo principio que el executor ya aplicaba a un
+    # fallo de Alpaca ("no se registra como revisada").
+    fallo_tecnico: bool = False
 
 
 _DECISION_FALLBACK_SIN_CLAVE = DecisionIA(
     entrar=False, confianza=0,
     razonamiento="Sin ANTHROPIC_API_KEY configurada -- no se puede pedir el criterio de la IA, así que no se opera.",
+    fallo_tecnico=True,
 )
 _DECISION_FALLBACK_ERROR = DecisionIA(
     entrar=False, confianza=0,
     razonamiento="La revisión de la IA falló o no devolvió un veredicto usable -- por seguridad, no se opera (fail-closed).",
+    fallo_tecnico=True,
 )
 
 
