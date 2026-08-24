@@ -66,6 +66,23 @@ class PaperTraderConfig:
     # que es justo cuando más ruido hay. No protege contra un hueco (ver
     # `alpaca_client.colocar_stop_protector`).
     colchon_stop_nocturno: float = 0.03
+    # Techo de CONCENTRACIÓN por posición, medido contra el equity total
+    # de la cuenta (no contra el efectivo restante -- ver el comentario
+    # en `executor.ejecutar`). Sin esto, una acción cara consume la
+    # cuenta entera: medido el 2026-08-24 con LLY a $1.245, el recorte
+    # por efectivo dejaba 4 acciones = $4.980, el 99,6% de una cuenta de
+    # $5.000 en UNA sola posición. El riesgo por trade seguía siendo
+    # correcto ($30), pero quedaba cero capital para cualquier otra
+    # señal del día -- y `maximo_posiciones_abiertas: 5` se volvía papel
+    # mojado. Con 35%, tres jugadas del tamaño máximo agotan la cuenta:
+    # el mínimo de diversificación que hace que el resto de los límites
+    # signifiquen algo.
+    #
+    # PROVISIONAL: elegido por razonamiento, no por datos -- este bot
+    # todavía no tiene un historial de trades con el que calibrarlo.
+    # Revisar cuando el reporte semanal tenga varias semanas de
+    # operaciones reales.
+    maximo_pct_efectivo_por_posicion: float = 0.35
 
     def validar(self) -> None:
         if self.riesgo_dolares_por_operacion <= 0:
@@ -82,6 +99,8 @@ class PaperTraderConfig:
             raise ValueError("minutos_antes_del_cierre debe estar entre 1 y 389")
         if not 0 < self.colchon_stop_nocturno < 1:
             raise ValueError("colchon_stop_nocturno debe estar entre 0 y 1 (fracción)")
+        if not 0 < self.maximo_pct_efectivo_por_posicion <= 1:
+            raise ValueError("maximo_pct_efectivo_por_posicion debe estar entre 0 y 1 (fracción)")
 
 
 CONFIG = PaperTraderConfig()

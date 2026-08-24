@@ -796,19 +796,50 @@ def revisar_watchlist(
     ahora = ahora or datetime.now(UTC)
     entradas = watchlist.cargar()
     vigiladas = watchlist.activas(entradas)
+    # Las TRIGGERED no se re-evalúan (son terminales), pero SÍ se les
+    # refrescan los niveles -- ver `watchlist.con_niveles_que_refrescar`
+    # para el bug que esto arregla.
+    a_refrescar = watchlist.con_niveles_que_refrescar(entradas, ahora)
     # Una sola lectura del índice por corrida, compartida por todas las
     # vigiladas -- el clima es del mercado, no de cada ticker.
     clima = mercado.evaluar(provider) if vigiladas else None
-    if not vigiladas:
+    if not vigiladas and not a_refrescar:
         log.info("watchlist vacía -- nada que re-chequear")
         entradas = watchlist.purgar_antiguas(entradas, ahora)
         if not dry_run:
             watchlist.guardar(entradas)
         return
 
-    tickers = [e.ticker for e in vigiladas]
+    # Se piden velas también para las TRIGGERED: no para re-evaluarlas,
+    # solo para refrescar sus niveles (ver más abajo).
+    tickers = [e.ticker for e in vigiladas] + [e.ticker for e in a_refrescar]
     barras_intradia = provider.barras_intradia(tickers, cfg.intervalo_intradia, cfg.periodo_intradia)
     dato_recibido_ts = _ahora_iso_run(datetime.now(UTC))
+
+    # --- Refresco de niveles de las TRIGGERED todavía sin orden ---
+    # NO se evalúan ni cambian de estado: TRIGGERED es terminal. Solo se
+    # recalculan entrada/stop/objetivo con datos frescos, para que el
+    # paper trader pueda reintentar una señal cuya primera oportunidad
+    # falló (ver `watchlist.con_niveles_que_refrescar`). Cualquier fallo
+    # acá se ignora: refrescar es un extra, nunca un requisito.
+    for e in a_refrescar:
+        bi_t = barras_intradia.get(e.ticker)
+        if bi_t is None:
+            continue
+        try:
+            c_t = _construir_candidato_intradia(
+                e.ticker, e.nombre, watchlist.catalizador_de(e), watchlist.meta_de(e),
+                e.es_large_cap, e.atr_diario, e.score_base, None, bi_t, cfg,
+                gap_pct_fallback=e.gap_pct_congelado)
+            if c_t is None:
+                continue
+            niveles_t = report.niveles_entrada_salida(c_t.factores, c_t.atr_diario)
+            zona_t, _ = report.zona_entrada(c_t, cfg)
+            watchlist.actualizar_niveles(
+                e, niveles_t["entrada"], niveles_t["stop"], niveles_t["objetivo"], zona_t, ahora)
+            log.info("%s: niveles refrescados (sigue TRIGGERED, sin orden todavía)", e.ticker)
+        except Exception as ex:
+            log.warning("%s: no se pudieron refrescar los niveles: %s", e.ticker, ex)
 
     candidatos: list[CandidatoIntradia] = []
     por_ticker = {e.ticker: e for e in vigiladas}

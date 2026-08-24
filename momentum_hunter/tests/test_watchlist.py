@@ -18,6 +18,7 @@ from momentum_hunter.watchlist import (
     ESTADO_MISSED,
     ESTADO_TRIGGERED,
     ESTADO_WATCHING,
+    EntradaWatchlist,
     Transicion,
     activas,
     actualizar_niveles,
@@ -26,6 +27,7 @@ from momentum_hunter.watchlist import (
     catalizador_de,
     catalizador_vigente,
     completar_latencia_transicion,
+    con_niveles_que_refrescar,
     desde_candidato_diario,
     expirar_vencidas,
     guardar,
@@ -377,3 +379,67 @@ def test_actualizar_niveles_nunca_inventa_lo_que_no_llego():
     e = desde_candidato_diario(_candidato_diario(), AHORA)
     actualizar_niveles(e, entrada=None, stop=None, objetivo=None, zona_entrada_baja=None, ahora=AHORA)
     assert e.ultima_entrada is None and e.ultimo_stop is None and e.ultimo_objetivo is None
+
+
+# ------------------------- refresco de niveles de las TRIGGERED (2026-08-24) -------------------------
+# Bug real: `activas()` devuelve solo WATCHING, así que los niveles de
+# una TRIGGERED quedaban congelados en el instante del disparo para
+# siempre. Ver `con_niveles_que_refrescar`.
+
+def _triggered_hace(horas: float, ticker="RKLB") -> EntradaWatchlist:
+    disparo = AHORA - timedelta(hours=horas)
+    e = desde_candidato_diario(_candidato_diario(ticker), disparo)
+    marcar_triggered(e, "m", "d", "ev", disparo)
+    return e
+
+
+def test_refresca_las_triggered_recientes():
+    e = _triggered_hace(0.5)
+    assert con_niveles_que_refrescar([e], AHORA) == [e]
+
+
+def test_no_refresca_las_triggered_viejas():
+    # Las TRIGGERED se conservan 7 días: sin el tope se pedirían velas
+    # para todas, cada 5 minutos, durante una semana.
+    assert con_niveles_que_refrescar([_triggered_hace(30)], AHORA) == []
+
+
+def test_no_refresca_estados_que_no_sean_triggered():
+    # WATCHING ya lo cubre `activas()`; los otros terminales no se operan.
+    watching = desde_candidato_diario(_candidato_diario("AAA"), AHORA)
+    invalidada = desde_candidato_diario(_candidato_diario("BBB"), AHORA)
+    marcar_invalidated(invalidada, "tesis rota", AHORA)
+
+    assert con_niveles_que_refrescar([watching, invalidada], AHORA) == []
+
+
+def test_fecha_ilegible_no_se_refresca_ni_lanza():
+    e = _triggered_hace(0.5)
+    e.actualizado_en = "no-es-una-fecha"
+    assert con_niveles_que_refrescar([e], AHORA) == []
+
+
+def test_refrescar_niveles_no_renueva_la_ventana():
+    # `actualizar_niveles` no toca `actualizado_en` -- si lo tocara, una
+    # TRIGGERED se refrescaría para siempre renovándose a sí misma.
+    e = _triggered_hace(7.5)
+    actualizar_niveles(e, 10.0, 9.0, 12.0, 10.0, AHORA)
+    assert con_niveles_que_refrescar([e], AHORA + timedelta(hours=1)) == []
+
+
+def test_refrescar_niveles_no_cambia_el_estado():
+    # TRIGGERED es terminal: refrescar precios no reabre la decisión.
+    e = _triggered_hace(0.5)
+    transiciones_antes = len(e.transiciones)
+    actualizar_niveles(e, 10.0, 9.0, 12.0, 10.0, AHORA)
+    assert e.estado == ESTADO_TRIGGERED
+    assert len(e.transiciones) == transiciones_antes
+
+
+def test_refrescar_niveles_mueve_los_ultimos_pero_no_el_stop_de_la_tesis():
+    e = _triggered_hace(0.5)
+    actualizar_niveles(e, 10.0, 9.0, 12.0, 10.0, AHORA)
+    actualizar_niveles(e, 11.0, 9.8, 13.0, 11.0, AHORA + timedelta(minutes=5))
+
+    assert (e.ultima_entrada, e.ultimo_stop, e.ultimo_objetivo) == (11.0, 9.8, 13.0)
+    assert e.stop_tesis == 9.0   # congelado en el primero, ver `actualizar_niveles`
