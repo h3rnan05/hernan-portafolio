@@ -83,36 +83,43 @@ class MomentumConfig:
     })
 
     # --- Umbrales de alerta (Prompt 7: calidad antes que cantidad) ---
-    # PROVISIONAL -- recalibrar con datos de small-cap (ver más abajo).
-    # Estaba en 85.0, un valor INALCANZABLE: auditadas 3.161 candidatas
-    # reales de 12 días, el `score_base` más alto jamás producido fue
-    # 81,2 (mediana 66). Y como `score_ajustado = score_base -
-    # penalizaciones` (las penalizaciones solo restan), el score final
-    # nunca podía superar al base. El bot era aritméticamente incapaz de
-    # emitir una alerta: 0 en 3.161. No era selectividad, era un techo
-    # por encima del máximo de su propia función de scoring.
+    # Historia de este número, porque es el que más veces nos ha
+    # engañado:
     #
-    # 60,0 sale de simular los mismos 12 días (ver `replay.py`, que
-    # convirtió ese análisis en herramienta repetible). Corrección
-    # 2026-08-21: la primera simulación, hecha a mano, daba "60 -> 5
-    # tickers" asumiendo SIN DECLARARLO que todas tenían riesgo/
-    # recompensa válido -- pero `riesgo_definido` (una de las cuatro
-    # condiciones obligatorias de `accionable`) no se guardaba en la
-    # auditoría hasta ese mismo día. El rango honesto es 0-13 alertas en
-    # 60, 0-6 en 65, 0-4 en 70 y exactamente 0 en 75 y 85. Lo único
-    # firme es la forma de la curva: el acantilado entre 60 y 55 (donde
-    # el techo salta de 13 a 155) y que 75+ es inalcanzable.
+    # 85,0 -- INALCANZABLE. Auditadas 3.161 candidatas reales, el
+    #   `score_base` más alto jamás producido fue 81,2. Y como
+    #   `score_ajustado = score_base - penalizaciones` (solo restan), el
+    #   final nunca podía superar al base. El bot era aritméticamente
+    #   incapaz de alertar: 0 de 3.161. No era selectividad.
+    #
+    # 60,0 -- calibrado el 2026-08-21 con `replay.py`, pero sobre datos
+    #   que eran 3.155/3.161 large-cap (el sesgo de universo que se
+    #   corrigió ese mismo día). Se marcó PROVISIONAL a propósito.
+    #
+    # 55,0 -- ESTE. Primera calibración con el universo ya corregido y
+    #   con `riesgo_definido` guardado. El 2026-08-24, primer día de
+    #   operación real, la mejor candidata (TRV) sacó 59,7 y se quedó a
+    #   0,3 del umbral -- habiendo pasado LAS CUATRO condiciones
+    #   obligatorias (patrón, temprano, riesgo definido, dinero
+    #   entrando) con CERO penalizaciones.
+    #
+    # El argumento para bajar no es "queremos que opere". Es que la
+    # selectividad real la hacen esas cuatro condiciones booleanas, no
+    # este número: son las que descartan el 99% de las candidatas. El
+    # score encima de ellas es un segundo filtro cuyo poder predictivo
+    # NADIE HA MEDIDO NUNCA -- no existe evidencia de que una candidata
+    # de 65 funcione mejor que una de 58 (ver `stats.py`: hacen falta
+    # alertas resueltas, y todavía no hay ninguna). Rechazar la
+    # candidata más limpia del día con una vara sin evidencia detrás es
+    # estar mal calibrado, no ser exigente.
+    #
+    # Sigue siendo revisable: cuando `outcomes.py` tenga resultados
+    # medidos, se podrá comprobar por primera vez si el score predice
+    # algo. Si no predice nada, la conclusión correcta será quitarlo del
+    # criterio de `accionable`, no moverlo otra vez.
     #
     #   python -m momentum_hunter.replay        <- re-medir con esto
-    #
-    # Por qué PROVISIONAL: esa simulación se hizo sobre datos que eran
-    # 3.155/3.161 large-cap, por el sesgo de universo que se corrigió el
-    # 2026-08-21 (ver `universe.ventana_rotativa` y `run.tamano_estimado`).
-    # El scoring está calibrado para explosiones de small-cap, así que la
-    # distribución de scores va a cambiar cuando entren small-caps de
-    # verdad. Recalibrar sobre la nueva distribución antes de darlo por
-    # bueno -- no heredar este número sin volver a medirlo.
-    score_minimo_alerta: float = 60.0
+    score_minimo_alerta: float = 55.0
     rvol_minimo_alerta: float = 4.0           # volumen actual / promedio 20 sesiones (filtro grueso, etapa 1)
     requiere_catalizador_confirmado: bool = True
     # Techo de seguridad, no un objetivo -- la selectividad real la hace
