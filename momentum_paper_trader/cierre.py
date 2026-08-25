@@ -9,6 +9,18 @@ OBJETIVO -- desprotegida contra cualquier hueco de apertura del día
 siguiente. `seguimiento.py` sabe detectar ese estado y avisarlo, pero
 avisar no es arreglarlo.
 
+ESTADO ACTUAL (2026-08-25): AGUANTAR ESTÁ DESACTIVADO. Se liquida todo
+antes del cierre, sin excepción. La lógica de decisión con IA que
+describe el párrafo siguiente sigue entera y probada, detrás del flag
+`config.permitir_aguantar_overnight` -- no se borró, se apagó.
+
+El motivo del cambio: sin historial de operaciones cerradas no hay forma
+de juzgar si el criterio de la IA para aguantar es criterio o es
+esperanza ("el catalizador sigue vivo" suena igual en los dos casos), y
+el stop protector no acota el costo de equivocarse porque no cubre un
+hueco de apertura. Se reactiva cuando haya ~50 operaciones con las que
+medirlo.
+
 LA DECISIÓN LA TOMA LA IA, posición por posición (usuario, 2026-08-21:
 "el objetivo de crear la IA que tome las decisiones de inversión es para
 eso"). La primera versión de este módulo liquidaba todo con una regla
@@ -186,7 +198,16 @@ def cerrar_si_toca(
 
     for p in posiciones:
         ticker = p.get("symbol", "?")
-        decision = ia_decision.decidir_cierre(_contexto_posicion(p, clima))
+        if not cfg.permitir_aguantar_overnight:
+            # Aguantar está desactivado (ver `config.permitir_aguantar_
+            # overnight`): no se le pregunta a la IA algo cuya respuesta
+            # no se puede acatar. Se ahorra la llamada y se liquida.
+            decision = ia_decision.DecisionCierre(
+                cerrar=True, confianza=10,
+                razonamiento=("Cierre obligatorio de fin de día: aguantar hasta mañana está "
+                              "desactivado hasta tener historial suficiente para evaluarlo."))
+        else:
+            decision = ia_decision.decidir_cierre(_contexto_posicion(p, clima))
 
         if not decision.cerrar:
             stop = _stop_protector(p, cfg)

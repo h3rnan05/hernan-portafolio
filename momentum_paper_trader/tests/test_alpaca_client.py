@@ -234,3 +234,50 @@ def test_reloj_mercado_es_un_get_de_solo_lectura_al_endpoint_paper(monkeypatch):
 
     assert AlpacaPaperClient("clave", "secreto").reloj_mercado()["is_open"] is True
     assert llamadas[0] == "https://paper-api.alpaca.markets/v2/clock"
+
+
+def test_el_bracket_manda_client_order_id_y_extended_hours_false(monkeypatch):
+    payloads = []
+
+    class _R:
+        def raise_for_status(self): pass
+        def json(self): return {"id": "orden-1", "status": "accepted"}
+
+    monkeypatch.setattr(alpaca_client.requests, "post",
+                        lambda url, json, headers, timeout: (payloads.append(json), _R())[1])
+
+    AlpacaPaperClient("c", "s").colocar_orden_bracket(
+        "RKLB", 65, 78.42, 76.90, 82.50, client_order_id="momentum-RKLB-2026-08-11")
+
+    assert payloads[0]["client_order_id"] == "momentum-RKLB-2026-08-11"
+    assert payloads[0]["extended_hours"] is False
+
+
+def test_sin_client_order_id_la_clave_no_viaja(monkeypatch):
+    # Alpaca genera el suyo; mandar la clave vacía sería peor que omitirla.
+    payloads = []
+
+    class _R:
+        def raise_for_status(self): pass
+        def json(self): return {"id": "orden-1", "status": "accepted"}
+
+    monkeypatch.setattr(alpaca_client.requests, "post",
+                        lambda url, json, headers, timeout: (payloads.append(json), _R())[1])
+
+    AlpacaPaperClient("c", "s").colocar_orden_bracket("RKLB", 65, 78.42, 76.90, 82.50)
+
+    assert "client_order_id" not in payloads[0]
+
+
+def test_activo_consulta_el_endpoint_de_assets(monkeypatch):
+    llamadas = []
+
+    class _R:
+        def raise_for_status(self): pass
+        def json(self): return {"symbol": "RKLB", "tradable": True, "status": "active"}
+
+    monkeypatch.setattr(alpaca_client.requests, "get",
+                        lambda url, headers, timeout: (llamadas.append(url), _R())[1])
+
+    assert AlpacaPaperClient("c", "s").activo("RKLB")["tradable"] is True
+    assert llamadas[0] == "https://paper-api.alpaca.markets/v2/assets/RKLB"

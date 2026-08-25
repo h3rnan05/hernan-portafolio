@@ -23,8 +23,11 @@ criterio de la IA -- los límites de riesgo nunca dependen de un LLM):
     capital entero y el límite de posiciones no significa nada),
   - nunca una orden con el mercado cerrado (quedaría encolada para la
     apertura siguiente, con un precio de hoy -- ver `_mercado_cerrado`),
-  - si la cuenta o el reloj no se pueden leer, no se opera nada en esta
-    corrida (fail-closed, mismo principio que toda esta capa)."""
+  - nunca un símbolo que Alpaca no marque como operable,
+  - cada orden lleva un `client_order_id` derivado de la señal, para que
+    un reintento del workflow no pueda duplicarla (ver `_id_de_orden`),
+  - si la cuenta, el reloj o la ficha del activo no se pueden leer, no
+    se opera (fail-closed, mismo principio que toda esta capa)."""
 
 from __future__ import annotations
 
@@ -111,6 +114,95 @@ def _tamano_posicion(entrada: float, stop: float, cfg: PaperTraderConfig) -> int
         return 0
     cantidad = int(cfg.riesgo_dolares_por_operacion // riesgo_por_accion)
     return cantidad if cantidad >= cfg.minimo_acciones else 0
+
+
+def _detalle_de_rechazo(ex: Exception) -> str:
+    """Motivo legible de un rechazo de Alpaca, para que el log diga QUÉ
+    pasó y no solo que algo falló.
+
+    Alpaca devuelve `{"code": 40310000, "message": "..."}` con un código
+    por motivo -- efectivo insuficiente, wash trade, sub-penny,
+    `client_order_id` repetido, límite de peticiones. Sin esto, los tres
+    se ven igual en el log ("HTTP 403") y el reporte semanal no puede
+    distinguir un problema de dinero de uno de formato.
+
+    Nunca lanza y nunca incluye la URL de la petición: esa lleva las
+    credenciales en algunos clientes, y este texto termina en el log
+    público del workflow."""
+    respuesta = getattr(ex, "response", None)
+    if respuesta is None:
+        return type(ex).__name__
+    try:
+        cuerpo = respuesta.json()
+        codigo, mensaje = cuerpo.get("code"), cuerpo.get("message")
+    except Exception:
+        codigo = mensaje = None
+    estado_http = getattr(respuesta, "status_code", "?")
+    if mensaje:
+        return f"HTTP {estado_http}, código {codigo}: {mensaje}"
+    return f"HTTP {estado_http} ({type(ex).__name__})"
+
+
+def _id_de_orden(e) -> str:
+    """Identificador determinista de la orden, derivado de la IDENTIDAD
+    de la señal (ticker + cuándo entró a la watchlist), no del reloj.
+
+    Es lo que hace que un reintento sea seguro: si el workflow muere
+    después de que Alpaca aceptó la orden pero antes de que se persista
+    la revisión, la corrida siguiente reconstruye exactamente el mismo
+    id y Alpaca rechaza el duplicado en vez de abrir una segunda
+    posición. Un id con timestamp no serviría -- sería distinto en cada
+    intento, que es precisamente lo que hay que evitar.
+
+    `creado_en` identifica la entrada de forma única (es lo que ya usa
+    `estado.ya_revisada`); se limpia de caracteres raros para que sea un
+    id válido."""
+    limpio = "".join(c if c.isalnum() else "-" for c in e.creado_en)
+    return f"momentum-{e.ticker}-{limpio}"
+
+
+def _activo_no_operable(client: AlpacaPaperClient, ticker: str) -> str | None:
+    """Motivo por el que NO se debe operar este símbolo, o `None` si se
+    puede.
+
+    Alpaca no expone un campo de "halted" intradía, así que `tradable`
+    es lo más cerca que se puede estar sin una fuente externa de halts.
+    No cubre un halt que empezó hace cinco minutos -- limitación real,
+    documentada, no resuelta.
+
+    FAIL-CLOSED: si la ficha del activo no se puede leer, no se opera.
+    Mismo criterio que el reloj y la cuenta."""
+    try:
+        activo = client.activo(ticker)
+    except Exception as ex:
+        return f"no se pudo verificar si el símbolo es operable ({type(ex).__name__})"
+    if activo.get("tradable") is not True:
+        return f"Alpaca marca el símbolo como no operable (status: {activo.get('status')})"
+    return None
+
+
+def _techo_de_acciones(cuenta: "_EstadoCuenta", cfg: PaperTraderConfig, entrada: float) -> int:
+    """Cuántas acciones caben, tomando el MENOR de los dos techos de
+    cartera: el de concentración y el del efectivo real.
+
+    - Concentración: contra el EQUITY (tamaño total de la cuenta), no
+      contra el efectivo que queda. Con el efectivo, cada posición nueva
+      se dimensionaría contra un número más chico que la anterior (15%,
+      luego 15% del 85% restante, luego 15% de eso...) y el tamaño de una
+      jugada dependería de en qué orden llegó la señal, no de su mérito.
+      Contra el equity la regla es una sola y estable.
+    - Efectivo: `cash` real, NUNCA `buying_power` -- el margen de Alpaca
+      no es capital nuestro y este sistema no opera apalancado.
+
+    Se aplica dos veces en `ejecutar`: una antes de consultar a la IA
+    (para no gastar la llamada en algo que no se podría operar) y otra
+    después, sobre la cantidad que la IA pidió. Es idempotente, así que
+    calcularlo dos veces no cambia nada."""
+    if entrada <= 0:
+        return 0
+    por_concentracion = (cuenta.equity * cfg.maximo_pct_efectivo_por_posicion) // entrada
+    por_efectivo = cuenta.efectivo // entrada
+    return max(0, int(min(por_concentracion, por_efectivo)))
 
 
 def _mensaje_confirmacion(orden: OrdenBracket, decision: ia_decision.DecisionIA) -> str:
@@ -257,36 +349,26 @@ def ejecutar(
                 "%s: la cuenta ya está en el máximo de %d posiciones simultáneas -- se omite",
                 e.ticker, cfg.maximo_posiciones_abiertas)
             continue
-        # Techo de concentración ANTES del de efectivo: sin él, una
-        # acción cara se come la cuenta entera y `maximo_posiciones_
-        # abiertas` deja de significar nada (ver config).
-        #
-        # Se mide contra el EQUITY (tamaño total de la cuenta), no contra
-        # el efectivo que queda: con el efectivo, cada posición nueva se
-        # dimensionaría contra un número más chico que la anterior (35%,
-        # luego 35% del 65% restante, luego 35% de eso...) y el tamaño de
-        # una jugada dependería de en qué orden llegó la señal, no de su
-        # mérito. Contra el equity la regla es una sola y estable:
-        # ninguna posición pasa del 35% de la cuenta.
-        tope = cuenta.equity * cfg.maximo_pct_efectivo_por_posicion
-        if cantidad * e.ultima_entrada > tope:
-            cantidad = int(tope // e.ultima_entrada)
-            if cantidad < cfg.minimo_acciones:
-                log.info(
-                    "%s: a $%.2f, ni 1 acción cabe en el %.0f%% de la cuenta -- se omite",
-                    e.ticker, e.ultima_entrada, cfg.maximo_pct_efectivo_por_posicion * 100)
-                continue
+        # Techo de GRANULARIDAD (2026-08-25). Si el tope de
+        # concentración no da para al menos `minimo_acciones_para_operar`
+        # acciones, la señal no se puede dimensionar: la fracción más
+        # chica que la IA puede pedir redondearía a cero y su decisión
+        # dejaría de ser expresable (ver config). Se descarta ACÁ, antes
+        # de gastar una llamada a la IA en algo que no se podría operar.
+        techo = _techo_de_acciones(cuenta, cfg, e.ultima_entrada)
+        if techo < cfg.minimo_acciones_para_operar:
             log.info(
-                "%s: cantidad reducida a %d por el tope de concentración", e.ticker, cantidad)
+                "%s: a $%.2f la cuenta solo da para %d acción(es) (mínimo %d) -- "
+                "esta señal no se puede dimensionar, se omite",
+                e.ticker, e.ultima_entrada, techo, cfg.minimo_acciones_para_operar)
+            continue
 
-        if cantidad * e.ultima_entrada > cuenta.efectivo:
-            # Se reduce al efectivo real disponible (nunca margen) -- si
-            # ni eso alcanza para 1 acción, se omite.
-            cantidad = int(cuenta.efectivo // e.ultima_entrada)
-            if cantidad < cfg.minimo_acciones:
-                log.info("%s: el efectivo disponible no alcanza ni para 1 acción -- se omite", e.ticker)
-                continue
-            log.info("%s: cantidad reducida a %d por efectivo disponible", e.ticker, cantidad)
+        no_operable = _activo_no_operable(client, e.ticker)
+        if no_operable is not None:
+            # No se registra revisión: el símbolo puede volver a ser
+            # operable en la corrida siguiente (un halt se levanta).
+            log.info("%s: %s -- se omite", e.ticker, no_operable)
+            continue
 
         decision = ia_decision.decidir(e, cuenta.contexto_para_ia())
         timestamp = ahora.isoformat(timespec="seconds")
@@ -314,9 +396,22 @@ def ejecutar(
             estado.guardar(revisiones_previas)
             continue
 
-        # Convicción parcial = riesgo parcial: la fracción de la IA solo
-        # puede REDUCIR la cantidad (ya viene recortada a [0.25, 1.0]).
+        # ORDEN DE LAS OPERACIONES (corregido el 2026-08-25 -- costó un
+        # trade real). La fracción de la IA se aplica al tamaño POR
+        # RIESGO, y recién después muerden los topes de cartera.
+        #
+        # Antes era al revés: los topes recortaban primero y la fracción
+        # reducía un número que ya estaba en el mínimo. Con LLY el tope
+        # dejó 1 acción, la IA pidió la mitad, 1 x 0,5 = 0, y no se operó
+        # pese a un "sí" explícito con confianza 7. Se recortaba dos
+        # veces por lo mismo, porque la IA ya razona sobre la
+        # concentración (ve el estado de la cuenta en su contexto).
+        #
+        # La separación correcta: la IA decide la INTENCIÓN ("media
+        # posición"), los topes imponen la REALIDAD (cuánto cabe). Cada
+        # uno una vez.
         cantidad = int(cantidad * decision.fraccion)
+        cantidad = min(cantidad, _techo_de_acciones(cuenta, cfg, e.ultima_entrada))
         if cantidad < cfg.minimo_acciones:
             log.info(
                 "%s: la fracción %.0f%% pedida por la IA no alcanza para 1 acción -- no se opera",
@@ -334,9 +429,12 @@ def ejecutar(
 
         try:
             orden = client.colocar_orden_bracket(
-                e.ticker, cantidad, e.ultima_entrada, e.ultimo_stop, e.ultimo_objetivo)
+                e.ticker, cantidad, e.ultima_entrada, e.ultimo_stop, e.ultimo_objetivo,
+                client_order_id=_id_de_orden(e))
         except Exception as ex:
-            log.warning("%s: la IA aprobó pero falló colocar la orden paper: %s", e.ticker, ex)
+            log.warning(
+                "%s: la IA aprobó pero falló colocar la orden paper: %s",
+                e.ticker, _detalle_de_rechazo(ex))
             # No se registra como revisada -- un fallo de RED/API de
             # Alpaca no es un "no" de la IA, así que la próxima corrida
             # debe poder reintentarlo con la misma entrada TRIGGERED.

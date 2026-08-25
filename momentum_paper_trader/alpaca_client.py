@@ -89,6 +89,17 @@ class AlpacaPaperClient:
         r.raise_for_status()
         return r.json()
 
+    def activo(self, ticker: str) -> dict:
+        """Ficha del instrumento (`GET /v2/assets/{symbol}`) -- solo
+        lectura. Interesa `tradable`: Alpaca no expone un campo de
+        "halted" intradía, así que esto es lo más cerca que se puede
+        estar de "¿se puede operar este símbolo ahora?" sin una fuente
+        externa de halts. Ver `executor._activo_no_operable`."""
+        r = requests.get(
+            f"{_BASE_URL}/assets/{ticker}", headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        return r.json()
+
     def estado_orden(self, order_id: str) -> dict:
         """Estado actual de una orden y sus patas OCO (`GET /v2/orders/
         {id}?nested=true`) -- solo lectura. `nested=true` trae las dos
@@ -192,6 +203,7 @@ class AlpacaPaperClient:
 
     def colocar_orden_bracket(
         self, ticker: str, cantidad: int, entrada: float, stop: float, objetivo: float,
+        client_order_id: str | None = None,
     ) -> OrdenBracket:
         """Compra `cantidad` acciones de `ticker` con una orden LIMIT en
         `entrada` (nunca persigue el precio de mercado -- el mismo
@@ -218,9 +230,23 @@ class AlpacaPaperClient:
             "limit_price": self._precio(entrada),
             "time_in_force": "day",
             "order_class": "bracket",
+            # Explícito aunque sea el default: un bracket NO puede
+            # operar en extended hours, y dejarlo implícito invita a que
+            # alguien lo ponga en `true` alguna vez y se lleve un rechazo
+            # incomprensible.
+            "extended_hours": False,
             "take_profit": {"limit_price": self._precio(objetivo)},
             "stop_loss": {"stop_price": self._precio(stop)},
         }
+        # IDEMPOTENCIA (2026-08-25). El ejecutor corre dentro de un
+        # workflow que puede morir y reintentarse, y un `POST` que sufre
+        # un timeout de red puede haber llegado igual. Sin esto, el
+        # reintento coloca una SEGUNDA orden sobre el mismo ticker --
+        # justo lo que los guardarraíles de cartera existen para
+        # impedir, por un camino que no ven. Con un id derivado de la
+        # señal, Alpaca rechaza el duplicado en vez de ejecutarlo.
+        if client_order_id:
+            payload["client_order_id"] = client_order_id[:128]
         r = requests.post(
             f"{_BASE_URL}/orders", json=payload, headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
