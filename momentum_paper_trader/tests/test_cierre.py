@@ -12,6 +12,11 @@ from momentum_paper_trader import cierre, ia_decision
 from momentum_paper_trader.config import PaperTraderConfig
 
 CFG = PaperTraderConfig()
+# Aguantar hasta mañana está apagado por defecto desde el 2026-08-25
+# (ver `config.permitir_aguantar_overnight`). Los tests que cubren esa
+# lógica la encienden explícitamente con esta config.
+_CFG_CON_OVERNIGHT = PaperTraderConfig(permitir_aguantar_overnight=True)
+_CFG_SIN_OVERNIGHT = PaperTraderConfig(permitir_aguantar_overnight=False)
 
 
 def _t(hora: int, minuto: int = 0) -> datetime:
@@ -195,10 +200,12 @@ def test_mensaje_muestra_razonamiento_y_stop_de_las_aguantadas():
 # eliminar. De ahí la condición innegociable.
 
 def test_si_la_ia_aguanta_se_pone_stop_protector_y_no_se_cierra(monkeypatch):
+    # Con el flag ENCENDIDO: este test cubre la lógica de aguantar, que
+    # sigue entera aunque hoy esté apagada por defecto (2026-08-25).
     enviados = _parchear(monkeypatch, cerrar=False, razon="el catalizador sigue vivo")
     client = _FakeClient([_POSICION])
 
-    cerradas = cierre.cerrar_si_toca(client, CFG, _t(19, 50))
+    cerradas = cierre.cerrar_si_toca(client, _CFG_CON_OVERNIGHT, _t(19, 50))
 
     assert cerradas == []            # no se cerró
     assert client.cerradas == []
@@ -250,7 +257,7 @@ def test_decide_una_por_una_no_todo_o_nada(monkeypatch):
         {"symbol": "BUENA", "qty": "20", "current_price": "9.00", "unrealized_pl": "50"},
     ])
 
-    cerradas = cierre.cerrar_si_toca(client, CFG, _t(19, 50))
+    cerradas = cierre.cerrar_si_toca(client, _CFG_CON_OVERNIGHT, _t(19, 50))
 
     assert client.cerradas == ["MALA"]
     assert [s[0] for s in client.stops] == ["BUENA"]
@@ -276,3 +283,48 @@ def test_contexto_incluye_resultado_abierto_y_clima():
     assert "RKLB" in ctx
     assert "+$123.45" in ctx
     assert "debil" in ctx
+
+
+# ------------------------- aguantar desactivado (2026-08-25) -------------------------
+# Decisión del usuario: liquidar todo al cierre hasta tener ~50
+# operaciones con las que juzgar si aguantar aporta algo. La lógica de
+# IA no se borró, se apagó -- ver `config.permitir_aguantar_overnight`.
+
+_EN_VENTANA = _t(19, 55)
+
+
+def test_con_aguantar_desactivado_se_cierra_todo(monkeypatch):
+    # Aunque la IA quisiera aguantar, no se le pregunta siquiera.
+    consultas: list[str] = []
+    enviados = _parchear(monkeypatch, cerrar=False, razon="el catalizador sigue vivo")
+    real = cierre.ia_decision.decidir_cierre
+    monkeypatch.setattr(
+        cierre.ia_decision, "decidir_cierre",
+        lambda ctx: (consultas.append(ctx), real(ctx))[1])
+    client = _FakeClient(posiciones=[dict(_POSICION)])
+
+    cerradas = cierre.cerrar_si_toca(client, _CFG_SIN_OVERNIGHT, _EN_VENTANA)
+
+    assert [c.get("symbol") for c in cerradas] == ["RKLB"]
+    assert client.cerradas == ["RKLB"]
+    assert client.stops == [], "no debe quedar ninguna posición viva de un día para otro"
+    assert consultas == [], "no se gasta una llamada a la IA si su respuesta no se puede acatar"
+    assert "desactivado" in enviados[0]
+
+
+def test_con_aguantar_activado_la_ia_vuelve_a_mandar(monkeypatch):
+    # El flag apaga la función, no la borra: encendido, todo el camino
+    # de decisión con IA sigue funcionando igual que antes.
+    _parchear(monkeypatch, cerrar=False, razon="el catalizador sigue vivo")
+    client = _FakeClient(posiciones=[dict(_POSICION)])
+
+    cerradas = cierre.cerrar_si_toca(client, _CFG_CON_OVERNIGHT, _EN_VENTANA)
+
+    assert cerradas == []
+    assert client.stops != []   # aguantó, con su stop protector
+
+
+def test_el_default_de_la_config_es_no_aguantar():
+    # Que nadie encienda esto sin querer: el default del sistema es la
+    # decisión del usuario, no la de quien construya un PaperTraderConfig.
+    assert PaperTraderConfig().permitir_aguantar_overnight is False

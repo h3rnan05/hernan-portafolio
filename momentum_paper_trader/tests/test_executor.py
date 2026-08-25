@@ -32,8 +32,14 @@ class _FakeAlpacaClient:
         posiciones: list[dict] | None = None, ordenes: list[dict] | None = None,
         cuenta_rota: bool = False, equity: float | None = None,
         mercado_abierto: bool = True, reloj_roto: bool = False,
+        activo_operable: bool = True, activo_roto: bool = False,
     ) -> None:
         self.ordenes_colocadas: list[tuple] = []
+        self.ids_de_orden: list[str | None] = []
+        # Por defecto el símbolo es operable: casi todos los tests son
+        # sobre qué se decide con un ticker normal.
+        self._activo_operable = activo_operable
+        self._activo_roto = activo_roto
         # Por defecto el mercado está abierto: casi todos los tests son
         # sobre qué se decide DENTRO de sesión.
         self._mercado_abierto = mercado_abierto
@@ -60,16 +66,23 @@ class _FakeAlpacaClient:
             raise RuntimeError("Alpaca caído")
         return {"is_open": self._mercado_abierto}
 
+    def activo(self, ticker: str) -> dict:
+        if self._activo_roto:
+            raise RuntimeError("Alpaca caído")
+        return {"symbol": ticker, "tradable": self._activo_operable, "status": "active"}
+
     def posiciones(self) -> list[dict]:
         return self._posiciones
 
     def ordenes_abiertas(self) -> list[dict]:
         return self._ordenes
 
-    def colocar_orden_bracket(self, ticker, cantidad, entrada, stop, objetivo):
+    def colocar_orden_bracket(self, ticker, cantidad, entrada, stop, objetivo,
+                              client_order_id=None):
         if ticker in self._falla_para:
             raise RuntimeError(f"{ticker}: símbolo no soportado")
         self.ordenes_colocadas.append((ticker, cantidad, entrada, stop, objetivo))
+        self.ids_de_orden.append(client_order_id)
         from momentum_paper_trader.alpaca_client import OrdenBracket
         return OrdenBracket(
             order_id=f"orden-{ticker}", ticker=ticker, cantidad=cantidad,
@@ -126,12 +139,12 @@ def _parchear(monkeypatch, tmp_path, entradas_watchlist, revisiones_previas=None
 
 
 def test_coloca_orden_para_triggered_nueva_cuando_la_ia_aprueba(monkeypatch, tmp_path):
-    # $20.000 para que el tope de concentración no sea lo que manda acá:
+    # $40.000 para que el tope de concentración no sea lo que manda acá:
     # este test es sobre el sizing por riesgo (65 acciones = $5.097, el
-    # 25% de la cuenta), no sobre el techo.
+    # 13% de la cuenta -- por debajo del tope del 15%), no sobre el techo.
     e = _entrada_triggered()
     wl_path, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
-    client = _FakeAlpacaClient(cash=20_000.0)
+    client = _FakeAlpacaClient(cash=40_000.0)
 
     nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
@@ -376,7 +389,7 @@ def test_fallo_de_alpaca_en_un_ticker_no_tumba_el_resto(monkeypatch, tmp_path):
     e_falla = _entrada_triggered("ROTO")
     e_ok = _entrada_triggered("OK")
     _parchear(monkeypatch, tmp_path, [e_falla, e_ok])
-    client = _FakeAlpacaClient(cash=20_000.0, falla_para={"ROTO"})
+    client = _FakeAlpacaClient(cash=40_000.0, falla_para={"ROTO"})
 
     nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
@@ -544,18 +557,63 @@ def test_un_no_real_de_la_ia_si_quema_la_senal(monkeypatch, tmp_path):
 # el 99,6% de la cuenta en UNA posición: el riesgo por trade seguía bien,
 # pero quedaba cero capital para el resto del día.
 
-def test_una_accion_cara_no_se_come_toda_la_cuenta(monkeypatch, tmp_path):
+def test_una_accion_cara_se_descarta_en_una_cuenta_chica(monkeypatch, tmp_path):
+    # El caso LLY exacto del 2026-08-24. Antes: el tope dejaba 1 acción,
+    # la IA pedía la mitad, 1 x 0,5 = 0, y no se operaba pese a un "sí".
+    # Ahora se descarta ANTES de preguntarle a la IA: con $5.000 y un
+    # tope del 15% ($750), a $1.245 no cabe ni una acción, mucho menos
+    # las 4 que hacen falta para que la fracción sea expresable.
     e = _entrada_triggered(entrada=1245.05, stop=1237.63, objetivo=1259.88)
-    _parchear(monkeypatch, tmp_path, [e])
+    *_, contextos = _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=5000.0)
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert client.ordenes_colocadas == []
+    assert contextos == [], "no se gasta una llamada a la IA en algo que no se puede dimensionar"
+
+
+def test_la_misma_accion_cara_si_se_opera_en_una_cuenta_grande():
+    # El filtro es sobre la CUENTA, no sobre el precio: el mismo ticker
+    # que $5.000 no puede dimensionar, $100.000 sí (15% = $15.000 -> 12
+    # acciones, por encima del mínimo de 4).
+    cuenta = executor._EstadoCuenta(efectivo=100_000.0, equity=100_000.0,
+                                    tickers_comprometidos=set())
+    assert executor._techo_de_acciones(cuenta, CFG, 1245.05) == 12
+
+
+def test_el_techo_toma_el_menor_de_concentracion_y_efectivo():
+    # Equity alto pero casi sin liquidez: manda el efectivo.
+    cuenta = executor._EstadoCuenta(efectivo=500.0, equity=100_000.0,
+                                    tickers_comprometidos=set())
+    assert executor._techo_de_acciones(cuenta, CFG, 100.0) == 5   # 500/100, no 15.000/100
+
+
+def test_la_fraccion_de_la_ia_se_aplica_antes_de_los_topes(monkeypatch, tmp_path):
+    # EL BUG QUE COSTÓ UN TRADE. Sizing por riesgo = 65 acciones; la IA
+    # pide la mitad (32); el tope de concentración recorta a lo que
+    # quepa. Lo que NO puede pasar es que el tope recorte primero y la
+    # fracción convierta ese resultado en cero.
+    e = _entrada_triggered()
+    _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA_MITAD)
+    # 15% de $20.000 = $3.000 -> 38 acciones. La mitad de 65 son 32,
+    # que cabe: la orden debe salir por 32, no por 38 ni por 0.
+    client = _FakeAlpacaClient(cash=20_000.0)
 
     executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
-    assert client.ordenes_colocadas, "debería operar, solo que más chico"
-    cantidad = client.ordenes_colocadas[0][1]
-    costo = cantidad * 1245.05
-    assert costo <= 5000 * CFG.maximo_pct_efectivo_por_posicion
-    assert cantidad == 1   # 35% de $5.000 = $1.750 -> una sola acción
+    assert client.ordenes_colocadas[0][1] == 32
+
+
+def test_el_tope_sigue_mandando_si_la_fraccion_no_alcanza_a_recortarlo(monkeypatch, tmp_path):
+    # La otra mitad: la fracción reduce la intención, pero el tope de
+    # cartera sigue siendo un límite duro por encima de ella.
+    e = _entrada_triggered()
+    _parchear(monkeypatch, tmp_path, [e])   # fracción 1.0
+    client = _FakeAlpacaClient(cash=20_000.0)   # tope 15% -> 38 acciones
+
+    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+
+    assert client.ordenes_colocadas[0][1] == 38   # no 65
 
 
 def test_si_ni_una_accion_cabe_en_el_tope_se_omite(monkeypatch, tmp_path):
@@ -626,3 +684,83 @@ def test_el_dry_run_no_consulta_el_reloj(monkeypatch, tmp_path):
 
     assert executor.ejecutar(client, CFG, dry_run=True, ahora=AHORA) == []
     assert client.ordenes_colocadas == []
+
+
+# ------------------------- símbolo operable e idempotencia (2026-08-25) -------------------------
+
+def test_un_simbolo_no_operable_no_se_opera(monkeypatch, tmp_path):
+    e = _entrada_triggered()
+    _, rev_path, _, contextos = _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=40_000.0, activo_operable=False)
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert client.ordenes_colocadas == []
+    assert contextos == []                  # ni se le pregunta a la IA
+    assert estado.cargar(rev_path) == []    # un halt se levanta: no quema la señal
+
+
+def test_ficha_de_activo_ilegible_es_fail_closed(monkeypatch, tmp_path):
+    e = _entrada_triggered()
+    _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=40_000.0, activo_roto=True)
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert client.ordenes_colocadas == []
+
+
+def test_cada_orden_lleva_un_id_derivado_de_la_senal(monkeypatch, tmp_path):
+    e = _entrada_triggered()
+    _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=40_000.0)
+
+    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+
+    assert client.ids_de_orden == [executor._id_de_orden(e)]
+    assert "RKLB" in client.ids_de_orden[0]
+
+
+def test_el_id_es_estable_entre_corridas_no_depende_del_reloj():
+    # ESTO es lo que hace seguro un reintento: si el workflow muere
+    # después de que Alpaca aceptó la orden, la corrida siguiente
+    # reconstruye el MISMO id y Alpaca rechaza el duplicado. Un id con
+    # timestamp sería distinto en cada intento y duplicaría la posición.
+    e = _entrada_triggered()
+    assert executor._id_de_orden(e) == executor._id_de_orden(e)
+
+    otra_hora = _entrada_triggered(ahora=AHORA.replace(hour=18))
+    assert executor._id_de_orden(otra_hora) != executor._id_de_orden(e)   # otra señal, otro id
+
+
+def test_el_id_no_lleva_caracteres_invalidos():
+    # `creado_en` es un ISO con ':' y '+'; el id tiene que sobrevivir a
+    # eso sin que Alpaca lo rechace.
+    ident = executor._id_de_orden(_entrada_triggered())
+    assert all(c.isalnum() or c == "-" for c in ident), ident
+    assert len(ident) <= 128
+
+
+def test_el_rechazo_de_alpaca_se_loguea_con_su_motivo():
+    # Sin esto, "sin efectivo", "wash trade" y "precio mal formateado"
+    # se ven idénticos en el log y el reporte semanal no puede separarlos.
+    class _Resp:
+        status_code = 403
+        def json(self): return {"code": 40310000, "message": "insufficient buying power"}
+
+    ex = RuntimeError("boom")
+    ex.response = _Resp()
+    detalle = executor._detalle_de_rechazo(ex)
+    assert "403" in detalle and "40310000" in detalle and "insufficient buying power" in detalle
+
+
+def test_un_error_sin_respuesta_http_no_rompe_el_log():
+    assert executor._detalle_de_rechazo(TimeoutError()) == "TimeoutError"
+
+
+def test_un_cuerpo_ilegible_no_rompe_el_log():
+    class _Resp:
+        status_code = 500
+        def json(self): raise ValueError("no es json")
+
+    ex = RuntimeError("boom")
+    ex.response = _Resp()
+    assert "500" in executor._detalle_de_rechazo(ex)

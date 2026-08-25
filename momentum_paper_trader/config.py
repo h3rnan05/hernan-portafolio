@@ -66,23 +66,52 @@ class PaperTraderConfig:
     # que es justo cuando más ruido hay. No protege contra un hueco (ver
     # `alpaca_client.colocar_stop_protector`).
     colchon_stop_nocturno: float = 0.03
+    # ¿Se le permite a la IA aguantar una posición hasta mañana?
+    #
+    # DESACTIVADO por decisión del usuario (2026-08-25). El razonamiento
+    # de la IA para aguantar no se puede evaluar sin historial: no hay
+    # forma de saber si "el catalizador sigue vivo" es criterio o es
+    # esperanza. Y un stop no protege contra un hueco de apertura, así
+    # que el costo de equivocarse no está acotado por la protección que
+    # se le pone.
+    #
+    # La lógica de decisión NO se borró (sigue entera en `cierre.py`):
+    # está detrás de este flag para poder reactivarla cuando haya ~50
+    # operaciones cerradas con las que juzgar si aguantar aporta algo.
+    # Hasta entonces se liquida todo antes del cierre, sin excepción.
+    permitir_aguantar_overnight: bool = False
     # Techo de CONCENTRACIÓN por posición, medido contra el equity total
     # de la cuenta (no contra el efectivo restante -- ver el comentario
     # en `executor.ejecutar`). Sin esto, una acción cara consume la
     # cuenta entera: medido el 2026-08-24 con LLY a $1.245, el recorte
     # por efectivo dejaba 4 acciones = $4.980, el 99,6% de una cuenta de
-    # $5.000 en UNA sola posición. El riesgo por trade seguía siendo
-    # correcto ($30), pero quedaba cero capital para cualquier otra
-    # señal del día -- y `maximo_posiciones_abiertas: 5` se volvía papel
-    # mojado. Con 35%, tres jugadas del tamaño máximo agotan la cuenta:
-    # el mínimo de diversificación que hace que el resto de los límites
-    # signifiquen algo.
+    # $5.000 en UNA sola posición.
     #
-    # PROVISIONAL: elegido por razonamiento, no por datos -- este bot
-    # todavía no tiene un historial de trades con el que calibrarlo.
-    # Revisar cuando el reporte semanal tenga varias semanas de
-    # operaciones reales.
-    maximo_pct_efectivo_por_posicion: float = 0.35
+    # 2026-08-25: bajado de 0.35 a 0.15. Con 35% sobre $5.000, tres
+    # ideas agotaban la cuenta y la primera señal del día se llevaba un
+    # tercio del capital antes de saber si era la mejor del día. 15%
+    # deja sitio para seis o siete jugadas.
+    #
+    # CONSECUENCIA HONESTA, no un bug: en una cuenta chica este tope
+    # MANDA sobre `riesgo_dolares_por_operacion`, no al revés. $100 de
+    # riesgo sobre una posición de $750 exigiría un stop del 13%, y los
+    # stops de momentum son del 2-5%. O sea que el riesgo real por
+    # operación va a rondar los $15-35, no los $100. Ese número es un
+    # TECHO, no una meta -- ver `executor._tamano_posicion`.
+    maximo_pct_efectivo_por_posicion: float = 0.15
+    # Mínimo de acciones que el tope de concentración debe permitir para
+    # que valga la pena operar la señal.
+    #
+    # POR QUÉ 4, y no un precio máximo fijo: la IA puede pedir tan poco
+    # como el 25% del tamaño (ver `DecisionIA.fraccion`). Con menos de 4
+    # acciones, esa fracción mínima redondea a CERO y la decisión de la
+    # IA deja de ser expresable -- que es exactamente lo que pasó con
+    # LLY el 2026-08-24: el tope dejaba 1 acción, la IA pidió la mitad,
+    # y 1 x 0,5 = 0. No se operó pese a un "sí" explícito.
+    #
+    # Derivarlo de la cuenta en vez de hardcodear "nada por encima de
+    # $150" hace que el filtro se ajuste solo cuando el capital cambie.
+    minimo_acciones_para_operar: int = 4
 
     def validar(self) -> None:
         if self.riesgo_dolares_por_operacion <= 0:
@@ -101,6 +130,8 @@ class PaperTraderConfig:
             raise ValueError("colchon_stop_nocturno debe estar entre 0 y 1 (fracción)")
         if not 0 < self.maximo_pct_efectivo_por_posicion <= 1:
             raise ValueError("maximo_pct_efectivo_por_posicion debe estar entre 0 y 1 (fracción)")
+        if self.minimo_acciones_para_operar < self.minimo_acciones:
+            raise ValueError("minimo_acciones_para_operar no puede ser menor que minimo_acciones")
 
 
 CONFIG = PaperTraderConfig()
