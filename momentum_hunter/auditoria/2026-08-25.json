@@ -4252,6 +4252,363 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-25T20:23:08+00:00",
+      "candidatos_evaluados": 5,
+      "candidatos": [
+        {
+          "ticker": "JNJ",
+          "nombre": "Johnson & Johnson",
+          "precio_actual": 273.14,
+          "factores_intradia": {
+            "precio_actual": 273.14,
+            "vwap": 272.97013991666546,
+            "ema9": 273.1624007063882,
+            "rvol_actual": 14.443946042050664,
+            "aceleracion_volumen": 9.180521601742232,
+            "gap_pct": -0.007616766788272836,
+            "maximo_dia": 273.8020935058594,
+            "maximo_premarket": 273.04,
+            "rango_apertura_max": 271.82000732421875,
+            "rango_apertura_min": 270.32000732421875,
+            "velas_desde_ruptura": 342,
+            "macd": 0.040729932558349446,
+            "macd_signal": 0.016017554763682634
+          },
+          "meta": {
+            "float_acciones": 2405994561.0,
+            "short_pct_float": 0.0117,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "J&J's Imaavy Gets FDA Approval as the First Treatment for wAIHA",
+            "fuente": "Zacks",
+            "fecha": "2026-08-25T16:10:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 253.14015018333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.8,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 342 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.58185374924744,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 342 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 71.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 342 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "PM",
+          "nombre": "Philip Morris International Inc.",
+          "precio_actual": 193.92,
+          "factores_intradia": {
+            "precio_actual": 193.92,
+            "vwap": 192.71724277634948,
+            "ema9": 193.89518077452084,
+            "rvol_actual": 10.055713032572369,
+            "aceleracion_volumen": 6.614188817598534,
+            "gap_pct": -0.003133682037344386,
+            "maximo_dia": 194.7502,
+            "maximo_premarket": 193.47,
+            "rango_apertura_max": 192.1696014404297,
+            "rango_apertura_min": 190.5200958251953,
+            "velas_desde_ruptura": 268,
+            "macd": 0.05368152885560562,
+            "macd_signal": 0.038301612071635203
+          },
+          "meta": {
+            "float_acciones": 1554701319.0,
+            "short_pct_float": 0.0104,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Should Strong Q2 Results And New FDA-Authorized ZYN ULTRA Pouches Require Action From Philip Morris (PM) Investors?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-23T01:09:35Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4033.5568589166664,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.6,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 268 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 95.73710322248697,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 268 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 65.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 268 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "FLEX",
+          "nombre": "Flex Ltd.",
+          "precio_actual": 109.25,
+          "factores_intradia": {
+            "precio_actual": 109.25,
+            "vwap": 108.54340632367303,
+            "ema9": 109.25468222734665,
+            "rvol_actual": 10.842072569152629,
+            "aceleracion_volumen": 7.066546762589928,
+            "gap_pct": 0.03619995038711147,
+            "maximo_dia": 111.0325,
+            "maximo_premarket": 111.0325,
+            "rango_apertura_max": 110.93000030517578,
+            "rango_apertura_min": 109.56999969482422,
+            "velas_desde_ruptura": null,
+            "macd": 0.1587726103306153,
+            "macd_signal": 0.1824613367209805
+          },
+          "meta": {
+            "float_acciones": 366613986.0,
+            "short_pct_float": 0.028399998,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Electronic Components & Manufacturing Stocks Q2 Results: Benchmarking Flex (NASDAQ:FLEX)",
+            "fuente": "StockStory",
+            "fecha": "2026-08-25T18:06:44Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 136.406899,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 80.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 26.420061212121205,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 83.94614189539095,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [],
+            "score_base": 61.5,
+            "score_ajustado": 61.5,
+            "riesgo_definido": true,
+            "accionable": true
+          },
+          "decision": "alertada",
+          "motivos": [
+            "Sobrevivió las 5 preguntas del evaluador, el debate del abogado del diablo y la última pregunta.",
+            "Queda menos de una hora de mercado -- la idea tiene poco tiempo para trabajar hoy.",
+            "La noticia ya tiene más de dos horas. La reacción más fuerte suele darse al principio -- puede que lo mejor del movimiento ya haya pasado."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "ROST",
+          "nombre": "Ross Stores, Inc.",
+          "precio_actual": 241.19,
+          "factores_intradia": {
+            "precio_actual": 241.19,
+            "vwap": 240.14419339315336,
+            "ema9": 241.29643783127364,
+            "rvol_actual": 12.39822206429241,
+            "aceleracion_volumen": 9.656272280385757,
+            "gap_pct": -0.00016560366928700828,
+            "maximo_dia": 251.3888,
+            "maximo_premarket": 251.3888,
+            "rango_apertura_max": 241.5,
+            "rango_apertura_min": 238.5500030517578,
+            "velas_desde_ruptura": null,
+            "macd": -0.06757666586597111,
+            "macd_signal": -0.06236376093137635
+          },
+          "meta": {
+            "float_acciones": 310018036.0,
+            "short_pct_float": 0.0353,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Ross Stores raises forecast after surge in Q2 sales and store openings",
+            "fuente": "Just Style",
+            "fecha": "2026-08-24T10:49:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2014.1236104666668,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 71.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 59.43017350017177,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BABA",
+          "nombre": "Alibaba Group Holding Limited",
+          "precio_actual": 119.31,
+          "factores_intradia": {
+            "precio_actual": 119.31,
+            "vwap": 118.48240033230465,
+            "ema9": 119.2752249785535,
+            "rvol_actual": 118.81200593075157,
+            "aceleracion_volumen": 23.76240118615031,
+            "gap_pct": -0.004473696073569851,
+            "maximo_dia": 121.45,
+            "maximo_premarket": 121.45,
+            "rango_apertura_max": 118.48999786376953,
+            "rango_apertura_min": 117.38999938964844,
+            "velas_desde_ruptura": 209,
+            "macd": 0.09570621392722956,
+            "macd_signal": 0.07060592639810645
+          },
+          "meta": {
+            "float_acciones": 2209759528.0,
+            "short_pct_float": 0.0178,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "insider_buying",
+            "titular": "Alibaba Insider Buying Grows: Jack Ma Reportedly Bets $77M After $10.2B Share Sale",
+            "fuente": "Stocktwits",
+            "fecha": "2026-08-25T11:57:59Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 505.15701781666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 63.2,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 209 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 82.37958007410451,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 209 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 59.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 209 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        }
+      ]
     }
   ]
 }
