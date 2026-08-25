@@ -57,6 +57,82 @@ from momentum_hunter.watchlist import EntradaWatchlist
 
 log = logging.getLogger("momentum_paper_trader.ia_decision")
 
+# Cuántos caracteres sobrantes se toleran al reparar el JSON del modelo.
+# Bajo a propósito: si hacen falta más de unos pocos, la respuesta no es
+# "casi válida con un typo", es otra cosa -- y ahí lo correcto es fallar.
+_MAX_REPARACIONES_JSON = 5
+_SEPARADORES_SOBRANTES = ";,"
+
+
+def _cargar_json_del_modelo(crudo: str) -> object:
+    """`json.loads`, pero tolerando separadores sobrantes que el modelo
+    escribe de vez en cuando fuera de las cadenas.
+
+    CASO REAL (2026-08-24, LLY -- la primera vez que el pipeline entero
+    llegó hasta la IA en producción). El modelo devolvió un veredicto
+    perfectamente formado salvo por un punto y coma de más:
+
+        {"entrar": true, "confianza": 7, "razonamiento": "...";}
+                                                            ^^
+
+    `json.loads` lo rechaza entero, el executor lo trata como fallo
+    técnico y no se opera. La IA había dicho que SÍ. Perder una decisión
+    real por un carácter es el peor tipo de fallo: caro e invisible.
+
+    POR QUÉ ES SEGURO. No se usa una expresión regular sobre el texto
+    (eso sí podría corromper el contenido de un `razonamiento` que
+    contenga `; }`). Se deja que el propio parser señale el carácter
+    exacto donde se atragantó: `JSONDecodeError.pos` solo apunta a
+    posiciones ESTRUCTURALES, nunca al interior de una cadena ya cerrada.
+    Si -- y solo si -- lo que hay ahí es un separador de más, se borra ese
+    carácter y se reintenta. Cualquier otro error se propaga sin tocar
+    nada: esto repara puntuación, nunca inventa contenido.
+
+    LÍMITE DELIBERADO: solo se BORRAN separadores SOBRANTES. Un `;`
+    usado EN LUGAR de una coma (`{"a": 1; "b": 2}`) no se arregla, porque
+    arreglarlo exigiría INSERTAR el separador que falta -- reconstruir la
+    estructura a partir de lo que uno supone que el modelo quiso decir.
+    Eso ya es adivinar. Ese caso cae al camino de fallo técnico, que no
+    quema la señal y reintenta en la corrida siguiente.
+
+    Devuelve lo que `json.loads` devolvería; lanza `json.JSONDecodeError`
+    si el texto no se puede recuperar así."""
+    texto = crudo
+    for intento in range(_MAX_REPARACIONES_JSON + 1):
+        try:
+            valor = json.loads(texto)
+        except json.JSONDecodeError as ex:
+            if intento == _MAX_REPARACIONES_JSON:
+                raise
+            corte = _posicion_de_separador_sobrante(texto, ex.pos)
+            if corte is None:
+                raise
+            texto = texto[:corte] + texto[corte + 1:]
+            continue
+        if texto is not crudo:
+            log.info("JSON del modelo reparado (%d carácter(es) sobrante(s))",
+                     len(crudo) - len(texto))
+        return valor
+    raise AssertionError("inalcanzable")   # pragma: no cover
+
+
+def _posicion_de_separador_sobrante(texto: str, pos: int) -> int | None:
+    """Índice del separador de más que hizo fallar al parser en `pos`, o
+    `None` si lo que falló no es eso (y entonces no se toca nada).
+
+    Dos formas de escribirlo de más, las dos vistas en modelos:
+      - `..."x";}`  -- el parser se planta EN el `;` (esperaba `,` o `}`),
+      - `...,}`     -- el parser se planta en el `}` y el sobrante es la
+        coma anterior."""
+    if 0 <= pos < len(texto) and texto[pos] in _SEPARADORES_SOBRANTES:
+        return pos
+    i = min(pos, len(texto)) - 1
+    while i >= 0 and texto[i].isspace():
+        i -= 1
+    if i >= 0 and texto[i] in _SEPARADORES_SOBRANTES:
+        return i
+    return None
+
 MODEL = "claude-sonnet-5"
 
 FRACCION_MINIMA = 0.25   # por debajo de esto, la convicción es tan baja que lo honesto es no entrar
@@ -250,7 +326,7 @@ def decidir_cierre(contexto: str) -> DecisionCierre:
     if crudo.startswith("```"):
         crudo = crudo.strip("`").removeprefix("json").strip()
     try:
-        v = json.loads(crudo)
+        v = _cargar_json_del_modelo(crudo)
         cerrar = bool(v["cerrar"])
         confianza = int(v["confianza"])
         razonamiento = str(v["razonamiento"])
@@ -449,7 +525,7 @@ def decidir(e: EntradaWatchlist, contexto_cuenta: str | None = None) -> Decision
     if crudo.startswith("```"):
         crudo = crudo.strip("`").removeprefix("json").strip()
     try:
-        v = json.loads(crudo)
+        v = _cargar_json_del_modelo(crudo)
     except json.JSONDecodeError:
         log.warning("%s: la IA no devolvió JSON válido: %r", e.ticker, crudo)
         return _DECISION_FALLBACK_ERROR

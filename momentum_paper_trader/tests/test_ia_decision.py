@@ -405,3 +405,93 @@ def test_decidir_cierre_tambien_reintenta_si_viene_vacio(monkeypatch):
 
     assert cliente.messages.llamadas == 2
     assert d.cerrar is True
+
+
+# ------------------------- JSON casi válido del modelo (2026-08-24) -------------------------
+# Caso REAL en producción: la primera vez que el pipeline entero llegó
+# hasta la IA, el veredicto vino perfecto salvo por un `;` de más antes
+# del `}`. La IA decía que SÍ y no se operó. Ver
+# `ia_decision._cargar_json_del_modelo`.
+
+_RESPUESTA_REAL_LLY = (
+    '{\n  "entrar": true,\n  "confianza": 7,\n  "fraccion": 0.5,\n'
+    '  "razonamiento": "Catalizador FDA real y concreto, y la lectura intradía '
+    'confirma momentum genuino: precio sobre VWAP, RVOL 3.09.";\n}'
+)
+
+
+def test_la_respuesta_real_que_se_perdio_hoy_ahora_se_parsea():
+    v = ia_decision._cargar_json_del_modelo(_RESPUESTA_REAL_LLY)
+    assert v["entrar"] is True
+    assert v["confianza"] == 7
+    assert v["fraccion"] == 0.5
+    assert "Catalizador FDA" in v["razonamiento"]
+
+
+def test_json_perfecto_pasa_intacto():
+    v = ia_decision._cargar_json_del_modelo('{"entrar": false, "confianza": 3}')
+    assert v == {"entrar": False, "confianza": 3}
+
+
+def test_coma_de_mas_antes_del_cierre():
+    assert ia_decision._cargar_json_del_modelo('{"a": 1, "b": 2,}') == {"a": 1, "b": 2}
+    assert ia_decision._cargar_json_del_modelo('{"a": [1, 2,]}') == {"a": [1, 2]}
+
+
+def test_un_separador_SUSTITUIDO_no_se_adivina():
+    # `{"a": 1; "b": 2}` es un `;` USADO COMO coma, no un `;` de más:
+    # arreglarlo exigiría INSERTAR una coma, o sea reconstruir la
+    # estructura a partir de lo que uno supone que el modelo quiso decir.
+    # Eso es adivinar, y acá no se adivina -- se borra puntuación
+    # sobrante y nada más. Cae al camino de fallo técnico, que reintenta.
+    try:
+        ia_decision._cargar_json_del_modelo('{"a": 1; "b": 2}')
+        assert False, "debía fallar"
+    except json.JSONDecodeError:
+        pass
+
+
+def test_un_punto_y_coma_DENTRO_de_una_cadena_no_se_toca():
+    # Lo que una regex ingenua habría roto: el contenido del razonamiento
+    # es del usuario final, no puede mutilarse nunca.
+    crudo = '{"razonamiento": "subió; luego cayó }", "confianza": 8}'
+    v = ia_decision._cargar_json_del_modelo(crudo)
+    assert v["razonamiento"] == "subió; luego cayó }"
+    assert v["confianza"] == 8
+
+
+def test_json_de_verdad_roto_sigue_fallando():
+    # Reparar puntuación no es adivinar contenido: si falta un valor o
+    # una llave, tiene que fallar y activar el camino de fallo técnico.
+    for roto in ('{"entrar": }', '{"entrar" true}', 'no soy json', '{"a": 1', ''):
+        try:
+            ia_decision._cargar_json_del_modelo(roto)
+            assert False, f"debía fallar: {roto!r}"
+        except json.JSONDecodeError:
+            pass
+
+
+def test_no_repara_indefinidamente():
+    # Un texto que solo empeora no debe colgar el proceso.
+    try:
+        ia_decision._cargar_json_del_modelo('{,,,,,,,,,,,,,,,,}')
+        assert False, "debía fallar"
+    except json.JSONDecodeError:
+        pass
+
+
+def test_decidir_opera_con_la_respuesta_casi_valida(monkeypatch):
+    # De punta a punta: el veredicto que hoy se perdió ahora llega entero
+    # al executor, con su fracción incluida.
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "clave-de-prueba")
+    monkeypatch.setattr(ia_decision, "_pedir_texto",
+                        lambda *a, **kw: _RESPUESTA_REAL_LLY)
+    monkeypatch.setattr(ia_decision, "Anthropic", lambda api_key: object())
+    monkeypatch.setattr(ia_decision, "construir_paquete_evidencia", lambda e, c=None: "x")
+
+    d = ia_decision.decidir(_entrada_triggered())
+
+    assert d.entrar is True
+    assert d.fallo_tecnico is False
+    assert d.confianza == 7
+    assert d.fraccion == 0.5
