@@ -1397,6 +1397,444 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-25T16:41:43+00:00",
+      "candidatos_evaluados": 6,
+      "candidatos": [
+        {
+          "ticker": "LODE",
+          "nombre": "Comstock Inc.",
+          "precio_actual": 3.565000057220459,
+          "factores_intradia": {
+            "precio_actual": 3.565000057220459,
+            "vwap": 3.5758647918347033,
+            "ema9": 3.56242355372211,
+            "rvol_actual": 0.5163945307314484,
+            "aceleracion_volumen": 1.2109603617983506,
+            "gap_pct": -0.007092225444273565,
+            "maximo_dia": 3.6600000858306885,
+            "maximo_premarket": 3.58,
+            "rango_apertura_max": 3.5,
+            "rango_apertura_min": 3.450000047683716,
+            "velas_desde_ruptura": 0,
+            "macd": -0.005772880241670553,
+            "macd_signal": -0.0064172536636397815
+          },
+          "meta": {
+            "float_acciones": 68911255.0,
+            "short_pct_float": 0.0926,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Mackay Gold Closes the Acquisition of Comstock's Mining Assets in Nevada",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-24T13:34:04Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1627.6549445333333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 71.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 71.09603617983507,
+                "extension": 100.0,
+                "distancia_maximo_dia": 74.04370863869315,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 62.9,
+            "score_ajustado": 27.9,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "PM",
+          "nombre": "Philip Morris International Inc.",
+          "precio_actual": 193.0449981689453,
+          "factores_intradia": {
+            "precio_actual": 193.0449981689453,
+            "vwap": 191.4718358917622,
+            "ema9": 193.00839124107003,
+            "rvol_actual": 0.9593502314996469,
+            "aceleracion_volumen": 1.2570961509882597,
+            "gap_pct": -0.003133682037344386,
+            "maximo_dia": 193.47,
+            "maximo_premarket": 193.47,
+            "rango_apertura_max": 192.1696014404297,
+            "rango_apertura_min": 190.5200958251953,
+            "velas_desde_ruptura": 5,
+            "macd": 0.11097702061331916,
+            "macd_signal": 0.07861385632293169
+          },
+          "meta": {
+            "float_acciones": 1554701319.0,
+            "short_pct_float": 0.0104,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Should Strong Q2 Results And New FDA-Authorized ZYN ULTRA Pouches Require Action From Philip Morris (PM) Investors?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-23T01:09:35Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3812.138301933333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 67.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 75.70961509882596,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.80326752956692,
+                "frescura_patron": 50.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 64.9,
+            "score_ajustado": 44.9,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "CAH",
+          "nombre": "Cardinal Health, Inc.",
+          "precio_actual": 234.5500030517578,
+          "factores_intradia": {
+            "precio_actual": 234.5500030517578,
+            "vwap": 233.84173368549958,
+            "ema9": 234.55764931566478,
+            "rvol_actual": 1.752720180661055,
+            "aceleracion_volumen": 1.0019780888618381,
+            "gap_pct": 0.0006455237394146091,
+            "maximo_dia": 236.0,
+            "maximo_premarket": 236.0,
+            "rango_apertura_max": 234.8800048828125,
+            "rango_apertura_min": 232.375,
+            "velas_desde_ruptura": null,
+            "macd": 0.07623633664408658,
+            "macd_signal": 0.08571001702626793
+          },
+          "meta": {
+            "float_acciones": 232040804.0,
+            "short_pct_float": 0.0327,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "What Cardinal Health (CAH)'s New US$5 Billion Buyback and Q4 Results Mean For Shareholders",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-25T13:05:23Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 216.33832293333336,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 64.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 50.197808886183815,
+                "extension": 100.0,
+                "distancia_maximo_dia": 93.85594513456697,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 61.6,
+            "score_ajustado": 41.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "KO",
+          "nombre": "The Coca-Cola Company",
+          "precio_actual": 91.5250015258789,
+          "factores_intradia": {
+            "precio_actual": 91.5250015258789,
+            "vwap": 91.55679494792972,
+            "ema9": 91.54180376908927,
+            "rvol_actual": 1.2190188042006016,
+            "aceleracion_volumen": 0.925206926595513,
+            "gap_pct": -0.004349260852122974,
+            "maximo_dia": 92.2488,
+            "maximo_premarket": 92.2488,
+            "rango_apertura_max": 92.08000183105469,
+            "rango_apertura_min": 91.53299713134766,
+            "velas_desde_ruptura": null,
+            "macd": 0.0068727778245119,
+            "macd_signal": 0.012717239212024362
+          },
+          "meta": {
+            "float_acciones": 3874015338.0,
+            "short_pct_float": 0.0105,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Coca-Cola's stock buybacks: What its latest program means for investors",
+            "fuente": "TheStreet",
+            "fecha": "2026-08-24T21:53:05Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1128.6383697166668,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 62.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 42.520692659551294,
+                "extension": 100.0,
+                "distancia_maximo_dia": 92.15384401617044,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "ROST",
+          "nombre": "Ross Stores, Inc.",
+          "precio_actual": 240.2550048828125,
+          "factores_intradia": {
+            "precio_actual": 240.2550048828125,
+            "vwap": 238.76564921418992,
+            "ema9": 240.26637371237555,
+            "rvol_actual": 2.75757146900651,
+            "aceleracion_volumen": 1.0023744292237442,
+            "gap_pct": -0.00016560366928700828,
+            "maximo_dia": 251.3888,
+            "maximo_premarket": 251.3888,
+            "rango_apertura_max": 241.5,
+            "rango_apertura_min": 238.5500030517578,
+            "velas_desde_ruptura": null,
+            "macd": 0.02557765899138076,
+            "macd_signal": 0.04105098903209936
+          },
+          "meta": {
+            "float_acciones": 310018036.0,
+            "short_pct_float": 0.0353,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Ross Stores raises forecast after surge in Q2 sales and store openings",
+            "fuente": "Just Style",
+            "fecha": "2026-08-24T10:49:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1792.7050626333332,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 59.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 50.23744292237442,
+                "extension": 100.0,
+                "distancia_maximo_dia": 55.71085459182146,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BABA",
+          "nombre": "Alibaba Group Holding Limited",
+          "precio_actual": 118.69000244140625,
+          "factores_intradia": {
+            "precio_actual": 118.69000244140625,
+            "vwap": 118.37494681628066,
+            "ema9": 118.61666745193142,
+            "rvol_actual": 0.8602063160775996,
+            "aceleracion_volumen": 1.2760585372336009,
+            "gap_pct": -0.004473696073569851,
+            "maximo_dia": 121.45,
+            "maximo_premarket": 121.45,
+            "rango_apertura_max": 118.48999786376953,
+            "rango_apertura_min": 117.38999938964844,
+            "velas_desde_ruptura": 1,
+            "macd": -0.022608621785010996,
+            "macd_signal": -0.048736558935394615
+          },
+          "meta": {
+            "float_acciones": 2209759528.0,
+            "short_pct_float": 0.0178,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "insider_buying",
+            "titular": "Alibaba Insider Buying Grows: Jack Ma Reportedly Bets $77M After $10.2B Share Sale",
+            "fuente": "Stocktwits",
+            "fecha": "2026-08-25T11:57:59Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 283.73844213333336,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 73.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 77.60585372336008,
+                "extension": 100.0,
+                "distancia_maximo_dia": 77.27461870239804,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 58.5,
+            "score_ajustado": 38.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        }
+      ]
     }
   ]
 }
