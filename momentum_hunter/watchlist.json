@@ -15540,9 +15540,9 @@
     {
       "ticker": "DE",
       "nombre": "Deere & Company",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-08-24T19:43:32+00:00",
-      "actualizado_en": "2026-08-24T19:43:32+00:00",
+      "actualizado_en": "2026-08-25T03:19:24+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -15555,6 +15555,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-08-25T03:19:24+00:00",
+          "motivo": "El catalizador ya salió de la ventana de vigencia.",
+          "deteccion_ts": "2026-08-25T03:19:26+00:00",
+          "evaluacion_ts": "2026-08-25T03:19:26+00:00",
+          "mensaje_generado_ts": "2026-08-25T03:19:26+00:00",
+          "telegram_enviado_ts": "2026-08-25T03:19:26+00:00",
+          "latencia_desde_deteccion_ms": 0.0,
+          "latencia_desde_evaluacion_ms": 0.0,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -15580,7 +15592,7 @@
       "ultimo_stop": 645.1897361186949,
       "ultimo_objetivo": 655.5405277626102,
       "ultima_zona_entrada_baja": 648.4318955966783,
-      "ultimos_niveles_ts": "2026-08-24T21:13:27+00:00",
+      "ultimos_niveles_ts": "2026-08-25T03:19:24+00:00",
       "stop_tesis": 637.879619053432,
       "clima_mercado": "debil"
     },
@@ -15646,9 +15658,9 @@
     {
       "ticker": "BTI",
       "nombre": "British American Tobacco p.l.c.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-08-24T19:43:32+00:00",
-      "actualizado_en": "2026-08-24T19:43:32+00:00",
+      "actualizado_en": "2026-08-25T03:19:24+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -15661,6 +15673,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-08-25T03:19:24+00:00",
+          "motivo": "El catalizador ya salió de la ventana de vigencia.",
+          "deteccion_ts": "2026-08-25T03:19:26+00:00",
+          "evaluacion_ts": "2026-08-25T03:19:26+00:00",
+          "mensaje_generado_ts": "2026-08-25T03:19:26+00:00",
+          "telegram_enviado_ts": "2026-08-25T03:19:27+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -15685,17 +15709,17 @@
       "ultima_entrada": 56.71,
       "ultimo_stop": 56.12660690307617,
       "ultimo_objetivo": 57.87678619384766,
-      "ultima_zona_entrada_baja": 56.710900344915,
-      "ultimos_niveles_ts": "2026-08-24T21:13:27+00:00",
+      "ultima_zona_entrada_baja": 56.710856355054645,
+      "ultimos_niveles_ts": "2026-08-25T03:19:24+00:00",
       "stop_tesis": 56.32653289695485,
       "clima_mercado": "debil"
     },
     {
       "ticker": "ROST",
       "nombre": "Ross Stores, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-08-24T19:43:32+00:00",
-      "actualizado_en": "2026-08-24T19:43:32+00:00",
+      "actualizado_en": "2026-08-25T03:19:24+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -15708,6 +15732,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-08-25T03:19:24+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-08-25T03:19:27+00:00",
+          "telegram_enviado_ts": "2026-08-25T03:19:27+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "guidance",
@@ -15733,7 +15769,7 @@
       "ultimo_stop": 240.1440528496233,
       "ultimo_objetivo": 244.21189430075339,
       "ultima_zona_entrada_baja": 241.35080688404352,
-      "ultimos_niveles_ts": "2026-08-24T21:13:27+00:00",
+      "ultimos_niveles_ts": "2026-08-25T03:19:24+00:00",
       "stop_tesis": 239.4014453906691,
       "clima_mercado": "debil"
     },
@@ -15799,9 +15835,9 @@
     {
       "ticker": "AAP",
       "nombre": "Advance Auto Parts, Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-08-24T20:46:04+00:00",
-      "actualizado_en": "2026-08-24T20:46:04+00:00",
+      "actualizado_en": "2026-08-25T03:19:24+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -15814,6 +15850,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-08-25T03:19:24+00:00",
+          "motivo": "El catalizador ya salió de la ventana de vigencia.",
+          "deteccion_ts": "2026-08-25T03:19:26+00:00",
+          "evaluacion_ts": "2026-08-25T03:19:26+00:00",
+          "mensaje_generado_ts": "2026-08-25T03:19:27+00:00",
+          "telegram_enviado_ts": "2026-08-25T03:19:27+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -15836,10 +15884,10 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "ultima_entrada": 43.63,
-      "ultimo_stop": 43.39352558066057,
-      "ultimo_objetivo": 44.10294883867886,
+      "ultimo_stop": 43.39355024719985,
+      "ultimo_objetivo": 44.10289950560031,
       "ultima_zona_entrada_baja": 43.41848840168346,
-      "ultimos_niveles_ts": "2026-08-24T21:13:27+00:00",
+      "ultimos_niveles_ts": "2026-08-25T03:19:24+00:00",
       "stop_tesis": 43.39352558066057,
       "clima_mercado": "debil"
     }
