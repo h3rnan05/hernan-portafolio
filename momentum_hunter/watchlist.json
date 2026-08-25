@@ -13289,7 +13289,7 @@
       "ultimo_stop": 223.01223925822012,
       "ultimo_objetivo": 227.6180214835598,
       "ultima_zona_entrada_baja": 216.0,
-      "ultimos_niveles_ts": "2026-08-25T20:23:05+00:00",
+      "ultimos_niveles_ts": "2026-08-25T20:51:30+00:00",
       "stop_tesis": 221.4375217753285,
       "clima_mercado": null
     },
@@ -13650,9 +13650,9 @@
     {
       "ticker": "JNJ",
       "nombre": "Johnson & Johnson",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-08-25T19:43:36+00:00",
-      "actualizado_en": "2026-08-25T19:43:36+00:00",
+      "actualizado_en": "2026-08-25T20:51:30+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13665,6 +13665,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-08-25T20:51:30+00:00",
+          "motivo": "El patrón se activó hace 342 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-08-25T20:51:36+00:00",
+          "evaluacion_ts": "2026-08-25T20:51:36+00:00",
+          "mensaje_generado_ts": "2026-08-25T20:51:36+00:00",
+          "telegram_enviado_ts": "2026-08-25T20:51:36+00:00",
+          "latencia_desde_deteccion_ms": 0.0,
+          "latencia_desde_evaluacion_ms": 0.0,
+          "latencia_desde_transicion_ms": 6000.0
         }
       ],
       "catalizador_tipo": "fda",
@@ -13679,7 +13691,7 @@
       "score_base": 71.4,
       "atr_diario": 5.347652980259487,
       "gap_pct_congelado": -0.007471463818776738,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -13690,16 +13702,16 @@
       "ultimo_stop": 271.60528921708215,
       "ultimo_objetivo": 276.20942156583567,
       "ultima_zona_entrada_baja": 271.82000732421875,
-      "ultimos_niveles_ts": "2026-08-25T20:23:05+00:00",
+      "ultimos_niveles_ts": "2026-08-25T20:51:30+00:00",
       "stop_tesis": 270.1561600821359,
       "clima_mercado": "debil"
     },
     {
       "ticker": "PM",
       "nombre": "Philip Morris International Inc.",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-08-25T19:43:36+00:00",
-      "actualizado_en": "2026-08-25T19:43:36+00:00",
+      "actualizado_en": "2026-08-25T20:51:30+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13712,6 +13724,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-08-25T20:51:30+00:00",
+          "motivo": "El patrón se activó hace 268 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-08-25T20:51:36+00:00",
+          "evaluacion_ts": "2026-08-25T20:51:36+00:00",
+          "mensaje_generado_ts": "2026-08-25T20:51:36+00:00",
+          "telegram_enviado_ts": "2026-08-25T20:51:37+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 7000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -13726,7 +13750,7 @@
       "score_base": 65.3,
       "atr_diario": 4.287142072405134,
       "gap_pct_congelado": -0.0030816440822622917,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -13737,7 +13761,7 @@
       "ultimo_stop": 192.92570487064825,
       "ultimo_objetivo": 195.90859025870347,
       "ultima_zona_entrada_baja": 192.1696014404297,
-      "ultimos_niveles_ts": "2026-08-25T20:23:05+00:00",
+      "ultimos_niveles_ts": "2026-08-25T20:51:30+00:00",
       "stop_tesis": 192.7382838142322,
       "clima_mercado": "debil"
     },
@@ -13855,7 +13879,7 @@
       "ultimo_stop": 108.00068929205466,
       "ultimo_objetivo": 111.74862141589068,
       "ultima_zona_entrada_baja": 109.25468222734665,
-      "ultimos_niveles_ts": "2026-08-25T20:23:05+00:00",
+      "ultimos_niveles_ts": "2026-08-25T20:51:30+00:00",
       "stop_tesis": 108.2402123292526,
       "clima_mercado": "favorable"
     },
@@ -13902,16 +13926,16 @@
       "ultimo_stop": 238.94347242618758,
       "ultimo_objetivo": 245.68305514762483,
       "ultima_zona_entrada_baja": 241.29643783127364,
-      "ultimos_niveles_ts": "2026-08-25T20:23:05+00:00",
+      "ultimos_niveles_ts": "2026-08-25T20:51:30+00:00",
       "stop_tesis": 238.68480941239278,
       "clima_mercado": "debil"
     },
     {
       "ticker": "BABA",
       "nombre": "Alibaba Group Holding Limited",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-08-25T19:43:36+00:00",
-      "actualizado_en": "2026-08-25T19:43:36+00:00",
+      "actualizado_en": "2026-08-25T20:51:30+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13924,6 +13948,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-08-25T20:51:30+00:00",
+          "motivo": "El patrón se activó hace 209 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-08-25T20:51:36+00:00",
+          "evaluacion_ts": "2026-08-25T20:51:36+00:00",
+          "mensaje_generado_ts": "2026-08-25T20:51:37+00:00",
+          "telegram_enviado_ts": "2026-08-25T20:51:38+00:00",
+          "latencia_desde_deteccion_ms": 2000.0,
+          "latencia_desde_evaluacion_ms": 2000.0,
+          "latencia_desde_transicion_ms": 8000.0
         }
       ],
       "catalizador_tipo": "insider_buying",
@@ -13938,7 +13974,7 @@
       "score_base": 59.0,
       "atr_diario": 4.307857513427734,
       "gap_pct_congelado": -0.004473696073569851,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -13949,16 +13985,16 @@
       "ultimo_stop": 118.67884885366072,
       "ultimo_objetivo": 120.57230229267856,
       "ultima_zona_entrada_baja": 118.48999786376953,
-      "ultimos_niveles_ts": "2026-08-25T20:23:05+00:00",
+      "ultimos_niveles_ts": "2026-08-25T20:51:30+00:00",
       "stop_tesis": 117.85423051903439,
       "clima_mercado": "debil"
     },
     {
       "ticker": "RARE",
       "nombre": "Ultragenyx Pharmaceutical Inc.",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-08-25T20:42:26+00:00",
-      "actualizado_en": "2026-08-25T20:42:26+00:00",
+      "actualizado_en": "2026-08-25T20:51:30+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13971,6 +14007,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-08-25T20:51:30+00:00",
+          "motivo": "El patrón se activó hace 14 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-08-25T20:51:36+00:00",
+          "evaluacion_ts": "2026-08-25T20:51:36+00:00",
+          "mensaje_generado_ts": "2026-08-25T20:51:38+00:00",
+          "telegram_enviado_ts": "2026-08-25T20:51:38+00:00",
+          "latencia_desde_deteccion_ms": 2000.0,
+          "latencia_desde_evaluacion_ms": 2000.0,
+          "latencia_desde_transicion_ms": 8000.0
         }
       ],
       "catalizador_tipo": "fda",
@@ -13985,7 +14033,7 @@
       "score_base": 73.6,
       "atr_diario": 1.2940716062273299,
       "gap_pct_congelado": 0.019440124935788276,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -13996,7 +14044,7 @@
       "ultimo_stop": 26.297767935283193,
       "ultimo_objetivo": 26.784464129433616,
       "ultima_zona_entrada_baja": 26.290000915527344,
-      "ultimos_niveles_ts": "2026-08-25T20:42:26+00:00",
+      "ultimos_niveles_ts": "2026-08-25T20:51:30+00:00",
       "stop_tesis": 26.297767935283193,
       "clima_mercado": "debil"
     },
@@ -14043,7 +14091,7 @@
       "ultimo_stop": 32.55124256565775,
       "ultimo_objetivo": 33.3275148686845,
       "ultima_zona_entrada_baja": 32.714816648902264,
-      "ultimos_niveles_ts": "2026-08-25T20:42:26+00:00",
+      "ultimos_niveles_ts": "2026-08-25T20:51:30+00:00",
       "stop_tesis": 32.55124256565775,
       "clima_mercado": "debil"
     },
@@ -14090,7 +14138,7 @@
       "ultimo_stop": 107.74786090658442,
       "ultimo_objetivo": 111.20427818683117,
       "ultima_zona_entrada_baja": 108.28930744380344,
-      "ultimos_niveles_ts": "2026-08-25T20:42:26+00:00",
+      "ultimos_niveles_ts": "2026-08-25T20:51:30+00:00",
       "stop_tesis": 107.74786090658442,
       "clima_mercado": "debil"
     },
@@ -14149,7 +14197,7 @@
       "ultimo_stop": 83.82391670344498,
       "ultimo_objetivo": 85.94216659311004,
       "ultima_zona_entrada_baja": 84.2451424155226,
-      "ultimos_niveles_ts": "2026-08-25T20:42:26+00:00",
+      "ultimos_niveles_ts": "2026-08-25T20:51:30+00:00",
       "stop_tesis": 83.82391670344498,
       "clima_mercado": null
     }
