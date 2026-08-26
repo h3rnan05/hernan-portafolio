@@ -13650,9 +13650,9 @@
     {
       "ticker": "LODE",
       "nombre": "Comstock Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-08-26T14:06:47+00:00",
-      "actualizado_en": "2026-08-26T14:06:47+00:00",
+      "actualizado_en": "2026-08-26T15:59:07+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13665,6 +13665,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-08-26T15:59:07+00:00",
+          "motivo": "El precio ($3.47) cayó por debajo del stop de la idea ($3.56) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-08-26T15:59:08+00:00",
+          "evaluacion_ts": "2026-08-26T15:59:08+00:00",
+          "mensaje_generado_ts": "2026-08-26T15:59:08+00:00",
+          "telegram_enviado_ts": "2026-08-26T15:59:08+00:00",
+          "latencia_desde_deteccion_ms": 0.0,
+          "latencia_desde_evaluacion_ms": 0.0,
+          "latencia_desde_transicion_ms": 1000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -13686,11 +13698,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 3.615000009536743,
-      "ultimo_stop": 3.5920118712441544,
-      "ultimo_objetivo": 3.6609762861219206,
-      "ultima_zona_entrada_baja": 3.5899999141693115,
-      "ultimos_niveles_ts": "2026-08-26T14:27:59+00:00",
+      "ultima_entrada": 3.4700000286102295,
+      "ultimo_stop": 3.3603571568216597,
+      "ultimo_objetivo": 3.689285772187369,
+      "ultima_zona_entrada_baja": 3.4736942668014277,
+      "ultimos_niveles_ts": "2026-08-26T15:59:07+00:00",
       "stop_tesis": 3.5594389316862913,
       "clima_mercado": "debil"
     }
