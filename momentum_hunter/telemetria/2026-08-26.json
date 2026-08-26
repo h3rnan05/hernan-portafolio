@@ -63,6 +63,40 @@
       "errores": {
         "noticias:IncompleteRead": 1
       }
+    },
+    {
+      "timestamp": "2026-08-26T20:50:22+00:00",
+      "modo": "escaneo",
+      "universo_total": 7647,
+      "universo_escaneado": 1000,
+      "embudo": {
+        "operables": {
+          "large": 307,
+          "small": 6
+        },
+        "con_alguna_noticia": {
+          "large": 307,
+          "small": 6
+        },
+        "con_catalizador": {
+          "large": 5
+        },
+        "evaluadas": {
+          "large": 5
+        },
+        "accionables": {
+          "large": 1
+        }
+      },
+      "condiciones": {
+        "patron": 3,
+        "temprano": 3,
+        "riesgo_definido": 5,
+        "dinero_entrando": 5,
+        "sobre_umbral": 1
+      },
+      "score_maximo": 62.6,
+      "errores": {}
     }
   ]
 }
