@@ -170,6 +170,23 @@ class MomentumConfig:
     # expirar solo -- una candidata que lleva horas sin confirmar nada
     # ya no es la misma oportunidad que la detectó. ---
     minutos_maximos_en_watching: int = 120
+    # Minutos que deben quedar de sesión para que valga la pena disparar
+    # una señal. Por debajo de esto la oportunidad no se puede jugar: una
+    # entrada que llegara a llenarse dejaría una posición que hay que
+    # liquidar en la misma vela, y las patas de salida (órdenes "del
+    # día") morirían al cerrar el mercado.
+    #
+    # Existe porque el cron corre `13-20` y esa hora `20` abarca hasta
+    # las 20:55: la última hora de escaneo de cada día ocurría entera con
+    # el mercado cerrado. Medido el 2026-08-27, 4 de las 6 señales
+    # TRIGGERED vivas habían disparado fuera de sesión y ninguna se pudo
+    # operar jamás (ver `sesion.py`).
+    #
+    # 20 min: suficiente para que una orden límite tenga una oportunidad
+    # razonable de llenarse y para que el cierre diario del paper trader
+    # (que corre 10 min antes del cierre) no se encuentre con una
+    # posición recién abierta.
+    minutos_minimos_de_sesion: int = 20
     # Corrección 2026-08-11 (revisión de PR): el veredicto "tarde" es
     # una lectura del instante, no un hecho permanente -- se exige verla
     # en N chequeos SEGUIDOS antes de comprometerse a MISSED (terminal),

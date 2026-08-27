@@ -53,6 +53,7 @@ from momentum_hunter import (
     outcomes,
     radar,
     report,
+    sesion,
     skeptic,
     stats,
     telemetria,
@@ -593,7 +594,12 @@ def _actualizar_watchlist(
             # intradia`), así `revisar_watchlist` no necesita barras
             # diarias frescas para recalcularlo.
             e.gap_pct_congelado = c.factores.gap_pct
-        if c.ticker in elegidas_tickers:
+        if c.ticker in elegidas_tickers and not _hay_tiempo(cfg, ahora, c.ticker):
+            # Se queda en WATCHING: la idea puede seguir siendo buena,
+            # lo que no hay es sesión para jugarla. Si mañana sigue
+            # cumpliendo, dispara entonces con precios de mañana.
+            pass
+        elif c.ticker in elegidas_tickers:
             market_ts = c.bi_hoy.timestamps[-1] if c.bi_hoy.timestamps else _ahora_iso_run(ahora)
             evaluador_ts = _ahora_iso_run(datetime.now(UTC))
             watchlist.marcar_triggered(e, market_ts, dato_recibido_ts or evaluador_ts, evaluador_ts, ahora)
@@ -681,6 +687,27 @@ def _filtrar_ya_resueltas_hoy(
         if o.ticker in ya_resueltas_hoy:
             log.info("%s ya se resolvió hoy en la watchlist -- se omite la alerta duplicada", o.ticker)
     return [o for o in oportunidades if o.ticker not in ya_resueltas_hoy], ya_resueltas_hoy
+
+
+def _hay_tiempo(cfg: MomentumConfig, ahora: datetime, ticker: str) -> bool:
+    """¿Queda sesión suficiente para que esta señal se pueda jugar?
+
+    Un TRIGGERED es una invitación a operar AHORA. Emitirlo con el
+    mercado cerrado -- o a cinco minutos del cierre -- fabrica una señal
+    que nadie puede tomar: el ejecutor la rechaza con razón, y para
+    cuando el mercado reabre sus precios ya están rancios. Cuatro de las
+    seis señales vivas del 2026-08-27 murieron exactamente así.
+
+    No dispararla no la descarta: la entrada sigue en WATCHING y vuelve
+    a evaluarse mañana con datos de mañana. Lo que se evita es congelar
+    hoy un precio que nadie va a poder usar."""
+    if sesion.hay_tiempo_para_operar(ahora, cfg.minutos_minimos_de_sesion):
+        return True
+    log.info(
+        "%s: cumple todo pero quedan %.0f min de sesión (mínimo %d) -- "
+        "sigue en observación, no se dispara una señal que no se puede operar",
+        ticker, sesion.minutos_hasta_el_cierre(ahora), cfg.minutos_minimos_de_sesion)
+    return False
 
 
 def _evaluar_no_disparada(
@@ -885,7 +912,9 @@ def revisar_watchlist(
     pendientes: list[tuple[str, object, object]] = []   # (tipo, entrada, oportunidad|texto)
     for candidato in candidatos:
         e = por_ticker[candidato.ticker]
-        if candidato.ticker in elegidos:
+        if candidato.ticker in elegidos and not _hay_tiempo(cfg, ahora, candidato.ticker):
+            pass   # ver el comentario del mismo chequeo en `ejecutar_pipeline`
+        elif candidato.ticker in elegidos:
             oportunidad = elegidos[candidato.ticker]
             evaluador_ts_disparo = _ahora_iso_run(datetime.now(UTC))
             market_ts = (
