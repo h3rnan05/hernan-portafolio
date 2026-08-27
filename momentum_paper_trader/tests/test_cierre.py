@@ -328,3 +328,29 @@ def test_el_default_de_la_config_es_no_aguantar():
     # Que nadie encienda esto sin querer: el default del sistema es la
     # decisión del usuario, no la de quien construya un PaperTraderConfig.
     assert PaperTraderConfig().permitir_aguantar_overnight is False
+
+
+# ------------------------- la ventana en horario de invierno (2026-08-27) -------------------------
+# Antes se calculaba con una constante de verano (cierre 20:00 UTC), así
+# que en invierno la liquidación caía una hora antes de tiempo: a las
+# 14:50 ET, con más de una hora de sesión por delante.
+
+def _utc(mes, dia, hora, minuto):
+    return datetime(2026, mes, dia, hora, minuto, tzinfo=UTC)
+
+
+def test_ventana_en_verano():
+    assert cierre.en_ventana_de_cierre(_utc(8, 26, 19, 55), CFG) is True    # 15:55 ET
+    assert cierre.en_ventana_de_cierre(_utc(8, 26, 19, 30), CFG) is False   # 15:30 ET, muy pronto
+    assert cierre.en_ventana_de_cierre(_utc(8, 26, 20, 10), CFG) is False   # ya cerró
+
+
+def test_ventana_en_invierno_no_se_adelanta_una_hora():
+    # En diciembre el cierre es 21:00 UTC. Con la constante vieja, las
+    # 19:55 UTC habrían liquidado todo con una hora de sesión restante.
+    assert cierre.en_ventana_de_cierre(_utc(12, 2, 19, 55), CFG) is False
+    assert cierre.en_ventana_de_cierre(_utc(12, 2, 20, 55), CFG) is True    # 15:55 ET
+
+
+def test_no_hay_ventana_el_fin_de_semana():
+    assert cierre.en_ventana_de_cierre(_utc(8, 29, 19, 55), CFG) is False

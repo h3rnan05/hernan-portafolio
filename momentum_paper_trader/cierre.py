@@ -40,14 +40,16 @@ en $50 con stop en $48 y abre en $40, la venta sale cerca de $40. Reduce
 el riesgo nocturno, no lo elimina. Por eso el prompt de la IA se lo dice
 explícitamente y el default ante cualquier duda es cerrar.
 
-CUÁNDO. `cfg.minutos_antes_del_cierre` antes de las 20:00 UTC (16:00 ET),
-o sea 19:50 UTC por defecto. El re-chequeo de watchlist corre cada 5
-minutos hasta las 20:00, así que siempre hay al menos una corrida dentro
-de esa ventana. Misma convención de horario de verano que ya usan los
-cron y `factors/intradia` -- con la misma limitación honesta: en horario
-de invierno el mercado cierra a las 21:00 UTC y esta ventana quedaría una
-hora antes de tiempo (cerraría a las 14:50 ET). Anotado, no resuelto:
-requiere una fuente de calendario de mercado que este proyecto no tiene.
+CUÁNDO. `cfg.minutos_antes_del_cierre` antes del cierre (16:00 ET), o
+sea 15:50 ET por defecto. El re-chequeo de watchlist corre cada pocos
+minutos, así que suele caer al menos una corrida dentro de esa ventana.
+
+La hora se calcula con la zona horaria real (`momentum_hunter.sesion`),
+así que el cambio de horario se aplica solo. Lo que sigue sin saberse
+son los feriados y las medias sesiones: en una media sesión (13:00 ET)
+esta ventana no se abriría y las posiciones quedarían sin liquidar. El
+ejecutor sí consulta el calendario real de Alpaca antes de ABRIR, pero
+el cierre todavía no. Anotado, no resuelto.
 
 IDEMPOTENTE por construcción: la segunda corrida dentro de la ventana ya
 no encuentra posiciones y no hace nada. No hace falta estado persistido."""
@@ -57,7 +59,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 
-from momentum_hunter.factors.intradia import HORA_CIERRE_UTC
+from momentum_hunter import sesion
 from momentum_hunter.run import enviar_telegram
 
 from momentum_paper_trader import ia_decision
@@ -67,19 +69,23 @@ from momentum_paper_trader.config import PaperTraderConfig
 log = logging.getLogger("momentum_paper_trader.cierre")
 
 
-def _hora_utc(ahora: datetime) -> float:
-    return ahora.hour + ahora.minute / 60.0
-
-
 def en_ventana_de_cierre(ahora: datetime, cfg: PaperTraderConfig) -> bool:
     """¿Estamos en los últimos minutos de la sesión regular?
 
     La ventana va desde `minutos_antes_del_cierre` antes del cierre hasta
-    el cierre mismo. Después de las 20:00 UTC ya no se intenta: el
-    mercado está cerrado y una orden a mercado no se ejecutaría hasta el
-    día siguiente -- justo lo contrario de lo que se busca."""
-    inicio = HORA_CIERRE_UTC - cfg.minutos_antes_del_cierre / 60.0
-    return inicio <= _hora_utc(ahora) < HORA_CIERRE_UTC
+    el cierre mismo. Pasado el cierre ya no se intenta: el mercado está
+    cerrado y una orden a mercado no se ejecutaría hasta el día
+    siguiente -- justo lo contrario de lo que se busca.
+
+    2026-08-27: pasa a calcularse con la zona horaria real
+    (`momentum_hunter.sesion`) en vez de la constante de verano que este
+    módulo usaba antes. Esa constante hacía que en horario de invierno
+    la ventana cayera una hora antes de tiempo -- se liquidaba a las
+    14:50 ET, con más de una hora de sesión por delante. Era una
+    limitación anotada y no resuelta en el docstring de arriba; ya está
+    resuelta."""
+    faltan = sesion.minutos_hasta_el_cierre(ahora)
+    return 0 < faltan <= cfg.minutos_antes_del_cierre
 
 
 def _num(v) -> float | None:

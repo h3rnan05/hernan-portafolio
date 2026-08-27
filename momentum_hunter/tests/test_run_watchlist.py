@@ -776,3 +776,81 @@ def test_el_refresco_no_persiste_en_dry_run(monkeypatch, tmp_path):
         CFG, _FakeProviderIntradia({"RKLB"}), dry_run=True, ahora=AHORA + timedelta(minutes=20))
 
     assert watchlist.cargar(path)[0].ultimos_niveles_ts == ts_viejo
+
+
+# ------------------------- no disparar sin sesión (2026-08-27) -------------------------
+# EL BUG: el cron corre `13-20` y esa hora abarca hasta las 20:55, así
+# que la última hora de escaneo ocurría entera con el mercado cerrado.
+# 4 de las 6 señales TRIGGERED vivas el 2026-08-27 habían disparado
+# fuera de sesión (20:23, 20:31, 20:42, 20:50 UTC) y ninguna se pudo
+# operar jamás. Ver `momentum_hunter/sesion.py`.
+
+_FUERA_DE_SESION = datetime(2026, 8, 25, 20, 23, tzinfo=UTC)   # el caso de FLEX
+_CASI_EL_CIERRE = datetime(2026, 8, 25, 19, 55, tzinfo=UTC)    # 5 min, no alcanza
+_EN_SESION = datetime(2026, 8, 25, 17, 0, tzinfo=UTC)
+
+
+def _preparar_disparo(monkeypatch, tmp_path, creada_en):
+    # `creada_en` importa: la entrada tiene un TTL de vigilancia
+    # (`minutos_maximos_en_watching`), así que para aislar el chequeo de
+    # sesión hay que crearla poco antes del momento evaluado.
+    e = watchlist.desde_candidato_diario(_candidato_diario("FLEX"), creada_en)
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    enviados, _, _ = _parchear_efectos_secundarios(monkeypatch)
+    monkeypatch.setattr(
+        run_mod, "_construir_candidato_intradia",
+        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=True))
+    return path, enviados
+
+
+def test_no_dispara_con_el_mercado_cerrado(monkeypatch, tmp_path):
+    path, enviados = _preparar_disparo(
+        monkeypatch, tmp_path, _FUERA_DE_SESION - timedelta(minutes=10))
+
+    run_mod.revisar_watchlist(
+        CFG, _FakeProviderIntradia({"FLEX"}), dry_run=False, ahora=_FUERA_DE_SESION)
+
+    recargada = watchlist.cargar(path)[0]
+    assert recargada.estado != watchlist.ESTADO_TRIGGERED, "no debe dispararse fuera de sesión"
+    assert enviados == [], "tampoco debe avisar de algo que no se puede operar"
+
+
+def test_no_dispara_a_cinco_minutos_del_cierre(monkeypatch, tmp_path):
+    # Una entrada que llegara a llenarse dejaría una posición que hay que
+    # liquidar en la misma vela, con las patas del bracket muriendo al
+    # cerrar. No es una oportunidad, es un ida y vuelta.
+    path, _ = _preparar_disparo(
+        monkeypatch, tmp_path, _CASI_EL_CIERRE - timedelta(minutes=10))
+
+    run_mod.revisar_watchlist(
+        CFG, _FakeProviderIntradia({"FLEX"}), dry_run=False, ahora=_CASI_EL_CIERRE)
+
+    assert watchlist.cargar(path)[0].estado != watchlist.ESTADO_TRIGGERED
+
+
+def test_en_sesion_con_margen_si_dispara(monkeypatch, tmp_path):
+    # La otra mitad: el guardarraíl no puede apagar el caso normal.
+    path, enviados = _preparar_disparo(monkeypatch, tmp_path, _EN_SESION)
+
+    run_mod.revisar_watchlist(
+        CFG, _FakeProviderIntradia({"FLEX"}), dry_run=False, ahora=_EN_SESION)
+
+    assert watchlist.cargar(path)[0].estado == watchlist.ESTADO_TRIGGERED
+    assert len(enviados) == 1
+
+
+def test_una_senal_no_disparada_expira_en_vez_de_quedar_colgada(monkeypatch, tmp_path):
+    # Comportamiento REAL, verificado: no se queda esperando a mañana.
+    # El TTL de vigilancia la vence y queda EXPIRED -- que es lo
+    # correcto: si mañana el setup sigue siendo bueno, el escaneo de
+    # descubrimiento la vuelve a encontrar con datos y TTL nuevos, en
+    # vez de arrastrar una entrada de ayer con precios de ayer.
+    path, _ = _preparar_disparo(
+        monkeypatch, tmp_path, _FUERA_DE_SESION - timedelta(hours=3))
+
+    run_mod.revisar_watchlist(
+        CFG, _FakeProviderIntradia({"FLEX"}), dry_run=False, ahora=_FUERA_DE_SESION)
+
+    estado_final = watchlist.cargar(path)[0].estado
+    assert estado_final == watchlist.ESTADO_EXPIRED
+    assert estado_final != watchlist.ESTADO_TRIGGERED   # lo que importa: nunca se disparó
