@@ -288,6 +288,388 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-08-27T17:39:11+00:00",
+      "candidatos_evaluados": 5,
+      "candidatos": [
+        {
+          "ticker": "NEXA",
+          "nombre": "Nexa Resources S.A.",
+          "precio_actual": 13.89739990234375,
+          "factores_intradia": {
+            "precio_actual": 13.89739990234375,
+            "vwap": 14.219719330088028,
+            "ema9": 13.916314189389373,
+            "rvol_actual": 0.25051925809860437,
+            "aceleracion_volumen": 0.47557603686635946,
+            "gap_pct": -0.04364571941628276,
+            "maximo_dia": 16.2547,
+            "maximo_premarket": 16.2547,
+            "rango_apertura_max": 15.329999923706055,
+            "rango_apertura_min": 14.619999885559082,
+            "velas_desde_ruptura": null,
+            "macd": -0.023331962427221242,
+            "macd_signal": -0.01672048462804001
+          },
+          "meta": {
+            "float_acciones": 46783939.0,
+            "short_pct_float": 0.0046,
+            "market_cap": 1840896640.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Boliden to acquire 64.7% stake in Nexa Resources from Votorantim",
+            "fuente": "Mining Technology",
+            "fecha": "2026-08-27T15:04:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 154.4316846,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 44.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 15.49594872727272,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 69.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LOT",
+          "nombre": "Lotus Technology Inc.",
+          "precio_actual": 1.2604999542236328,
+          "factores_intradia": {
+            "precio_actual": 1.2604999542236328,
+            "vwap": 1.3101588682347232,
+            "ema9": 1.259656290323561,
+            "rvol_actual": 1.5933775470972702,
+            "aceleracion_volumen": 0.84006169527897,
+            "gap_pct": 0.07563017633757825,
+            "maximo_dia": 1.4199999570846558,
+            "maximo_premarket": 1.3,
+            "rango_apertura_max": 1.3300000429153442,
+            "rango_apertura_min": 1.274999976158142,
+            "velas_desde_ruptura": 0,
+            "macd": -0.004504811647416007,
+            "macd_signal": -0.003355698076282393
+          },
+          "meta": {
+            "float_acciones": 3383814.0,
+            "short_pct_float": 0.0054,
+            "market_cap": 816973376.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Lotus Technology completes acquisition of Lotus UK",
+            "fuente": "Just Auto",
+            "fecha": "2026-08-26T11:08:17Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1830.8650390666667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 55.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 34.006169527897,
+                "extension": 91.2189207523787,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "HUN",
+          "nombre": "Huntsman Corporation",
+          "precio_actual": 9.600000381469727,
+          "factores_intradia": {
+            "precio_actual": 9.600000381469727,
+            "vwap": 9.549932949754524,
+            "ema9": 9.595923216198916,
+            "rvol_actual": 0.5627683500306685,
+            "aceleracion_volumen": 0.4520346897931954,
+            "gap_pct": -0.005192127740464321,
+            "maximo_dia": 9.79,
+            "maximo_premarket": 9.79,
+            "rango_apertura_max": 9.630000114440918,
+            "rango_apertura_min": 9.529999732971191,
+            "velas_desde_ruptura": 0,
+            "macd": 0.008078880010627287,
+            "macd_signal": 0.008265690217212492
+          },
+          "meta": {
+            "float_acciones": 164406930.0,
+            "short_pct_float": 0.0864,
+            "market_cap": 1683634816.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Huntsman Stockholders Approve Olin Merger Agreement at Special Meeting",
+            "fuente": "MarketBeat",
+            "fecha": "2026-08-27T07:01:53Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 637.2650617333333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 58.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 80.5924802318414,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "KSS",
+          "nombre": "Kohl's Corporation",
+          "precio_actual": 17.80500030517578,
+          "factores_intradia": {
+            "precio_actual": 17.80500030517578,
+            "vwap": 18.024963453668573,
+            "ema9": 17.858449626402496,
+            "rvol_actual": 0.6504123000879256,
+            "aceleracion_volumen": 1.3992230462640634,
+            "gap_pct": -0.023411374793250964,
+            "maximo_dia": 18.405000686645508,
+            "maximo_premarket": 18.0,
+            "rango_apertura_max": 17.700000762939453,
+            "rango_apertura_min": 17.110000610351562,
+            "velas_desde_ruptura": null,
+            "macd": -0.06801772298201314,
+            "macd_signal": -0.0651649875207147
+          },
+          "meta": {
+            "float_acciones": 111242850.0,
+            "short_pct_float": 0.3109,
+            "market_cap": null,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Earnings live updates: Salesforce, CrowdStrike, Okta stocks surge as AI boom helps lift Q2 results",
+            "fuente": "Yahoo Finance",
+            "fecha": "2026-08-25T11:53:14Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3225.9150897833333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 70.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 89.92230462640634,
+                "extension": 100.0,
+                "distancia_maximo_dia": 67.40014348898771,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "RPC",
+          "nombre": "Ridgepost Capital, Inc",
+          "precio_actual": 8.78499984741211,
+          "factores_intradia": {
+            "precio_actual": 8.78499984741211,
+            "vwap": 8.814969887647866,
+            "ema9": 8.807649154393527,
+            "rvol_actual": 0.13333333333333333,
+            "aceleracion_volumen": 0.8455392809587217,
+            "gap_pct": 0.0023015487605799966,
+            "maximo_dia": 8.899999618530273,
+            "maximo_premarket": 8.88,
+            "rango_apertura_max": 8.710000038146973,
+            "rango_apertura_min": 8.710000038146973,
+            "velas_desde_ruptura": null,
+            "macd": -0.0007223554116002617,
+            "macd_signal": 0.0029747435954274905
+          },
+          "meta": {
+            "float_acciones": 52777756.0,
+            "short_pct_float": 0.047199998,
+            "market_cap": 968444672.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Custody Bank Stocks Q2 Results: Benchmarking Ridgepost Capital (NYSE:RPC)",
+            "fuente": "StockStory",
+            "fecha": "2026-08-26T15:07:13Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1591.9317685666667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 59.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 34.553928095872166,
+                "extension": 100.0,
+                "distancia_maximo_dia": 87.07867684862269,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 52.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
