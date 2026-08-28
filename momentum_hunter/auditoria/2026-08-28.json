@@ -1,0 +1,81 @@
+{
+  "corridas": [
+    {
+      "timestamp": "2026-08-28T23:05:29+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "SKHY",
+          "nombre": "SK hynix Inc.",
+          "precio_actual": 161.04,
+          "factores_intradia": {
+            "precio_actual": 161.04,
+            "vwap": 161.0960120092141,
+            "ema9": 161.08446783756574,
+            "rvol_actual": 5.526974933394571,
+            "aceleracion_volumen": 4.352711271602869,
+            "gap_pct": -0.014912466140755696,
+            "maximo_dia": 163.5449981689453,
+            "maximo_premarket": 161.61,
+            "rango_apertura_max": 160.05999755859375,
+            "rango_apertura_min": 158.39999389648438,
+            "velas_desde_ruptura": 374,
+            "macd": 0.04457443850975551,
+            "macd_signal": 0.024818594596256578
+          },
+          "meta": {
+            "float_acciones": 5671182650.0,
+            "short_pct_float": null,
+            "market_cap": 1143150215168.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Jim Cramer Said Micron Technology, Inc. (NASDAQ:MU) Fell Because Of Samsung’s Share Buybacks",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-08-28T09:16:30Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 828.9711649,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 63.5,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 374 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.68312576360415,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 374 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 63.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 374 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        }
+      ]
+    }
+  ]
+}
