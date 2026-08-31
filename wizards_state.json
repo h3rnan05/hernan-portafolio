@@ -1,5 +1,5 @@
 {
-  "cash": 1198.3009999999997,
+  "cash": 3.1159999999995307,
   "posiciones": {
     "EFA": {
       "qty": 14,
@@ -20,6 +20,13 @@
       "entrada": 28.38,
       "stop": 27.82,
       "fecha": "2026-08-19 14:59 UTC",
+      "origen": "sistema"
+    },
+    "WEAT": {
+      "qty": 43,
+      "entrada": 27.795,
+      "stop": 26.64,
+      "fecha": "2026-08-31 19:45 UTC",
       "origen": "sistema"
     }
   },
@@ -1054,6 +1061,10 @@
     {
       "ts": "2026-08-31 19:32 UTC",
       "equity": 4964.26
+    },
+    {
+      "ts": "2026-08-31 19:45 UTC",
+      "equity": 4965.43
     }
   ],
   "noticias_vistas": [
@@ -1282,17 +1293,13 @@
     {
       "ts": "2026-08-31 19:32 UTC",
       "evento": "🔴 VENTA IWM: 4 @ $293.54 (stop $296.52 tocado) | P&L $-43.56"
+    },
+    {
+      "ts": "2026-08-31 19:45 UTC",
+      "evento": "🟢 COMPRA WEAT (Trigo): 43 @ $27.80 | ruptura de máx. 55d | stop $26.64 (riesgo $49.67 = 1.0% del equity)"
     }
   ],
   "noticias_evaluadas": [
-    "b7ef1b8c0b3f",
-    "dc7d56a76d5c",
-    "3d47f4123f36",
-    "e13aa5aa806d",
-    "a24f771f82a6",
-    "b7e0d8194a79",
-    "5fc5f18248ed",
-    "6dbeff08e973",
     "875e0ab64093",
     "a4df5224f8a0",
     "5078f7edc15f",
@@ -1784,6 +1791,14 @@
     "1eef80c8c926",
     "c19148212d1c",
     "2dd156a436ef",
-    "1ca4cd28f317"
+    "1ca4cd28f317",
+    "03b588be87f9",
+    "ec8f4c023347",
+    "874c3438ba09",
+    "5b747cfb1dc9",
+    "6dcf200bab32",
+    "5d7522cfdf6d",
+    "d725a36216da",
+    "8c7fba25cb0c"
   ]
 }
