@@ -76,6 +76,86 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-01T19:52:28+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "TNDM",
+          "nombre": "Tandem Diabetes Care, Inc.",
+          "precio_actual": 21.229999542236328,
+          "factores_intradia": {
+            "precio_actual": 21.229999542236328,
+            "vwap": 21.577166711188053,
+            "ema9": 21.1947977459628,
+            "rvol_actual": 1.1896716279309723,
+            "aceleracion_volumen": 1.430047090991949,
+            "gap_pct": -0.0013630479933453379,
+            "maximo_dia": 24.5,
+            "maximo_premarket": 24.5,
+            "rango_apertura_max": 22.125,
+            "rango_apertura_min": 21.979999542236328,
+            "velas_desde_ruptura": 0,
+            "macd": -0.028707203962390793,
+            "macd_signal": -0.03005322980441606
+          },
+          "meta": {
+            "float_acciones": 63759144.0,
+            "short_pct_float": 0.2038,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "MiniMed submits new patch pump for FDA clearance",
+            "fuente": "MedTech Dive",
+            "fecha": "2026-09-01T11:47:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 484.6651872666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 68.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 93.00470909919488,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
