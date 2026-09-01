@@ -2291,6 +2291,83 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-01T22:51:40+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "KUST",
+          "nombre": "Kustom Entertainment, Inc.",
+          "precio_actual": 0.8984000086784363,
+          "factores_intradia": {
+            "precio_actual": 0.8984000086784363,
+            "vwap": 0.8028124434796354,
+            "ema9": 0.9173684079718438,
+            "rvol_actual": 6.233900144717801,
+            "aceleracion_volumen": 4.512738570794496,
+            "gap_pct": -0.09090907243657693,
+            "maximo_dia": 1.1,
+            "maximo_premarket": 1.1,
+            "rango_apertura_max": 0.8181999921798706,
+            "rango_apertura_min": 0.7645000219345093,
+            "velas_desde_ruptura": 275,
+            "macd": -0.0001680489871972446,
+            "macd_signal": 0.0013191761181792336
+          },
+          "meta": {
+            "float_acciones": 6254003.0,
+            "short_pct_float": 0.0165,
+            "market_cap": 6005831.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Kustom Entertainment Agrees to Acquire TFL, Adding $238 Million Revenue Ticketing Business",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-01T15:09:32Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 462.0111473833333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": true,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 35.2,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 275 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 1.03791783615248,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 275 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 57.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 275 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        }
+      ]
     }
   ]
 }
