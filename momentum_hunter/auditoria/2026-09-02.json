@@ -2973,6 +2973,82 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-02T22:53:38+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "KUST",
+          "nombre": "Kustom Entertainment, Inc.",
+          "precio_actual": 0.8899000287055969,
+          "factores_intradia": {
+            "precio_actual": 0.8899000287055969,
+            "vwap": 0.8864123665765237,
+            "ema9": 0.8872349941492406,
+            "rvol_actual": 1.0535372848948374,
+            "aceleracion_volumen": 1.4316436251920124,
+            "gap_pct": -0.02228261295614478,
+            "maximo_dia": 0.9198,
+            "maximo_premarket": 0.9198,
+            "rango_apertura_max": 0.8999999761581421,
+            "rango_apertura_min": 0.8995000123977661,
+            "velas_desde_ruptura": 6,
+            "macd": 0.0026985491549009755,
+            "macd_signal": 0.0015796363968349162
+          },
+          "meta": {
+            "float_acciones": 6254003.0,
+            "short_pct_float": 0.0165,
+            "market_cap": 5789153.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Kustom Entertainment Agrees to Acquire TFL, Adding $238 Million Revenue Ticketing Business",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-01T15:09:32Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1903.9695258666666,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 65.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 93.16436251920123,
+                "extension": 100.0,
+                "distancia_maximo_dia": 67.49296445487818,
+                "frescura_patron": 33.333333333333336,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 44.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        }
+      ]
     }
   ]
 }
