@@ -79,6 +79,309 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-02T17:15:04+00:00",
+      "candidatos_evaluados": 4,
+      "candidatos": [
+        {
+          "ticker": "CXM",
+          "nombre": "Sprinklr, Inc.",
+          "precio_actual": 7.295000076293945,
+          "factores_intradia": {
+            "precio_actual": 7.295000076293945,
+            "vwap": 7.441789699495582,
+            "ema9": 7.30101611344324,
+            "rvol_actual": 0.5862982892940326,
+            "aceleracion_volumen": 0.4951633705932932,
+            "gap_pct": -0.026315764707211,
+            "maximo_dia": 8.48,
+            "maximo_premarket": 8.48,
+            "rango_apertura_max": 7.809999942779541,
+            "rango_apertura_min": 7.289999961853027,
+            "velas_desde_ruptura": null,
+            "macd": 0.0007670432667792326,
+            "macd_signal": 0.005946043590050117
+          },
+          "meta": {
+            "float_acciones": 115144517.0,
+            "short_pct_float": 0.082399994,
+            "market_cap": 1708698880.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Sprinklr Shares Fall 2.4% Premarket After Quarterly Revenue Misses Estimates",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-02T12:26:09Z",
+            "confirmado": true,
+            "fuentes_adicionales": [
+              "StockStory"
+            ]
+          },
+          "minutos_desde_catalizador": 288.9014402166667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 41.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 70.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "TNDM",
+          "nombre": "Tandem Diabetes Care, Inc.",
+          "precio_actual": 20.8799991607666,
+          "factores_intradia": {
+            "precio_actual": 20.8799991607666,
+            "vwap": 21.11017453169766,
+            "ema9": 20.874554922583997,
+            "rvol_actual": 0.5947088799739781,
+            "aceleracion_volumen": 0.3035240621447518,
+            "gap_pct": -0.0014098066577758648,
+            "maximo_dia": 23.0,
+            "maximo_premarket": 23.0,
+            "rango_apertura_max": 21.584999084472656,
+            "rango_apertura_min": 21.1200008392334,
+            "velas_desde_ruptura": 2,
+            "macd": -0.007442646587797697,
+            "macd_signal": -0.01582551137701012
+          },
+          "meta": {
+            "float_acciones": 63759144.0,
+            "short_pct_float": 0.2038,
+            "market_cap": 1453499136.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "MiniMed submits new patch pump for FDA clearance",
+            "fuente": "MedTech Dive",
+            "fecha": "2026-09-01T11:47:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1767.2514591833335,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 50.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 7.826050468113133,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "FCEL",
+          "nombre": "FuelCell Energy, Inc.",
+          "precio_actual": 14.229999542236328,
+          "factores_intradia": {
+            "precio_actual": 14.229999542236328,
+            "vwap": 14.83068962693624,
+            "ema9": 14.211703533461442,
+            "rvol_actual": 0.6308890754734583,
+            "aceleracion_volumen": 1.40647894343384,
+            "gap_pct": -0.10655735965772249,
+            "maximo_dia": 17.0,
+            "maximo_premarket": 17.0,
+            "rango_apertura_max": 15.960000038146973,
+            "rango_apertura_min": 15.069999694824219,
+            "velas_desde_ruptura": 0,
+            "macd": 0.01265572962100947,
+            "macd_signal": 0.013692027019118029
+          },
+          "meta": {
+            "float_acciones": 64379883.0,
+            "short_pct_float": 0.21059999,
+            "market_cap": 1136149120.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "FuelCell Energy Shares Fall 9.3% Premarket After Quarterly Results Miss Estimates",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-02T12:27:03Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 288.00149601666664,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 65.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 90.647894343384,
+                "extension": 88.3298005082569,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "CRML",
+          "nombre": "Critical Metals Corp.",
+          "precio_actual": 7.249899864196777,
+          "factores_intradia": {
+            "precio_actual": 7.249899864196777,
+            "vwap": 7.111578991563521,
+            "ema9": 7.246926096780631,
+            "rvol_actual": 0.08651710003441909,
+            "aceleracion_volumen": 0.135195530726257,
+            "gap_pct": 0.011560682489023788,
+            "maximo_dia": 7.284999847412109,
+            "maximo_premarket": 7.2,
+            "rango_apertura_max": 7.078000068664551,
+            "rango_apertura_min": 6.920000076293945,
+            "velas_desde_ruptura": 0,
+            "macd": -0.00019127650580852418,
+            "macd_signal": 0.0009799411932364399
+          },
+          "meta": {
+            "float_acciones": 68160373.0,
+            "short_pct_float": 0.3089,
+            "market_cap": 1063694912.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "insider_buying",
+            "titular": "United States Antimony Jumps 8%, USA Rare Earth Ticks Up: Is Insider Buying Behind the Move?",
+            "fuente": "24/7 Wall St.",
+            "fecha": "2026-09-02T14:52:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 143.0181967,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 64.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 22.413214121212118,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 95.18188277961315,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 60.8,
+            "score_ajustado": 40.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        }
+      ]
     }
   ]
 }
