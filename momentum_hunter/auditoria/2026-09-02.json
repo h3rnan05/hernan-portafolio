@@ -1836,6 +1836,1143 @@
           "que_tendria_que_cambiar": []
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-02T21:57:15+00:00",
+      "candidatos_evaluados": 16,
+      "candidatos": [
+        {
+          "ticker": "DB",
+          "nombre": "Deutsche Bank Aktiengesellschaft",
+          "precio_actual": 40.5,
+          "factores_intradia": {
+            "precio_actual": 40.5,
+            "vwap": 40.38735209929702,
+            "ema9": 40.50458347901099,
+            "rvol_actual": 3.6272678958945366,
+            "aceleracion_volumen": 4.302867383512545,
+            "gap_pct": 0.016919242663113475,
+            "maximo_dia": 40.89,
+            "maximo_premarket": 40.89,
+            "rango_apertura_max": 40.27000045776367,
+            "rango_apertura_min": 40.099998474121094,
+            "velas_desde_ruptura": 332,
+            "macd": -0.0012907426310420078,
+            "macd_signal": -0.0002768749328651079
+          },
+          "meta": {
+            "float_acciones": 1795422080.0,
+            "short_pct_float": 0.0023999999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Hewlett Packard Enterprise Shares Rise 4.7% Ahead of Fiscal Q3 Results",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-02T12:23:27Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 573.7670718166667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.0,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 332 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 90.46221570066027,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 332 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 72.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 332 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "CRDO",
+          "nombre": "Credo Technology Group Holding Ltd",
+          "precio_actual": 165.2339,
+          "factores_intradia": {
+            "precio_actual": 165.2339,
+            "vwap": 169.65725809754392,
+            "ema9": 164.99083283701162,
+            "rvol_actual": 0.44189856127719485,
+            "aceleracion_volumen": 1.9696381026385255,
+            "gap_pct": -0.08849965069575139,
+            "maximo_dia": 206.63,
+            "maximo_premarket": 206.63,
+            "rango_apertura_max": 190.57000732421875,
+            "rango_apertura_min": 181.00999450683594,
+            "velas_desde_ruptura": 1,
+            "macd": 0.14688358574213112,
+            "macd_signal": 0.08749432570741196
+          },
+          "meta": {
+            "float_acciones": 169411441.0,
+            "short_pct_float": 0.0369,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Credo Technology Reports Q1 Results: Should Investors Hold or Fold?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-02T15:07:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 410.21717129999996,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 70.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 70.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "CRM",
+          "nombre": "Salesforce, Inc.",
+          "precio_actual": 256.93,
+          "factores_intradia": {
+            "precio_actual": 256.93,
+            "vwap": 257.14434821465096,
+            "ema9": 256.946734383994,
+            "rvol_actual": 10.57999855337155,
+            "aceleracion_volumen": 6.283797664185445,
+            "gap_pct": 0.004647967468719422,
+            "maximo_dia": 264.54998779296875,
+            "maximo_premarket": 258.29,
+            "rango_apertura_max": 264.54998779296875,
+            "rango_apertura_min": 259.0,
+            "velas_desde_ruptura": null,
+            "macd": -0.19763970227268146,
+            "macd_signal": -0.20516857308167324
+          },
+          "meta": {
+            "float_acciones": 797602220.0,
+            "short_pct_float": 0.0374,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Is Salesforce (CRM) Cheap On Strong Q2 Results And Higher Guidance?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-02T17:07:31Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 289.70057335,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 73.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 71.19641600992254,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [],
+            "score_base": 69.6,
+            "score_ajustado": 69.6,
+            "riesgo_definido": true,
+            "accionable": true
+          },
+          "decision": "alertada",
+          "motivos": [
+            "Sobrevivió las 5 preguntas del evaluador, el debate del abogado del diablo y la última pregunta.",
+            "Queda menos de una hora de mercado -- la idea tiene poco tiempo para trabajar hoy.",
+            "La noticia ya tiene más de dos horas. La reacción más fuerte suele darse al principio -- puede que lo mejor del movimiento ya haya pasado."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "AZN",
+          "nombre": "AstraZeneca PLC",
+          "precio_actual": 161.63,
+          "factores_intradia": {
+            "precio_actual": 161.63,
+            "vwap": 162.0792603483359,
+            "ema9": 161.65495384570573,
+            "rvol_actual": 2.6820119771352475,
+            "aceleracion_volumen": 2.679395537194575,
+            "gap_pct": 0.000738795213275917,
+            "maximo_dia": 164.69000244140625,
+            "maximo_premarket": 164.29,
+            "rango_apertura_max": 163.57000732421875,
+            "rango_apertura_min": 162.4499969482422,
+            "velas_desde_ruptura": null,
+            "macd": 0.060516341332885304,
+            "macd_signal": 0.06698322123065535
+          },
+          "meta": {
+            "float_acciones": 1542950310.0,
+            "short_pct_float": 0.0011999999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "AstraZeneca Says Breast Cancer Combo Approved in EU; Completes Acquisition of License for Lung Cancer Treatment",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-01T07:58:56Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2278.283956116667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 74.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.41962234474465,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 69.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "SYK",
+          "nombre": "Stryker Corporation",
+          "precio_actual": 312.19,
+          "factores_intradia": {
+            "precio_actual": 312.19,
+            "vwap": 314.80721773569246,
+            "ema9": 312.4750333503474,
+            "rvol_actual": 9.96098605998431,
+            "aceleracion_volumen": 7.06527538306386,
+            "gap_pct": -0.007528790538772464,
+            "maximo_dia": 322.6,
+            "maximo_premarket": 322.6,
+            "rango_apertura_max": 315.6000061035156,
+            "rango_apertura_min": 312.3210144042969,
+            "velas_desde_ruptura": null,
+            "macd": -0.34357754475269076,
+            "macd_signal": -0.253064114156689
+          },
+          "meta": {
+            "float_acciones": 348142404.0,
+            "short_pct_float": 0.0189,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Stryker to Acquire ZuriMED to Expand Its Shoulder Care Portfolio",
+            "fuente": "Zacks",
+            "fecha": "2026-09-01T14:10:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1907.2173294333334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 72.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 67.7309361438313,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "VRT",
+          "nombre": "Vertiv Holdings Co",
+          "precio_actual": 256.3,
+          "factores_intradia": {
+            "precio_actual": 256.3,
+            "vwap": 256.64612250905344,
+            "ema9": 256.6406198892123,
+            "rvol_actual": 5.624418509752713,
+            "aceleracion_volumen": 4.255750577833402,
+            "gap_pct": -0.004023432731628418,
+            "maximo_dia": 260.04998779296875,
+            "maximo_premarket": 258.0,
+            "rango_apertura_max": 255.49000549316406,
+            "rango_apertura_min": 251.5,
+            "velas_desde_ruptura": 72,
+            "macd": -0.04811560184174368,
+            "macd_signal": 0.01577481870679319
+          },
+          "meta": {
+            "float_acciones": 383736961.0,
+            "short_pct_float": 0.034,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Vertiv to Acquire Utility Innovation in Up to $2.6 Billion Deal",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-02T13:11:44Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 525.4840621333334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 63.6,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 72 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 85.57974247645728,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 72 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 66.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 72 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "NTAP",
+          "nombre": "NetApp, Inc.",
+          "precio_actual": 182.0,
+          "factores_intradia": {
+            "precio_actual": 182.0,
+            "vwap": 182.87464480068667,
+            "ema9": 181.1764252275543,
+            "rvol_actual": 7.884208863056931,
+            "aceleracion_volumen": 4.709158860819377,
+            "gap_pct": 0.015829744561037033,
+            "maximo_dia": 189.2100067138672,
+            "maximo_premarket": 189.0,
+            "rango_apertura_max": 188.69000244140625,
+            "rango_apertura_min": 186.05999755859375,
+            "velas_desde_ruptura": 0,
+            "macd": -0.02222690367074165,
+            "macd_signal": -0.061316375427720664
+          },
+          "meta": {
+            "float_acciones": 194803183.0,
+            "short_pct_float": 0.0547,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "NetApp's Q1 Results, Q2 Guidance Seen Beating Expectations, Wedbush Says",
+            "fuente": "MT Newswires",
+            "fecha": "2026-08-31T15:18:37Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3278.600771016667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 61.8941575073747,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "WSM",
+          "nombre": "Williams-Sonoma, Inc.",
+          "precio_actual": 221.72,
+          "factores_intradia": {
+            "precio_actual": 221.72,
+            "vwap": 222.49400210189089,
+            "ema9": 221.69846838191168,
+            "rvol_actual": 51.691180467651876,
+            "aceleracion_volumen": 10.546532962166266,
+            "gap_pct": -0.003106579800594949,
+            "maximo_dia": 224.66000366210938,
+            "maximo_premarket": 223.18,
+            "rango_apertura_max": 222.35499572753906,
+            "rango_apertura_min": 220.9550018310547,
+            "velas_desde_ruptura": 0,
+            "macd": -0.0006245451258450885,
+            "macd_signal": -0.013215779323327565
+          },
+          "meta": {
+            "float_acciones": 116231555.0,
+            "short_pct_float": 0.045500003,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Williams-Sonoma (WSM) Lifts Guidance On Strong Q2 Results But Is The Valuation Already Priced In",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-08-31T00:24:30Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4172.717473466667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 78.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 86.91354217846813,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 62.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "MRVL",
+          "nombre": "Marvell Technology, Inc.",
+          "precio_actual": 206.35,
+          "factores_intradia": {
+            "precio_actual": 206.35,
+            "vwap": 206.1196959619174,
+            "ema9": 206.40365547113223,
+            "rvol_actual": 7.67665249865081,
+            "aceleracion_volumen": 4.688107270436401,
+            "gap_pct": -0.022865552123206526,
+            "maximo_dia": 210.39,
+            "maximo_premarket": 210.39,
+            "rango_apertura_max": 208.49000549316406,
+            "rango_apertura_min": 204.5,
+            "velas_desde_ruptura": null,
+            "macd": -0.11788716562915624,
+            "macd_signal": -0.1025538203909559
+          },
+          "meta": {
+            "float_acciones": 873979923.0,
+            "short_pct_float": 0.0379,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Credo Technology Reports Q1 Results: Should Investors Hold or Fold?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-02T15:07:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 410.2175484,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 74.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 80.79756642425973,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "CDNS",
+          "nombre": "Cadence Design Systems, Inc.",
+          "precio_actual": 306.67,
+          "factores_intradia": {
+            "precio_actual": 306.67,
+            "vwap": 306.72003253122,
+            "ema9": 306.3463914339255,
+            "rvol_actual": 0.0012639181462533854,
+            "aceleracion_volumen": 1.7656720640362118,
+            "gap_pct": -0.0013097903194845227,
+            "maximo_dia": 314.141,
+            "maximo_premarket": 314.141,
+            "rango_apertura_max": 313.2099914550781,
+            "rango_apertura_min": 311.3299865722656,
+            "velas_desde_ruptura": 3,
+            "macd": 0.27252597199947104,
+            "macd_signal": 0.19524100396009444
+          },
+          "meta": {
+            "float_acciones": 274159239.0,
+            "short_pct_float": 0.0164,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Can Cadence's Cash Generation Support Both Growth and Share Buybacks?",
+            "fuente": "Zacks",
+            "fecha": "2026-08-31T15:57:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3240.2175896833337,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 75.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 76.21768568891041,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 61.4,
+            "score_ajustado": 41.4,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "ALAB",
+          "nombre": "Astera Labs, Inc.",
+          "precio_actual": 274.13,
+          "factores_intradia": {
+            "precio_actual": 274.13,
+            "vwap": 272.81251006836067,
+            "ema9": 273.6619106285624,
+            "rvol_actual": 0.03532398860631971,
+            "aceleracion_volumen": 1.5125000797402384,
+            "gap_pct": -0.01793493791760646,
+            "maximo_dia": 279.91,
+            "maximo_premarket": 279.91,
+            "rango_apertura_max": 277.89569091796875,
+            "rango_apertura_min": 272.8500061035156,
+            "velas_desde_ruptura": 1,
+            "macd": -0.10397876676751139,
+            "macd_signal": -0.24805295831924654
+          },
+          "meta": {
+            "float_acciones": 155789623.0,
+            "short_pct_float": 0.066199996,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Credo Technology Reports Q1 Results: Should Investors Hold or Fold?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-02T15:07:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 410.21764576666664,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 77.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 79.35050551963118,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 60.8,
+            "score_ajustado": 40.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "BDX",
+          "nombre": "Becton, Dickinson and Company",
+          "precio_actual": 187.52,
+          "factores_intradia": {
+            "precio_actual": 187.52,
+            "vwap": 189.12369388900458,
+            "ema9": 187.72074644392484,
+            "rvol_actual": 11.499241837112915,
+            "aceleracion_volumen": 8.866365761263802,
+            "gap_pct": 0.0013890821679725539,
+            "maximo_dia": 191.7550048828125,
+            "maximo_premarket": 187.31,
+            "rango_apertura_max": 188.3000030517578,
+            "rango_apertura_min": 187.42999267578125,
+            "velas_desde_ruptura": null,
+            "macd": -0.12710284465569543,
+            "macd_signal": -0.11208569219945515
+          },
+          "meta": {
+            "float_acciones": 271664975.0,
+            "short_pct_float": 0.0392,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Medtronic Raises Full-Year Outlook Following Fiscal First-Quarter Beat",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-01T13:09:07Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1968.1010157666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 77.91450144729917,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "ABT",
+          "nombre": "Abbott Laboratories",
+          "precio_actual": 110.47,
+          "factores_intradia": {
+            "precio_actual": 110.47,
+            "vwap": 111.20182047037147,
+            "ema9": 110.44052910130787,
+            "rvol_actual": 104.49968126093681,
+            "aceleracion_volumen": 20.899936252187363,
+            "gap_pct": 0.0033039703870818443,
+            "maximo_dia": 112.19999694824219,
+            "maximo_premarket": 109.4983,
+            "rango_apertura_max": 110.1500015258789,
+            "rango_apertura_min": 109.0,
+            "velas_desde_ruptura": 0,
+            "macd": -0.0966861967380197,
+            "macd_signal": -0.07304598059634353
+          },
+          "meta": {
+            "float_acciones": 1719931781.0,
+            "short_pct_float": 0.013200001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Medtronic Raises Full-Year Outlook Following Fiscal First-Quarter Beat",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-01T13:09:07Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1968.1010586,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": true,
+            "early": {
+              "score": 78.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.581131949226,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [],
+            "score_base": 59.7,
+            "score_ajustado": 59.7,
+            "riesgo_definido": true,
+            "accionable": true
+          },
+          "decision": "perdio_la_competencia_relativa",
+          "motivos": [
+            "Calificó, pero CRM quedó por encima en la competencia relativa de esta corrida."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que su configuración supere a la mejor del día, o que la mejor se invalide."
+          ]
+        },
+        {
+          "ticker": "FIS",
+          "nombre": "Fidelity National Information Services, Inc.",
+          "precio_actual": 42.24,
+          "factores_intradia": {
+            "precio_actual": 42.24,
+            "vwap": 41.917434379107156,
+            "ema9": 41.95467969925868,
+            "rvol_actual": 18.466791736438648,
+            "aceleracion_volumen": 10.323093960171784,
+            "gap_pct": 0.005140830037067466,
+            "maximo_dia": 42.65,
+            "maximo_premarket": 41.21,
+            "rango_apertura_max": 41.720001220703125,
+            "rango_apertura_min": 40.85499954223633,
+            "velas_desde_ruptura": 325,
+            "macd": 0.04133532686627461,
+            "macd_signal": 0.011559634651129613
+          },
+          "meta": {
+            "float_acciones": 514524950.0,
+            "short_pct_float": 0.036199998,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "How Can FIS' Wallet Partnership With Ericsson Drive Long-Term Growth?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-01T16:52:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1745.2177644,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.0,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 325 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 90.38686987104339,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 325 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 58.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 325 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "KEYS",
+          "nombre": "Keysight Technologies, Inc.",
+          "precio_actual": 321.58,
+          "factores_intradia": {
+            "precio_actual": 321.58,
+            "vwap": 320.17996827278046,
+            "ema9": 321.5170381324468,
+            "rvol_actual": 10.918103511960167,
+            "aceleracion_volumen": 8.745239925828773,
+            "gap_pct": -0.004226826267570132,
+            "maximo_dia": 321.9599914550781,
+            "maximo_premarket": 319.27,
+            "rango_apertura_max": 320.0,
+            "rango_apertura_min": 318.0400085449219,
+            "velas_desde_ruptura": 38,
+            "macd": 0.1248925569432231,
+            "macd_signal": 0.11215938884436806
+          },
+          "meta": {
+            "float_acciones": 169160693.0,
+            "short_pct_float": 0.0198,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Can Cadence's Cash Generation Support Both Growth and Share Buybacks?",
+            "fuente": "Zacks",
+            "fecha": "2026-08-31T15:57:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3240.2178028499998,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.9,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 38 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 98.81975566789902,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 38 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 56.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 38 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "AMAT",
+          "nombre": "Applied Materials, Inc.",
+          "precio_actual": 439.34,
+          "factores_intradia": {
+            "precio_actual": 439.34,
+            "vwap": 438.40254495598987,
+            "ema9": 438.3647664264107,
+            "rvol_actual": 10.570307134232065,
+            "aceleracion_volumen": 8.801607679400632,
+            "gap_pct": 0.0037570244338855905,
+            "maximo_dia": 444.1,
+            "maximo_premarket": 444.1,
+            "rango_apertura_max": 443.5,
+            "rango_apertura_min": 438.4700012207031,
+            "velas_desde_ruptura": 1,
+            "macd": 0.017294006610313772,
+            "macd_signal": -0.08093547322423353
+          },
+          "meta": {
+            "float_acciones": 790573837.0,
+            "short_pct_float": 0.015,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Applied Materials’ stock buybacks: History & investor impact explained",
+            "fuente": "TheStreet",
+            "fecha": "2026-09-02T02:16:50Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1180.3845350333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 78.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 89.28169331231695,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [],
+            "score_base": 55.4,
+            "score_ajustado": 55.4,
+            "riesgo_definido": true,
+            "accionable": true
+          },
+          "decision": "perdio_la_competencia_relativa",
+          "motivos": [
+            "Calificó, pero CRM quedó por encima en la competencia relativa de esta corrida."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que su configuración supere a la mejor del día, o que la mejor se invalide."
+          ]
+        }
+      ]
     }
   ]
 }
