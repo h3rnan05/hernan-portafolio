@@ -2658,9 +2658,9 @@
     {
       "ticker": "CXM",
       "nombre": "Sprinklr, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-02T17:15:03+00:00",
-      "actualizado_en": "2026-09-02T17:15:03+00:00",
+      "actualizado_en": "2026-09-02T19:33:53+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2673,6 +2673,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-02T19:33:53+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-02T19:33:55+00:00",
+          "telegram_enviado_ts": "2026-09-02T19:33:55+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -2696,20 +2708,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 7.295000076293945,
-      "ultimo_stop": 7.126964347703116,
-      "ultimo_objetivo": 7.631071533475604,
-      "ultima_zona_entrada_baja": 7.30101611344324,
-      "ultimos_niveles_ts": "2026-09-02T17:15:03+00:00",
+      "ultima_entrada": 7.230000019073486,
+      "ultimo_stop": 7.061964290482657,
+      "ultimo_objetivo": 7.566071476255145,
+      "ultima_zona_entrada_baja": 7.253226592173297,
+      "ultimos_niveles_ts": "2026-09-02T19:33:53+00:00",
       "stop_tesis": 7.126964347703116,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     },
     {
       "ticker": "TNDM",
       "nombre": "Tandem Diabetes Care, Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-02T17:15:03+00:00",
-      "actualizado_en": "2026-09-02T17:15:03+00:00",
+      "actualizado_en": "2026-09-02T19:33:53+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2722,6 +2734,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-02T19:33:53+00:00",
+          "motivo": "El precio ($20.73) cayó por debajo del stop de la idea ($20.77) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-09-02T19:33:55+00:00",
+          "evaluacion_ts": "2026-09-02T19:33:55+00:00",
+          "mensaje_generado_ts": "2026-09-02T19:33:55+00:00",
+          "telegram_enviado_ts": "2026-09-02T19:33:55+00:00",
+          "latencia_desde_deteccion_ms": 0.0,
+          "latencia_desde_evaluacion_ms": 0.0,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "fda",
@@ -2743,20 +2767,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 20.8799991607666,
-      "ultimo_stop": 20.770182147971077,
-      "ultimo_objetivo": 21.09963318635765,
-      "ultima_zona_entrada_baja": 20.874554922583997,
-      "ultimos_niveles_ts": "2026-09-02T17:15:03+00:00",
+      "ultima_entrada": 20.729999542236328,
+      "ultimo_stop": 20.59740226888051,
+      "ultimo_objetivo": 20.99519408894796,
+      "ultima_zona_entrada_baja": 20.700906802894988,
+      "ultimos_niveles_ts": "2026-09-02T19:33:53+00:00",
       "stop_tesis": 20.770182147971077,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     },
     {
       "ticker": "FCEL",
       "nombre": "FuelCell Energy, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-02T17:15:03+00:00",
-      "actualizado_en": "2026-09-02T17:15:03+00:00",
+      "actualizado_en": "2026-09-02T19:33:53+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2769,6 +2793,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-02T19:33:53+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-02T19:33:55+00:00",
+          "telegram_enviado_ts": "2026-09-02T19:33:56+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -2790,20 +2826,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 14.229999542236328,
-      "ultimo_stop": 14.140645015794135,
-      "ultimo_objetivo": 14.408708595120714,
-      "ultima_zona_entrada_baja": 14.211703533461442,
-      "ultimos_niveles_ts": "2026-09-02T17:15:03+00:00",
+      "ultima_entrada": 14.265000343322754,
+      "ultimo_stop": 14.167174030195348,
+      "ultimo_objetivo": 14.460652969577566,
+      "ultima_zona_entrada_baja": 14.238365859492811,
+      "ultimos_niveles_ts": "2026-09-02T19:33:53+00:00",
       "stop_tesis": 14.140645015794135,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     },
     {
       "ticker": "CRML",
       "nombre": "Critical Metals Corp.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-02T17:15:03+00:00",
-      "actualizado_en": "2026-09-02T17:15:03+00:00",
+      "actualizado_en": "2026-09-02T19:33:53+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2816,6 +2852,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-02T19:33:53+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-02T19:33:56+00:00",
+          "telegram_enviado_ts": "2026-09-02T19:33:56+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "insider_buying",
@@ -2837,13 +2885,13 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 7.249899864196777,
-      "ultimo_stop": 7.210691466296727,
-      "ultimo_objetivo": 7.328316659996878,
-      "ultima_zona_entrada_baja": 7.246926096780631,
-      "ultimos_niveles_ts": "2026-09-02T17:15:03+00:00",
+      "ultima_entrada": 7.320000171661377,
+      "ultimo_stop": 7.271714457777138,
+      "ultimo_objetivo": 7.4165715994298544,
+      "ultima_zona_entrada_baja": 7.308255736459436,
+      "ultimos_niveles_ts": "2026-09-02T19:33:53+00:00",
       "stop_tesis": 7.210691466296727,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     }
   ]
 }
