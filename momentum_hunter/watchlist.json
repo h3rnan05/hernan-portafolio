@@ -2601,9 +2601,9 @@
     {
       "ticker": "CPB",
       "nombre": "The Campbell's Company",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-03T17:09:20+00:00",
-      "actualizado_en": "2026-09-03T17:09:20+00:00",
+      "actualizado_en": "2026-09-03T19:28:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2616,6 +2616,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-03T19:28:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-03T19:28:02+00:00",
+          "telegram_enviado_ts": "2026-09-03T19:28:03+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -2637,20 +2649,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 21.545000076293945,
-      "ultimo_stop": 21.431192346410295,
-      "ultimo_objetivo": 21.772615536061245,
-      "ultima_zona_entrada_baja": 21.538886780311856,
-      "ultimos_niveles_ts": "2026-09-03T17:09:20+00:00",
+      "ultima_entrada": 21.94499969482422,
+      "ultimo_stop": 21.5605748985195,
+      "ultimo_objetivo": 22.713849287433654,
+      "ultima_zona_entrada_baja": 22.018033494657427,
+      "ultimos_niveles_ts": "2026-09-03T19:28:00+00:00",
       "stop_tesis": 21.431192346410295,
       "clima_mercado": "debil"
     },
     {
       "ticker": "DK",
       "nombre": "Delek US Holdings, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-03T17:09:20+00:00",
-      "actualizado_en": "2026-09-03T17:09:20+00:00",
+      "actualizado_en": "2026-09-03T19:28:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2663,6 +2675,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-03T19:28:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-03T19:28:03+00:00",
+          "telegram_enviado_ts": "2026-09-03T19:28:04+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 4000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -2684,20 +2708,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 70.1500015258789,
-      "ultimo_stop": 67.92964431217739,
-      "ultimo_objetivo": 74.59071595328194,
-      "ultima_zona_entrada_baja": 70.15886998647352,
-      "ultimos_niveles_ts": "2026-09-03T17:09:20+00:00",
+      "ultima_entrada": 71.70999908447266,
+      "ultimo_stop": 70.3542835722784,
+      "ultimo_objetivo": 74.42143010886116,
+      "ultima_zona_entrada_baja": 71.72820990322676,
+      "ultimos_niveles_ts": "2026-09-03T19:28:00+00:00",
       "stop_tesis": 67.92964431217739,
       "clima_mercado": "debil"
     },
     {
       "ticker": "VSXY",
       "nombre": "Victorias Secret & Co.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-03T17:09:20+00:00",
-      "actualizado_en": "2026-09-03T17:09:20+00:00",
+      "actualizado_en": "2026-09-03T19:28:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2710,6 +2734,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-03T19:28:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-03T19:28:04+00:00",
+          "telegram_enviado_ts": "2026-09-03T19:28:04+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 4000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -2731,20 +2767,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 72.86000061035156,
-      "ultimo_stop": 70.58475140162876,
-      "ultimo_objetivo": 77.41049902779716,
-      "ultima_zona_entrada_baja": 73.03670769804167,
-      "ultimos_niveles_ts": "2026-09-03T17:09:20+00:00",
+      "ultima_entrada": 73.37000274658203,
+      "ultimo_stop": 71.09475353785923,
+      "ultimo_objetivo": 77.92050116402763,
+      "ultima_zona_entrada_baja": 73.50711852517541,
+      "ultimos_niveles_ts": "2026-09-03T19:28:00+00:00",
       "stop_tesis": 70.58475140162876,
       "clima_mercado": "debil"
     },
     {
       "ticker": "PAY",
       "nombre": "Paymentus Holdings, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-03T17:09:20+00:00",
-      "actualizado_en": "2026-09-03T17:09:20+00:00",
+      "actualizado_en": "2026-09-03T19:28:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2757,6 +2793,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-03T19:28:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-03T19:28:04+00:00",
+          "telegram_enviado_ts": "2026-09-03T19:28:05+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 5000.0
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -2778,20 +2826,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 35.83000183105469,
-      "ultimo_stop": 34.955823353358674,
-      "ultimo_objetivo": 37.578358786446714,
-      "ultima_zona_entrada_baja": 35.834423041334645,
-      "ultimos_niveles_ts": "2026-09-03T17:09:20+00:00",
+      "ultima_entrada": 36.119998931884766,
+      "ultimo_stop": 35.24582045418875,
+      "ultimo_objetivo": 37.86835588727679,
+      "ultima_zona_entrada_baja": 36.21320666938645,
+      "ultimos_niveles_ts": "2026-09-03T19:28:00+00:00",
       "stop_tesis": 34.955823353358674,
       "clima_mercado": "debil"
     },
     {
       "ticker": "MP",
       "nombre": "MP Materials Corp.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-03T17:09:20+00:00",
-      "actualizado_en": "2026-09-03T17:09:20+00:00",
+      "actualizado_en": "2026-09-03T19:28:00+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2804,6 +2852,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-03T19:28:00+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-03T19:28:05+00:00",
+          "telegram_enviado_ts": "2026-09-03T19:28:05+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 5000.0
         }
       ],
       "catalizador_tipo": "insider_buying",
@@ -2825,11 +2885,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 53.755001068115234,
-      "ultimo_stop": 53.453951031918685,
-      "ultimo_objetivo": 54.357101140508334,
-      "ultima_zona_entrada_baja": 53.722563851174556,
-      "ultimos_niveles_ts": "2026-09-03T17:09:20+00:00",
+      "ultima_entrada": 53.5,
+      "ultimo_stop": 53.13762010309803,
+      "ultimo_objetivo": 54.22475979380394,
+      "ultima_zona_entrada_baja": 53.40464331969651,
+      "ultimos_niveles_ts": "2026-09-03T19:28:00+00:00",
       "stop_tesis": 53.453951031918685,
       "clima_mercado": "debil"
     }
