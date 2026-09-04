@@ -1240,6 +1240,442 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-04T16:55:58+00:00",
+      "candidatos_evaluados": 6,
+      "candidatos": [
+        {
+          "ticker": "GTLB",
+          "nombre": "GitLab Inc.",
+          "precio_actual": 50.470001220703125,
+          "factores_intradia": {
+            "precio_actual": 50.470001220703125,
+            "vwap": 49.66086862711064,
+            "ema9": 50.47938005109415,
+            "rvol_actual": 0.9807440799176337,
+            "aceleracion_volumen": 0.8765442877722966,
+            "gap_pct": -0.007503604467195267,
+            "maximo_dia": 50.60749816894531,
+            "maximo_premarket": 49.9999,
+            "rango_apertura_max": 49.779998779296875,
+            "rango_apertura_min": 48.369998931884766,
+            "velas_desde_ruptura": null,
+            "macd": 0.027817120950018648,
+            "macd_signal": 0.05032571593634175
+          },
+          "meta": {
+            "float_acciones": 136955196.0,
+            "short_pct_float": 0.0934,
+            "market_cap": 8411558912.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "GitLab (GTLB) Wins New Customers But Its Flex Model Clouds The Outlook",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-04T05:07:34Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 708.3722355499999,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 61.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 37.65442877722967,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.28307161553063,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 72.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "DK",
+          "nombre": "Delek US Holdings, Inc.",
+          "precio_actual": 72.31999969482422,
+          "factores_intradia": {
+            "precio_actual": 72.31999969482422,
+            "vwap": 71.78966668453423,
+            "ema9": 72.36427220791448,
+            "rvol_actual": 0.5561965066673822,
+            "aceleracion_volumen": 0.15842027242469164,
+            "gap_pct": -0.012430960040203958,
+            "maximo_dia": 73.04000091552734,
+            "maximo_premarket": 72.6,
+            "rango_apertura_max": 71.5,
+            "rango_apertura_min": 69.75499725341797,
+            "velas_desde_ruptura": null,
+            "macd": -0.12344346402204565,
+            "macd_signal": -0.07718968367526524
+          },
+          "meta": {
+            "float_acciones": 60029574.0,
+            "short_pct_float": 0.11350001,
+            "market_cap": 4427086336.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "California Resources Completes $63M Acquisition of Crimson Midstream",
+            "fuente": "Zacks",
+            "fecha": "2026-09-02T14:03:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3052.9389248166667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 51.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 90.14237114350765,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 72.6,
+            "score_ajustado": 52.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "OLLI",
+          "nombre": "Ollie's Bargain Outlet Holdings, Inc.",
+          "precio_actual": 75.95500183105469,
+          "factores_intradia": {
+            "precio_actual": 75.95500183105469,
+            "vwap": 76.54395978581083,
+            "ema9": 76.03802370778106,
+            "rvol_actual": 0.29353383458646615,
+            "aceleracion_volumen": 1.6491571342564721,
+            "gap_pct": 0.0,
+            "maximo_dia": 77.67500305175781,
+            "maximo_premarket": 73.67,
+            "rango_apertura_max": 74.33999633789062,
+            "rango_apertura_min": 73.69000244140625,
+            "velas_desde_ruptura": null,
+            "macd": -0.08592478634729162,
+            "macd_signal": -0.060459052699888854
+          },
+          "meta": {
+            "float_acciones": 59147567.0,
+            "short_pct_float": 0.1361,
+            "market_cap": 4511018496.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Ollie's Bargain Outlet Q2 Results Establish 'Fundamental Bottom,' RBC Says",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-03T17:10:57Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1424.9889472666666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 77.85643832473332,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "OPCH",
+          "nombre": "Option Care Health, Inc.",
+          "precio_actual": 24.209999084472656,
+          "factores_intradia": {
+            "precio_actual": 24.209999084472656,
+            "vwap": 24.265708931911018,
+            "ema9": 24.224707642054003,
+            "rvol_actual": 0.5243606229461352,
+            "aceleracion_volumen": 0.8539918484775834,
+            "gap_pct": -0.008585408517286694,
+            "maximo_dia": 25.0,
+            "maximo_premarket": 25.0,
+            "rango_apertura_max": 24.389999389648438,
+            "rango_apertura_min": 24.239999771118164,
+            "velas_desde_ruptura": null,
+            "macd": -0.01256872850850499,
+            "macd_signal": -0.00652321866596998
+          },
+          "meta": {
+            "float_acciones": 147752657.0,
+            "short_pct_float": 0.111999996,
+            "market_cap": 3626300672.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Senior Health, Home Health & Hospice Stocks Q2 Results: Benchmarking Option Care Health (NASDAQ:OPCH)",
+            "fuente": "StockStory",
+            "fecha": "2026-09-03T19:11:18Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1304.6389652,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 57.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 35.399184847758335,
+                "extension": 100.0,
+                "distancia_maximo_dia": 68.3999633789062,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "MP",
+          "nombre": "MP Materials Corp.",
+          "precio_actual": 55.0099983215332,
+          "factores_intradia": {
+            "precio_actual": 55.0099983215332,
+            "vwap": 55.97005622448733,
+            "ema9": 54.92122105564464,
+            "rvol_actual": 0.43810222616015065,
+            "aceleracion_volumen": 0.8020231213872833,
+            "gap_pct": 0.05466720915096101,
+            "maximo_dia": 58.52000045776367,
+            "maximo_premarket": 56.49,
+            "rango_apertura_max": 58.189998626708984,
+            "rango_apertura_min": 56.61130142211914,
+            "velas_desde_ruptura": 4,
+            "macd": 0.11637222254462642,
+            "macd_signal": 0.0880078649148662
+          },
+          "meta": {
+            "float_acciones": 144321060.0,
+            "short_pct_float": 0.1784,
+            "market_cap": 9795569664.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "insider_buying",
+            "titular": "United States Antimony Jumps 8%, USA Rare Earth Ticks Up: Is Insider Buying Behind the Move?",
+            "fuente": "24/7 Wall St.",
+            "fecha": "2026-09-02T14:52:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3003.9056757500002,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "micro_pullback",
+            "temprano": true,
+            "early": {
+              "score": 55.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 30.202312138728328,
+                "extension": 100.0,
+                "distancia_maximo_dia": 40.020469774880056,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 59.8,
+            "score_ajustado": 39.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "PAY",
+          "nombre": "Paymentus Holdings, Inc.",
+          "precio_actual": 36.380001068115234,
+          "factores_intradia": {
+            "precio_actual": 36.380001068115234,
+            "vwap": 36.35871549639805,
+            "ema9": 36.41952737891175,
+            "rvol_actual": 6.859467780954476,
+            "aceleracion_volumen": 3.9907450254511794,
+            "gap_pct": -0.017133561606530113,
+            "maximo_dia": 36.93,
+            "maximo_premarket": 36.93,
+            "rango_apertura_max": 36.63999938964844,
+            "rango_apertura_min": 35.78499984741211,
+            "velas_desde_ruptura": null,
+            "macd": 0.00482533904100535,
+            "macd_signal": 0.016306828900056115
+          },
+          "meta": {
+            "float_acciones": 60944714.0,
+            "short_pct_float": 0.075500004,
+            "market_cap": 4582313984.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "How Can FIS' Wallet Partnership With Ericsson Drive Long-Term Growth?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-01T16:52:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4323.939026683333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 74.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 85.1069880345311,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
