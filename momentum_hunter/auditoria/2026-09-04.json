@@ -2283,6 +2283,86 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-04T21:50:06+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "VOXR",
+          "nombre": "Vox Royalty Corp.",
+          "precio_actual": 5.76,
+          "factores_intradia": {
+            "precio_actual": 5.76,
+            "vwap": 5.767992006507128,
+            "ema9": 5.756524825004535,
+            "rvol_actual": 9.596582947073406,
+            "aceleracion_volumen": 7.94106965995378,
+            "gap_pct": -0.02409636279938049,
+            "maximo_dia": 5.820000171661377,
+            "maximo_premarket": 5.82,
+            "rango_apertura_max": 5.739999771118164,
+            "rango_apertura_min": 5.670000076293945,
+            "velas_desde_ruptura": 183,
+            "macd": -0.008008962777743989,
+            "macd_signal": -0.008863684915049607
+          },
+          "meta": {
+            "float_acciones": 64049634.0,
+            "short_pct_float": 0.026400002,
+            "market_cap": 400292832.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Vox Royalty Australia to acquire 2% NSR royalty on White Dam gold mine",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-03T13:48:51Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1921.2325836000002,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.0,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 183 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 89.69069245847638,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "El patrón se activó hace 183 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 61.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "El patrón se activó hace 183 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        }
+      ]
     }
   ]
 }

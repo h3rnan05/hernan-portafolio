@@ -3958,9 +3958,9 @@
     {
       "ticker": "PSNYW",
       "nombre": "Polestar Automotive Holding UK PLC",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-04T19:27:22+00:00",
-      "actualizado_en": "2026-09-04T19:27:22+00:00",
+      "actualizado_en": "2026-09-04T21:50:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3968,6 +3968,18 @@
           "motivo": "Catalizador confirmado -- en observación.",
           "deteccion_ts": "2026-09-04T19:27:22+00:00",
           "evaluacion_ts": "2026-09-04T19:27:22+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-04T21:50:05+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
           "mensaje_generado_ts": null,
           "telegram_enviado_ts": null,
           "latencia_desde_deteccion_ms": null,
@@ -4000,6 +4012,53 @@
       "ultima_zona_entrada_baja": 5.012918451221071,
       "ultimos_niveles_ts": "2026-09-04T21:24:23+00:00",
       "stop_tesis": 4.453421243599483,
+      "clima_mercado": "debil"
+    },
+    {
+      "ticker": "VOXR",
+      "nombre": "Vox Royalty Corp.",
+      "estado": "watching",
+      "creado_en": "2026-09-04T21:50:05+00:00",
+      "actualizado_en": "2026-09-04T21:50:05+00:00",
+      "transiciones": [
+        {
+          "estado": "watching",
+          "timestamp": "2026-09-04T21:50:05+00:00",
+          "motivo": "Catalizador confirmado -- en observación.",
+          "deteccion_ts": "2026-09-04T21:50:04+00:00",
+          "evaluacion_ts": "2026-09-04T21:50:05+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        }
+      ],
+      "catalizador_tipo": "adquisicion",
+      "catalizador_titular": "Vox Royalty Australia to acquire 2% NSR royalty on White Dam gold mine",
+      "catalizador_fuente": "Mining Technology",
+      "catalizador_fecha": "2026-09-03T13:48:51Z",
+      "catalizador_confirmado": true,
+      "catalizador_fuentes_adicionales": [],
+      "shares_float": 64049634.0,
+      "short_pct_float": 0.026400002,
+      "es_large_cap": false,
+      "score_base": 61.2,
+      "atr_diario": 0.24650004931858607,
+      "gap_pct_congelado": -0.02409636279938049,
+      "tarde_consecutivas": 1,
+      "market_event_ts": null,
+      "data_received_ts": null,
+      "evaluador_ts": null,
+      "mensaje_generado_ts": null,
+      "telegram_enviado_ts": null,
+      "signal_latency_ms": null,
+      "ultima_entrada": 5.76,
+      "ultimo_stop": 5.727742200879512,
+      "ultimo_objetivo": 5.824515598240975,
+      "ultima_zona_entrada_baja": 5.739999771118164,
+      "ultimos_niveles_ts": "2026-09-04T21:50:05+00:00",
+      "stop_tesis": 5.727742200879512,
       "clima_mercado": "debil"
     }
   ]
