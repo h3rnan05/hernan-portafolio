@@ -3180,11 +3180,11 @@
       "mensaje_generado_ts": "2026-09-04T16:40:20+00:00",
       "telegram_enviado_ts": "2026-09-04T16:40:21+00:00",
       "signal_latency_ms": 141000.0,
-      "ultima_entrada": 93.33999633789062,
-      "ultimo_stop": 92.8329900835341,
-      "ultimo_objetivo": 94.35400884660368,
-      "ultima_zona_entrada_baja": 93.2994875211398,
-      "ultimos_niveles_ts": "2026-09-04T16:40:14+00:00",
+      "ultima_entrada": 93.11000061035156,
+      "ultimo_stop": 92.533676427246,
+      "ultimo_objetivo": 94.2626489765627,
+      "ultima_zona_entrada_baja": 93.12792230404429,
+      "ultimos_niveles_ts": "2026-09-04T19:07:57+00:00",
       "stop_tesis": 92.00118528293747,
       "clima_mercado": "debil"
     },
@@ -3604,9 +3604,9 @@
     {
       "ticker": "GTLB",
       "nombre": "GitLab Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-04T16:55:56+00:00",
-      "actualizado_en": "2026-09-04T16:55:56+00:00",
+      "actualizado_en": "2026-09-04T19:07:57+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3619,6 +3619,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-04T19:07:57+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-04T19:08:01+00:00",
+          "telegram_enviado_ts": "2026-09-04T19:08:01+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 4000.0
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -3640,20 +3652,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 50.470001220703125,
-      "ultimo_stop": 49.41256428397509,
-      "ultimo_objetivo": 52.5848750941592,
-      "ultima_zona_entrada_baja": 50.47938005109415,
-      "ultimos_niveles_ts": "2026-09-04T16:55:56+00:00",
+      "ultima_entrada": 49.83000183105469,
+      "ultimo_stop": 49.55401822886883,
+      "ultimo_objetivo": 50.38196903542641,
+      "ultima_zona_entrada_baja": 49.83615462560667,
+      "ultimos_niveles_ts": "2026-09-04T19:07:57+00:00",
       "stop_tesis": 49.41256428397509,
       "clima_mercado": "debil"
     },
     {
       "ticker": "DK",
       "nombre": "Delek US Holdings, Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-04T16:55:56+00:00",
-      "actualizado_en": "2026-09-04T16:55:56+00:00",
+      "actualizado_en": "2026-09-04T19:07:57+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3666,6 +3678,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-04T19:07:57+00:00",
+          "motivo": "El precio ($71.08) cayó por debajo del stop de la idea ($71.43) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-09-04T19:07:59+00:00",
+          "evaluacion_ts": "2026-09-04T19:07:59+00:00",
+          "mensaje_generado_ts": "2026-09-04T19:07:59+00:00",
+          "telegram_enviado_ts": "2026-09-04T19:08:00+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -3687,20 +3711,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 72.31999969482422,
-      "ultimo_stop": 71.43071835111155,
-      "ultimo_objetivo": 74.09856238224955,
-      "ultima_zona_entrada_baja": 72.36427220791448,
-      "ultimos_niveles_ts": "2026-09-04T16:55:56+00:00",
+      "ultima_entrada": 71.08000183105469,
+      "ultimo_stop": 68.8626800264631,
+      "ultimo_objetivo": 75.51464544023787,
+      "ultima_zona_entrada_baja": 71.2035043836904,
+      "ultimos_niveles_ts": "2026-09-04T19:07:57+00:00",
       "stop_tesis": 71.43071835111155,
       "clima_mercado": "debil"
     },
     {
       "ticker": "OLLI",
       "nombre": "Ollie's Bargain Outlet Holdings, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-04T16:55:56+00:00",
-      "actualizado_en": "2026-09-04T16:55:56+00:00",
+      "actualizado_en": "2026-09-04T19:07:57+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3713,6 +3737,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-04T19:07:57+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-04T19:08:01+00:00",
+          "telegram_enviado_ts": "2026-09-04T19:08:01+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 4000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3734,20 +3770,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 75.95500183105469,
-      "ultimo_stop": 74.15642983572823,
-      "ultimo_objetivo": 79.5521458217076,
-      "ultima_zona_entrada_baja": 76.03802370778106,
-      "ultimos_niveles_ts": "2026-09-04T16:55:56+00:00",
+      "ultima_entrada": 76.5199966430664,
+      "ultimo_stop": 76.04682306469145,
+      "ultimo_objetivo": 77.46634379981631,
+      "ultima_zona_entrada_baja": 76.42896790421251,
+      "ultimos_niveles_ts": "2026-09-04T19:07:57+00:00",
       "stop_tesis": 74.15642983572823,
       "clima_mercado": "debil"
     },
     {
       "ticker": "OPCH",
       "nombre": "Option Care Health, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-04T16:55:56+00:00",
-      "actualizado_en": "2026-09-04T16:55:56+00:00",
+      "actualizado_en": "2026-09-04T19:07:57+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3760,6 +3796,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-04T19:07:57+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-04T19:08:01+00:00",
+          "telegram_enviado_ts": "2026-09-04T19:08:02+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 5000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3781,20 +3829,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 24.209999084472656,
-      "ultimo_stop": 23.942499092647008,
-      "ultimo_objetivo": 24.744999068123953,
-      "ultima_zona_entrada_baja": 24.224707642054003,
-      "ultimos_niveles_ts": "2026-09-04T16:55:56+00:00",
+      "ultima_entrada": 24.225000381469727,
+      "ultimo_stop": 23.95750038964408,
+      "ultimo_objetivo": 24.760000365121023,
+      "ultima_zona_entrada_baja": 24.23246735316813,
+      "ultimos_niveles_ts": "2026-09-04T19:07:57+00:00",
       "stop_tesis": 23.942499092647008,
       "clima_mercado": "debil"
     },
     {
       "ticker": "MP",
       "nombre": "MP Materials Corp.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-04T16:55:56+00:00",
-      "actualizado_en": "2026-09-04T16:55:56+00:00",
+      "actualizado_en": "2026-09-04T19:07:57+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3807,6 +3855,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-04T19:07:57+00:00",
+          "motivo": "El precio ($54.45) cayó por debajo del stop de la idea ($54.65) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-09-04T19:07:59+00:00",
+          "evaluacion_ts": "2026-09-04T19:07:59+00:00",
+          "mensaje_generado_ts": "2026-09-04T19:08:00+00:00",
+          "telegram_enviado_ts": "2026-09-04T19:08:00+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "insider_buying",
@@ -3828,20 +3888,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 55.0099983215332,
-      "ultimo_stop": 54.64661495036641,
-      "ultimo_objetivo": 55.736765063866784,
-      "ultima_zona_entrada_baja": 54.92122105564464,
-      "ultimos_niveles_ts": "2026-09-04T16:55:56+00:00",
+      "ultima_entrada": 54.44810104370117,
+      "ultimo_stop": 52.75870786394392,
+      "ultimo_objetivo": 57.82688740321568,
+      "ultima_zona_entrada_baja": 54.48005870266828,
+      "ultimos_niveles_ts": "2026-09-04T19:07:57+00:00",
       "stop_tesis": 54.64661495036641,
       "clima_mercado": "debil"
     },
     {
       "ticker": "PAY",
       "nombre": "Paymentus Holdings, Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-04T16:55:56+00:00",
-      "actualizado_en": "2026-09-04T16:55:56+00:00",
+      "actualizado_en": "2026-09-04T19:07:57+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3854,6 +3914,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-04T19:07:57+00:00",
+          "motivo": "El precio ($36.06) cayó por debajo del stop de la idea ($36.18) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-09-04T19:07:59+00:00",
+          "evaluacion_ts": "2026-09-04T19:07:59+00:00",
+          "mensaje_generado_ts": "2026-09-04T19:08:00+00:00",
+          "telegram_enviado_ts": "2026-09-04T19:08:01+00:00",
+          "latencia_desde_deteccion_ms": 2000.0,
+          "latencia_desde_evaluacion_ms": 2000.0,
+          "latencia_desde_transicion_ms": 4000.0
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -3875,11 +3947,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 36.380001068115234,
-      "ultimo_stop": 36.17692191891606,
-      "ultimo_objetivo": 36.78615936651359,
-      "ultima_zona_entrada_baja": 36.41952737891175,
-      "ultimos_niveles_ts": "2026-09-04T16:55:56+00:00",
+      "ultima_entrada": 36.060001373291016,
+      "ultimo_stop": 35.87369112104901,
+      "ultimo_objetivo": 36.43262187777502,
+      "ultima_zona_entrada_baja": 36.0539609256774,
+      "ultimos_niveles_ts": "2026-09-04T19:07:57+00:00",
       "stop_tesis": 36.17692191891606,
       "clima_mercado": "debil"
     }
