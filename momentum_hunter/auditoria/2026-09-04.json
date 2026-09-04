@@ -2119,6 +2119,88 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-04T19:27:23+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "PSNYW",
+          "nombre": "Polestar Automotive Holding UK PLC",
+          "precio_actual": 4.980199813842773,
+          "factores_intradia": {
+            "precio_actual": 4.980199813842773,
+            "vwap": 5.039296685190643,
+            "ema9": 5.0145599512868895,
+            "rvol_actual": 2.7528868360277134,
+            "aceleracion_volumen": 3.249367088607595,
+            "gap_pct": -0.050751874476386655,
+            "maximo_dia": 5.2982,
+            "maximo_premarket": 5.2982,
+            "rango_apertura_max": 5.050000190734863,
+            "rango_apertura_min": 5.039999961853027,
+            "velas_desde_ruptura": null,
+            "macd": -0.02491091979093696,
+            "macd_signal": -0.02409964278531802
+          },
+          "meta": {
+            "float_acciones": 29325670.0,
+            "short_pct_float": null,
+            "market_cap": 823043456.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Polestar Shares Fall After Q2 Revenue Misses Estimates",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-03T13:35:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1791.569232,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 69.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 39.97958058260798,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 53.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
