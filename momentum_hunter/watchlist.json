@@ -4017,9 +4017,9 @@
     {
       "ticker": "VOXR",
       "nombre": "Vox Royalty Corp.",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-09-04T21:50:05+00:00",
-      "actualizado_en": "2026-09-04T21:50:05+00:00",
+      "actualizado_en": "2026-09-07T18:00:10+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -4032,6 +4032,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-09-07T18:00:10+00:00",
+          "motivo": "El patrón se activó hace 183 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-09-07T18:00:11+00:00",
+          "evaluacion_ts": "2026-09-07T18:00:11+00:00",
+          "mensaje_generado_ts": "2026-09-07T18:00:11+00:00",
+          "telegram_enviado_ts": "2026-09-07T18:00:12+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -4046,7 +4058,7 @@
       "score_base": 61.2,
       "atr_diario": 0.24650004931858607,
       "gap_pct_congelado": -0.02409636279938049,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -4057,7 +4069,7 @@
       "ultimo_stop": 5.727742200879512,
       "ultimo_objetivo": 5.824515598240975,
       "ultima_zona_entrada_baja": 5.739999771118164,
-      "ultimos_niveles_ts": "2026-09-04T21:50:05+00:00",
+      "ultimos_niveles_ts": "2026-09-07T18:00:10+00:00",
       "stop_tesis": 5.727742200879512,
       "clima_mercado": "debil"
     }
