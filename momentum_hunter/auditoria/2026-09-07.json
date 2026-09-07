@@ -237,6 +237,80 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-07T21:50:02+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "XPOF",
+          "nombre": "Xponential Fitness, Inc.",
+          "precio_actual": 4.91,
+          "factores_intradia": {
+            "precio_actual": 4.91,
+            "vwap": 4.89751694006411,
+            "ema9": 4.91157789904104,
+            "rvol_actual": 5.815080194813474,
+            "aceleracion_volumen": 2.733911435865833,
+            "gap_pct": -0.004056791404240988,
+            "maximo_dia": 4.98,
+            "maximo_premarket": 4.93,
+            "rango_apertura_max": 4.949999809265137,
+            "rango_apertura_min": 4.880000114440918,
+            "velas_desde_ruptura": null,
+            "macd": -0.00639534511070039,
+            "macd_signal": -0.005415293256381927
+          },
+          "meta": {
+            "float_acciones": 21114566.0,
+            "short_pct_float": 0.41189998,
+            "market_cap": 243128464.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Xponential Fitness (XPOF) Swings To A Loss And Cuts Guidance",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-06T11:07:14Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2082.787047916667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": true,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 74.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 85.94377510040152,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [],
+            "score_base": 52.3,
+            "score_ajustado": 52.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No fue accionable."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el conjunto sume más convicción: el total quedó en 52 y exijo más de 55."
+          ]
+        }
+      ]
     }
   ]
 }
