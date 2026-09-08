@@ -301,6 +301,580 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-08T20:19:42+00:00",
+      "candidatos_evaluados": 8,
+      "candidatos": [
+        {
+          "ticker": "ROIV",
+          "nombre": "Roivant Sciences Ltd.",
+          "precio_actual": 42.1,
+          "factores_intradia": {
+            "precio_actual": 42.1,
+            "vwap": 41.1977560796825,
+            "ema9": 41.65352647246821,
+            "rvol_actual": 5.510727633400333,
+            "aceleracion_volumen": 4.107207930847811,
+            "gap_pct": 0.1450042537205038,
+            "maximo_dia": 53.2665,
+            "maximo_premarket": 53.2665,
+            "rango_apertura_max": 40.400001525878906,
+            "rango_apertura_min": 38.40999984741211,
+            "velas_desde_ruptura": 376,
+            "macd": 0.09753217065370734,
+            "macd_signal": 0.06442603592497176
+          },
+          "meta": {
+            "float_acciones": 580422659.0,
+            "short_pct_float": 0.0558,
+            "market_cap": 29961957376.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Roivant Sciences' Pulmovant Reports Positive Phase 2 Results for Mosliciguat in PH-ILD",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-08T10:40:05Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 579.54676485,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 55.0,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 376 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 376 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 87.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 376 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "AZN",
+          "nombre": "AstraZeneca PLC",
+          "precio_actual": 159.92,
+          "factores_intradia": {
+            "precio_actual": 159.92,
+            "vwap": 161.11520524162057,
+            "ema9": 160.01622528944736,
+            "rvol_actual": 6.115776812419118,
+            "aceleracion_volumen": 4.897327787590451,
+            "gap_pct": 0.007744374857154004,
+            "maximo_dia": 164.2138,
+            "maximo_premarket": 164.2138,
+            "rango_apertura_max": 163.9600067138672,
+            "rango_apertura_min": 162.63999938964844,
+            "velas_desde_ruptura": null,
+            "macd": -0.05424984230580776,
+            "macd_signal": -0.054411464117287665
+          },
+          "meta": {
+            "float_acciones": 1542950310.0,
+            "short_pct_float": 0.0011999999,
+            "market_cap": 248174362624.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Citi backs AstraZeneca sentiment boost after Etcamah wins accelerated FDA approval",
+            "fuente": "Proactive",
+            "fecha": "2026-09-07T14:03:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1816.6301402166669,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 73.85238025062446,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 70.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "GILD",
+          "nombre": "Gilead Sciences, Inc.",
+          "precio_actual": 146.60000610351562,
+          "factores_intradia": {
+            "precio_actual": 146.60000610351562,
+            "vwap": 146.5879847939518,
+            "ema9": 146.4368322552197,
+            "rvol_actual": 3.1149633778813683,
+            "aceleracion_volumen": 1.6560830556267625,
+            "gap_pct": -0.026622544850734686,
+            "maximo_dia": 150.26,
+            "maximo_premarket": 150.26,
+            "rango_apertura_max": 146.97999572753906,
+            "rango_apertura_min": 145.4499969482422,
+            "velas_desde_ruptura": 2,
+            "macd": -0.07546900879975738,
+            "macd_signal": -0.11292971037465514
+          },
+          "meta": {
+            "float_acciones": 1237289251.0,
+            "short_pct_float": 0.0187,
+            "market_cap": 181827026944.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Gilead Sciences Just Won Its Third FDA Approval in Less Than 4 Months. Is the Stock Still Underrating This Turnaround Play?",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-05T15:20:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4619.630174183333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 77.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 75.64226077143377,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [],
+            "score_base": 68.8,
+            "score_ajustado": 68.8,
+            "riesgo_definido": true,
+            "accionable": true
+          },
+          "decision": "alertada",
+          "motivos": [
+            "Sobrevivió las 5 preguntas del evaluador, el debate del abogado del diablo y la última pregunta.",
+            "Queda menos de una hora de mercado -- la idea tiene poco tiempo para trabajar hoy.",
+            "La noticia ya tiene más de dos horas. La reacción más fuerte suele darse al principio -- puede que lo mejor del movimiento ya haya pasado."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "TTE",
+          "nombre": "TotalEnergies SE",
+          "precio_actual": 90.1,
+          "factores_intradia": {
+            "precio_actual": 90.1,
+            "vwap": 90.24083828257858,
+            "ema9": 90.14647912520765,
+            "rvol_actual": 4.0046661664122265,
+            "aceleracion_volumen": 2.362621789193977,
+            "gap_pct": 0.014448656299852872,
+            "maximo_dia": 90.75509643554688,
+            "maximo_premarket": 90.69,
+            "rango_apertura_max": 90.20999908447266,
+            "rango_apertura_min": 89.80999755859375,
+            "velas_desde_ruptura": null,
+            "macd": -0.01627532607977855,
+            "macd_signal": -0.016505244794780504
+          },
+          "meta": {
+            "float_acciones": 2046253575.0,
+            "short_pct_float": 0.0019,
+            "market_cap": 199348076544.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "ExxonMobil to Acquire Papua LNG Operatorship from TotalEnergies",
+            "fuente": "Rigzone.com",
+            "fecha": "2026-09-07T13:22:29Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1857.1468725333332,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 75.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 92.78171186769524,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BNS",
+          "nombre": "The Bank of Nova Scotia",
+          "precio_actual": 92.83999633789062,
+          "factores_intradia": {
+            "precio_actual": 92.83999633789062,
+            "vwap": 93.15840812596406,
+            "ema9": 92.845888715111,
+            "rvol_actual": 2.0395440596229726,
+            "aceleracion_volumen": 1.9542254384888997,
+            "gap_pct": -0.0030910351361186613,
+            "maximo_dia": 94.18499755859375,
+            "maximo_premarket": 93.82,
+            "rango_apertura_max": 94.18499755859375,
+            "rango_apertura_min": 93.47000122070312,
+            "velas_desde_ruptura": null,
+            "macd": -0.043577730819606586,
+            "macd_signal": -0.03625768377621223
+          },
+          "meta": {
+            "float_acciones": 1204167475.0,
+            "short_pct_float": null,
+            "market_cap": 113168359424.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Healwell AI (TSX:AIDX) Stock Draws Fresh Price Target Split After Quarterly Results",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-05T17:06:54Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4512.730236983333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 74.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 85.7195810843825,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "GE",
+          "nombre": "GE Aerospace",
+          "precio_actual": 334.95001220703125,
+          "factores_intradia": {
+            "precio_actual": 334.95001220703125,
+            "vwap": 337.56896965121234,
+            "ema9": 334.67025074450265,
+            "rvol_actual": 2.2549521436676696,
+            "aceleracion_volumen": 2.490039308759178,
+            "gap_pct": 0.0029366108469207407,
+            "maximo_dia": 342.7300109863281,
+            "maximo_premarket": 340.27,
+            "rango_apertura_max": 340.2799987792969,
+            "rango_apertura_min": 332.0400085449219,
+            "velas_desde_ruptura": 0,
+            "macd": -0.4166903343667059,
+            "macd_signal": -0.3833121184602534
+          },
+          "meta": {
+            "float_acciones": 1033619775.0,
+            "short_pct_float": 0.0128999995,
+            "market_cap": 347521187840.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Top Midday Stories: GE Aerospace to Acquire Consolidated Precision Products; Qualcomm Issues Share Warrant to Amazon",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-08T15:45:30Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 274.13027555,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 77.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 77.29991967465244,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BSX",
+          "nombre": "Boston Scientific Corporation",
+          "precio_actual": 44.98,
+          "factores_intradia": {
+            "precio_actual": 44.98,
+            "vwap": 45.69304759827614,
+            "ema9": 45.04246157645669,
+            "rvol_actual": 4.8459725861819525,
+            "aceleracion_volumen": 3.3023530742306324,
+            "gap_pct": -0.007740563552099309,
+            "maximo_dia": 47.72,
+            "maximo_premarket": 47.72,
+            "rango_apertura_max": 47.45000076293945,
+            "rango_apertura_min": 46.66999816894531,
+            "velas_desde_ruptura": null,
+            "macd": -0.07065222581584862,
+            "macd_signal": -0.049974843380670625
+          },
+          "meta": {
+            "float_acciones": 1444983283.0,
+            "short_pct_float": 0.0191,
+            "market_cap": 65193594880.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Top Midday Stories: GE Aerospace to Acquire Consolidated Precision Products; Qualcomm Issues Share Warrant to Amazon",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-08T15:45:30Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 274.13031859999995,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 69.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 42.5817267393126,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "MSTR",
+          "nombre": "Strategy Inc",
+          "precio_actual": 136.98,
+          "factores_intradia": {
+            "precio_actual": 136.98,
+            "vwap": 137.49119970496315,
+            "ema9": 136.56257195996432,
+            "rvol_actual": 5.908672282848305,
+            "aceleracion_volumen": 4.797663784555336,
+            "gap_pct": -0.03630950593687627,
+            "maximo_dia": 142.8,
+            "maximo_premarket": 142.8,
+            "rango_apertura_max": 138.97999572753906,
+            "rango_apertura_min": 136.00999450683594,
+            "velas_desde_ruptura": 0,
+            "macd": -0.042350219135983025,
+            "macd_signal": -0.07857185838609206
+          },
+          "meta": {
+            "float_acciones": 363654304.0,
+            "short_pct_float": 0.0853,
+            "market_cap": 54236893184.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "MSTR Stock Slips After Strategy Leaves Bitcoin Stash Untouched, Doubles Buyback Program To $2B",
+            "fuente": "Stocktwits",
+            "fecha": "2026-09-08T13:06:13Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 433.41370966666665,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 75.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 59.243697478991386,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }

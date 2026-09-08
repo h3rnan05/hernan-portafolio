@@ -33,6 +33,41 @@
       },
       "score_maximo": 70.6,
       "errores": {}
+    },
+    {
+      "timestamp": "2026-09-08T20:19:43+00:00",
+      "modo": "escaneo",
+      "universo_total": 7647,
+      "universo_escaneado": 1000,
+      "embudo": {
+        "operables": {
+          "large": 674
+        },
+        "con_alguna_noticia": {
+          "large": 503
+        },
+        "con_catalizador": {
+          "large": 8
+        },
+        "evaluadas": {
+          "large": 8
+        },
+        "accionables": {
+          "large": 1
+        }
+      },
+      "condiciones": {
+        "patron": 2,
+        "temprano": 7,
+        "riesgo_definido": 8,
+        "dinero_entrando": 6,
+        "sobre_umbral": 1
+      },
+      "score_maximo": 68.8,
+      "errores": {
+        "noticias:IncompleteRead": 1,
+        "noticias:YFRateLimitError": 17
+      }
     }
   ]
 }
