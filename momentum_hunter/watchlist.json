@@ -4183,20 +4183,20 @@
       "mensaje_generado_ts": "2026-09-08T17:18:33+00:00",
       "telegram_enviado_ts": "2026-09-08T17:18:33+00:00",
       "signal_latency_ms": 153000.0,
-      "ultima_entrada": 12.880000114440918,
-      "ultimo_stop": 12.776037331326984,
-      "ultimo_objetivo": 13.087925680668786,
-      "ultima_zona_entrada_baja": 12.840238523946718,
-      "ultimos_niveles_ts": "2026-09-08T17:18:33+00:00",
+      "ultima_entrada": 12.734999656677246,
+      "ultimo_stop": 12.630135208535668,
+      "ultimo_objetivo": 12.944728552960402,
+      "ultima_zona_entrada_baja": 12.741954402703339,
+      "ultimos_niveles_ts": "2026-09-08T19:41:07+00:00",
       "stop_tesis": 12.776037331326984,
       "clima_mercado": null
     },
     {
       "ticker": "GLUE",
       "nombre": "Monte Rosa Therapeutics, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-08T17:18:33+00:00",
-      "actualizado_en": "2026-09-08T17:18:33+00:00",
+      "actualizado_en": "2026-09-08T19:41:07+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -4209,6 +4209,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-08T19:41:07+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-08T19:41:08+00:00",
+          "telegram_enviado_ts": "2026-09-08T19:41:08+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 1000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -4230,13 +4242,13 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 14.149999618530273,
-      "ultimo_stop": 14.034248551352668,
-      "ultimo_objetivo": 14.381501752885484,
-      "ultima_zona_entrada_baja": 14.104772413419767,
-      "ultimos_niveles_ts": "2026-09-08T17:18:33+00:00",
+      "ultima_entrada": 14.135000228881836,
+      "ultimo_stop": 14.056724171148016,
+      "ultimo_objetivo": 14.291552344349476,
+      "ultima_zona_entrada_baja": 14.127360976028157,
+      "ultimos_niveles_ts": "2026-09-08T19:41:07+00:00",
       "stop_tesis": 14.034248551352668,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     }
   ]
 }
