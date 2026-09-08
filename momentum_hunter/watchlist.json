@@ -4076,9 +4076,9 @@
     {
       "ticker": "XPOF",
       "nombre": "Xponential Fitness, Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-07T21:50:01+00:00",
-      "actualizado_en": "2026-09-07T21:50:01+00:00",
+      "actualizado_en": "2026-09-08T16:55:53+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -4091,6 +4091,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-08T16:55:53+00:00",
+          "motivo": "El precio ($4.87) cayó por debajo del stop de la idea ($4.87) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-09-08T16:55:54+00:00",
+          "evaluacion_ts": "2026-09-08T16:55:54+00:00",
+          "mensaje_generado_ts": "2026-09-08T16:55:54+00:00",
+          "telegram_enviado_ts": "2026-09-08T16:55:57+00:00",
+          "latencia_desde_deteccion_ms": 3000.0,
+          "latencia_desde_evaluacion_ms": 3000.0,
+          "latencia_desde_transicion_ms": 4000.0
         }
       ],
       "catalizador_tipo": "guidance",
@@ -4112,11 +4124,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 4.91,
-      "ultimo_stop": 4.873029355363789,
-      "ultimo_objetivo": 4.983941289272423,
-      "ultima_zona_entrada_baja": 4.91157789904104,
-      "ultimos_niveles_ts": "2026-09-07T21:50:01+00:00",
+      "ultima_entrada": 4.869999885559082,
+      "ultimo_stop": 4.842945855973681,
+      "ultimo_objetivo": 4.924107944729885,
+      "ultima_zona_entrada_baja": 4.867282267310232,
+      "ultimos_niveles_ts": "2026-09-08T16:55:53+00:00",
       "stop_tesis": 4.873029355363789,
       "clima_mercado": "debil"
     }
