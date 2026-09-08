@@ -4124,11 +4124,11 @@
       "mensaje_generado_ts": "2026-09-08T17:18:33+00:00",
       "telegram_enviado_ts": "2026-09-08T17:18:33+00:00",
       "signal_latency_ms": 153000.0,
-      "ultima_entrada": 12.734999656677246,
-      "ultimo_stop": 12.630135208535668,
-      "ultimo_objetivo": 12.944728552960402,
-      "ultima_zona_entrada_baja": 12.741954402703339,
-      "ultimos_niveles_ts": "2026-09-08T19:41:07+00:00",
+      "ultima_entrada": 12.74,
+      "ultimo_stop": 12.63445213098982,
+      "ultimo_objetivo": 12.951095738020362,
+      "ultima_zona_entrada_baja": 12.743292377941378,
+      "ultimos_niveles_ts": "2026-09-08T22:01:28+00:00",
       "stop_tesis": 12.776037331326984,
       "clima_mercado": null
     },
@@ -4194,9 +4194,9 @@
     {
       "ticker": "ROIV",
       "nombre": "Roivant Sciences Ltd.",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-09-08T20:19:38+00:00",
-      "actualizado_en": "2026-09-08T20:19:38+00:00",
+      "actualizado_en": "2026-09-08T22:01:28+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -4209,6 +4209,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-09-08T22:01:28+00:00",
+          "motivo": "El patrón se activó hace 376 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-09-08T22:01:31+00:00",
+          "evaluacion_ts": "2026-09-08T22:01:31+00:00",
+          "mensaje_generado_ts": "2026-09-08T22:01:31+00:00",
+          "telegram_enviado_ts": "2026-09-08T22:01:32+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 4000.0
         }
       ],
       "catalizador_tipo": "fda",
@@ -4223,7 +4235,7 @@
       "score_base": 87.6,
       "atr_diario": 1.6372146606445312,
       "gap_pct_congelado": 0.1450042537205038,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -4234,7 +4246,7 @@
       "ultimo_stop": 41.445258840105865,
       "ultimo_objetivo": 43.409482319788275,
       "ultima_zona_entrada_baja": 40.400001525878906,
-      "ultimos_niveles_ts": "2026-09-08T20:19:38+00:00",
+      "ultimos_niveles_ts": "2026-09-08T22:01:28+00:00",
       "stop_tesis": 41.445258840105865,
       "clima_mercado": "debil"
     },
@@ -4281,7 +4293,7 @@
       "ultimo_stop": 158.1103555733817,
       "ultimo_objetivo": 163.53928885323657,
       "ultima_zona_entrada_baja": 160.01622528944736,
-      "ultimos_niveles_ts": "2026-09-08T20:19:38+00:00",
+      "ultimos_niveles_ts": "2026-09-08T22:01:28+00:00",
       "stop_tesis": 158.1103555733817,
       "clima_mercado": "debil"
     },
@@ -4375,7 +4387,7 @@
       "ultimo_stop": 89.24231790815081,
       "ultimo_objetivo": 91.81536418369836,
       "ultima_zona_entrada_baja": 90.14647912520765,
-      "ultimos_niveles_ts": "2026-09-08T20:19:38+00:00",
+      "ultimos_niveles_ts": "2026-09-08T22:01:28+00:00",
       "stop_tesis": 89.24231790815081,
       "clima_mercado": "debil"
     },
@@ -4418,11 +4430,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 92.83999633789062,
-      "ultimo_stop": 91.71588897705078,
-      "ultimo_objetivo": 95.08821105957031,
-      "ultima_zona_entrada_baja": 92.845888715111,
-      "ultimos_niveles_ts": "2026-09-08T20:19:38+00:00",
+      "ultima_entrada": 92.84,
+      "ultimo_stop": 91.71589263916016,
+      "ultimo_objetivo": 95.08821472167969,
+      "ultima_zona_entrada_baja": 92.8447109720888,
+      "ultimos_niveles_ts": "2026-09-08T22:01:28+00:00",
       "stop_tesis": 91.71588897705078,
       "clima_mercado": "debil"
     },
@@ -4465,11 +4477,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 334.95001220703125,
-      "ultimo_stop": 332.99689949078015,
-      "ultimo_objetivo": 338.85623763953345,
-      "ultima_zona_entrada_baja": 334.67025074450265,
-      "ultimos_niveles_ts": "2026-09-08T20:19:38+00:00",
+      "ultima_entrada": 334.91,
+      "ultimo_stop": 333.04460959262417,
+      "ultimo_objetivo": 338.64078081475174,
+      "ultima_zona_entrada_baja": 334.7182005956022,
+      "ultimos_niveles_ts": "2026-09-08T22:01:28+00:00",
       "stop_tesis": 332.99689949078015,
       "clima_mercado": "debil"
     },
@@ -4516,7 +4528,7 @@
       "ultimo_stop": 43.97678570883615,
       "ultimo_objetivo": 46.9864285823277,
       "ultima_zona_entrada_baja": 45.04246157645669,
-      "ultimos_niveles_ts": "2026-09-08T20:19:38+00:00",
+      "ultimos_niveles_ts": "2026-09-08T22:01:28+00:00",
       "stop_tesis": 43.97678570883615,
       "clima_mercado": "debil"
     },
@@ -4563,7 +4575,7 @@
       "ultimo_stop": 135.8797591001645,
       "ultimo_objetivo": 139.18048179967096,
       "ultima_zona_entrada_baja": 136.56257195996432,
-      "ultimos_niveles_ts": "2026-09-08T20:19:38+00:00",
+      "ultimos_niveles_ts": "2026-09-08T22:01:28+00:00",
       "stop_tesis": 135.8797591001645,
       "clima_mercado": "debil"
     }
