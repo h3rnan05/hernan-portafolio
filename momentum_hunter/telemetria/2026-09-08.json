@@ -68,6 +68,40 @@
         "noticias:IncompleteRead": 1,
         "noticias:YFRateLimitError": 17
       }
+    },
+    {
+      "timestamp": "2026-09-08T23:02:18+00:00",
+      "modo": "escaneo",
+      "universo_total": 7647,
+      "universo_escaneado": 1000,
+      "embudo": {
+        "operables": {
+          "small": 200,
+          "large": 4
+        },
+        "con_alguna_noticia": {
+          "small": 182,
+          "large": 4
+        },
+        "con_catalizador": {
+          "small": 1
+        },
+        "evaluadas": {
+          "small": 1
+        },
+        "accionables": {
+          "small": 1
+        }
+      },
+      "condiciones": {
+        "patron": 1,
+        "temprano": 1,
+        "riesgo_definido": 1,
+        "dinero_entrando": 1,
+        "sobre_umbral": 1
+      },
+      "score_maximo": 74.2,
+      "errores": {}
     }
   ]
 }
