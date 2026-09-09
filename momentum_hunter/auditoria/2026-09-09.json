@@ -1111,6 +1111,85 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-09T22:33:51+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "CHPT",
+          "nombre": "ChargePoint Holdings, Inc.",
+          "precio_actual": 8.9263,
+          "factores_intradia": {
+            "precio_actual": 8.9263,
+            "vwap": 9.047981671424186,
+            "ema9": 8.96284808792484,
+            "rvol_actual": 2.294685824517564,
+            "aceleracion_volumen": 1.5287237333714094,
+            "gap_pct": 0.00213452059850036,
+            "maximo_dia": 9.649999618530273,
+            "maximo_premarket": 9.49,
+            "rango_apertura_max": 9.649999618530273,
+            "rango_apertura_min": 9.390000343322754,
+            "velas_desde_ruptura": null,
+            "macd": -0.009543985507756148,
+            "macd_signal": -0.012256159908722515
+          },
+          "meta": {
+            "float_acciones": 26030047.0,
+            "short_pct_float": 0.2259,
+            "market_cap": 240310400.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "ChargePoint (CHPT) Posts Strong Q2 Results, But Q3 Outlook Raises Concerns",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-07T11:22:24Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3551.406973333333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 67.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 25.00521791310739,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
