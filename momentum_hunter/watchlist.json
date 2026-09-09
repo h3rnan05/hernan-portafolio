@@ -3661,9 +3661,9 @@
     {
       "ticker": "EBAY",
       "nombre": "eBay Inc.",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-09-09T20:05:37+00:00",
-      "actualizado_en": "2026-09-09T20:05:37+00:00",
+      "actualizado_en": "2026-09-09T21:55:47+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3676,6 +3676,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-09-09T21:55:47+00:00",
+          "motivo": "El patrón se activó hace 11 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-09-09T21:55:49+00:00",
+          "evaluacion_ts": "2026-09-09T21:55:49+00:00",
+          "mensaje_generado_ts": "2026-09-09T21:55:49+00:00",
+          "telegram_enviado_ts": "2026-09-09T21:55:50+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "insider_buying",
@@ -3690,7 +3702,7 @@
       "score_base": 66.5,
       "atr_diario": 3.2864292689732144,
       "gap_pct_congelado": -0.01606265163595408,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -3701,7 +3713,7 @@
       "ultimo_stop": 101.8667853655134,
       "ultimo_objetivo": 106.79642926897323,
       "ultima_zona_entrada_baja": 103.45999908447266,
-      "ultimos_niveles_ts": "2026-09-09T20:05:37+00:00",
+      "ultimos_niveles_ts": "2026-09-09T21:55:47+00:00",
       "stop_tesis": 101.8667853655134,
       "clima_mercado": "debil"
     },
@@ -3750,7 +3762,7 @@
       "ultimo_stop": 362.6970349823711,
       "ultimo_objetivo": 369.81593003525774,
       "ultima_zona_entrada_baja": 364.51963314811167,
-      "ultimos_niveles_ts": "2026-09-09T20:05:37+00:00",
+      "ultimos_niveles_ts": "2026-09-09T21:55:47+00:00",
       "stop_tesis": 362.6970349823711,
       "clima_mercado": "debil"
     },
@@ -3840,11 +3852,11 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 156.9250030517578,
-      "ultimo_stop": 156.10751595135454,
-      "ultimo_objetivo": 158.55997725256435,
-      "ultima_zona_entrada_baja": 156.89197583050708,
-      "ultimos_niveles_ts": "2026-09-09T20:05:37+00:00",
+      "ultima_entrada": 156.94,
+      "ultimo_stop": 156.1130913035641,
+      "ultimo_objetivo": 158.5938173928718,
+      "ultima_zona_entrada_baja": 156.8975791995619,
+      "ultimos_niveles_ts": "2026-09-09T21:55:47+00:00",
       "stop_tesis": 156.10751595135454,
       "clima_mercado": "debil"
     },
@@ -3891,7 +3903,7 @@
       "ultimo_stop": 207.05029739379881,
       "ultimo_objetivo": 219.31940521240233,
       "ultima_zona_entrada_baja": 211.19912858898022,
-      "ultimos_niveles_ts": "2026-09-09T20:05:37+00:00",
+      "ultimos_niveles_ts": "2026-09-09T21:55:47+00:00",
       "stop_tesis": 207.05029739379881,
       "clima_mercado": "debil"
     }
