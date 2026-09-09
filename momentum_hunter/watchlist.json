@@ -1,65 +1,6 @@
 {
   "entradas": [
     {
-      "ticker": "KUST",
-      "nombre": "Kustom Entertainment, Inc.",
-      "estado": "expired",
-      "creado_en": "2026-09-01T22:51:33+00:00",
-      "actualizado_en": "2026-09-02T16:55:28+00:00",
-      "transiciones": [
-        {
-          "estado": "watching",
-          "timestamp": "2026-09-01T22:51:33+00:00",
-          "motivo": "Catalizador confirmado -- en observación.",
-          "deteccion_ts": "2026-09-01T22:51:32+00:00",
-          "evaluacion_ts": "2026-09-01T22:51:33+00:00",
-          "mensaje_generado_ts": null,
-          "telegram_enviado_ts": null,
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": null
-        },
-        {
-          "estado": "expired",
-          "timestamp": "2026-09-02T16:55:28+00:00",
-          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
-          "deteccion_ts": null,
-          "evaluacion_ts": null,
-          "mensaje_generado_ts": "2026-09-02T16:55:30+00:00",
-          "telegram_enviado_ts": "2026-09-02T16:55:31+00:00",
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": 3000.0
-        }
-      ],
-      "catalizador_tipo": "adquisicion",
-      "catalizador_titular": "Kustom Entertainment Agrees to Acquire TFL, Adding $238 Million Revenue Ticketing Business",
-      "catalizador_fuente": "InvestorsHub",
-      "catalizador_fecha": "2026-09-01T15:09:32Z",
-      "catalizador_confirmado": true,
-      "catalizador_fuentes_adicionales": [],
-      "shares_float": 6254003.0,
-      "short_pct_float": 0.0165,
-      "es_large_cap": false,
-      "score_base": 57.2,
-      "atr_diario": 0.12752856527056014,
-      "gap_pct_congelado": -0.09090907243657693,
-      "tarde_consecutivas": 0,
-      "market_event_ts": null,
-      "data_received_ts": null,
-      "evaluador_ts": null,
-      "mensaje_generado_ts": null,
-      "telegram_enviado_ts": null,
-      "signal_latency_ms": null,
-      "ultima_entrada": 0.8899000287055969,
-      "ultimo_stop": 0.8844822931393573,
-      "ultimo_objetivo": 0.9007354998380761,
-      "ultima_zona_entrada_baja": 0.8830647111370447,
-      "ultimos_niveles_ts": "2026-09-02T16:55:28+00:00",
-      "stop_tesis": 0.7987983812622372,
-      "clima_mercado": "favorable"
-    },
-    {
       "ticker": "CXM",
       "nombre": "Sprinklr, Inc.",
       "estado": "expired",
@@ -3781,9 +3722,9 @@
     {
       "ticker": "BJDX",
       "nombre": "Bluejay Diagnostics, Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-08T23:02:13+00:00",
-      "actualizado_en": "2026-09-08T23:02:13+00:00",
+      "actualizado_en": "2026-09-09T16:56:45+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3796,6 +3737,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-09T16:56:45+00:00",
+          "motivo": "El precio ($0.92) cayó por debajo del stop de la idea ($1.01) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-09-09T16:56:45+00:00",
+          "evaluacion_ts": "2026-09-09T16:56:45+00:00",
+          "mensaje_generado_ts": "2026-09-09T16:56:45+00:00",
+          "telegram_enviado_ts": "2026-09-09T16:56:47+00:00",
+          "latencia_desde_deteccion_ms": 2000.0,
+          "latencia_desde_evaluacion_ms": 2000.0,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "fda",
@@ -3817,13 +3770,13 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 1.0299999713897705,
-      "ultimo_stop": 1.0138776946074224,
-      "ultimo_objetivo": 1.0622445249544668,
-      "ultima_zona_entrada_baja": 1.0189725573943944,
-      "ultimos_niveles_ts": "2026-09-08T23:02:13+00:00",
+      "ultima_entrada": 0.916100025177002,
+      "ultimo_stop": 0.9104424415211843,
+      "ultimo_objetivo": 0.9274151924886374,
+      "ultima_zona_entrada_baja": 0.9150175291670194,
+      "ultimos_niveles_ts": "2026-09-09T16:56:45+00:00",
       "stop_tesis": 1.0138776946074224,
-      "clima_mercado": null
+      "clima_mercado": "debil"
     }
   ]
 }
