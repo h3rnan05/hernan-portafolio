@@ -79,6 +79,156 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-09T17:16:25+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "GLUE",
+          "nombre": "Monte Rosa Therapeutics, Inc.",
+          "precio_actual": 14.449999809265137,
+          "factores_intradia": {
+            "precio_actual": 14.449999809265137,
+            "vwap": 14.412442819525005,
+            "ema9": 14.448992446712099,
+            "rvol_actual": 0.7823657249301459,
+            "aceleracion_volumen": 0.5847691980429696,
+            "gap_pct": 0.0007007200341103963,
+            "maximo_dia": 14.869999885559082,
+            "maximo_premarket": 14.27,
+            "rango_apertura_max": 14.670000076293945,
+            "rango_apertura_min": 14.279999732971191,
+            "velas_desde_ruptura": 4,
+            "macd": 0.013743299221891547,
+            "macd_signal": 0.015699560198692838
+          },
+          "meta": {
+            "float_acciones": 54476019.0,
+            "short_pct_float": 0.2078,
+            "market_cap": 1232778624.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Top Midday Stories: GE Aerospace to Acquire Consolidated Precision Products; Qualcomm Issues Share Warrant to Amazon",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-08T15:45:30Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1530.9189413499998,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 53.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 8.476919804296955,
+                "extension": 100.0,
+                "distancia_maximo_dia": 71.75520648780731,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 47.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "NTLA",
+          "nombre": "Intellia Therapeutics, Inc.",
+          "precio_actual": 12.318699836730957,
+          "factores_intradia": {
+            "precio_actual": 12.318699836730957,
+            "vwap": 12.394931132813223,
+            "ema9": 12.322806336023097,
+            "rvol_actual": 0.1512246560897282,
+            "aceleracion_volumen": 0.35386747291509196,
+            "gap_pct": -0.018838286925424313,
+            "maximo_dia": 12.89,
+            "maximo_premarket": 12.89,
+            "rango_apertura_max": 12.59000015258789,
+            "rango_apertura_min": 12.279999732971191,
+            "velas_desde_ruptura": null,
+            "macd": 0.004192859990638453,
+            "macd_signal": 0.006824829920013862
+          },
+          "meta": {
+            "float_acciones": 134151691.0,
+            "short_pct_float": 0.4035,
+            "market_cap": 1727776128.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Intellia Therapeutics Shares Rise as FDA Grants Priority Review to Lonvo-z",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-08T12:48:38Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1707.7856305166667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 47.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 55.67880812497717,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
