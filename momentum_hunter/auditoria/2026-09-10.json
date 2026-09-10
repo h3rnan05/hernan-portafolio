@@ -446,6 +446,813 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-10T19:40:50+00:00",
+      "candidatos_evaluados": 11,
+      "candidatos": [
+        {
+          "ticker": "ENB",
+          "nombre": "Enbridge Inc.",
+          "precio_actual": 48.275001525878906,
+          "factores_intradia": {
+            "precio_actual": 48.275001525878906,
+            "vwap": 48.360786179252834,
+            "ema9": 48.27153862080695,
+            "rvol_actual": 1.8230321507760534,
+            "aceleracion_volumen": 1.0785468020733164,
+            "gap_pct": -0.03708874484065063,
+            "maximo_dia": 49.18,
+            "maximo_premarket": 49.18,
+            "rango_apertura_max": 48.43000030517578,
+            "rango_apertura_min": 48.099998474121094,
+            "velas_desde_ruptura": 1,
+            "macd": 0.009802972294785661,
+            "macd_signal": 0.006726452700077905
+          },
+          "meta": {
+            "float_acciones": 2180132314.0,
+            "short_pct_float": 0.032,
+            "market_cap": 105414885376.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Enbridge to Acquire Tallgrass Energy's Crude Oil Business for $2.55 Billion, Launches Bought-Deal Offering of Common Shares",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-09T20:37:19Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1383.4689523333334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 69.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 57.85468020733164,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.59824168114893,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 70.7,
+            "score_ajustado": 50.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "CRM",
+          "nombre": "Salesforce, Inc.",
+          "precio_actual": 243.11500549316406,
+          "factores_intradia": {
+            "precio_actual": 243.11500549316406,
+            "vwap": 244.85448234086354,
+            "ema9": 242.99303509041874,
+            "rvol_actual": 0.8746867643708709,
+            "aceleracion_volumen": 1.0351182940663894,
+            "gap_pct": 0.0048738631371134915,
+            "maximo_dia": 248.5,
+            "maximo_premarket": 245.0556,
+            "rango_apertura_max": 246.3300018310547,
+            "rango_apertura_min": 242.4600067138672,
+            "velas_desde_ruptura": 1,
+            "macd": -0.13480067367183324,
+            "macd_signal": -0.13443253702985236
+          },
+          "meta": {
+            "float_acciones": 797561070.0,
+            "short_pct_float": 0.0372,
+            "market_cap": 199902593024.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Salesforce in $2B Talks to Acquire Listen Labs – Consolidating the Agentic Research Stack",
+            "fuente": "Forkast News",
+            "fecha": "2026-09-10T09:12:44Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 628.0523286833334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 68.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 53.511829406638945,
+                "extension": 100.0,
+                "distancia_maximo_dia": 78.33000198456364,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 69.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "ADI",
+          "nombre": "Analog Devices, Inc.",
+          "precio_actual": 361.75,
+          "factores_intradia": {
+            "precio_actual": 361.75,
+            "vwap": 360.2845464839735,
+            "ema9": 361.59054009886785,
+            "rvol_actual": 1.5262143006045445,
+            "aceleracion_volumen": 1.4107228799691982,
+            "gap_pct": -0.02451036203291354,
+            "maximo_dia": 379.03,
+            "maximo_premarket": 379.03,
+            "rango_apertura_max": 360.30499267578125,
+            "rango_apertura_min": 356.12200927734375,
+            "velas_desde_ruptura": 0,
+            "macd": 0.15579148679626087,
+            "macd_signal": 0.1665333941304395
+          },
+          "meta": {
+            "float_acciones": 482758036.0,
+            "short_pct_float": 0.0194,
+            "market_cap": 175158312960.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Analog Devices to acquire Alif Semiconductor in $1.3bn cash deal",
+            "fuente": "Verdict",
+            "fecha": "2026-09-10T09:21:05Z",
+            "confirmado": true,
+            "fuentes_adicionales": [
+              "MT Newswires",
+              "Stocktwits"
+            ]
+          },
+          "minutos_desde_catalizador": 619.7023620333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 73.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 91.07228799691981,
+                "extension": 100.0,
+                "distancia_maximo_dia": 54.409941165607044,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 66.2,
+            "score_ajustado": 46.2,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "ALAB",
+          "nombre": "Astera Labs, Inc.",
+          "precio_actual": 289.0899963378906,
+          "factores_intradia": {
+            "precio_actual": 289.0899963378906,
+            "vwap": 287.9962170729536,
+            "ema9": 288.5005634875315,
+            "rvol_actual": 0.9005410053383971,
+            "aceleracion_volumen": 0.8259327013692555,
+            "gap_pct": -0.041076065980273344,
+            "maximo_dia": 300.54,
+            "maximo_premarket": 300.54,
+            "rango_apertura_max": 290.94000244140625,
+            "rango_apertura_min": 283.0700988769531,
+            "velas_desde_ruptura": 1,
+            "macd": 0.2611911663569231,
+            "macd_signal": 0.13435666428895376
+          },
+          "meta": {
+            "float_acciones": 155983927.0,
+            "short_pct_float": 0.066199996,
+            "market_cap": 50114920448.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "MRVL Stock Rises 8.6% Since Q2 Results: Time to Hold or Fold?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-10T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 311.78573996666665,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 62.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 32.59327013692555,
+                "extension": 100.0,
+                "distancia_maximo_dia": 61.901897710423206,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 66.0,
+            "score_ajustado": 46.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "MRVL",
+          "nombre": "Marvell Technology, Inc.",
+          "precio_actual": 229.46499633789062,
+          "factores_intradia": {
+            "precio_actual": 229.46499633789062,
+            "vwap": 230.53241807344037,
+            "ema9": 229.6289068415418,
+            "rvol_actual": 0.7011291608949335,
+            "aceleracion_volumen": 0.9105346818776463,
+            "gap_pct": -0.028786007181714385,
+            "maximo_dia": 235.31,
+            "maximo_premarket": 235.31,
+            "rango_apertura_max": 232.8000030517578,
+            "rango_apertura_min": 228.2449951171875,
+            "velas_desde_ruptura": null,
+            "macd": -0.012517542381942803,
+            "macd_signal": -0.040006455672394255
+          },
+          "meta": {
+            "float_acciones": 873997461.0,
+            "short_pct_float": 0.0379,
+            "market_cap": 206311129088.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "MRVL Stock Rises 8.6% Since Q2 Results: Time to Hold or Fold?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-10T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 311.7857929333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 59.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 41.05346818776463,
+                "extension": 100.0,
+                "distancia_maximo_dia": 75.1604111082853,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "ABT",
+          "nombre": "Abbott Laboratories",
+          "precio_actual": 103.37000274658203,
+          "factores_intradia": {
+            "precio_actual": 103.37000274658203,
+            "vwap": 104.13830431785294,
+            "ema9": 103.37563962674368,
+            "rvol_actual": 0.47543484143971265,
+            "aceleracion_volumen": 0.4889446395718347,
+            "gap_pct": -0.00047517865782257244,
+            "maximo_dia": 105.19000244140625,
+            "maximo_premarket": null,
+            "rango_apertura_max": 105.19000244140625,
+            "rango_apertura_min": 104.3499984741211,
+            "velas_desde_ruptura": null,
+            "macd": -0.07617999898084804,
+            "macd_signal": -0.0873284411453645
+          },
+          "meta": {
+            "float_acciones": 1719931781.0,
+            "short_pct_float": 0.013200001,
+            "market_cap": 178790989824.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Abbott’s dual ablation catheter lands FDA approval",
+            "fuente": "Medical Device Network",
+            "fecha": "2026-09-09T10:56:24Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1964.3858224333335,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 50.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 82.6979783954468,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "EBAY",
+          "nombre": "eBay Inc.",
+          "precio_actual": 104.37999725341797,
+          "factores_intradia": {
+            "precio_actual": 104.37999725341797,
+            "vwap": 104.94248661994895,
+            "ema9": 104.4139331006783,
+            "rvol_actual": 0.7401293512122444,
+            "aceleracion_volumen": 1.0564401176720348,
+            "gap_pct": 0.0,
+            "maximo_dia": 106.0,
+            "maximo_premarket": 103.6,
+            "rango_apertura_max": 104.05000305175781,
+            "rango_apertura_min": 102.93499755859375,
+            "velas_desde_ruptura": null,
+            "macd": -0.02328842373850648,
+            "macd_signal": -0.03689662143726469
+          },
+          "meta": {
+            "float_acciones": 399810250.0,
+            "short_pct_float": 0.0356,
+            "market_cap": 46457999360.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "insider_buying",
+            "titular": "GameStop Rises 4% as Collectibles Sales Jump 57% and a Director Buys $1M",
+            "fuente": "24/7 Wall St.",
+            "fecha": "2026-09-09T15:13:56Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1706.8525176,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 64.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 55.64401176720348,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.71695522092426,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "ADBE",
+          "nombre": "Adobe Inc.",
+          "precio_actual": 249.39500427246094,
+          "factores_intradia": {
+            "precio_actual": 249.39500427246094,
+            "vwap": 250.49113659271686,
+            "ema9": 249.05404030488154,
+            "rvol_actual": 1.2865072928921428,
+            "aceleracion_volumen": 1.5608468070257064,
+            "gap_pct": -0.013340633635493598,
+            "maximo_dia": 256.47,
+            "maximo_premarket": 256.47,
+            "rango_apertura_max": 255.0,
+            "rango_apertura_min": 251.185302734375,
+            "velas_desde_ruptura": 0,
+            "macd": -0.1590292353416487,
+            "macd_signal": -0.1926214099591963
+          },
+          "meta": {
+            "float_acciones": 396231975.0,
+            "short_pct_float": 0.0506,
+            "market_cap": 98977497088.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Adobe set for inline Q3 results as new CEO era begins amid AI valuation reset",
+            "fuente": "Proactive",
+            "fecha": "2026-09-10T15:50:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 230.7858978666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 77.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 72.41394421359581,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 62.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "AVGO",
+          "nombre": "Broadcom Inc.",
+          "precio_actual": 362.1300048828125,
+          "factores_intradia": {
+            "precio_actual": 362.1300048828125,
+            "vwap": 362.43346659201296,
+            "ema9": 362.0122634752162,
+            "rvol_actual": 0.9647899035441073,
+            "aceleracion_volumen": 0.9976020297657724,
+            "gap_pct": -0.011965573880879772,
+            "maximo_dia": 370.78,
+            "maximo_premarket": 370.78,
+            "rango_apertura_max": 361.70001220703125,
+            "rango_apertura_min": 358.1199951171875,
+            "velas_desde_ruptura": 0,
+            "macd": 0.06097965391916205,
+            "macd_signal": 0.033529768751133185
+          },
+          "meta": {
+            "float_acciones": 4707235220.0,
+            "short_pct_float": 0.012,
+            "market_cap": 1721435160576.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "MRVL Stock Rises 8.6% Since Q2 Results: Time to Hold or Fold?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-10T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 311.78595021666666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 67.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 49.76020297657724,
+                "extension": 100.0,
+                "distancia_maximo_dia": 76.6708152619141,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "TGT",
+          "nombre": "Target Corporation",
+          "precio_actual": 155.5850067138672,
+          "factores_intradia": {
+            "precio_actual": 155.5850067138672,
+            "vwap": 156.83437600231156,
+            "ema9": 155.68361886338374,
+            "rvol_actual": 1.637769559579271,
+            "aceleracion_volumen": 1.0408298877731836,
+            "gap_pct": 0.0009522212570851123,
+            "maximo_dia": 158.48989868164062,
+            "maximo_premarket": 158.15,
+            "rango_apertura_max": 157.80999755859375,
+            "rango_apertura_min": 154.6699981689453,
+            "velas_desde_ruptura": null,
+            "macd": -0.0955793207938882,
+            "macd_signal": -0.08298880257578188
+          },
+          "meta": {
+            "float_acciones": 452788471.0,
+            "short_pct_float": 0.030299999,
+            "market_cap": 70702202880.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Macy's Raises Full-Year Outlook Following Fiscal Second-Quarter Beat",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-10T13:17:42Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 383.0859794,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 63.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 54.08298877731836,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.67143778917729,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "TTWO",
+          "nombre": "Take-Two Interactive Software, Inc.",
+          "precio_actual": 216.75999450683594,
+          "factores_intradia": {
+            "precio_actual": 216.75999450683594,
+            "vwap": 216.00679435344432,
+            "ema9": 216.71475778940402,
+            "rvol_actual": 0.5573323856905946,
+            "aceleracion_volumen": 1.0353579175704988,
+            "gap_pct": -0.0069148750501453644,
+            "maximo_dia": 257.79,
+            "maximo_premarket": 257.79,
+            "rango_apertura_max": 210.5,
+            "rango_apertura_min": 209.2449951171875,
+            "velas_desde_ruptura": 1,
+            "macd": 0.029401931253318025,
+            "macd_signal": -0.010196037206405873
+          },
+          "meta": {
+            "float_acciones": 186140901.0,
+            "short_pct_float": 0.035099998,
+            "market_cap": 40537362432.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "insider_buying",
+            "titular": "GameStop Rises 4% as Collectibles Sales Jump 57% and a Director Buys $1M",
+            "fuente": "24/7 Wall St.",
+            "fecha": "2026-09-09T15:13:56Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1706.8526882833332,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 60.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 53.53579175704988,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 59.2,
+            "score_ajustado": 39.2,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        }
+      ]
     }
   ]
 }
