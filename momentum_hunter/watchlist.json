@@ -2767,11 +2767,11 @@
       "mensaje_generado_ts": "2026-09-10T17:06:35+00:00",
       "telegram_enviado_ts": "2026-09-10T17:06:36+00:00",
       "signal_latency_ms": 96000.0,
-      "ultima_entrada": 24.309999465942383,
-      "ultimo_stop": 24.182736950265188,
-      "ultimo_objetivo": 24.564524497296773,
-      "ultima_zona_entrada_baja": 24.31201441807613,
-      "ultimos_niveles_ts": "2026-09-10T19:17:41+00:00",
+      "ultima_entrada": 24.37,
+      "ultimo_stop": 24.19911429010353,
+      "ultimo_objetivo": 24.711771419792942,
+      "ultima_zona_entrada_baja": 24.392228262442586,
+      "ultimos_niveles_ts": "2026-09-10T21:40:49+00:00",
       "stop_tesis": 24.161029475761016,
       "clima_mercado": null
     },
@@ -2896,9 +2896,9 @@
     {
       "ticker": "ENB",
       "nombre": "Enbridge Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-10T19:40:47+00:00",
-      "actualizado_en": "2026-09-10T19:40:47+00:00",
+      "actualizado_en": "2026-09-10T21:40:49+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2911,6 +2911,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-10T21:40:49+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-10T21:40:54+00:00",
+          "telegram_enviado_ts": "2026-09-10T21:40:55+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 6000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -2932,20 +2944,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 48.275001525878906,
-      "ultimo_stop": 48.030180927702915,
-      "ultimo_objetivo": 48.76464272223089,
-      "ultima_zona_entrada_baja": 48.27153862080695,
-      "ultimos_niveles_ts": "2026-09-10T19:40:47+00:00",
+      "ultima_entrada": 48.22,
+      "ultimo_stop": 47.7639281463623,
+      "ultimo_objetivo": 49.13214370727539,
+      "ultima_zona_entrada_baja": 48.267056496568394,
+      "ultimos_niveles_ts": "2026-09-10T21:40:49+00:00",
       "stop_tesis": 48.030180927702915,
       "clima_mercado": "debil"
     },
     {
       "ticker": "CRM",
       "nombre": "Salesforce, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-10T19:40:47+00:00",
-      "actualizado_en": "2026-09-10T19:40:47+00:00",
+      "actualizado_en": "2026-09-10T21:40:49+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2958,6 +2970,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-10T21:40:49+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-10T21:40:55+00:00",
+          "telegram_enviado_ts": "2026-09-10T21:40:55+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 6000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -2979,20 +3003,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 243.11500549316406,
-      "ultimo_stop": 241.77806991496664,
-      "ultimo_objetivo": 245.78887664955892,
-      "ultima_zona_entrada_baja": 242.99303509041874,
-      "ultimos_niveles_ts": "2026-09-10T19:40:47+00:00",
+      "ultima_entrada": 243.0,
+      "ultimo_stop": 237.1124997820173,
+      "ultimo_objetivo": 254.7750004359654,
+      "ultima_zona_entrada_baja": 243.19722172526514,
+      "ultimos_niveles_ts": "2026-09-10T21:40:49+00:00",
       "stop_tesis": 241.77806991496664,
       "clima_mercado": "debil"
     },
     {
       "ticker": "ADI",
       "nombre": "Analog Devices, Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-10T19:40:47+00:00",
-      "actualizado_en": "2026-09-10T19:40:47+00:00",
+      "actualizado_en": "2026-09-10T21:40:49+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3005,6 +3029,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-10T21:40:49+00:00",
+          "motivo": "El precio ($359.60) cayó por debajo del stop de la idea ($359.78) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-09-10T21:40:53+00:00",
+          "evaluacion_ts": "2026-09-10T21:40:53+00:00",
+          "mensaje_generado_ts": "2026-09-10T21:40:53+00:00",
+          "telegram_enviado_ts": "2026-09-10T21:40:53+00:00",
+          "latencia_desde_deteccion_ms": 0.0,
+          "latencia_desde_evaluacion_ms": 0.0,
+          "latencia_desde_transicion_ms": 4000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -3029,20 +3065,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 361.75,
-      "ultimo_stop": 359.7825873983735,
-      "ultimo_objetivo": 365.684825203253,
-      "ultima_zona_entrada_baja": 361.59054009886785,
-      "ultimos_niveles_ts": "2026-09-10T19:40:47+00:00",
+      "ultima_entrada": 359.6,
+      "ultimo_stop": 355.05185852050784,
+      "ultimo_objetivo": 368.6962829589844,
+      "ultima_zona_entrada_baja": 361.02331240046897,
+      "ultimos_niveles_ts": "2026-09-10T21:40:49+00:00",
       "stop_tesis": 359.7825873983735,
       "clima_mercado": "debil"
     },
     {
       "ticker": "ALAB",
       "nombre": "Astera Labs, Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-10T19:40:47+00:00",
-      "actualizado_en": "2026-09-10T19:40:47+00:00",
+      "actualizado_en": "2026-09-10T21:40:49+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3055,6 +3091,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-10T21:40:49+00:00",
+          "motivo": "El precio ($285.03) cayó por debajo del stop de la idea ($287.06) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-09-10T21:40:53+00:00",
+          "evaluacion_ts": "2026-09-10T21:40:53+00:00",
+          "mensaje_generado_ts": "2026-09-10T21:40:53+00:00",
+          "telegram_enviado_ts": "2026-09-10T21:40:54+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 5000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3076,20 +3124,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 289.0899963378906,
-      "ultimo_stop": 287.0580606700938,
-      "ultimo_objetivo": 293.1538676734842,
-      "ultima_zona_entrada_baja": 288.5005634875315,
-      "ultimos_niveles_ts": "2026-09-10T19:40:47+00:00",
+      "ultima_entrada": 285.03,
+      "ultimo_stop": 275.46124716622484,
+      "ultimo_objetivo": 304.16750566755024,
+      "ultima_zona_entrada_baja": 285.40326157822346,
+      "ultimos_niveles_ts": "2026-09-10T21:40:49+00:00",
       "stop_tesis": 287.0580606700938,
       "clima_mercado": "debil"
     },
     {
       "ticker": "MRVL",
       "nombre": "Marvell Technology, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-10T19:40:47+00:00",
-      "actualizado_en": "2026-09-10T19:40:47+00:00",
+      "actualizado_en": "2026-09-10T21:40:49+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3102,6 +3150,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-10T21:40:49+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-10T21:40:55+00:00",
+          "telegram_enviado_ts": "2026-09-10T21:40:56+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 7000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3123,20 +3183,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 229.46499633789062,
-      "ultimo_stop": 222.68214253016882,
-      "ultimo_objetivo": 243.03070395333424,
-      "ultima_zona_entrada_baja": 229.6289068415418,
-      "ultimos_niveles_ts": "2026-09-10T19:40:47+00:00",
+      "ultima_entrada": 227.25,
+      "ultimo_stop": 220.4671461922782,
+      "ultimo_objetivo": 240.8157076154436,
+      "ultima_zona_entrada_baja": 227.42279453801507,
+      "ultimos_niveles_ts": "2026-09-10T21:40:49+00:00",
       "stop_tesis": 222.68214253016882,
       "clima_mercado": "debil"
     },
     {
       "ticker": "ABT",
       "nombre": "Abbott Laboratories",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-10T19:40:47+00:00",
-      "actualizado_en": "2026-09-10T19:40:47+00:00",
+      "actualizado_en": "2026-09-10T21:40:49+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3149,6 +3209,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-10T21:40:49+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-10T21:40:56+00:00",
+          "telegram_enviado_ts": "2026-09-10T21:40:56+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 7000.0
         }
       ],
       "catalizador_tipo": "fda",
@@ -3170,20 +3242,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 103.37000274658203,
-      "ultimo_stop": 101.98535973685128,
-      "ultimo_objetivo": 106.13928876604353,
-      "ultima_zona_entrada_baja": 103.37563962674368,
-      "ultimos_niveles_ts": "2026-09-10T19:40:47+00:00",
+      "ultima_entrada": 103.36,
+      "ultimo_stop": 102.82733338457152,
+      "ultimo_objetivo": 104.42533323085696,
+      "ultima_zona_entrada_baja": 103.3440536528357,
+      "ultimos_niveles_ts": "2026-09-10T21:40:49+00:00",
       "stop_tesis": 101.98535973685128,
       "clima_mercado": "debil"
     },
     {
       "ticker": "EBAY",
       "nombre": "eBay Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-10T19:40:47+00:00",
-      "actualizado_en": "2026-09-10T19:40:47+00:00",
+      "actualizado_en": "2026-09-10T21:40:49+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3196,6 +3268,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-10T21:40:49+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-10T21:40:56+00:00",
+          "telegram_enviado_ts": "2026-09-10T21:40:57+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 8000.0
         }
       ],
       "catalizador_tipo": "insider_buying",
@@ -3210,27 +3294,27 @@
       "score_base": 64.1,
       "atr_diario": 3.313929421561105,
       "gap_pct_congelado": 0.0,
-      "tarde_consecutivas": 0,
+      "tarde_consecutivas": 1,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 104.37999725341797,
-      "ultimo_stop": 102.72303254263741,
-      "ultimo_objetivo": 107.69392667497908,
-      "ultima_zona_entrada_baja": 104.4139331006783,
-      "ultimos_niveles_ts": "2026-09-10T19:40:47+00:00",
+      "ultima_entrada": 105.03,
+      "ultimo_stop": 104.36830323980901,
+      "ultimo_objetivo": 106.35339352038199,
+      "ultima_zona_entrada_baja": 104.05000305175781,
+      "ultimos_niveles_ts": "2026-09-10T21:40:49+00:00",
       "stop_tesis": 102.72303254263741,
       "clima_mercado": "debil"
     },
     {
       "ticker": "ADBE",
       "nombre": "Adobe Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-10T19:40:47+00:00",
-      "actualizado_en": "2026-09-10T19:40:47+00:00",
+      "actualizado_en": "2026-09-10T21:40:49+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3243,6 +3327,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-10T21:40:49+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-10T21:40:57+00:00",
+          "telegram_enviado_ts": "2026-09-10T21:40:58+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 9000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3264,20 +3360,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 249.39500427246094,
-      "ultimo_stop": 247.80877010335712,
-      "ultimo_objetivo": 252.56747261066857,
-      "ultima_zona_entrada_baja": 249.05404030488154,
-      "ultimos_niveles_ts": "2026-09-10T19:40:47+00:00",
+      "ultima_entrada": 248.98,
+      "ultimo_stop": 247.72031310460025,
+      "ultimo_objetivo": 251.49937379079947,
+      "ultima_zona_entrada_baja": 248.96513879859322,
+      "ultimos_niveles_ts": "2026-09-10T21:40:49+00:00",
       "stop_tesis": 247.80877010335712,
       "clima_mercado": "debil"
     },
     {
       "ticker": "AVGO",
       "nombre": "Broadcom Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-10T19:40:47+00:00",
-      "actualizado_en": "2026-09-10T19:40:47+00:00",
+      "actualizado_en": "2026-09-10T21:40:49+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3290,6 +3386,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-10T21:40:49+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-10T21:40:58+00:00",
+          "telegram_enviado_ts": "2026-09-10T21:40:58+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 9000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3322,9 +3430,9 @@
     {
       "ticker": "TGT",
       "nombre": "Target Corporation",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-10T19:40:47+00:00",
-      "actualizado_en": "2026-09-10T19:40:47+00:00",
+      "actualizado_en": "2026-09-10T21:40:49+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3337,6 +3445,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-10T21:40:49+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-10T21:40:58+00:00",
+          "telegram_enviado_ts": "2026-09-10T21:40:59+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 10000.0
         }
       ],
       "catalizador_tipo": "guidance",
@@ -3358,20 +3478,20 @@
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 155.5850067138672,
-      "ultimo_stop": 153.3821520124163,
-      "ultimo_objetivo": 159.99071611676897,
-      "ultima_zona_entrada_baja": 155.68361886338374,
-      "ultimos_niveles_ts": "2026-09-10T19:40:47+00:00",
+      "ultima_entrada": 155.73,
+      "ultimo_stop": 153.5271452985491,
+      "ultimo_objetivo": 160.13570940290177,
+      "ultima_zona_entrada_baja": 155.74378478016752,
+      "ultimos_niveles_ts": "2026-09-10T21:40:49+00:00",
       "stop_tesis": 153.3821520124163,
       "clima_mercado": "debil"
     },
     {
       "ticker": "TTWO",
       "nombre": "Take-Two Interactive Software, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-10T19:40:47+00:00",
-      "actualizado_en": "2026-09-10T19:40:47+00:00",
+      "actualizado_en": "2026-09-10T21:40:49+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3384,6 +3504,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-10T21:40:49+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-10T21:40:59+00:00",
+          "telegram_enviado_ts": "2026-09-10T21:40:59+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 10000.0
         }
       ],
       "catalizador_tipo": "insider_buying",
@@ -3398,18 +3530,18 @@
       "score_base": 59.2,
       "atr_diario": 8.227855137416295,
       "gap_pct_congelado": -0.0069148750501453644,
-      "tarde_consecutivas": 0,
+      "tarde_consecutivas": 1,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
       "mensaje_generado_ts": null,
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
-      "ultima_entrada": 216.75999450683594,
-      "ultimo_stop": 215.63118400045698,
-      "ultimo_objetivo": 219.01761551959385,
-      "ultima_zona_entrada_baja": 216.71475778940402,
-      "ultimos_niveles_ts": "2026-09-10T19:40:47+00:00",
+      "ultima_entrada": 216.96,
+      "ultimo_stop": 215.0531079855429,
+      "ultimo_objetivo": 220.7737840289142,
+      "ultima_zona_entrada_baja": 210.5,
+      "ultimos_niveles_ts": "2026-09-10T21:40:49+00:00",
       "stop_tesis": 215.63118400045698,
       "clima_mercado": "debil"
     }
