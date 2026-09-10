@@ -2037,6 +2037,81 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-10T22:30:54+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "CHPT",
+          "nombre": "ChargePoint Holdings, Inc.",
+          "precio_actual": 8.93,
+          "factores_intradia": {
+            "precio_actual": 8.93,
+            "vwap": 8.88804019561545,
+            "ema9": 8.95798419208031,
+            "rvol_actual": 4.0198675496688745,
+            "aceleracion_volumen": 3.1304172455519206,
+            "gap_pct": -0.027932961489138503,
+            "maximo_dia": 9.210000038146973,
+            "maximo_premarket": 9.0,
+            "rango_apertura_max": 8.713399887084961,
+            "rango_apertura_min": 8.5600004196167,
+            "velas_desde_ruptura": 67,
+            "macd": 0.006051974777118829,
+            "macd_signal": 0.013934708314274048
+          },
+          "meta": {
+            "float_acciones": 26030047.0,
+            "short_pct_float": 0.2259,
+            "market_cap": 239773408.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "ChargePoint (CHPT) Posts Strong Q2 Results, But Q3 Outlook Raises Concerns",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-07T11:22:24Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4988.493878716667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": true,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 62.0,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 67 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 69.59825874188508,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 67 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 66.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        }
+      ]
     }
   ]
 }
