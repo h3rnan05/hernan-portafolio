@@ -295,6 +295,157 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-10T19:17:44+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "SEI",
+          "nombre": "Solaris Energy Infrastructure, Inc.",
+          "precio_actual": 65.2750015258789,
+          "factores_intradia": {
+            "precio_actual": 65.2750015258789,
+            "vwap": 66.0185073679802,
+            "ema9": 65.2102088893979,
+            "rvol_actual": 0.198427555222763,
+            "aceleracion_volumen": 0.9036194132163421,
+            "gap_pct": -0.030173064592681063,
+            "maximo_dia": 68.0073,
+            "maximo_premarket": 68.0073,
+            "rango_apertura_max": 67.58000183105469,
+            "rango_apertura_min": 65.5199966430664,
+            "velas_desde_ruptura": 2,
+            "macd": -0.13692170021263905,
+            "macd_signal": -0.1789179435883258
+          },
+          "meta": {
+            "float_acciones": 62839497.0,
+            "short_pct_float": 0.2376,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "insider_buying",
+            "titular": "A Solaris Energy Director Buys Nearly 8,000 Company Shares Worth Over $500,000",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-09T21:36:56Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1300.7914002166665,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 64.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 40.361941321634205,
+                "extension": 100.0,
+                "distancia_maximo_dia": 59.82345315692439,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BRZE",
+          "nombre": "Braze, Inc.",
+          "precio_actual": 24.475000381469727,
+          "factores_intradia": {
+            "precio_actual": 24.475000381469727,
+            "vwap": 24.15128414149647,
+            "ema9": 24.35440879647245,
+            "rvol_actual": 3.423275261324042,
+            "aceleracion_volumen": 3.083029320362113,
+            "gap_pct": -0.00906217699182063,
+            "maximo_dia": 24.5,
+            "maximo_premarket": 23.9882,
+            "rango_apertura_max": 23.90999984741211,
+            "rango_apertura_min": 23.3799991607666,
+            "velas_desde_ruptura": 328,
+            "macd": 0.08416345605817455,
+            "macd_signal": 0.055067570817308495
+          },
+          "meta": {
+            "float_acciones": 93186247.0,
+            "short_pct_float": 0.1372,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Update: Braze Shares Fall After Fiscal Q2 Results",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-09T18:34:53Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1482.8414624,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.9,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 328 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 98.97960740692757,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 328 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 60.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 328 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        }
+      ]
     }
   ]
 }
