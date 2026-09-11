@@ -433,6 +433,14 @@ cadencia de segundos requeriría un proveedor de pago con websockets
 (Polygon, Alpaca), lo cual `DataProvider` ya permite sin tocar ninguna
 lógica de trading (ver "Arquitectura" arriba).
 
+**Puente temporal (hasta VPS):** el cron `*/5` de GHA no se cumple --
+la plataforma atrasa el arranque, no el YAML. Mientras no haya servidor
+propio, `momentum_paper_cadence_bridge.yml` itera el mismo
+`--solo-watchlist` + paper dentro de un job largo. Comparte el grupo
+`momentum-opportunity-hunter-watchlist`, nunca el del hunter (PR #110).
+Cómo apagarlo y el costo en minutos de un repo privado: ver ese
+workflow y `docs/RUNBOOK-PAPER-CEO.md`. No cambia umbrales ni stops.
+
 ### Sigue siendo RESEARCH + SIGNAL + ALERT, nunca EXECUTION
 
 Reafirmado explícitamente por el dueño del producto en este pedido: "El

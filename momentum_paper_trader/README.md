@@ -249,6 +249,15 @@ Corre automáticamente al final de `momentum_hunter.yml` y
 `momentum_hunter_watchlist.yml` (mismo job, después de que la watchlist
 ya se actualizó) -- ver esos workflows.
 
+**Cadencia real (temporal, hasta VPS):** GitHub Actions no honra el cron
+`*/5` del watchlist (huecos medidos de ~2,5 h).
+`.github/workflows/momentum_paper_cadence_bridge.yml` ocupa un job y
+repite este mismo camino cada ~5 min en 13:00–21:00 UTC. Comparte el
+grupo de concurrency del watchlist, no el del hunter (PR #110). Dedup
+sin cambios: `revisiones.json` + `client_order_id`. Apagar y costo en
+minutos: ver el comentario de ese workflow y `docs/RUNBOOK-PAPER-CEO.md`.
+No cambia umbrales, riesgo ni el endpoint paper.
+
 ## Variables de entorno
 
 - `ALPACA_PAPER_API_KEY` / `ALPACA_PAPER_API_SECRET` -- credenciales del

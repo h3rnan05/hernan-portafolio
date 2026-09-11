@@ -58,7 +58,7 @@ momentum_paper_trader LEE TRIGGERED (nunca escribe watchlist)
 ```
 
 Workflows (UTC Lun–Vie): hunter `*/30 13-20`; watchlist+paper `*/5 13-20`.
-**Nota operativa:** la cadencia real observada puede ser mucho menor que el cron (gaps ~2.5h).
+**Nota operativa:** la cadencia real observada del cron corto puede ser mucho menor (gaps ~2.5h). El puente temporal `momentum-paper-cadence-bridge` itera watchlist+paper ~cada 5 min dentro de un job largo (ventana 13:00–21:00 UTC) hasta que haya VPS.
 
 ## 3. Qué requiere OK humano
 
@@ -66,7 +66,7 @@ Workflows (UTC Lun–Vie): hunter `*/30 13-20`; watchlist+paper `*/5 13-20`.
 |---|---|
 | Live / cuenta real | Paper hardcodeado; cambio de URL + aprobación humana |
 | Umbrales / score / config | Humano decide; ninguna función auto-ajusta |
-| VPS / servidor propio | Decisión pendiente ante latencia GHA |
+| VPS / servidor propio | Decisión pendiente ante latencia GHA. El puente GHA es temporal; apagarlo al tener VPS (abajo). |
 | Stops / ATR como piso | Problema B abierto; no calibrar a ciegas |
 | Overnight | `permitir_aguantar_overnight = False` por decisión del usuario |
 
@@ -83,9 +83,16 @@ UI: https://github.com/h3rnan05/hernan-portafolio/actions
 
 | Workflow | Cron | Nota |
 |---|---|---|
-| hunter | `*/30 13-20 * * 1-5` | sesión |
-| watchlist (+ paper) | `*/5 13-20 * * 1-5` | sesión |
+| hunter | `*/30 13-20 * * 1-5` | sesión; grupo `momentum-opportunity-hunter` |
+| watchlist (+ paper) | `*/5 13-20 * * 1-5` | fallback; GHA lo atrasa. Grupo `…-watchlist` |
+| **puente cadencia paper** | `0 13-19 * * 1-5` + loop interno ~5 min | temporal hasta VPS; mismo grupo que watchlist |
 | outcomes hunter | `30 21 * * 1-5` | ≈ 15:30 MT |
 | Daily ingestion + predictions | `0 22 * * 1-5` | **16:00 MT = OLS/backend, NO resumen paper** |
+
+### Puente de cadencia (temporal, hasta VPS)
+
+- **Qué hace:** un job hosted (tope 350 min, presupuesto interno 340) corre `--solo-watchlist` + paper cada ~5 min en 13:00–21:00 UTC Lun–Vie, y se re-despacha si la ventana sigue abierta. No cambia umbrales, riesgo ni endpoint paper.
+- **Cómo apagar:** (1) variable de repo `MOMENTUM_CADENCE_BRIDGE=off`; (2) Actions → `momentum-paper-cadence-bridge` → Disable workflow; (3) revertir el PR. El cron `*/5` de watchlist **no** se apaga con (1)/(2).
+- **Minutos Actions (repo privado):** sleep cuenta. ~8 h/día hábil ≈ 480 min/día ≈ 10 500 min/mes. Cuotas Free/Pro/Team privadas: 2 000–3 000 min/mes — las agota en días. En repo público no se cobran. No dejarlo encendido en privado sin aceptar esa factura.
 
 **HUECO:** el digest paper diario 16:00 MT Lun–Vie lo hace el Director (rutina de agentes Grok), no un workflow de este repo.
