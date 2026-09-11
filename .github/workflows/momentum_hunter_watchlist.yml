@@ -86,6 +86,10 @@ jobs:
 
       - name: Persistir watchlist/tracker/auditoría
         run: |
+          # Escritor secundario de watchlist/auditoria (rechecks si el
+          # VPS no corre). El dueño es momentum_hunter.yml. El VPS ya
+          # no git-add esos paths (CONFLICT rebase, run 34641814733).
+          # No apagar este workflow: es el fallback de cadencia corta.
           git config user.name "momentum-opportunity-hunter"
           git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
           for f in momentum_hunter/watchlist.json momentum_hunter/alertas_enviadas.json \

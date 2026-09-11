@@ -25,6 +25,19 @@ El VPS exporta `MOMENTUM_TELEM_FUENTE=vps`. GHA, si corre paper, escribe en `gha
 
 **No confundir** con `momentum_hunter/telemetria/` (embudo del hunter; GHA sí la persiste, partida en `{fecha}/gha/`).
 
+### Quién commitea qué (git push)
+
+Dos escritores sobre el mismo JSON reventaban el rebase (clase CONFLICT, run 34641814733). Partición:
+
+| Artefacto | Quién hace `git add` / push |
+|---|---|
+| `watchlist.json` | **GHA hunter** (dueño). El cron GHA watchlist puede seguir stagedándolo como escritor secundario (rechecks cuando el VPS no corre); overlap hunter↔watchlist GHA ya estaba aceptado. **VPS no lo commitea** (sí puede actualizarlo en local para paper). |
+| `auditoria/` | **GHA hunter** (dueño). GHA watchlist puede stagedarlo. **VPS no.** |
+| hunter telem (`momentum_hunter/telemetria/`) | **GHA hunter**. El VPS puede persistir su partición local si existe. |
+| paper telem (`momentum_paper_trader/telemetria/`) | **VPS** (único para git push). GHA no (`git add` quitado: run 34624961161). |
+
+No se apaga `momentum_hunter_watchlist.yml`: es fallback de re-chequeo, no el dueño de discovery. No cambia umbrales ni el endpoint paper.
+
 ### Cómo leer p50 / p95 vs ~8 velas
 1. Presupuesto: `velas_maximas_desde_patron = 8` → `PRESUPUESTO_MS = 480_000`.
 2. Día completo (todas las fuentes): `cargar_sesion(fecha)` o, por fuente, `sesion.json`.
