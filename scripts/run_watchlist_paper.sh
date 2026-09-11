@@ -30,11 +30,16 @@ git config user.name "momentum-opportunity-hunter" || true
 git config user.email "momentum-opportunity-hunter@users.noreply.github.com" || true
 
 persistir_estado() {
+  # Discovery (watchlist.json + auditoria) lo commitea GHA
+  # momentum_hunter.yml. El VPS corre --solo-watchlist en local
+  # para que paper lea TRIGGERED fresco, pero no git-add esos
+  # paths: dos escritores reventaban el rebase (CONFLICT,
+  # run 34641814733). El cron GHA watchlist sigue pudiendo
+  # stagedarlos como escritor secundario (rechecks si el VPS
+  # no corre); overlap hunter↔watchlist GHA ya estaba aceptado.
   paths=(
-    momentum_hunter/watchlist.json
     momentum_hunter/alertas_enviadas.json
     momentum_paper_trader/revisiones.json
-    momentum_hunter/auditoria
     momentum_hunter/telemetria
     momentum_paper_trader/telemetria
   )

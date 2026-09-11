@@ -35,6 +35,17 @@ def test_script_persist_existe_y_rebasea_sin_force():
     assert "--force)" in texto or "--force|" in texto
 
 
+def _vps_paths_de_persistencia(texto: str) -> str:
+    """Solo el array `paths=(...)` de persistir_estado. Un comentario
+    que nombre watchlist/auditoria (el POR QUÉ no se staggean) no
+    cuenta como git-add."""
+    inicio = texto.find("paths=(")
+    assert inicio != -1, "persistir_estado sin paths="
+    fin = texto.find(")", inicio)
+    assert fin != -1, "paths= sin cierre"
+    return texto[inicio:fin]
+
+
 def test_vps_es_escritor_primario_con_flock():
     texto = VPS.read_text(encoding="utf-8")
     assert "MOMENTUM_TELEM_FUENTE=vps" in texto
@@ -43,6 +54,42 @@ def test_vps_es_escritor_primario_con_flock():
     assert "git_persist_rebase_push.sh" in texto
     assert "git push --force" not in texto
     assert "force-with-lease" not in texto
+
+
+def test_vps_no_stagea_watchlist_ni_auditoria():
+    """GHA discovery es el dueño de watchlist.json + auditoria.
+    El VPS las actualiza en local para paper (--solo-watchlist) pero
+    no las git-add: dos escritores reventaban el rebase
+    (CONFLICT, run 34641814733)."""
+    texto = VPS.read_text(encoding="utf-8")
+    bloque = _vps_paths_de_persistencia(texto)
+    assert "momentum_hunter/watchlist.json" not in bloque
+    assert "momentum_hunter/auditoria" not in bloque
+    assert "momentum_paper_trader/telemetria" in bloque
+    assert "momentum_paper_trader/revisiones.json" in bloque
+    assert "momentum_hunter/alertas_enviadas.json" in bloque
+    assert "momentum_hunter/telemetria" in bloque
+    # Sigue corriendo --solo-watchlist: paper lee el JSON local.
+    assert "--solo-watchlist" in texto
+
+
+def test_gha_hunter_sigue_persistiendo_watchlist_y_auditoria():
+    """El dueño de discovery no se mueve. Quitar estos git-add
+    dejaría watchlist/auditoria sin escritor en git."""
+    texto = HUNTER_WF.read_text(encoding="utf-8")
+    assert "momentum_hunter/watchlist.json" in texto
+    assert "git add momentum_hunter/auditoria" in texto
+    assert "git add momentum_hunter/telemetria" in texto
+
+
+def test_gha_watchlist_sigue_como_escritor_secundario():
+    """Fallback de re-chequeo: no se apaga ni se le quita el
+    git-add de watchlist/auditoria. El overlap con hunter GHA
+    ya estaba aceptado; el VPS ya no es el tercer escritor."""
+    texto = WATCHLIST_WF.read_text(encoding="utf-8")
+    assert "momentum_hunter/watchlist.json" in texto
+    assert "git add momentum_hunter/auditoria" in texto
+    assert 'cron: "*/5 13-20 * * 1-5"' in texto
 
 
 def test_gitattributes_union_en_jsonl_de_telemetria():
