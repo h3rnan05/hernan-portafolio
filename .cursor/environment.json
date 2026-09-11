@@ -1,0 +1,21 @@
+{
+  "name": "Portfolio Prediction Engine",
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "backend-api",
+      "description": "FastAPI backend en http://localhost:8000 (uv run uvicorn).",
+      "command": "cd backend && export PATH=\"$HOME/.local/bin:$PATH\" && uv run uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    },
+    {
+      "name": "frontend-dev",
+      "description": "Dashboard Next.js en http://localhost:3000 (pnpm dev).",
+      "command": "export NVM_DIR=\"$HOME/.nvm\"; [ -s \"$NVM_DIR/nvm.sh\" ] && . \"$NVM_DIR/nvm.sh\"; cd frontend && pnpm dev"
+    }
+  ],
+  "ports": [
+    { "name": "frontend", "port": 3000 },
+    { "name": "backend", "port": 8000 }
+  ]
+}
