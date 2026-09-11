@@ -92,7 +92,7 @@ def test_generar_trade_expired_explica_que_nunca_se_confirmo():
 
 
 def test_generar_trade_archived_no_se_confunde_con_expired():
-    e = _entrada(estado="archived", transiciones=[
+    e = _entrada(ticker="NTLA", estado="archived", transiciones=[
         Transicion(estado="archived", timestamp="2026-09-11T18:00:00+00:00",
                    motivo="Desenlace paper terminal (stop)."),
     ])
