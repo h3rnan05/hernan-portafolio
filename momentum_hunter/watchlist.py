@@ -15,14 +15,20 @@ transiciones y su timestamp -- Principio 9 (auditoría reconstruible)
 aplicado también a "por qué este ticker entró a vigilancia y qué pasó
 después", no solo a las alertas que sí se mandaron.
 
-Cinco estados, tal como se pidieron:
+Seis estados:
 
   WATCHING    -- catalizador confirmado, en observación. Nunca genera
                  un mensaje de Telegram por sí solo (eso sería
                  exactamente el ruido que se pidió evitar).
   TRIGGERED   -- se volvió `accionable` (las 5 preguntas de
                  `evaluator.py` + el veto de riesgo/recompensa) --
-                 termina en un mensaje de entrada inmediato.
+                 termina en un mensaje de entrada inmediato. El
+                 buscador NO la re-evalúa. Deja de ser el final del
+                 ciclo cuando el paper trader registra un desenlace
+                 terminal (revisión que rechaza, o fill ya cerrado):
+                 entonces pasa a ARCHIVED. Sin esa transición, NTLA y
+                 BEAM se quedaron `triggered` días después de haber
+                 sido revisadas -- ver `marcar_archivada`.
   INVALIDATED -- el catalizador que lo puso en vigilancia ya no es
                  válido (`evaluator` cortó el análisis en la pregunta 1
                  al re-evaluar).
@@ -33,12 +39,16 @@ Cinco estados, tal como se pidieron:
   EXPIRED     -- lleva más de `cfg.minutos_maximos_en_watching` sin
                  resolver -- una candidata de hace dos horas ya no es
                  la misma oportunidad que la que se detectó.
+  ARCHIVED    -- TRIGGERED cuyo desenlace paper ya existe. No se
+                 borra: se agrega una transición y el paper trader
+                 appendea un JSONL durable. El buscador no inventa
+                 este estado -- solo lo acepta.
 
-TRIGGERED/INVALIDATED/MISSED/EXPIRED son terminales: una vez ahí, el
-ticker sale de la vigilancia activa (pero su historial de transiciones
-NUNCA se borra -- queda en el archivo para poder reconstruir la sesión
-completa después, incluyendo la latencia de la señal, ver
-`marcar_triggered`).
+INVALIDATED/MISSED/EXPIRED/ARCHIVED son terminales de verdad. TRIGGERED
+es terminal para el buscador (no se reabre ni se re-dispara) pero no
+para el ciclo paper: puede pasar a ARCHIVED. El historial de
+transiciones NUNCA se borra al cambiar de estado -- queda en el
+archivo para reconstruir la sesión, ver `marcar_triggered`.
 
 Snapshot congelado desde el descubrimiento (`desde_candidato_diario`):
 catalizador y metadata NO se vuelven a pedir en cada re-chequeo (esos
@@ -69,7 +79,14 @@ ESTADO_TRIGGERED = "triggered"
 ESTADO_INVALIDATED = "invalidated"
 ESTADO_MISSED = "missed"
 ESTADO_EXPIRED = "expired"
-ESTADOS_TERMINALES = frozenset({ESTADO_TRIGGERED, ESTADO_INVALIDATED, ESTADO_MISSED, ESTADO_EXPIRED})
+ESTADO_ARCHIVED = "archived"
+# TRIGGERED sigue acá: el buscador no la re-vigila. ARCHIVED es el
+# terminal post-paper. Ambos se purgan a los 7 días; el JSONL del
+# paper trader es el registro que no se va con esa purga.
+ESTADOS_TERMINALES = frozenset({
+    ESTADO_TRIGGERED, ESTADO_INVALIDATED, ESTADO_MISSED, ESTADO_EXPIRED,
+    ESTADO_ARCHIVED,
+})
 
 
 @dataclass(frozen=True)
@@ -521,6 +538,25 @@ def marcar_triggered(
     e.market_event_ts = market_event_ts
     e.data_received_ts = data_received_ts
     e.evaluador_ts = evaluador_ts
+
+
+def marcar_archivada(
+    e: EntradaWatchlist, motivo: str, ahora: datetime,
+) -> bool:
+    """TRIGGERED → ARCHIVED. Solo esa dirección, y solo si todavía está
+    en TRIGGERED: archivar WATCHING/MISSED/EXPIRED/INVALIDATED escondería
+    un síntoma distinto al que se diagnosticó (entradas paper ya
+    revisadas que nunca salían de TRIGGERED).
+
+    No inventa niveles ni toca umbrales. Devuelve True si transicionó.
+    El registro durable (ticker, estados, timestamps, revisión paper,
+    causa raíz) lo escribe el paper trader en JSONL -- esta función
+    solo agrega la transición, que `purgar_antiguas` sí puede llevarse
+    a los 7 días."""
+    if e.estado != ESTADO_TRIGGERED:
+        return False
+    _transicionar(e, ESTADO_ARCHIVED, motivo, ahora)
+    return True
 
 
 def actualizar_niveles(

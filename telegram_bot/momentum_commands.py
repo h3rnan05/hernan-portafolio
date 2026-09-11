@@ -34,6 +34,7 @@ if str(_REPO_ROOT) not in sys.path:
 
 from momentum_hunter import audit  # noqa: E402
 from momentum_hunter.watchlist import (  # noqa: E402
+    ESTADO_ARCHIVED,
     ESTADO_EXPIRED,
     ESTADO_INVALIDATED,
     ESTADO_MISSED,
@@ -105,6 +106,10 @@ def generar_trade(ticker: str, entradas: list[EntradaWatchlist]) -> str:
         motivo = e.transiciones[-1].motivo if e.transiciones else "No especificado."
         lineas = [f"❌ {ticker} -- INVALIDATED", "", "La idea quedó invalidada.", "", "Motivo:", motivo,
                   "", "NO ENTRAR."]
+    elif e.estado == ESTADO_ARCHIVED:
+        motivo = e.transiciones[-1].motivo if e.transiciones else "Revisión paper ya cerró."
+        lineas = [f"📦 {ticker} -- ARCHIVED", "", "La señal ya fue revisada en paper.",
+                  "", "Desenlace:", motivo, "", "NO ENTRAR -- ciclo cerrado."]
     else:   # EXPIRED
         lineas = [f"⏰ {ticker} -- EXPIRED", "", "Nunca llegó a confirmarse -- venció el tiempo de vigilancia."]
 

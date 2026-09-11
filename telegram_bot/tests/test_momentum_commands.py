@@ -91,6 +91,17 @@ def test_generar_trade_expired_explica_que_nunca_se_confirmo():
     assert "Nunca llegó a confirmarse" in texto
 
 
+def test_generar_trade_archived_no_se_confunde_con_expired():
+    e = _entrada(estado="archived", transiciones=[
+        Transicion(estado="archived", timestamp="2026-09-11T18:00:00+00:00",
+                   motivo="Desenlace paper terminal (stop)."),
+    ])
+    texto = mc.generar_trade("NTLA", [e])
+    assert "ARCHIVED" in texto
+    assert "EXPIRED" not in texto
+    assert "ciclo cerrado" in texto.lower() or "NO ENTRAR" in texto
+
+
 def test_generar_trade_es_case_insensitive_y_usa_la_mas_reciente():
     vieja = _entrada(estado="expired", actualizado_en="2026-08-01T14:00:00+00:00")
     nueva = _entrada(estado="watching", actualizado_en="2026-08-11T14:00:00+00:00")

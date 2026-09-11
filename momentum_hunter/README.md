@@ -369,19 +369,21 @@ instrumentación de latencia). El dueño del producto priorizó
 explícitamente: "State Engine primero, todo lo demás depende de él",
 dejando el comando `/trade` para después, aparte.
 
-### Los 5 estados (`watchlist.py`)
+### Los 6 estados (`watchlist.py`)
 
 Cada candidata con catalizador confirmado que llega a la etapa 2 entra a
 una watchlist persistida (`momentum_hunter/watchlist.json`, mismo patrón
 de persistencia por archivo JSON que `tracker.py`/`heartbeat.py`) con
-exactamente 5 estados, cada transición con su propio timestamp:
+estos estados, cada transición con su propio timestamp:
 
 - **WATCHING** -- se detectó un catalizador + patrón preliminar, pero
   todavía no confirma una entrada accionable.
 - **TRIGGERED** -- confirmó una entrada de verdad (el mismo árbol de 5
   preguntas de `evaluator.py`, la misma competencia relativa de
   `seleccionar_y_auditar` si compiten varias a la vez) -- se manda la
-  alerta corta a Telegram.
+  alerta corta a Telegram. El buscador no la re-evalúa. El paper trader
+  la pasa a ARCHIVED cuando la revisión ya cerró (rechazo o trade
+  cerrado); sin esa transición NTLA/BEAM se quedaron TRIGGERED.
 - **INVALIDATED** -- el catalizador salió de la ventana de vigencia
   (`catalysts.detector.dentro_de_ventana`, reutilizada, no reinventada)
   antes de confirmar nada.
@@ -390,6 +392,9 @@ exactamente 5 estados, cada transición con su propio timestamp:
   perseguir.
 - **EXPIRED** -- lleva más de `cfg.minutos_maximos_en_watching` (120
   minutos por defecto) sin resolver nada.
+- **ARCHIVED** -- TRIGGERED con desenlace paper terminal. No se borra:
+  se agrega una transición y un JSONL durable
+  (`momentum_paper_trader/archivo_triggered.jsonl`).
 
 ```
 09:42       -- RKLB -> WATCHING (contrato + patrón preliminar)
