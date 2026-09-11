@@ -132,6 +132,9 @@ jobs:
           # (ver momentum_hunter/telemetria.py) -- es lo que alimenta el
           # reporte semanal de los viernes.
           [ -d momentum_hunter/telemetria ] && git add momentum_hunter/telemetria || true
+          # Telemetría paper: latencia e2e y contadores de la sesión
+          # (ver momentum_paper_trader/telemetria.py). Solo mide.
+          [ -d momentum_paper_trader/telemetria ] && git add momentum_paper_trader/telemetria || true
           git diff --cached --quiet || git commit -m "momentum_hunter: alertas y auditoría del día [skip ci]"
           git pull --rebase origin main || true
           git push

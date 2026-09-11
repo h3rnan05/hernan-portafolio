@@ -49,6 +49,23 @@ class RevisionIA:
     # registros viejos (sin ellos) sigan cargando sin migración.
     resultado: str | None = None   # "abierta" | "objetivo" | "stop" | "cerrada" | "no_ejecutada"
     pnl: float | None = None       # ganancia/pérdida realizada en dólares (solo al cerrar)
+    # -- Cadena de latencia e2e (solo instrumentación, 2026-09-11).
+    # Copia los relojes que ya existen en la watchlist y agrega los
+    # hops que solo este módulo ve. Todo opcional: un revisiones.json
+    # viejo sigue cargando, y un campo ausente no se inventa. No
+    # decide ni cambia el sizing.
+    #   market_event_ts      -- vela que confirmó (dato, no reloj)
+    #   watchlist_escrito_ts -- primera persistencia TRIGGERED
+    #   executor_leido_ts    -- cuándo este proceso leyó esa entrada
+    #   ia_decision_ts       -- cuándo devolvió ia_decision.decidir
+    #   timestamp            -- orden colocada O rechazo persistido
+    #   order_id             -- id paper si hubo orden; None si rechazo
+    market_event_ts: str | None = None
+    watchlist_escrito_ts: str | None = None
+    executor_leido_ts: str | None = None
+    ia_decision_ts: str | None = None
+    latencia_descubrimiento_ms: float | None = None  # market_event → watchlist write
+    latencia_e2e_ms: float | None = None             # market_event → timestamp
 
 
 # `resultado` que ya no puede cambiar -- `seguimiento.revisar` no vuelve a

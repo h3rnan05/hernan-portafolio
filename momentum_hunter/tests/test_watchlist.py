@@ -249,6 +249,53 @@ def test_expirar_vencidas_no_toca_estados_terminales():
 
 # ------------------------- persistencia (sobrevive un "reinicio") -------------------------
 
+def test_guardar_sella_watchlist_escrito_ts_solo_en_triggered(tmp_path):
+    # El sello existe para medir "cuándo el disparo quedó en disco",
+    # no "cuándo cambió el estado en memoria". WATCHING no lo lleva:
+    # todavía no hay nada que otro proceso vaya a consumir como señal.
+    path = tmp_path / "watchlist.json"
+    watching = desde_candidato_diario(_candidato_diario("WATCH"), AHORA)
+    triggered = desde_candidato_diario(_candidato_diario("TRIG"), AHORA)
+    marcar_triggered(
+        triggered, "2026-08-11T14:05:00+00:00", "2026-08-11T14:05:03+00:00",
+        "2026-08-11T14:05:03.200000+00:00", AHORA + timedelta(minutes=5),
+    )
+    guardar([watching, triggered], path, ahora=AHORA + timedelta(minutes=6))
+
+    recargadas = {e.ticker: e for e in cargar(path)}
+    assert recargadas["WATCH"].watchlist_escrito_ts is None
+    assert recargadas["TRIG"].watchlist_escrito_ts == "2026-08-11T14:06:00+00:00"
+
+
+def test_guardar_no_reescribe_watchlist_escrito_ts(tmp_path):
+    # La segunda persistencia (latencia de Telegram) no debe mover el
+    # origen: si lo moviera, la medición de descubrimiento mentiría.
+    path = tmp_path / "watchlist.json"
+    e = desde_candidato_diario(_candidato_diario(), AHORA)
+    marcar_triggered(
+        e, "2026-08-11T14:05:00+00:00", "2026-08-11T14:05:03+00:00",
+        "2026-08-11T14:05:03.200000+00:00", AHORA,
+    )
+    guardar([e], path, ahora=AHORA)
+    primero = e.watchlist_escrito_ts
+    guardar([e], path, ahora=AHORA + timedelta(minutes=3))
+    assert e.watchlist_escrito_ts == primero
+    assert cargar(path)[0].watchlist_escrito_ts == primero
+
+
+def test_cargar_entrada_vieja_sin_watchlist_escrito_ts(tmp_path):
+    # Un watchlist.json anterior al campo debe cargar, no inventar el
+    # sello: ausencia no es evidencia de que se escribió en el epoch.
+    path = tmp_path / "watchlist.json"
+    e = desde_candidato_diario(_candidato_diario(), AHORA)
+    data = asdict(e)
+    data.pop("watchlist_escrito_ts", None)
+    path.write_text(json.dumps({"entradas": [data]}, ensure_ascii=False))
+    recargadas = cargar(path)
+    assert len(recargadas) == 1
+    assert recargadas[0].watchlist_escrito_ts is None
+
+
 def test_guardar_y_cargar_roundtrip(tmp_path):
     path = tmp_path / "watchlist.json"
     e = desde_candidato_diario(_candidato_diario(), AHORA)

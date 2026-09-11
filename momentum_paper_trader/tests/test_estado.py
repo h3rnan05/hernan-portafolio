@@ -39,6 +39,45 @@ def test_guardar_y_cargar_roundtrip_revision_rechazada(tmp_path):
     assert recargadas[0].order_id is None
 
 
+def test_guardar_y_cargar_roundtrip_con_latencia_e2e(tmp_path):
+    # Los hops nuevos tienen que sobrevivir el JSON: si se pierden al
+    # recargar, la telemetría diaria no puede calcular p50/p95.
+    path = tmp_path / "revisiones.json"
+    r = _revision()
+    r.market_event_ts = "2026-08-11T14:00:00+00:00"
+    r.watchlist_escrito_ts = "2026-08-11T14:04:00+00:00"
+    r.executor_leido_ts = "2026-08-11T14:04:30+00:00"
+    r.ia_decision_ts = "2026-08-11T14:04:45+00:00"
+    r.latencia_descubrimiento_ms = 240_000.0
+    r.latencia_e2e_ms = 300_000.0
+    guardar([r], path)
+    recargadas = cargar(path)
+    assert recargadas[0].market_event_ts == r.market_event_ts
+    assert recargadas[0].watchlist_escrito_ts == r.watchlist_escrito_ts
+    assert recargadas[0].executor_leido_ts == r.executor_leido_ts
+    assert recargadas[0].ia_decision_ts == r.ia_decision_ts
+    assert recargadas[0].latencia_descubrimiento_ms == 240_000.0
+    assert recargadas[0].latencia_e2e_ms == 300_000.0
+    assert recargadas[0].order_id == "abc123"
+
+
+def test_registro_viejo_sin_campos_de_latencia_sigue_cargando(tmp_path):
+    path = tmp_path / "revisiones.json"
+    path.write_text(json.dumps({"revisiones": [{
+        "ticker": "RKLB", "creado_en": "2026-08-11T14:00:00+00:00", "entro": True,
+        "confianza": 8, "razonamiento": "x", "timestamp": "t", "order_id": "abc",
+        "cantidad": 65, "precio_entrada": 78.42, "stop": 76.9, "objetivo": 82.5,
+        "resultado": "abierta", "pnl": None,
+    }]}))
+    recargadas = cargar(path)
+    assert recargadas[0].market_event_ts is None
+    assert recargadas[0].watchlist_escrito_ts is None
+    assert recargadas[0].executor_leido_ts is None
+    assert recargadas[0].ia_decision_ts is None
+    assert recargadas[0].latencia_descubrimiento_ms is None
+    assert recargadas[0].latencia_e2e_ms is None
+
+
 def test_registro_viejo_sin_campos_de_seguimiento_sigue_cargando(tmp_path):
     # `resultado`/`pnl` se agregaron después -- un revisiones.json ya
     # committeado sin esos campos debe cargar sin migración (defaults).
