@@ -86,6 +86,12 @@ fi
 
 # --- entorno Python compartido para momentum_hunter / paper_trader /
 #     screener / telegram_bot (usan python3 plano, no uv) --------------------
+# La imagen base puede no traer el módulo `venv`/`ensurepip`; lo instalamos.
+if ! python3 -c "import ensurepip" >/dev/null 2>&1; then
+  sudo apt-get update -qq
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    python3-venv
+fi
 if [ ! -d .venv ]; then
   python3 -m venv .venv
 fi
