@@ -407,7 +407,14 @@ class _FakeProviderEscaneo(DataProvider):
 
 def _preparar_main_escaneo(monkeypatch, tmp_path, barras, argv=None, diarios=None):
     monkeypatch.setattr(sys, "argv", argv or ["momentum_hunter.run"])
-    monkeypatch.setattr(run_mod.telemetria, "DIR_TELEMETRIA", tmp_path)
+    # Default de `registrar_corrida` se fija al importar -- parchear
+    # DIR_TELEMETRIA no alcanza; se redirige la escritura a tmp_path.
+    real = telemetria.registrar_corrida
+    monkeypatch.setattr(
+        run_mod.telemetria, "registrar_corrida",
+        lambda m, dir_telemetria=tmp_path, ahora=None, fuente=None: real(
+            m, dir_telemetria=tmp_path, ahora=ahora, fuente=fuente),
+    )
     monkeypatch.setattr(run_mod, "_cargar_tickers", lambda args: list(barras))
     monkeypatch.setattr(run_mod.universe, "tickers", lambda **kw: list(barras))
     monkeypatch.setattr(run_mod, "YahooProvider", lambda: _FakeProviderEscaneo(barras))
