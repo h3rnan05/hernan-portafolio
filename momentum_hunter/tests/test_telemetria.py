@@ -36,6 +36,16 @@ def test_banda_invalida_no_se_pierde_ni_se_asigna_mal():
     assert dict(m.operables) == {"desconocida": 2}
 
 
+def test_como_dict_incluye_rechazos_y_titulares_en_el_embudo():
+    m = telemetria.Metricas()
+    m.titulares_total = 7
+    m.rechazos_universo["vol_bajo_small"] = 3
+    m.rechazos_universo["market_cap"] = 1
+    embudo = m.como_dict()["embudo"]
+    assert embudo["titulares_total"] == 7
+    assert embudo["rechazos_universo"] == {"vol_bajo_small": 3, "market_cap": 1}
+
+
 def test_registrar_error_guarda_tipo_y_origen_no_el_mensaje():
     # El mensaje puede traer una URL con credenciales -- solo el tipo.
     m = telemetria.Metricas()
