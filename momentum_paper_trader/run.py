@@ -52,14 +52,11 @@ def _avisar_falla(ex: Exception) -> None:
     -- si el trader se rompe en silencio, el usuario vuelve a tener que
     revisar logs a mano, que es exactamente lo que esto elimina. Mejor
     esfuerzo: si hasta Telegram falla, al menos queda el log."""
-    from momentum_hunter.run import enviar_telegram
+    from momentum_paper_trader.notify import enviar, formatear_error
     try:
-        enviar_telegram(
-            f"⚠️ [PAPER] El paper trader falló en esta corrida:\n"
-            f"{type(ex).__name__}: {ex}\n\n"
-            f"No se colocó nada nuevo. La próxima corrida del cron lo reintenta sola; "
-            f"si este aviso se repite varias veces seguidas, algo necesita arreglo."
-        )
+        # Solo el TIPO: el texto de la excepción puede traer una URL
+        # con credenciales, y este aviso sale por Telegram.
+        enviar(formatear_error(tipo=type(ex).__name__))
     except Exception:
         log.exception("tampoco se pudo avisar la falla por Telegram")
 

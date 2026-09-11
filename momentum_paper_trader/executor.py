@@ -35,10 +35,9 @@ import logging
 from datetime import UTC, datetime
 
 from momentum_hunter import watchlist
-from momentum_hunter.run import enviar_telegram
 
 from momentum_paper_trader import estado, ia_decision, telemetria
-from momentum_paper_trader.alpaca_client import AlpacaPaperClient, OrdenBracket
+from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig
 
 log = logging.getLogger("momentum_paper_trader.executor")
@@ -203,28 +202,6 @@ def _techo_de_acciones(cuenta: "_EstadoCuenta", cfg: PaperTraderConfig, entrada:
     por_concentracion = (cuenta.equity * cfg.maximo_pct_efectivo_por_posicion) // entrada
     por_efectivo = cuenta.efectivo // entrada
     return max(0, int(min(por_concentracion, por_efectivo)))
-
-
-def _mensaje_confirmacion(orden: OrdenBracket, decision: ia_decision.DecisionIA) -> str:
-    """Etiquetado [PAPER] bien visible en la primera línea -- nunca debe
-    poder confundirse con una alerta real de momentum_hunter. Incluye el
-    razonamiento de la IA (pedido explícito del usuario: "cada que haga
-    un trade, que me avise qué hizo") -- no solo los niveles mecánicos."""
-    riesgo = (orden.precio_entrada - orden.stop) * orden.cantidad
-    linea_tamano = (
-        f"Tamaño: {decision.fraccion:.0%} del normal (convicción parcial)\n"
-        if decision.fraccion < 1.0 else "")
-    return (
-        f"🧪 [PAPER] ORDEN COLOCADA -- {orden.ticker}\n\n"
-        f"Cantidad: {orden.cantidad}\n"
-        f"Entrada (limit): ${orden.precio_entrada:,.2f}\n"
-        f"Stop: ${orden.stop:,.2f}\n"
-        f"Objetivo: ${orden.objetivo:,.2f}\n"
-        f"Riesgo: ${riesgo:,.2f}\n"
-        f"{linea_tamano}\n"
-        f"🤖 Por qué entró (confianza {decision.confianza}/10):\n{decision.razonamiento}\n\n"
-        f"Cuenta de práctica -- ningún dinero real se movió."
-    )
 
 
 class _EstadoCuenta:
@@ -497,7 +474,9 @@ def ejecutar(
         nuevas.append(registro)
         estado.guardar(revisiones_previas)
         cuenta.registrar_orden(e.ticker, cantidad * e.ultima_entrada)
-        enviar_telegram(_mensaje_confirmacion(orden, decision))
+        # Sin Telegram acá: aceptar la orden no es un trade completado.
+        # El aviso sale en `seguimiento` cuando Alpaca confirma el fill
+        # (o el cierre). Mandarlo ahora era spam de "ENVIADA" sin P&L.
         log.info("%s: orden paper colocada (%s)", e.ticker, orden.order_id)
         if metricas is not None:
             metricas.anotar_revision(registro, e.signal_latency_ms)
