@@ -52,7 +52,8 @@ ARCHIVOS_A_PERSISTIR = (
 DIRS_A_PERSISTIR = (
     "momentum_hunter/auditoria",
     "momentum_hunter/telemetria",
-    "momentum_paper_trader/telemetria",
+    # Paper telem: el VPS es el escritor primario. GHA no la commitea
+    # -- dos escritores sobre el JSON diario reventaban el rebase.
 )
 
 COMMIT_MSG = "momentum_hunter: re-chequeo de watchlist [skip ci]"
@@ -173,8 +174,12 @@ def _persistir() -> None:
     if staged.returncode == 0:
         return
     _correr(["git", "commit", "-m", COMMIT_MSG])
-    _correr(["git", "pull", "--rebase", "origin", "main"])
-    _correr(["git", "push"])
+    # Rebase + reintentos; nunca --force. Si falla, la siguiente
+    # iteración reintenta sobre el working tree que quede.
+    rc = _correr(["bash", str(REPO_ROOT / "scripts" / "git_persist_rebase_push.sh")])
+    if rc != 0:
+        print("WARN: persist rebase/push failed -- next iteration retries",
+              flush=True)
 
 
 def _una_iteracion() -> None:

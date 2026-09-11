@@ -16,16 +16,18 @@ Mide descubrimiento (vela → persistir `TRIGGERED`) vs punta a punta (vela → 
 | Qué | Path |
 |---|---|
 | Código | `momentum_paper_trader/telemetria.py` |
-| JSON diario esperado | `momentum_paper_trader/telemetria/{fecha}.json` |
-| Persistencia en CI | workflows hunter/watchlist hacen `git add momentum_paper_trader/telemetria` |
+| JSONL por fuente (actual) | `momentum_paper_trader/telemetria/{fecha}/{vps\|gha\|local}/events.jsonl` |
+| Rollup de esa fuente | `.../{fecha}/{fuente}/sesion.json` (`sesion.latencia_p50_ms`) |
+| JSON legado (solo lectura) | `momentum_paper_trader/telemetria/{fecha}.json` |
+| Persistencia | **VPS** commitea paper telem. GHA **no** (`git add` quitado: conflicto rebase run 34624961161). |
 
-**HUECO operativo:** el módulo existe en `main`, pero la carpeta `momentum_paper_trader/telemetria/` con JSON aparece tras la próxima corrida paper real que persista.
+El VPS exporta `MOMENTUM_TELEM_FUENTE=vps`. GHA, si corre paper, escribe en `gha/` pero no lo persiste. `cargar_dias` / `cargar_sesion` mezclan legado + todas las fuentes.
 
-**No confundir** con `momentum_hunter/telemetria/` (embudo del hunter).
+**No confundir** con `momentum_hunter/telemetria/` (embudo del hunter; GHA sí la persiste, partida en `{fecha}/gha/`).
 
 ### Cómo leer p50 / p95 vs ~8 velas
 1. Presupuesto: `velas_maximas_desde_patron = 8` → `PRESUPUESTO_MS = 480_000`.
-2. En el JSON del día: `sesion.latencia_p50_ms` / `latencia_p95_ms` por series `descubrimiento`, `alerta`, `e2e`.
+2. Día completo (todas las fuentes): `cargar_sesion(fecha)` o, por fuente, `sesion.json`.
 3. Comparar con `480000` ms; `sobre_presupuesto` cuenta muestras por encima.
 4. Percentil vacío → `null` (no interpretar como 0).
 

@@ -23,9 +23,19 @@ QUÉ MIDE, por corrida y agregado de sesión (el día de mercado):
     verdad. Un extremo ausente no se rellena con cero.
 
 CÓMO. Mismo patrón que `momentum_hunter.telemetria`: un `Metricas` que
-se llena como efecto secundario, un archivo `telemetria/{fecha}.json`
-por día, y si esto falla se traga el error. Medir no puede tumbar una
-corrida paper.
+se llena como efecto secundario. Cada escritor (VPS / GHA / local)
+appendea a SU archivo, nunca al del otro:
+
+  telemetria/{fecha}/{fuente}/events.jsonl   # append-only, merge=union
+  telemetria/{fecha}/{fuente}/sesion.json    # rollup derivado de ESA fuente
+
+El JSON monolítico `telemetria/{fecha}.json` se sigue LEYENDO (días
+viejos y el conflicto de 2026-09-11) pero ya no se reescribe: dos
+hosts haciendo read-modify-write del mismo diario reventaban el
+rebase de git y, de paso, se perdía la telemetría del hunter.
+
+Si medir falla se traga el error. Medir no puede tumbar una corrida
+paper.
 
 NUNCA CAMBIA EL COMPORTAMIENTO. Ni el fail-closed, ni la watchlist
 (este módulo no la escribe), ni el endpoint paper."""
@@ -34,6 +44,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -43,6 +55,11 @@ from momentum_hunter.config import CONFIG
 log = logging.getLogger("momentum_paper_trader.telemetria")
 
 DIR_TELEMETRIA = Path(__file__).resolve().parent / "telemetria"
+
+# Tres escritores posibles, tres subdirectorios. Un valor ausente o
+# desconocido NO se recategoriza como vps/gha: eso inventaría origen.
+FUENTES_VALIDAS = ("vps", "gha", "local")
+_RE_FECHA = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 # El presupuesto es el mismo que ya usa early_opportunity para decir
 # "tarde": N velas de 1 minuto. Se LEE, no se cambia. 60s por vela
@@ -195,29 +212,144 @@ def resumir_sesion(corridas: list[dict]) -> dict:
     }
 
 
+def resolver_fuente(fuente: str | None = None) -> str:
+    """Origen de esta escritura. El env `MOMENTUM_TELEM_FUENTE` manda;
+    si no, GITHUB_ACTIONS implica `gha`; el resto es `local`.
+    El VPS exporta `vps` en `scripts/run_watchlist_paper.sh` -- no se
+    adivina por hostname (un path inventado mezclaría escritores)."""
+    candidata = (fuente if fuente is not None else os.getenv("MOMENTUM_TELEM_FUENTE", "")).strip().lower()
+    if candidata in FUENTES_VALIDAS:
+        return candidata
+    if os.getenv("GITHUB_ACTIONS", "").strip().lower() in {"1", "true"}:
+        return "gha"
+    return "local"
+
+
+def _es_fecha_iso(nombre: str) -> bool:
+    if not _RE_FECHA.match(nombre):
+        return False
+    try:
+        datetime.strptime(nombre, "%Y-%m-%d")
+    except ValueError:
+        return False
+    return True
+
+
+def ruta_events(dir_telemetria: Path, fecha: str, fuente: str) -> Path:
+    return dir_telemetria / fecha / fuente / "events.jsonl"
+
+
+def ruta_sesion(dir_telemetria: Path, fecha: str, fuente: str) -> Path:
+    return dir_telemetria / fecha / fuente / "sesion.json"
+
+
+def _corridas_de_json_legacy(path: Path) -> list[dict]:
+    try:
+        cargado = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        log.warning("telemetría paper ilegible, se omite: %s", path.name)
+        return []
+    if not isinstance(cargado, dict) or not isinstance(cargado.get("corridas"), list):
+        return []
+    return [c for c in cargado["corridas"] if isinstance(c, dict)]
+
+
+def _corridas_de_jsonl(path: Path) -> list[dict]:
+    """Una línea = una corrida. Una línea rota se omite: no se inventa
+    el objeto ni se tira el resto del archivo."""
+    corridas: list[dict] = []
+    try:
+        texto = path.read_text()
+    except OSError:
+        log.warning("telemetría paper jsonl ilegible, se omite: %s", path.name)
+        return corridas
+    for linea in texto.splitlines():
+        linea = linea.strip()
+        if not linea:
+            continue
+        try:
+            obj = json.loads(linea)
+        except json.JSONDecodeError:
+            log.warning("línea jsonl paper ilegible, se omite: %s", path.name)
+            continue
+        if isinstance(obj, dict):
+            corridas.append(obj)
+    return corridas
+
+
+def cargar_dias(
+    desde: str, hasta: str, dir_telemetria: Path = DIR_TELEMETRIA,
+) -> list[dict]:
+    """Todas las corridas paper entre dos fechas (ISO, ambas inclusive).
+
+    Lee el layout viejo (`{fecha}.json`) Y el partido
+    (`{fecha}/{fuente}/events.jsonl`). Un archivo ilegible se omite
+    -- el rollup del día no se fabrica a partir de un hueco."""
+    halladas: list[tuple[str, str, dict]] = []
+    if not dir_telemetria.exists():
+        return []
+
+    for path in sorted(dir_telemetria.glob("*.json")):
+        dia = path.stem
+        if not _es_fecha_iso(dia) or not (desde <= dia <= hasta):
+            continue
+        for c in _corridas_de_json_legacy(path):
+            c.setdefault("dia", dia)
+            halladas.append((dia, c.get("timestamp") or "", c))
+
+    for path in sorted(dir_telemetria.glob("*/*/events.jsonl")):
+        dia = path.parent.parent.name
+        if not _es_fecha_iso(dia) or not (desde <= dia <= hasta):
+            continue
+        for c in _corridas_de_jsonl(path):
+            c.setdefault("dia", dia)
+            c.setdefault("fuente", path.parent.name)
+            halladas.append((dia, c.get("timestamp") or "", c))
+
+    halladas.sort(key=lambda x: (x[0], x[1]))
+    return [c for _, _, c in halladas]
+
+
+def cargar_sesion(
+    dia: str, dir_telemetria: Path = DIR_TELEMETRIA,
+) -> dict:
+    """Rollup del día completo (todas las fuentes + legacy)."""
+    return resumir_sesion(cargar_dias(dia, dia, dir_telemetria))
+
+
 def registrar_corrida(
-    m: Metricas, dir_telemetria: Path = DIR_TELEMETRIA, ahora: datetime | None = None,
+    m: Metricas,
+    dir_telemetria: Path = DIR_TELEMETRIA,
+    ahora: datetime | None = None,
+    fuente: str | None = None,
 ) -> Path | None:
-    """Añade esta corrida al archivo del día y reescribe el resumen de
-    sesión. None si falló -- nunca propaga: medir no puede tumbar."""
+    """Appendea esta corrida al JSONL de SU fuente y reescribe el
+    rollup derivado de esa fuente. None si falló -- nunca propaga.
+
+    No toca `telemetria/{fecha}.json` ni el JSONL de otra fuente: eso
+    es lo que chocaba entre VPS y GHA."""
     try:
         ahora = ahora or _ahora()
+        origen = resolver_fuente(fuente)
         m.timestamp = m.timestamp or ahora.isoformat(timespec="seconds")
-        dir_telemetria.mkdir(parents=True, exist_ok=True)
-        path = dir_telemetria / f"{ahora.date().isoformat()}.json"
+        fecha = ahora.date().isoformat()
+        path = ruta_events(dir_telemetria, fecha, origen)
+        path.parent.mkdir(parents=True, exist_ok=True)
 
-        data: dict = {"corridas": []}
-        if path.exists():
-            try:
-                cargado = json.loads(path.read_text())
-                if isinstance(cargado, dict) and isinstance(cargado.get("corridas"), list):
-                    data = cargado
-            except (json.JSONDecodeError, OSError):
-                log.warning("telemetría paper del día ilegible, se empieza de nuevo: %s", path.name)
+        payload = m.como_dict()
+        payload["fuente"] = origen
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
 
-        data["corridas"].append(m.como_dict())
-        data["sesion"] = resumir_sesion(data["corridas"])
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+        corridas = _corridas_de_jsonl(path)
+        rollup = {
+            "fuente": origen,
+            "corridas": corridas,
+            "sesion": resumir_sesion(corridas),
+        }
+        ruta_sesion(dir_telemetria, fecha, origen).write_text(
+            json.dumps(rollup, ensure_ascii=False, indent=2)
+        )
         return path
     except Exception as ex:
         log.warning("no se pudo guardar la telemetría paper: %s", type(ex).__name__)

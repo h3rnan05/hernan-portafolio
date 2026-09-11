@@ -27,9 +27,11 @@ QUÉ MIDE, y por qué cada cosa:
     "no había catalizadores".
 
 CÓMO. Un `Metricas` que se pasa por el pipeline y se va llenando; al
-final de la corrida se persiste en `telemetria/{fecha}.json`, un archivo
-por día con una entrada por corrida (mismo patrón que `audit.py`, mismo
-formato tolerante a corrupción que el resto del repo).
+final de la corrida se appendea a `telemetria/{fecha}/{fuente}/events.jsonl`
+(VPS y GHA no tocan el mismo archivo). El JSON monolítico
+`telemetria/{fecha}.json` se sigue leyendo para el reporte semanal de
+días viejos, pero ya no se reescribe: el read-modify-write compartido
+era la misma clase de conflicto que tumba el persist de git.
 
 NUNCA CAMBIA EL COMPORTAMIENTO. Registrar es un efecto secundario puro:
 si la telemetría falla, se traga su propio error y el pipeline sigue.
@@ -39,6 +41,8 @@ from __future__ import annotations
 
 import json
 import logging
+import os
+import re
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -47,6 +51,9 @@ from pathlib import Path
 log = logging.getLogger("momentum_hunter.telemetria")
 
 DIR_TELEMETRIA = Path(__file__).resolve().parent / "telemetria"
+
+FUENTES_VALIDAS = ("vps", "gha", "local")
+_RE_FECHA = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 BANDA_SMALL = "small"
 BANDA_LARGE = "large"
@@ -124,32 +131,82 @@ def _ahora() -> datetime:
     return datetime.now(UTC)
 
 
+def resolver_fuente(fuente: str | None = None) -> str:
+    """Origen de esta escritura. Ver `momentum_paper_trader.telemetria`:
+    el env manda; GITHUB_ACTIONS implica `gha`; si no, `local`."""
+    candidata = (fuente if fuente is not None else os.getenv("MOMENTUM_TELEM_FUENTE", "")).strip().lower()
+    if candidata in FUENTES_VALIDAS:
+        return candidata
+    if os.getenv("GITHUB_ACTIONS", "").strip().lower() in {"1", "true"}:
+        return "gha"
+    return "local"
+
+
+def _es_fecha_iso(nombre: str) -> bool:
+    if not _RE_FECHA.match(nombre):
+        return False
+    try:
+        datetime.strptime(nombre, "%Y-%m-%d")
+    except ValueError:
+        return False
+    return True
+
+
+def _corridas_de_json_legacy(path: Path) -> list[dict]:
+    try:
+        data = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        log.warning("telemetría ilegible, se omite: %s", path.name)
+        return []
+    if not isinstance(data, dict) or not isinstance(data.get("corridas"), list):
+        return []
+    return [c for c in data["corridas"] if isinstance(c, dict)]
+
+
+def _corridas_de_jsonl(path: Path) -> list[dict]:
+    corridas: list[dict] = []
+    try:
+        texto = path.read_text()
+    except OSError:
+        log.warning("telemetría jsonl ilegible, se omite: %s", path.name)
+        return corridas
+    for linea in texto.splitlines():
+        linea = linea.strip()
+        if not linea:
+            continue
+        try:
+            obj = json.loads(linea)
+        except json.JSONDecodeError:
+            log.warning("línea jsonl ilegible, se omite: %s", path.name)
+            continue
+        if isinstance(obj, dict):
+            corridas.append(obj)
+    return corridas
+
+
 def registrar_corrida(
-    m: Metricas, dir_telemetria: Path = DIR_TELEMETRIA, ahora: datetime | None = None,
+    m: Metricas,
+    dir_telemetria: Path = DIR_TELEMETRIA,
+    ahora: datetime | None = None,
+    fuente: str | None = None,
 ) -> Path | None:
-    """Añade esta corrida al archivo del día. Devuelve la ruta escrita, o
-    None si algo falló -- y en ese caso NO propaga la excepción: la
-    telemetría jamás debe tumbar una corrida (ver docstring del módulo)."""
+    """Appendea esta corrida al JSONL de SU fuente. Devuelve la ruta, o
+    None si algo falló -- y en ese caso NO propaga: la telemetría jamás
+    debe tumbar una corrida (ver docstring del módulo)."""
     try:
         ahora = ahora or _ahora()
+        origen = resolver_fuente(fuente)
         m.timestamp = m.timestamp or ahora.isoformat(timespec="seconds")
-        dir_telemetria.mkdir(parents=True, exist_ok=True)
-        path = dir_telemetria / f"{ahora.date().isoformat()}.json"
-
-        data: dict = {"corridas": []}
-        if path.exists():
-            try:
-                cargado = json.loads(path.read_text())
-                if isinstance(cargado, dict) and isinstance(cargado.get("corridas"), list):
-                    data = cargado
-            except (json.JSONDecodeError, OSError):
-                log.warning("telemetría del día ilegible, se empieza de nuevo: %s", path.name)
-
-        data["corridas"].append(m.como_dict())
-        path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+        fecha = ahora.date().isoformat()
+        path = dir_telemetria / fecha / origen / "events.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        payload = m.como_dict()
+        payload["fuente"] = origen
+        with path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
         return path
     except Exception as ex:
-        log.warning("no se pudo guardar la telemetría: %s", ex)
+        log.warning("no se pudo guardar la telemetría: %s", type(ex).__name__)
         return None
 
 
@@ -157,20 +214,29 @@ def cargar_dias(
     desde: str, hasta: str, dir_telemetria: Path = DIR_TELEMETRIA,
 ) -> list[dict]:
     """Todas las corridas entre dos fechas (ISO, ambas inclusive), en
-    orden. Un archivo ilegible se omite en vez de tumbar el reporte."""
-    corridas: list[dict] = []
+    orden. Layout viejo (`{fecha}.json`) y partido
+    (`{fecha}/{fuente}/events.jsonl`). Un archivo ilegible se omite
+    en vez de tumbar el reporte."""
+    halladas: list[tuple[str, str, dict]] = []
     if not dir_telemetria.exists():
-        return corridas
+        return []
+
     for path in sorted(dir_telemetria.glob("*.json")):
-        if not (desde <= path.stem <= hasta):
+        dia = path.stem
+        if not _es_fecha_iso(dia) or not (desde <= dia <= hasta):
             continue
-        try:
-            data = json.loads(path.read_text())
-        except (json.JSONDecodeError, OSError):
-            log.warning("telemetría ilegible, se omite: %s", path.name)
+        for c in _corridas_de_json_legacy(path):
+            c.setdefault("dia", dia)
+            halladas.append((dia, c.get("timestamp") or "", c))
+
+    for path in sorted(dir_telemetria.glob("*/*/events.jsonl")):
+        dia = path.parent.parent.name
+        if not _es_fecha_iso(dia) or not (desde <= dia <= hasta):
             continue
-        for c in data.get("corridas", []):
-            if isinstance(c, dict):
-                c.setdefault("dia", path.stem)
-                corridas.append(c)
-    return corridas
+        for c in _corridas_de_jsonl(path):
+            c.setdefault("dia", dia)
+            c.setdefault("fuente", path.parent.name)
+            halladas.append((dia, c.get("timestamp") or "", c))
+
+    halladas.sort(key=lambda x: (x[0], x[1]))
+    return [c for _, _, c in halladas]
