@@ -21,9 +21,15 @@ if ! command -v uv >/dev/null 2>&1; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# --- PostgreSQL: arranca el clúster para poder migrar y sembrar -------------
-# El servidor de Postgres viene del snapshot base. pg_ctlcluster devuelve
-# error si ya está arrancado, de ahí el guard.
+# --- PostgreSQL: instalar (si falta) y arrancar el clúster ------------------
+# El backend usa Postgres real (Alembic + asyncpg), igual que producción con
+# Supabase. Si la imagen base no lo trae, lo instalamos vía apt. Es idempotente:
+# apt no reinstala si ya está y pg_ctlcluster devuelve error si ya corre.
+if ! command -v pg_ctlcluster >/dev/null 2>&1; then
+  sudo apt-get update -qq
+  sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    postgresql-16 postgresql-client-16
+fi
 sudo pg_ctlcluster 16 main start 2>/dev/null || true
 for _ in $(seq 1 30); do
   if sudo -u postgres pg_isready -q 2>/dev/null; then break; fi
