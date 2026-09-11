@@ -23,6 +23,10 @@ out/
 .env.local
 .env.*.local
 !.env.example
+# VPS paper secrets live at /etc/momentum/paper.env (outside the repo).
+# Ignore accidental local copies so they never get committed.
+paper.env
+
 
 # IDE
 .vscode/
