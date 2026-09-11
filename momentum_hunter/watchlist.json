@@ -2391,16 +2391,16 @@
       "ultimo_stop": 283.50296082565893,
       "ultimo_objetivo": 290.99407834868214,
       "ultima_zona_entrada_baja": 284.92759881975775,
-      "ultimos_niveles_ts": "2026-09-11T20:05:03+00:00",
+      "ultimos_niveles_ts": "2026-09-11T20:10:04+00:00",
       "stop_tesis": 279.81769125802174,
       "clima_mercado": "debil"
     },
     {
       "ticker": "ADI",
       "nombre": "Analog Devices, Inc.",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-09-11T19:42:57+00:00",
-      "actualizado_en": "2026-09-11T19:42:57+00:00",
+      "actualizado_en": "2026-09-11T20:10:04+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2413,6 +2413,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-09-11T20:10:04+00:00",
+          "motivo": "El patrón se activó hace 382 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-09-11T20:10:09+00:00",
+          "evaluacion_ts": "2026-09-11T20:10:09+00:00",
+          "mensaje_generado_ts": "2026-09-11T20:10:09+00:00",
+          "telegram_enviado_ts": "2026-09-11T20:10:10+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 6000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -2429,7 +2441,7 @@
       "score_base": 71.0,
       "atr_diario": 9.861424037388392,
       "gap_pct_congelado": 0.011307934823745674,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -2441,7 +2453,7 @@
       "ultimo_stop": 376.5719968087457,
       "ultimo_objetivo": 383.1960063825085,
       "ultima_zona_entrada_baja": 368.1000061035156,
-      "ultimos_niveles_ts": "2026-09-11T20:05:03+00:00",
+      "ultimos_niveles_ts": "2026-09-11T20:10:04+00:00",
       "stop_tesis": 375.2197750746237,
       "clima_mercado": "debil"
     },
@@ -2596,8 +2608,8 @@
       "ultima_entrada": 102.0,
       "ultimo_stop": 100.6317858014788,
       "ultimo_objetivo": 104.7364283970424,
-      "ultima_zona_entrada_baja": 102.19085917961078,
-      "ultimos_niveles_ts": "2026-09-11T20:05:03+00:00",
+      "ultima_zona_entrada_baja": 102.19064957961078,
+      "ultimos_niveles_ts": "2026-09-11T20:10:04+00:00",
       "stop_tesis": 101.76241790517416,
       "clima_mercado": "debil"
     },
@@ -2645,7 +2657,7 @@
       "ultimo_stop": 454.1867546680456,
       "ultimo_objetivo": 461.09649066390887,
       "ultima_zona_entrada_baja": 456.46910016889,
-      "ultimos_niveles_ts": "2026-09-11T20:05:03+00:00",
+      "ultimos_niveles_ts": "2026-09-11T20:10:04+00:00",
       "stop_tesis": 449.64536721365795,
       "clima_mercado": "debil"
     },
@@ -2693,7 +2705,7 @@
       "ultimo_stop": 111.42168725039575,
       "ultimo_objetivo": 113.1566254992085,
       "ultima_zona_entrada_baja": 111.9815952265284,
-      "ultimos_niveles_ts": "2026-09-11T20:05:03+00:00",
+      "ultimos_niveles_ts": "2026-09-11T20:10:04+00:00",
       "stop_tesis": 110.48435136646509,
       "clima_mercado": "debil"
     },
@@ -2738,10 +2750,10 @@
       "signal_latency_ms": null,
       "watchlist_escrito_ts": null,
       "ultima_entrada": 47.77000045776367,
-      "ultimo_stop": 47.506412856236246,
-      "ultimo_objetivo": 48.297175660818525,
-      "ultima_zona_entrada_baja": 47.74513854898115,
-      "ultimos_niveles_ts": "2026-09-11T20:05:03+00:00",
+      "ultimo_stop": 47.50673896748624,
+      "ultimo_objetivo": 48.29652343831853,
+      "ultima_zona_entrada_baja": 47.74546629898115,
+      "ultimos_niveles_ts": "2026-09-11T20:10:04+00:00",
       "stop_tesis": 47.45872133303262,
       "clima_mercado": "debil"
     },
@@ -2846,10 +2858,10 @@
       "signal_latency_ms": null,
       "watchlist_escrito_ts": null,
       "ultima_entrada": 155.85000610351562,
-      "ultimo_stop": 155.0527241166421,
-      "ultimo_objetivo": 157.44457007726265,
-      "ultima_zona_entrada_baja": 155.83188353431368,
-      "ultimos_niveles_ts": "2026-09-11T20:05:03+00:00",
+      "ultimo_stop": 155.0524638246421,
+      "ultimo_objetivo": 157.44509066126267,
+      "ultima_zona_entrada_baja": 155.83162193431366,
+      "ultimos_niveles_ts": "2026-09-11T20:10:04+00:00",
       "stop_tesis": 153.8925061907087,
       "clima_mercado": "debil"
     },
@@ -2896,8 +2908,8 @@
       "ultima_entrada": 71.65599822998047,
       "ultimo_stop": 70.39978408813477,
       "ultimo_objetivo": 74.16842651367188,
-      "ultima_zona_entrada_baja": 71.68731957467242,
-      "ultimos_niveles_ts": "2026-09-11T20:05:03+00:00",
+      "ultima_zona_entrada_baja": 71.68863037467241,
+      "ultimos_niveles_ts": "2026-09-11T20:10:04+00:00",
       "stop_tesis": 71.36531918411085,
       "clima_mercado": "debil"
     },
@@ -2945,7 +2957,7 @@
       "ultimo_stop": 211.4642866734096,
       "ultimo_objetivo": 223.48142665318082,
       "ultima_zona_entrada_baja": 215.64977679582066,
-      "ultimos_niveles_ts": "2026-09-11T20:05:03+00:00",
+      "ultimos_niveles_ts": "2026-09-11T20:10:04+00:00",
       "stop_tesis": 212.50928606305803,
       "clima_mercado": "debil"
     }
