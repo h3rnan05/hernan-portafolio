@@ -60,9 +60,8 @@ import logging
 from datetime import datetime
 
 from momentum_hunter import sesion
-from momentum_hunter.run import enviar_telegram
 
-from momentum_paper_trader import ia_decision
+from momentum_paper_trader import ia_decision, notify
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig
 
@@ -133,41 +132,11 @@ def _stop_protector(p: dict, cfg: PaperTraderConfig) -> float | None:
 
 
 def _mensaje(cerradas: list[tuple[dict, str]], aguantadas: list[tuple[dict, str, float]]) -> str:
-    """Un resumen de lo que se decidió, con el razonamiento de la IA en
-    cada caso -- mismo principio que el mensaje de apertura: el usuario
-    debe saber QUÉ hizo el bot y POR QUÉ, no solo el número."""
-    lineas = ["🧪 [PAPER] CIERRE DEL DÍA", ""]
-    total = 0.0
-    hay_pl = False
-
-    if cerradas:
-        lineas.append("Cerradas:")
-        for p, razon in cerradas:
-            pl = _num(p.get("unrealized_pl"))
-            cab = f"• {p.get('symbol', '?')}"
-            if pl is not None:
-                hay_pl = True
-                total += pl
-                cab += f": {'+' if pl >= 0 else '-'}${abs(pl):,.2f} aprox."
-            lineas += [cab, f"  🤖 {razon}"]
-        lineas.append("")
-
-    if aguantadas:
-        lineas.append("Se mantienen hasta mañana:")
-        for p, razon, stop in aguantadas:
-            pl = _num(p.get("unrealized_pl"))
-            cab = f"• {p.get('symbol', '?')}"
-            if pl is not None:
-                cab += f": {'+' if pl >= 0 else '-'}${abs(pl):,.2f} abierto"
-            lineas += [cab, f"  🤖 {razon}", f"  Stop de protección puesto en ${stop:,.2f}"]
-        lineas += ["", "Aviso: un stop no protege contra un hueco de apertura. Si abre muy "
-                   "por debajo, la venta se ejecuta al precio de apertura."]
-        lineas.append("")
-
-    if hay_pl:
-        lineas += [f"Resultado realizado hoy: {'+' if total >= 0 else '-'}${abs(total):,.2f} aprox.", ""]
-    lineas.append("Cuenta de práctica -- ningún dinero real se movió.")
-    return "\n".join(lineas)
+    """Solo las posiciones CERRADAS -- aguantar overnight no es un trade
+    completado y no se avisa (anti-spam). `aguantadas` se recibe para no
+    romper callers/tests; no entra al texto."""
+    del aguantadas
+    return notify.formatear_cierre_dia(cerradas)
 
 
 def cerrar_si_toca(
@@ -243,6 +212,8 @@ def cerrar_si_toca(
         cerradas.append((p, decision.razonamiento))
         log.info("%s: cerrada al final del día", ticker)
 
-    if cerradas or aguantadas:
-        enviar_telegram(_mensaje(cerradas, aguantadas))
+    if cerradas:
+        texto = _mensaje(cerradas, aguantadas)
+        if texto:
+            notify.enviar(texto)
     return [p for p, _ in cerradas]

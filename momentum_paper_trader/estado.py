@@ -41,12 +41,13 @@ class RevisionIA:
     precio_entrada: float | None = None
     stop: float | None = None
     objetivo: float | None = None
-    # -- Ciclo de vida del trade (ver `seguimiento.py`): cada cambio de
-    # `resultado` se avisa por Telegram exactamente una vez -- persistir
-    # el estado ES el mecanismo anti-duplicado, igual que `alertas_
-    # enviadas.json` en momentum_hunter. `None` = sin novedades todavía
-    # (o sin orden). Los campos son opcionales con default para que los
-    # registros viejos (sin ellos) sigan cargando sin migración.
+    # -- Ciclo de vida del trade (ver `seguimiento.py`): un cambio de
+    # `resultado` a fill/cierre se avisa por Telegram una vez. El resto
+    # (p. ej. `no_ejecutada`) se persiste en silencio. Persistencia = 
+    # anti-duplicado, igual que `alertas_enviadas.json` en
+    # momentum_hunter. `None` = sin novedades todavía (o sin orden).
+    # Campos opcionales con default para que los registros viejos sigan
+    # cargando sin migración.
     resultado: str | None = None   # "abierta" | "objetivo" | "stop" | "cerrada" | "no_ejecutada"
     pnl: float | None = None       # ganancia/pérdida realizada en dólares (solo al cerrar)
     # -- Cadena de latencia e2e (solo instrumentación, 2026-09-11).

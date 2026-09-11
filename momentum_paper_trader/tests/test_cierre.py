@@ -64,7 +64,7 @@ class _FakeClient:
 def _parchear(monkeypatch, cerrar=True, razon="tesis agotada"):
     """Por defecto la IA dice CERRAR -- el comportamiento conservador."""
     enviados: list[str] = []
-    monkeypatch.setattr(cierre, "enviar_telegram", lambda t: enviados.append(t))
+    monkeypatch.setattr(cierre.notify, "enviar", lambda t: enviados.append(t))
     monkeypatch.setattr(
         cierre.ia_decision, "decidir_cierre",
         lambda ctx: ia_decision.DecisionCierre(cerrar=cerrar, confianza=9, razonamiento=razon))
@@ -111,7 +111,8 @@ def test_cierra_y_avisa_dentro_de_la_ventana(monkeypatch):
     assert len(cerradas) == 1
     assert client.cerro is True
     assert len(enviados) == 1
-    assert "CIERRE DEL DÍA" in enviados[0]
+    assert "CERRADA" in enviados[0]
+    assert "fin de día" in enviados[0]
     assert "RKLB" in enviados[0] and "+$123.45" in enviados[0]
     assert "[PAPER]" in enviados[0]
 
@@ -182,14 +183,13 @@ def test_mensaje_sin_pl_no_inventa_cifras():
     texto = cierre._mensaje([({"symbol": "AAA", "qty": "10"}, "x")], [])
     assert "AAA" in texto
     assert "Resultado realizado" not in texto
+    assert "P&L del día" not in texto
 
 
-def test_mensaje_muestra_razonamiento_y_stop_de_las_aguantadas():
+def test_mensaje_de_solo_aguantadas_va_vacio():
+    # Aguantar overnight no es un trade completado: no hay Telegram.
     texto = cierre._mensaje([], [({"symbol": "CCC", "qty": "8"}, "sigue viva", 77.5)])
-    assert "Se mantienen hasta mañana" in texto
-    assert "sigue viva" in texto
-    assert "$77.50" in texto
-    assert "hueco de apertura" in texto   # el aviso honesto siempre acompaña
+    assert texto == ""
 
 
 # ------------------------- la IA decide (2026-08-21) -------------------------
@@ -213,8 +213,7 @@ def test_si_la_ia_aguanta_se_pone_stop_protector_y_no_se_cierra(monkeypatch):
     ticker, cantidad, stop = client.stops[0]
     assert ticker == "RKLB" and cantidad == 65
     assert stop == round(80.00 * 0.97, 2)   # 3% bajo el precio actual
-    assert "Se mantienen hasta mañana" in enviados[0]
-    assert "el catalizador sigue vivo" in enviados[0]
+    assert enviados == []   # aguantar no es un cierre: silencio
 
 
 def test_si_falla_el_stop_protector_se_cierra_igual(monkeypatch):
@@ -243,7 +242,7 @@ def test_sin_precio_para_calcular_el_stop_se_cierra(monkeypatch):
 def test_decide_una_por_una_no_todo_o_nada(monkeypatch):
     # Lo que motivó el rediseño: puede cerrar una y aguantar otra.
     enviados: list[str] = []
-    monkeypatch.setattr(cierre, "enviar_telegram", lambda t: enviados.append(t))
+    monkeypatch.setattr(cierre.notify, "enviar", lambda t: enviados.append(t))
 
     def _por_ticker(ctx):
         aguanta = "BUENA" in ctx
@@ -262,7 +261,8 @@ def test_decide_una_por_una_no_todo_o_nada(monkeypatch):
     assert client.cerradas == ["MALA"]
     assert [s[0] for s in client.stops] == ["BUENA"]
     assert len(cerradas) == 1
-    assert "MALA" in enviados[0] and "BUENA" in enviados[0]
+    assert "MALA" in enviados[0]
+    assert "BUENA" not in enviados[0]   # aguantada: fuera del aviso
 
 
 def test_una_posicion_que_falla_al_cerrar_no_frena_las_demas(monkeypatch):

@@ -87,17 +87,31 @@ def _volumen_promedio(b: Barras, ventana: int = 20) -> float | None:
     return sum(b.volume[-ventana:]) / ventana
 
 
-def enviar_telegram(texto: str) -> None:
+def enviar_telegram(
+    texto: str,
+    parse_mode: str | None = None,
+    disable_notification: bool = False,
+) -> None:
+    """Envío compartido. `parse_mode`/`disable_notification` son
+    opcionales y default-off: los callers viejos (texto plano) no
+    cambian. El paper trader manda HTML ya escapado; no usa el flag
+    silencioso -- si un evento no merece aviso, no llama a esta
+    función."""
     token = os.getenv("MOMENTUM_TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN")
     chat = os.getenv("MOMENTUM_TELEGRAM_CHAT_ID") or os.getenv("TELEGRAM_CHAT_ID")
     if not token or not chat:
         log.info("sin secrets de Telegram: no envío (solo registro en el tracker)")
         return
     for i in range(0, len(texto), 3900):
+        cuerpo: dict = {"chat_id": chat, "text": texto[i:i + 3900]}
+        if parse_mode:
+            cuerpo["parse_mode"] = parse_mode
+        if disable_notification:
+            cuerpo["disable_notification"] = True
         try:
             requests.post(
                 f"https://api.telegram.org/bot{token}/sendMessage",
-                json={"chat_id": chat, "text": texto[i:i + 3900]}, timeout=15,
+                json=cuerpo, timeout=15,
             )
         except Exception as e:
             log.warning("envío a Telegram falló: %s", e)

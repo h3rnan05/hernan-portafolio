@@ -51,9 +51,11 @@ def test_entrada_llenada_pasa_a_abierta_con_precio_real():
 
     assert resultado == "abierta"
     assert pnl is None
-    assert "ENTRADA EJECUTADA" in mensaje
+    assert "LLENADA" in mensaje
     assert "$78.40" in mensaje
     assert "[PAPER]" in mensaje
+    assert "RKLB" in mensaje
+    assert "2026-08-21T14:00:00+00:00" in mensaje  # signal_id
 
 
 def test_take_profit_llenado_es_objetivo_con_ganancia():
@@ -66,7 +68,8 @@ def test_take_profit_llenado_es_objetivo_con_ganancia():
 
     assert resultado == "objetivo"
     assert pnl == round((82.50 - 78.40) * 65, 2)
-    assert "OBJETIVO ALCANZADO" in mensaje
+    assert "CERRADA" in mensaje
+    assert "objetivo" in mensaje
     assert f"+${pnl:,.2f}" in mensaje
 
 
@@ -81,7 +84,8 @@ def test_stop_llenado_es_stop_con_perdida():
     assert resultado == "stop"
     assert pnl == round((76.85 - 78.40) * 65, 2)
     assert pnl < 0
-    assert "STOP EJECUTADO" in mensaje
+    assert "CERRADA" in mensaje
+    assert "stop" in mensaje
     assert f"-${abs(pnl):,.2f}" in mensaje
 
 
@@ -96,7 +100,7 @@ def test_salida_en_la_misma_pasada_que_la_entrada_va_directo_al_cierre():
     resultado, _, mensaje = seguimiento._evaluar(r, datos)
 
     assert resultado == "objetivo"
-    assert "ENTRADA EJECUTADA" not in mensaje
+    assert "LLENADA" not in mensaje
 
 
 def test_orden_cancelada_sin_llenar_es_no_ejecutada():
@@ -107,8 +111,7 @@ def test_orden_cancelada_sin_llenar_es_no_ejecutada():
 
     assert resultado == "no_ejecutada"
     assert pnl is None
-    assert "NO EJECUTADA" in mensaje
-    assert "Sin posición abierta" in mensaje
+    assert mensaje == ""   # se persiste, no se avisa: no hubo trade
 
 
 def test_entrada_todavia_esperando_no_genera_novedad():
@@ -132,10 +135,25 @@ def test_posicion_llena_con_patas_muertas_avisa_cerrada():
     resultado, _, mensaje = seguimiento._evaluar(r, datos)
 
     assert resultado == "cerrada"
-    assert "SIN SALIDAS ACTIVAS" in mensaje
+    assert "ERROR" in mensaje
+    assert "sin salidas" in mensaje
 
 
 # ------------------------- revisar: integración con persistencia -------------------------
+
+def test_revisar_avisa_llenada(monkeypatch, tmp_path):
+    r = _revision_con_orden()
+    _, enviados = _parchear(monkeypatch, tmp_path, [r])
+    client = _FakeClient({"orden-RKLB": {
+        "status": "filled", "filled_avg_price": "78.40", "filled_qty": "65", "legs": [
+            {"type": "limit", "status": "new"}, {"type": "stop", "status": "held"}]}})
+
+    cambiadas = seguimiento.revisar(client)
+
+    assert [c.resultado for c in cambiadas] == ["abierta"]
+    assert len(enviados) == 1
+    assert "LLENADA" in enviados[0] and "RKLB" in enviados[0]
+
 
 def test_revisar_actualiza_persiste_y_avisa(monkeypatch, tmp_path):
     r = _revision_con_orden()
@@ -148,7 +166,7 @@ def test_revisar_actualiza_persiste_y_avisa(monkeypatch, tmp_path):
     cambiadas = seguimiento.revisar(client)
 
     assert [c.resultado for c in cambiadas] == ["objetivo"]
-    assert len(enviados) == 1 and "OBJETIVO" in enviados[0]
+    assert len(enviados) == 1 and "CERRADA" in enviados[0] and "objetivo" in enviados[0]
     persistidas = estado.cargar(path)
     assert persistidas[0].resultado == "objetivo"
     assert persistidas[0].pnl == round((82.50 - 78.40) * 65, 2)
@@ -185,4 +203,4 @@ def test_revisar_fallo_de_una_orden_no_tumba_las_demas(monkeypatch, tmp_path):
     cambiadas = seguimiento.revisar(client)
 
     assert [c.ticker for c in cambiadas] == ["OK"]
-    assert len(enviados) == 1
+    assert enviados == []   # OK expiró sin fill: persistido, sin Telegram

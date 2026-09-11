@@ -134,7 +134,10 @@ def _parchear(monkeypatch, tmp_path, entradas_watchlist, revisiones_previas=None
     monkeypatch.setattr(ia_decision, "decidir", _fake_decidir)
 
     enviados: list[str] = []
-    monkeypatch.setattr(executor, "enviar_telegram", lambda texto: enviados.append(texto))
+    # Red de seguridad anti-spam: colocar no debe avisar. Se parchea
+    # notify.enviar (el único sender del paper trader) por si alguien
+    # reintroduce un aviso de "orden aceptada".
+    monkeypatch.setattr("momentum_paper_trader.notify.enviar", lambda texto: enviados.append(texto))
     return wl_path, rev_path, enviados, contextos
 
 
@@ -150,10 +153,9 @@ def test_coloca_orden_para_triggered_nueva_cuando_la_ia_aprueba(monkeypatch, tmp
 
     assert len(nuevas) == 1
     assert client.ordenes_colocadas == [("RKLB", 65, 78.42, 76.90, 82.50)]
-    assert len(enviados) == 1
-    assert "[PAPER]" in enviados[0]
-    assert "RKLB" in enviados[0]
-    assert "catalizador sólido" in enviados[0]   # razonamiento de la IA, no solo niveles mecánicos
+    # Anti-spam: aceptar la orden no es un trade completado -- el aviso
+    # sale cuando Alpaca confirma el fill, no acá.
+    assert enviados == []
 
     persistidas = estado.cargar(rev_path)
     assert len(persistidas) == 1
@@ -326,14 +328,16 @@ def test_fraccion_que_no_alcanza_para_una_accion_no_opera_pero_queda_registrada(
     assert len(persistidas) == 1 and persistidas[0].entro is False
 
 
-def test_mensaje_incluye_el_tamano_cuando_la_fraccion_es_parcial(monkeypatch, tmp_path):
+def test_colocar_orden_no_manda_telegram(monkeypatch, tmp_path):
+    """Aceptar el bracket no es fill ni cierre: silencio."""
     e = _entrada_triggered()
     *_, enviados, _ = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA_MITAD)
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
-    assert "50% del normal" in enviados[0]
+    assert len(nuevas) == 1
+    assert enviados == []
 
 
 # ------------------------- comportamientos previos que no deben romperse -------------------------
@@ -406,7 +410,7 @@ def test_multiples_triggered_simultaneas_generan_ordenes_independientes(monkeypa
     nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert {n.ticker for n in nuevas} == {"MEJOR", "SEGUNDA"}
-    assert len(enviados) == 2
+    assert enviados == []   # dos órdenes aceptadas, cero avisos
     assert len(estado.cargar(rev_path)) == 2
 
 

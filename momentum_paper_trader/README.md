@@ -28,9 +28,8 @@ igual si este módulo se desinstala.
   propósito (no `ALPACA_API_KEY` genérico) -- para que quede explícito
   en cada lugar donde se configuran (GitHub Actions secrets) que son
   las de la cuenta de práctica.
-- Cada mensaje de confirmación en Telegram arranca con `🧪 [PAPER]` y
-  termina explícitamente: "Cuenta de práctica -- ningún dinero real se
-  movió."
+- Cada alerta de Telegram arranca con `🧪 [PAPER]`. No hay camino a
+  un aviso que parezca live.
 
 ## Qué hace
 
@@ -72,26 +71,38 @@ igual si este módulo se desinstala.
    `momentum_hunter` ya calculó y cacheó
    (`EntradaWatchlist.ultima_entrada/ultimo_stop/ultimo_objetivo`) --
    nunca un precio nuevo, ni del código ni de la IA.
-7. Manda una confirmación por Telegram (mismo bot/chat de
-   `momentum_hunter`, `enviar_telegram` reusado sin duplicar), **con el
-   razonamiento de la IA incluido** (pedido explícito del usuario: "cada
-   que haga un trade, que me avise qué hizo"), y persiste la revisión en
-   `revisiones.json`.
+7. Persiste la revisión en `revisiones.json`. **No manda Telegram al
+   colocar** -- aceptar el bracket no es un trade completado. El aviso
+   sale después, cuando Alpaca confirma el fill o el cierre (ver abajo).
+
+## Telegram: solo trades completados (`notify.py`)
+
+Política anti-spam (2026-09-11): Telegram no es el log del cron. Un
+solo chat (el mismo de `momentum_hunter`). Mensajes cortos en español,
+HTML escapado, etiquetas fijas `LLENADA` / `CERRADA` / `ERROR`.
+
+**Sí se avisa**
+
+1. **LLENADA** -- la compra se ejecutó (precio real de fill).
+2. **CERRADA** -- salió por objetivo, stop, o liquidación de fin de día
+   (con P&L si Alpaca lo informó).
+3. **ERROR** -- fallo duro que impide operar (solo el *tipo* de
+   excepción, nunca el texto crudo: puede traer una URL con
+   credenciales), o posición llena cuyas dos salidas del bracket
+   murieron (no se reponen solas).
+
+**No se avisa** -- ni siquiera en silencio (`disable_notification`):
+escaneos de watchlist, señal descubierta/TRIGGERED sin fill, rechazo
+de la IA, orden aceptada sin llenar, limit expirada/`no_ejecutada`,
+aguantar overnight, START/OK de cada ciclo de 5 min, heartbeats o
+telemetría.
 
 ## Seguimiento del ciclo de vida (`seguimiento.py`)
 
 Colocar la orden es el principio de la historia, no el final. En cada
 corrida, ANTES de buscar señales nuevas, el sistema consulta el estado
-real de cada orden viva en Alpaca y avisa por Telegram **exactamente una
-vez** por cada transición:
-
-- **Entrada ejecutada** -- se llenó la compra, con el precio real de
-  ejecución (puede diferir del límite).
-- **🎯 Objetivo alcanzado** -- salió por take-profit, con la ganancia
-  realizada en dólares.
-- **🛑 Stop ejecutado** -- salió por stop-loss, con la pérdida realizada.
-- **Orden no ejecutada** -- la entrada límite expiró/se canceló sin
-  llenarse: sin posición, sin riesgo.
+real de cada orden viva en Alpaca. Persiste cada transición una vez;
+Telegram solo en fill / cierre / error de salidas (ver arriba).
 
 El anti-duplicado es la persistencia misma (`resultado`/`pnl` en
 `revisiones.json`, guardado ANTES de enviar -- mismo orden
@@ -105,16 +116,12 @@ verificando a cada rato si algo está mal. Eso exige dos cosas más allá de
 operar bien:
 
 - Si el paper trader falla en una corrida (excepción no manejada), manda
-  un aviso `⚠️ [PAPER]` por Telegram con el error antes de relanzarlo --
-  una falla silenciosa devolvería al usuario a revisar logs a mano.
+  un `🧪 [PAPER] ERROR` mínimo (tipo de excepción, sin el cuerpo) antes
+  de relanzarlo -- una falla silenciosa devolvería al usuario a revisar
+  logs a mano.
 - El paso del workflow corre con `continue-on-error`: una falla del
   trader **nunca** bloquea la persistencia de watchlist/auditoría de
   `momentum_hunter` (que va después en el mismo job).
-
-Lo que este sistema NO hace solo (y avisa cuando lo detecta): si una
-posición queda llena pero sus dos salidas del bracket mueren
-(expiradas/canceladas), avisa por Telegram para que se revise en el
-dashboard -- nunca coloca salidas nuevas por su cuenta.
 
 ## Cierre diario (`cierre.py`)
 
@@ -154,8 +161,8 @@ decisión de verdad, se toma la de riesgo acotado.
 **Aviso honesto, y el prompt de la IA se lo dice explícitamente**: un
 stop NO protege contra un hueco de apertura. Si cierra en $50 con stop
 en $48 y abre en $40, la venta se ejecuta cerca de $40. Reduce el riesgo
-nocturno, no lo elimina. Ese mismo aviso va en el mensaje de Telegram
-cada vez que se aguanta algo.
+nocturno, no lo elimina. Aguantar no genera Telegram (no es un trade
+completado); el cierre sí.
 
 Es la única parte del sistema que usa órdenes **a mercado**, y solo para
 SALIR: al cerrar hay que salir sí o sí, y una orden limitada podría no
@@ -270,7 +277,8 @@ No cambia umbrales, riesgo ni el endpoint paper.
   `wizards_bot.yml` en este repo, reutilizado acá. Sin ella, no se opera
   (fail-closed, ver arriba).
 - `MOMENTUM_TELEGRAM_BOT_TOKEN`/`_CHAT_ID` (o su fallback) -- las mismas
-  que ya usa `momentum_hunter` para las confirmaciones.
+  que ya usa `momentum_hunter`. Un chat. Sin ellas, no se avisa (nunca
+  es error fatal).
 
 ## Seguridad
 

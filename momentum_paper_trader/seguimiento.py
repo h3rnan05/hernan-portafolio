@@ -8,13 +8,15 @@ la verificación manual que este sistema existe para eliminar.
 En cada corrida, para cada revisión con orden viva (`entro=True` y
 `resultado` no terminal), consulta el estado real de la orden en Alpaca
 (`estado_orden`, solo lectura) y avisa por Telegram EXACTAMENTE UNA VEZ
-por cada transición:
+por cada transición que sea un trade completado:
 
   - entrada llenada            -> "abierta"      (precio real de ejecución)
   - salida por take-profit     -> "objetivo"     (con ganancia realizada)
   - salida por stop-loss       -> "stop"         (con pérdida realizada)
-  - entrada nunca llenada      -> "no_ejecutada" (la limit expiró/se canceló)
-  - cierre por otra vía        -> "cerrada"
+  - cierre por otra vía        -> "cerrada"      (ERROR: llena sin salidas)
+
+`no_ejecutada` (limit expiró/se canceló sin fill) se persiste igual, pero
+NO se manda a Telegram -- no hubo trade. Ver `notify.py`.
 
 El anti-duplicado es la persistencia misma (`revisiones.json`): se guarda
 el nuevo `resultado` ANTES de enviar el mensaje -- mismo orden
@@ -29,10 +31,9 @@ from __future__ import annotations
 
 import logging
 
-from momentum_hunter.run import enviar_telegram
-
-from momentum_paper_trader import estado
+from momentum_paper_trader import estado, notify
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
+from momentum_paper_trader.notify import enviar as enviar_telegram
 
 log = logging.getLogger("momentum_paper_trader.seguimiento")
 
@@ -68,12 +69,9 @@ def _evaluar(r: estado.RevisionIA, datos: dict) -> tuple[str, float | None, str]
     precio_llenado = _num(datos.get("filled_avg_price"))
 
     if status in _ESTADOS_ORDEN_MUERTA and precio_llenado is None:
-        return ("no_ejecutada", None, (
-            f"🧪 [PAPER] ORDEN NO EJECUTADA -- {r.ticker}\n\n"
-            f"La entrada límite a ${r.precio_entrada:,.2f} nunca se llenó y la orden "
-            f"quedó {status}. Sin posición abierta, sin riesgo tomado.\n\n"
-            f"Cuenta de práctica -- ningún dinero real se movió."
-        ))
+        # Se persiste para no reconsultar, pero el mensaje va vacío:
+        # sin fill no hay trade, y sin trade no hay Telegram.
+        return ("no_ejecutada", None, "")
 
     if status != "filled" or precio_llenado is None:
         return None   # la entrada sigue esperando -- nada nuevo que contar
@@ -89,37 +87,29 @@ def _evaluar(r: estado.RevisionIA, datos: dict) -> tuple[str, float | None, str]
         # "stop" (o "stop_limit") -- así distingue Alpaca las dos salidas
         # del bracket en `legs`.
         if pata.get("type") == "limit":
-            resultado, titulo = "objetivo", "🎯 OBJETIVO ALCANZADO"
+            resultado, motivo = "objetivo", notify.MOTIVO_OBJETIVO
         else:
-            resultado, titulo = "stop", "🛑 STOP EJECUTADO"
-        linea_pnl = (
-            f"Resultado: {'+' if pnl >= 0 else '-'}${abs(pnl):,.2f}\n" if pnl is not None else "")
-        salida_txt = f"${precio_salida:,.2f}" if precio_salida is not None else "precio no informado"
-        return (resultado, pnl, (
-            f"🧪 [PAPER] {titulo} -- {r.ticker}\n\n"
-            f"Entró a ${precio_llenado:,.2f}, salió a {salida_txt} "
-            f"({int(cantidad) if cantidad else '?'} acciones).\n"
-            f"{linea_pnl}\n"
-            f"Cuenta de práctica -- ningún dinero real se movió."
+            resultado, motivo = "stop", notify.MOTIVO_STOP
+        return (resultado, pnl, notify.formatear_cerrada(
+            ticker=r.ticker, motivo=motivo, signal_id=r.creado_en,
+            cantidad=cantidad, precio_entrada=precio_llenado,
+            precio_salida=precio_salida, pnl=pnl,
         ))
 
     if _patas_todas_muertas(datos):
-        return ("cerrada", None, (
-            f"🧪 [PAPER] POSICIÓN SIN SALIDAS ACTIVAS -- {r.ticker}\n\n"
-            f"La entrada se llenó a ${precio_llenado:,.2f} pero las dos salidas del "
-            f"bracket quedaron inactivas (expiradas/canceladas). Revisa la posición en "
-            f"el dashboard de Alpaca -- este sistema no coloca salidas nuevas por su cuenta.\n\n"
-            f"Cuenta de práctica -- ningún dinero real se movió."
+        return ("cerrada", None, notify.formatear_error(
+            tipo="posición sin salidas",
+            ticker=r.ticker,
+            signal_id=r.creado_en,
+            detalle="Entrada llena y las dos salidas quedaron inactivas. Revisar en el dashboard paper -- no se reponen solas.",
         ))
 
     if r.resultado is None:
         cantidad = _num(datos.get("filled_qty")) or (r.cantidad or 0)
-        return ("abierta", None, (
-            f"🧪 [PAPER] ENTRADA EJECUTADA -- {r.ticker}\n\n"
-            f"Se llenó la compra de {int(cantidad) if cantidad else '?'} acciones a "
-            f"${precio_llenado:,.2f} (límite era ${r.precio_entrada:,.2f}).\n"
-            f"Alpaca ya vigila las salidas: stop ${r.stop:,.2f} / objetivo ${r.objetivo:,.2f}.\n\n"
-            f"Cuenta de práctica -- ningún dinero real se movió."
+        return ("abierta", None, notify.formatear_llenada(
+            ticker=r.ticker, signal_id=r.creado_en, cantidad=cantidad,
+            precio_lleno=precio_llenado, precio_limite=r.precio_entrada,
+            stop=r.stop, objetivo=r.objetivo,
         ))
 
     return None   # ya está "abierta" y las salidas siguen vivas -- sin novedades
@@ -147,7 +137,8 @@ def revisar(client: AlpacaPaperClient) -> list[estado.RevisionIA]:
             continue
         r.resultado, r.pnl, mensaje = novedad
         estado.guardar(revisiones)
-        enviar_telegram(mensaje)
+        if notify.debe_avisar(r.resultado) and mensaje:
+            enviar_telegram(mensaje)
         cambiadas.append(r)
         log.info("%s: trade ahora '%s' (pnl=%s)", r.ticker, r.resultado, r.pnl)
 
