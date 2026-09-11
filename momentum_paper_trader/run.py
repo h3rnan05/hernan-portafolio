@@ -24,7 +24,7 @@ import logging
 import os
 from datetime import UTC, datetime
 
-from momentum_paper_trader import cierre, seguimiento
+from momentum_paper_trader import cierre, seguimiento, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import CONFIG
 from momentum_paper_trader.executor import ejecutar
@@ -116,8 +116,14 @@ def main() -> None:
             if cerradas:
                 log.info("%d posición(es) liquidada(s) por cierre del día", len(cerradas))
 
-        nuevas = ejecutar(client, CONFIG, dry_run=args.dry_run)
+        metricas = telemetria.Metricas()
+        nuevas = ejecutar(client, CONFIG, dry_run=args.dry_run, metricas=metricas)
         log.info("%d orden(es) paper colocada(s)", len(nuevas))
+        # Telemetría al final, igual que momentum_hunter: si medir
+        # falla, se traga el error. Dry-run no persiste -- calcular
+        # no debe dejar un archivo de sesión falso.
+        if not args.dry_run:
+            telemetria.registrar_corrida(metricas)
     except Exception as ex:
         # El workflow corre este paso con continue-on-error -- la falla
         # se AVISA por Telegram (autonomía: el sistema reporta sus

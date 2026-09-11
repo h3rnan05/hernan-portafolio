@@ -54,7 +54,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import asdict, dataclass, field, replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from momentum_hunter.catalysts.detector import Catalizador, dentro_de_ventana
@@ -137,6 +137,14 @@ class EntradaWatchlist:
     mensaje_generado_ts: str | None = None   # reloj: cuándo se armó el texto del mensaje
     telegram_enviado_ts: str | None = None   # reloj: cuándo enviar_telegram() devolvió
     signal_latency_ms: float | None = None   # telegram_enviado_ts - market_event_ts
+    # Reloj de la PRIMERA vez que esta entrada TRIGGERED se persistió
+    # en disco. Distinto de `actualizado_en` (cambio de estado en
+    # memoria): es el instante en que otra corrida -- u otro proceso
+    # que solo lee este archivo -- pudo ver el disparo. Se llena en
+    # `guardar`, nunca se inventa, y no se reescribe si ya existe
+    # (la segunda persistencia, la de la latencia de Telegram, no
+    # debe mover el origen de esta medición).
+    watchlist_escrito_ts: str | None = None
     # -- Últimos niveles calculados (2026-08-11, integración de Telegram):
     # `/trade` es un comando de SOLO LECTURA, sin acceso a datos de mercado
     # en vivo -- "NO debe crear una nueva oportunidad... debe leer el
@@ -337,7 +345,17 @@ def cargar(path: Path = PATH) -> list[EntradaWatchlist]:
     return parsear(data)
 
 
-def guardar(entradas: list[EntradaWatchlist], path: Path = PATH) -> None:
+def guardar(
+    entradas: list[EntradaWatchlist], path: Path = PATH, ahora: datetime | None = None,
+) -> None:
+    """Persiste la watchlist. Como efecto secundario de instrumentación,
+    sella `watchlist_escrito_ts` en cada TRIGGERED que todavía no lo
+    tiene -- el dato solo existe en el momento de escribir, y no hay
+    otro sitio honesto donde tomarlo. No cambia estados ni niveles."""
+    escrito = _ahora_iso(ahora or datetime.now(UTC))
+    for e in entradas:
+        if e.estado == ESTADO_TRIGGERED and e.watchlist_escrito_ts is None:
+            e.watchlist_escrito_ts = escrito
     data = {"entradas": [asdict(e) for e in entradas]}
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
 

@@ -764,3 +764,89 @@ def test_un_cuerpo_ilegible_no_rompe_el_log():
     ex = RuntimeError("boom")
     ex.response = _Resp()
     assert "500" in executor._detalle_de_rechazo(ex)
+
+
+# ------------------------- instrumentación de latencia (no decide) -------------------------
+
+def _entrada_triggered_con_relojes(ticker="RKLB"):
+    """Igual que `_entrada_triggered`, pero con ISO reales para poder
+    medir. Los umbrales y el sizing no cambian."""
+    e = _entrada_triggered(ticker)
+    e.market_event_ts = "2026-08-11T13:56:00+00:00"
+    e.watchlist_escrito_ts = "2026-08-11T14:00:00+00:00"
+    e.signal_latency_ms = 180_000.0
+    return e
+
+
+def test_orden_colocada_persiste_la_cadena_de_timestamps(monkeypatch, tmp_path):
+    e = _entrada_triggered_con_relojes()
+    _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=40_000.0)
+    metricas = executor.telemetria.Metricas()
+
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA, metricas=metricas)
+
+    assert len(nuevas) == 1
+    r = estado.cargar(rev_path)[0]
+    assert r.market_event_ts == "2026-08-11T13:56:00+00:00"
+    assert r.watchlist_escrito_ts == "2026-08-11T14:00:00+00:00"
+    assert r.executor_leido_ts is not None
+    assert r.ia_decision_ts is not None
+    assert r.timestamp is not None
+    assert r.order_id == "orden-RKLB"
+    assert r.latencia_descubrimiento_ms == 240_000.0
+    assert r.latencia_e2e_ms is not None
+    assert metricas.triggered_nuevos == 1
+    assert metricas.revisiones == 1
+    assert metricas.ordenes_colocadas == 1
+    assert metricas.paper_step_success_zero_orders == 0
+    assert metricas.latencias_alerta_ms == [180_000.0]
+
+
+def test_rechazo_de_la_ia_tambien_deja_la_cadena_sin_order_id(monkeypatch, tmp_path):
+    e = _entrada_triggered_con_relojes()
+    _, rev_path, _, _ = _parchear(
+        monkeypatch, tmp_path, [e], decision=_DECISION_NO_ENTRA)
+    client = _FakeAlpacaClient(cash=10_000.0)
+    metricas = executor.telemetria.Metricas()
+
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA, metricas=metricas)
+
+    assert nuevas == []
+    r = estado.cargar(rev_path)[0]
+    assert r.entro is False
+    assert r.order_id is None
+    assert r.market_event_ts == e.market_event_ts
+    assert r.ia_decision_ts is not None
+    assert metricas.revisiones == 1
+    assert metricas.ordenes_colocadas == 0
+    assert metricas.paper_step_success_zero_orders == 1
+
+
+def test_sin_pendientes_cuenta_paso_exitoso_con_cero_ordenes(monkeypatch, tmp_path):
+    _parchear(monkeypatch, tmp_path, [])
+    client = _FakeAlpacaClient(cash=10_000.0)
+    metricas = executor.telemetria.Metricas()
+
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA, metricas=metricas)
+
+    assert nuevas == []
+    assert metricas.triggered_nuevos == 0
+    assert metricas.revisiones == 0
+    assert metricas.paper_step_success_zero_orders == 1
+
+
+def test_dry_run_no_cierra_la_telemetria_como_paso_real(monkeypatch, tmp_path):
+    # Dry-run no es un paso paper: no debe inflar
+    # paper_step_success_zero_orders ni persistir revisiones.
+    e = _entrada_triggered_con_relojes()
+    _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=40_000.0)
+    metricas = executor.telemetria.Metricas()
+
+    executor.ejecutar(client, CFG, dry_run=True, ahora=AHORA, metricas=metricas)
+
+    assert metricas.triggered_nuevos == 1
+    assert metricas.revisiones == 0
+    assert metricas.paper_step_success_zero_orders == 0
+    assert estado.cargar(rev_path) == []

@@ -59,3 +59,27 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm build
+
+  # Las 680 pruebas del bot paper viven aquí, no en `backend/`.
+  # Sin secrets, sin Alpaca, sin red: los tests mockean broker e IA.
+  # No cambia umbrales ni modo paper -- solo corre lo que ya se
+  # prueba en local (`python -m pytest momentum_hunter/tests
+  # momentum_paper_trader/tests -q`).
+  momentum:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias de prueba
+        run: |
+          pip install -q pytest
+          pip install -q -r momentum_hunter/requirements.txt
+          pip install -q -r momentum_paper_trader/requirements.txt
+
+      - name: Tests momentum_hunter + momentum_paper_trader
+        run: python -m pytest momentum_hunter/tests momentum_paper_trader/tests -q

@@ -37,7 +37,7 @@ from datetime import UTC, datetime
 from momentum_hunter import watchlist
 from momentum_hunter.run import enviar_telegram
 
-from momentum_paper_trader import estado, ia_decision
+from momentum_paper_trader import estado, ia_decision, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient, OrdenBracket
 from momentum_paper_trader.config import PaperTraderConfig
 
@@ -250,6 +250,36 @@ class _EstadoCuenta:
         self.tickers_comprometidos.add(ticker)
 
 
+def _ahora_iso() -> str:
+    return datetime.now(UTC).isoformat(timespec="seconds")
+
+
+def _revision_instrumentada(
+    e, decision: ia_decision.DecisionIA, *,
+    executor_leido_ts: str, ia_decision_ts: str | None,
+    entro: bool, razonamiento: str | None = None,
+    order_id: str | None = None, cantidad: int | None = None,
+    precio_entrada: float | None = None, stop: float | None = None,
+    objetivo: float | None = None,
+) -> estado.RevisionIA:
+    """Arma la revisión y le pone la cinta de tiempos. Un solo sitio
+    para no olvidar un hop en alguno de los tres desenlaces (rechazo
+    de la IA, fracción que no llega a 1 acción, orden colocada)."""
+    registro = estado.RevisionIA(
+        ticker=e.ticker, creado_en=e.creado_en, entro=entro,
+        confianza=decision.confianza,
+        razonamiento=razonamiento if razonamiento is not None else decision.razonamiento,
+        timestamp=_ahora_iso(),
+        order_id=order_id, cantidad=cantidad,
+        precio_entrada=precio_entrada, stop=stop, objetivo=objetivo,
+    )
+    telemetria.instrumentar_revision(
+        registro, e,
+        executor_leido_ts=executor_leido_ts, ia_decision_ts=ia_decision_ts,
+    )
+    return registro
+
+
 def _leer_cuenta(client: AlpacaPaperClient) -> _EstadoCuenta | None:
     """None si la cuenta no se puede leer -- la corrida entonces NO opera
     (fail-closed): sin saber el efectivo real y qué ya está comprometido,
@@ -272,17 +302,22 @@ def _leer_cuenta(client: AlpacaPaperClient) -> _EstadoCuenta | None:
 
 def ejecutar(
     client: AlpacaPaperClient, cfg: PaperTraderConfig = PaperTraderConfig(), dry_run: bool = False,
-    ahora: datetime | None = None,
+    ahora: datetime | None = None, metricas: telemetria.Metricas | None = None,
 ) -> list[estado.RevisionIA]:
     """Devuelve las revisiones NUEVAS que terminaron en una orden colocada
     en esta corrida (no las que la IA rechazó -- esas no colocan nada que
     reportar, aunque igual quedan registradas para no volver a
     preguntarse). En dry-run, calcula y loguea qué haría, pero nunca llama
     a Alpaca, nunca llama a la IA, y nunca persiste nada (mismo principio
-    que `momentum_hunter.run`)."""
+    que `momentum_hunter.run`).
+
+    `metricas` es solo instrumentación: si viene, se llena. Nunca decide
+    ni cambia un return. Dry-run también cuenta lo que *vería*, para
+    poder medir el embudo sin colocar."""
     cfg.validar()
     ahora = ahora or datetime.now(UTC)
     entradas = watchlist.cargar()
+    executor_leido_ts = _ahora_iso()
     revisiones_previas = estado.cargar()
     nuevas: list[estado.RevisionIA] = []
 
@@ -291,7 +326,11 @@ def ejecutar(
         if e.estado == watchlist.ESTADO_TRIGGERED
         and not estado.ya_revisada(revisiones_previas, e.ticker, e.creado_en)
     ]
+    if metricas is not None:
+        metricas.triggered_nuevos = len(pendientes)
     if not pendientes:
+        if metricas is not None and not dry_run:
+            metricas.cerrar_corrida()
         return nuevas
 
     cuenta: _EstadoCuenta | None = None
@@ -303,9 +342,13 @@ def ejecutar(
         cerrado = _mercado_cerrado(client)
         if cerrado is not None:
             log.info("no se colocan órdenes en esta corrida: %s", cerrado)
+            if metricas is not None:
+                metricas.cerrar_corrida()
             return nuevas
         cuenta = _leer_cuenta(client)
         if cuenta is None:
+            if metricas is not None:
+                metricas.cerrar_corrida()
             return nuevas
 
     for e in pendientes:
@@ -371,7 +414,7 @@ def ejecutar(
             continue
 
         decision = ia_decision.decidir(e, cuenta.contexto_para_ia())
-        timestamp = ahora.isoformat(timespec="seconds")
+        ia_decision_ts = _ahora_iso()
 
         if getattr(decision, "fallo_tecnico", False):
             # NO se registra como revisada: no hubo decisión que
@@ -388,12 +431,13 @@ def ejecutar(
             log.info(
                 "%s: la IA no entra (confianza %d/10) -- %s",
                 e.ticker, decision.confianza, decision.razonamiento)
-            revisiones_previas.append(estado.RevisionIA(
-                ticker=e.ticker, creado_en=e.creado_en, entro=False,
-                confianza=decision.confianza, razonamiento=decision.razonamiento,
-                timestamp=timestamp,
-            ))
+            registro = _revision_instrumentada(
+                e, decision, executor_leido_ts=executor_leido_ts,
+                ia_decision_ts=ia_decision_ts, entro=False)
+            revisiones_previas.append(registro)
             estado.guardar(revisiones_previas)
+            if metricas is not None:
+                metricas.anotar_revision(registro, e.signal_latency_ms)
             continue
 
         # ORDEN DE LAS OPERACIONES (corregido el 2026-08-25 -- costó un
@@ -416,15 +460,17 @@ def ejecutar(
             log.info(
                 "%s: la fracción %.0f%% pedida por la IA no alcanza para 1 acción -- no se opera",
                 e.ticker, decision.fraccion * 100)
-            revisiones_previas.append(estado.RevisionIA(
-                ticker=e.ticker, creado_en=e.creado_en, entro=False,
-                confianza=decision.confianza,
+            registro = _revision_instrumentada(
+                e, decision, executor_leido_ts=executor_leido_ts,
+                ia_decision_ts=ia_decision_ts, entro=False,
                 razonamiento=(decision.razonamiento
                               + " (La fracción de posición pedida no alcanzó para 1 acción entera "
                               "-- no se operó.)"),
-                timestamp=timestamp,
-            ))
+            )
+            revisiones_previas.append(registro)
             estado.guardar(revisiones_previas)
+            if metricas is not None:
+                metricas.anotar_revision(registro, e.signal_latency_ms)
             continue
 
         try:
@@ -440,11 +486,12 @@ def ejecutar(
             # debe poder reintentarlo con la misma entrada TRIGGERED.
             continue
 
-        registro = estado.RevisionIA(
-            ticker=e.ticker, creado_en=e.creado_en, entro=True,
-            confianza=decision.confianza, razonamiento=decision.razonamiento,
-            timestamp=timestamp, order_id=orden.order_id, cantidad=orden.cantidad,
-            precio_entrada=orden.precio_entrada, stop=orden.stop, objetivo=orden.objetivo,
+        registro = _revision_instrumentada(
+            e, decision, executor_leido_ts=executor_leido_ts,
+            ia_decision_ts=ia_decision_ts, entro=True,
+            order_id=orden.order_id, cantidad=orden.cantidad,
+            precio_entrada=orden.precio_entrada, stop=orden.stop,
+            objetivo=orden.objetivo,
         )
         revisiones_previas.append(registro)
         nuevas.append(registro)
@@ -452,5 +499,9 @@ def ejecutar(
         cuenta.registrar_orden(e.ticker, cantidad * e.ultima_entrada)
         enviar_telegram(_mensaje_confirmacion(orden, decision))
         log.info("%s: orden paper colocada (%s)", e.ticker, orden.order_id)
+        if metricas is not None:
+            metricas.anotar_revision(registro, e.signal_latency_ms)
 
+    if metricas is not None and not dry_run:
+        metricas.cerrar_corrida()
     return nuevas
