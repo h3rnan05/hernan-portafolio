@@ -16,6 +16,13 @@
 # así que un overlap raro es posible -- se prefiere eso a perder la
 # cadencia.
 #
+# CADENCIA REAL. Este cron `*/5` sigue existiendo (fallback), pero GHA
+# no lo honra: huecos medidos de ~2,5 h. El puente temporal
+# `momentum_paper_cadence_bridge.yml` comparte ESTE mismo grupo
+# (`momentum-opportunity-hunter-watchlist`) y itera en proceso cada
+# ~5 min. No se re-mezcla con el grupo del hunter (PR #110). Apagar el
+# puente no apaga este cron -- ver ese workflow y RUNBOOK-PAPER-CEO.
+#
 # Mismos secrets que momentum_hunter.yml -- ver ese archivo.
 
 name: momentum-opportunity-hunter-watchlist

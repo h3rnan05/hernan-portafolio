@@ -1,0 +1,118 @@
+# Puente TEMPORAL de cadencia paper (watchlist → paper trader) mientras
+# el VPS (Oracle) no está disponible.
+#
+# PROBLEMA. GitHub Actions no honra el cron de 5 min de
+# `momentum_hunter_watchlist.yml`: pide `*/5` y en la práctica corre
+# cada ~30-90 min, con huecos medidos de ~2,5 h (CLAUDE.md, problema A).
+# Un cron más agresivo no arregla eso -- la plataforma atrasa el
+# *arranque*. Este workflow arranca pocas veces y, una vez vivo, itera
+# en proceso cada ~5 min hasta ~5 h 40 (bajo el hard-cap de 6 h de los
+# runners hosted), después se re-despacha si la ventana sigue abierta.
+#
+# QUÉ CORRE. Los MISMOS comandos que el workflow corto:
+#   python -m momentum_hunter.run --solo-watchlist
+#   python -m momentum_paper_trader.run
+# No toca umbrales, score, riesgo, stops ni el endpoint paper
+# (hardcodeado en alpaca_client.py). Dedup: revisiones.json +
+# client_order_id determinista -- un overlap con el cron corto no
+# duplica órdenes.
+#
+# CONCURRENCY. Mismo grupo que `momentum_hunter_watchlist.yml`
+# (`momentum-opportunity-hunter-watchlist`), NO el del hunter
+# (`momentum-opportunity-hunter`, PR #110). El puente y el cron de 5 min
+# se serializan: mientras el loop ocupa el grupo, los disparos cortos
+# quedan pending (GitHub cancela el pending anterior). El hunter
+# completo sigue independiente. No se re-mezclan los grupos.
+#
+# CRONS CORTOS. No se borran. Siguen de fallback si este puente no
+# arranca (el underfire del schedule de GHA también puede atrasar ESTE
+# arranque; por eso hay un cron a cada hora en 13-19 UTC, más
+# workflow_dispatch, más re-dispatch al agotar presupuesto).
+#
+# VENTANA. Lun–Vie 13:00–21:00 UTC, la misma que `13-20` de los cron
+# existentes. En invierno la sesión regular es 14:30–21:00 UTC -- el
+# paper trader ya fail-closea con el reloj de Alpaca; este puente
+# hereda el caveat, no inventa DST.
+#
+# CÓMO APAGAR (cuando exista VPS, o si quema minutos de más):
+#   1. Repo → Settings → Actions → Variables → MOMENTUM_CADENCE_BRIDGE=off
+#   2. Actions → este workflow → "Disable workflow"
+#   3. Revertir el PR que lo introdujo
+# El cron de 5 min de watchlist.yml NO se apaga con (1)/(2).
+#
+# MINUTOS DE ACTIONS (repo privado). Un job hosted cuenta sleep.
+# Sesión ~8 h = ~480 min/día hábil ≈ 10 500 min/mes. Cuotas GitHub
+# Free/Pro/Team privadas: 2 000–3 000 min/mes -- este puente las
+# agota en días. En repo público los minutos hosted no se cobran.
+# No activar en privado sin aceptar esa factura (o un runner propio).
+#
+# PAPER ONLY. Mismos secrets ALPACA_PAPER_* ; el cliente nunca apunta
+# a api.alpaca.markets.
+
+name: momentum-paper-cadence-bridge
+
+on:
+  schedule:
+    # Varios arranques: GHA atrasa schedules, no el loop interno.
+    # Con concurrency cancel-in-progress:false solo uno corre; el
+    # último pending sobrevive y cubre si el job anterior murió.
+    - cron: "0 13-19 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      max_minutos:
+        description: "Tope de minutos de este job (default 340; hard-cap hosted = 360)"
+        required: false
+        default: "340"
+      intervalo_segundos:
+        description: "Pausa objetivo entre iteraciones (default 300 = 5 min)"
+        required: false
+        default: "300"
+
+concurrency:
+  group: momentum-opportunity-hunter-watchlist
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  puente:
+    runs-on: ubuntu-latest
+    # 350 > presupuesto interno (340) para que el script salga solo
+    # y re-despache; 350 < 360 (tope hosted).
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: |
+          pip install -q -r momentum_hunter/requirements.txt
+          pip install -q -r momentum_paper_trader/requirements.txt
+
+      - name: Loop watchlist + paper (~5 min, ventana 13-21 UTC)
+        id: loop
+        env:
+          MOMENTUM_CADENCE_BRIDGE: ${{ vars.MOMENTUM_CADENCE_BRIDGE }}
+          CADENCE_BRIDGE_MAX_MINUTOS: ${{ github.event.inputs.max_minutos || '340' }}
+          CADENCE_BRIDGE_INTERVALO_SEG: ${{ github.event.inputs.intervalo_segundos || '300' }}
+          ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          MOMENTUM_TELEGRAM_BOT_TOKEN: ${{ secrets.MOMENTUM_TELEGRAM_BOT_TOKEN }}
+          MOMENTUM_TELEGRAM_CHAT_ID: ${{ secrets.MOMENTUM_TELEGRAM_CHAT_ID }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python .github/scripts/momentum_paper_cadence_bridge.py
+
+      - name: Re-despachar si la sesión sigue abierta
+        if: ${{ !cancelled() && steps.loop.outputs.redispatch == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Presupuesto interno agotado y ventana aún abierta -- re-dispatch"
+          gh workflow run momentum_paper_cadence_bridge.yml --ref "${{ github.ref_name }}"
