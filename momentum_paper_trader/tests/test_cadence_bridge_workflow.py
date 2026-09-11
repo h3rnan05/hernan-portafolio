@@ -89,6 +89,20 @@ def test_invoca_el_mismo_camino_watchlist_paper():
     assert "revisiones.json" in fuente
 
 
+def test_gha_no_persiste_telemetria_paper_del_vps():
+    """El VPS es el escritor primario. `git add` del diario paper
+    desde GHA reventaba el rebase (run 34624961161)."""
+    for path in (HUNTER_WF, WATCHLIST_WF):
+        texto = path.read_text(encoding="utf-8")
+        assert "git add momentum_paper_trader/telemetria" not in texto
+        assert "git_persist_rebase_push.sh" in texto
+        assert "--force" not in texto
+        assert "force-with-lease" not in texto
+    b = _cargar_script()
+    assert "momentum_paper_trader/telemetria" not in b.DIRS_A_PERSISTIR
+    assert "git_persist_rebase_push.sh" in SCRIPT.read_text(encoding="utf-8")
+
+
 def test_documenta_kill_switch_y_minutos_privados():
     texto = WORKFLOW.read_text(encoding="utf-8")
     assert "MOMENTUM_CADENCE_BRIDGE" in texto

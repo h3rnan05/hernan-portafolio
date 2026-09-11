@@ -48,29 +48,37 @@ def test_registrar_error_guarda_tipo_y_origen_no_el_mensaje():
 
 # ------------------------- persistencia -------------------------
 
-def test_registrar_corrida_crea_el_archivo_del_dia(tmp_path):
+def test_registrar_corrida_crea_jsonl_partido_por_fuente(tmp_path):
     ahora = datetime(2026, 8, 24, 14, 0, tzinfo=UTC)
-    path = telemetria.registrar_corrida(_metricas(universo_escaneado=1000), tmp_path, ahora)
-    assert path is not None and path.name == "2026-08-24.json"
-    data = json.loads(path.read_text())
-    assert len(data["corridas"]) == 1
-    assert data["corridas"][0]["universo_escaneado"] == 1000
+    path = telemetria.registrar_corrida(
+        _metricas(universo_escaneado=1000), tmp_path, ahora, fuente="gha")
+    assert path is not None
+    assert path == tmp_path / "2026-08-24" / "gha" / "events.jsonl"
+    lineas = [json.loads(l) for l in path.read_text().splitlines() if l.strip()]
+    assert len(lineas) == 1
+    assert lineas[0]["universo_escaneado"] == 1000
+    assert lineas[0]["fuente"] == "gha"
+    assert not (tmp_path / "2026-08-24.json").exists()
 
 
 def test_varias_corridas_se_acumulan_en_el_mismo_dia(tmp_path):
     ahora = datetime(2026, 8, 24, 14, 0, tzinfo=UTC)
-    telemetria.registrar_corrida(_metricas(), tmp_path, ahora)
-    telemetria.registrar_corrida(_metricas(), tmp_path, ahora)
-    data = json.loads((tmp_path / "2026-08-24.json").read_text())
-    assert len(data["corridas"]) == 2
+    telemetria.registrar_corrida(_metricas(), tmp_path, ahora, fuente="gha")
+    telemetria.registrar_corrida(_metricas(), tmp_path, ahora, fuente="gha")
+    lineas = (tmp_path / "2026-08-24" / "gha" / "events.jsonl").read_text().splitlines()
+    assert len([l for l in lineas if l.strip()]) == 2
 
 
-def test_archivo_corrupto_no_tumba_ni_pierde_la_corrida_nueva(tmp_path):
-    (tmp_path / "2026-08-24.json").write_text("{roto")
+def test_linea_jsonl_rota_no_tumba_ni_borra_las_demas(tmp_path):
+    dest = tmp_path / "2026-08-24" / "gha" / "events.jsonl"
+    dest.parent.mkdir(parents=True)
+    dest.write_text('{"modo": "escaneo"}\n{roto\n')
     ahora = datetime(2026, 8, 24, 14, 0, tzinfo=UTC)
-    path = telemetria.registrar_corrida(_metricas(), tmp_path, ahora)
+    path = telemetria.registrar_corrida(_metricas(), tmp_path, ahora, fuente="gha")
     assert path is not None
-    assert len(json.loads(path.read_text())["corridas"]) == 1
+    assert "{roto" in path.read_text()
+    corridas = telemetria.cargar_dias("2026-08-24", "2026-08-24", tmp_path)
+    assert len(corridas) == 2
 
 
 def test_un_fallo_al_guardar_nunca_propaga(tmp_path, monkeypatch):
@@ -94,6 +102,16 @@ def test_cargar_dias_omite_lo_ilegible(tmp_path):
     (tmp_path / "2026-08-24.json").write_text(json.dumps({"corridas": [{"modo": "escaneo"}]}))
     (tmp_path / "2026-08-25.json").write_text("{roto")
     assert len(telemetria.cargar_dias("2026-08-01", "2026-12-31", tmp_path)) == 1
+
+
+def test_cargar_dias_mezcla_legacy_y_jsonl_partido(tmp_path):
+    (tmp_path / "2026-08-24.json").write_text(json.dumps({"corridas": [{"modo": "escaneo"}]}))
+    dest = tmp_path / "2026-08-25" / "vps" / "events.jsonl"
+    dest.parent.mkdir(parents=True)
+    dest.write_text(json.dumps({"modo": "watchlist", "fuente": "vps"}) + "\n")
+    corridas = telemetria.cargar_dias("2026-08-24", "2026-08-25", tmp_path)
+    assert [c["modo"] for c in corridas] == ["escaneo", "watchlist"]
+    assert corridas[1]["fuente"] == "vps"
 
 
 # ------------------------- reporte semanal -------------------------
@@ -171,6 +189,18 @@ def test_reporte_alarma_con_muchos_errores(tmp_path):
     texto = reporte_semanal.construir("2026-08-24", "2026-08-28", tmp_path)
     assert "500 errores" in texto
     assert "SSLError" in texto
+
+
+def test_reporte_lee_jsonl_partido_igual_que_el_json_legacy(tmp_path):
+    dest = tmp_path / "2026-08-24" / "gha" / "events.jsonl"
+    dest.parent.mkdir(parents=True)
+    dest.write_text(json.dumps({
+        "embudo": {"operables": {"large": 10}, "evaluadas": {"large": 10},
+                   "con_alguna_noticia": {}, "con_catalizador": {}, "accionables": {}},
+        "condiciones": {}, "errores": {}, "score_maximo": 99,
+    }) + "\n")
+    texto = reporte_semanal.construir("2026-08-24", "2026-08-28", tmp_path)
+    assert "Sin señales de alarma" in texto
 
 
 def test_reporte_sin_alarmas_lo_dice(tmp_path):

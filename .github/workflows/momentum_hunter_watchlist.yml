@@ -93,13 +93,12 @@ jobs:
             [ -f "$f" ] && git add "$f" || true
           done
           [ -d momentum_hunter/auditoria ] && git add momentum_hunter/auditoria || true
-          # Telemetría: el embudo por banda y los errores de cada corrida
-          # (ver momentum_hunter/telemetria.py) -- es lo que alimenta el
-          # reporte semanal de los viernes.
+          # Telemetría del hunter. Paper telem la persiste el VPS, no GHA
+          # (conflicto rebase sobre el JSON diario, run 34624961161).
           [ -d momentum_hunter/telemetria ] && git add momentum_hunter/telemetria || true
-          # Telemetría paper: latencia e2e y contadores de la sesión
-          # (ver momentum_paper_trader/telemetria.py). Solo mide.
-          [ -d momentum_paper_trader/telemetria ] && git add momentum_paper_trader/telemetria || true
-          git diff --cached --quiet || git commit -m "momentum_hunter: re-chequeo de watchlist [skip ci]"
-          git pull --rebase origin main || true
-          git push
+          if git diff --cached --quiet; then
+            echo "INFO: nothing to persist"
+          else
+            git commit -m "momentum_hunter: re-chequeo de watchlist [skip ci]"
+            PERSIST_BRANCH=main bash scripts/git_persist_rebase_push.sh
+          fi

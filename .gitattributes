@@ -1,0 +1,5 @@
+# Telemetría append-only: si dos escritores llegan a tocar el mismo
+# JSONL, git conserva ambas mitades en vez de marcar conflicto.
+# No aplica a JSON monolítico (ahí el arreglo es no compartir archivo).
+momentum_hunter/telemetria/**/*.jsonl merge=union
+momentum_paper_trader/telemetria/**/*.jsonl merge=union
