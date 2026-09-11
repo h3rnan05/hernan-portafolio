@@ -5,6 +5,11 @@ large-cap complementaria, pedido 2026-08-07 tras el gap de 17% de ABNB)
 
 from __future__ import annotations
 
+import json
+import sys
+
+from momentum_hunter import run as run_mod
+from momentum_hunter import telemetria
 from momentum_hunter.alerts import CandidatoDiario
 from momentum_hunter.catalysts.detector import Catalizador
 from momentum_hunter.config import MomentumConfig
@@ -12,6 +17,7 @@ from momentum_hunter.data.provider import DataProvider
 from momentum_hunter.models import Barras, BarraIntradia, FactoresMomentum, Metadata
 from momentum_hunter.run import (
     _banda_de_universo,
+    _clasificar_banda_de_universo,
     _construir_candidato_intradia,
     construir_candidatos_diarios,
     construir_candidatos_intradia,
@@ -74,6 +80,56 @@ def test_banda_none_sin_barras_o_precio_invalido():
     assert _banda_de_universo(Barras("X", [], [], [], [], [], []), CFG) is None
 
 
+# Motivos de rechazo -- espejo de las ramas de `_banda_de_universo`.
+# No cambian el filtro: `_banda_de_universo` sigue devolviendo lo mismo.
+
+def test_motivo_sin_close_si_no_hay_barras_o_precio_invalido():
+    assert _clasificar_banda_de_universo(Barras("X", [], [], [], [], [], []), CFG) == (None, "sin_close")
+    cero = _barras("CERO", precio=0.0, vol_prom=500_000.0)
+    assert _banda_de_universo(cero, CFG) is None
+    assert _clasificar_banda_de_universo(cero, CFG) == (None, "sin_close")
+
+
+def test_motivo_precio_bajo_por_debajo_del_piso():
+    b = _barras("CENTAVO", precio=0.50, vol_prom=500_000.0)
+    assert _banda_de_universo(b, CFG) is None
+    assert _clasificar_banda_de_universo(b, CFG) == (None, "precio_bajo")
+
+
+def test_motivo_vol_bajo_small_en_rango_de_precio():
+    b = _barras("ILIQUIDO", precio=5.0, vol_prom=1_000.0)
+    assert _banda_de_universo(b, CFG) is None
+    assert _clasificar_banda_de_universo(b, CFG) == (None, "vol_bajo_small")
+
+
+def test_motivo_vol_insuficiente_historial_si_faltan_velas():
+    # `_volumen_promedio` pide 20 sesiones -- con menos no hay vol20,
+    # y el filtro original ya devolvía None (no se inventa un 0).
+    b = _barras("CORTO", precio=5.0, vol_prom=500_000.0, n=10)
+    assert _banda_de_universo(b, CFG) is None
+    assert _clasificar_banda_de_universo(b, CFG) == (None, "vol_insuficiente_historial")
+
+
+def test_motivo_vol_bajo_large_sobre_el_techo_small():
+    b = _barras("CARO_ILIQUIDO", precio=178.0, vol_prom=100.0)
+    assert _banda_de_universo(b, CFG) is None
+    assert _clasificar_banda_de_universo(b, CFG) == (None, "vol_bajo_large")
+
+
+def test_motivo_precio_fuera_rango_small_si_large_cap_apagado():
+    cfg = MomentumConfig(incluir_large_cap=False)
+    b = _barras("ABNB", precio=178.0, vol_prom=2_000_000.0)
+    assert _banda_de_universo(b, cfg) is None
+    assert _clasificar_banda_de_universo(b, cfg) == (None, "precio_fuera_rango_small")
+
+
+def test_clasificar_aceptados_no_inventa_motivo():
+    small = _barras("PENNY", precio=5.0, vol_prom=500_000.0)
+    large = _barras("ABNB", precio=178.0, vol_prom=2_000_000.0)
+    assert _clasificar_banda_de_universo(small, CFG) == ("small", None)
+    assert _clasificar_banda_de_universo(large, CFG) == ("large", None)
+
+
 # ------------------------- construir_candidatos_diarios -------------------------
 
 def test_large_cap_no_se_descarta_por_market_cap_max():
@@ -94,10 +150,13 @@ def test_small_cap_se_sigue_descartando_por_market_cap_max():
     barras = {"TST": _barras("TST", precio=5.0, vol_prom=500_000.0)}
     meta = {"TST": Metadata(ticker="TST", market_cap=100_000_000_000.0)}
     provider = _FakeProvider(meta)
+    metricas = telemetria.Metricas()
     candidatos = construir_candidatos_diarios(
         ["TST"], barras, provider, CFG, con_catalizadores=False, bandas={"TST": "small"},
+        metricas=metricas,
     )
     assert candidatos == []
+    assert metricas.rechazos_universo["market_cap"] == 1
 
 
 # ------------------------- bug real 2026-08-21: el techo de tamaño se saltaba -------------------------
@@ -318,3 +377,142 @@ def test_construir_candidato_intradia_usa_el_gap_congelado_si_no_hay_cierre_ante
     )
     assert candidato is not None
     assert candidato.factores.gap_pct == 0.10
+
+
+# ------------------------- telemetría en silencios de main() -------------------------
+# Bug 2026-09-11: return temprano con shortlist vacía se saltaba
+# `registrar_corrida`. GHA 34636830680 terminó en `nothing to persist`.
+
+def _jsonl_de_escaneo(tmp_path):
+    hallados = list(tmp_path.glob("*/*/events.jsonl"))
+    assert len(hallados) == 1, hallados
+    lineas = [json.loads(l) for l in hallados[0].read_text().splitlines() if l.strip()]
+    assert lineas
+    return hallados[0], lineas
+
+
+class _FakeProviderEscaneo(DataProvider):
+    def __init__(self, barras):
+        self._barras = barras
+
+    def barras(self, tickers, dias=280):
+        return {t: self._barras[t] for t in tickers if t in self._barras}
+
+    def metadata(self, tickers):
+        return {t: Metadata(ticker=t, market_cap=100_000_000.0) for t in tickers}
+
+    def barras_intradia(self, tickers, intervalo="1m", periodo="5d"):
+        return {}
+
+
+def _preparar_main_escaneo(monkeypatch, tmp_path, barras, argv=None, diarios=None):
+    monkeypatch.setattr(sys, "argv", argv or ["momentum_hunter.run"])
+    # Default de `registrar_corrida` se fija al importar -- parchear
+    # DIR_TELEMETRIA no alcanza; se redirige la escritura a tmp_path.
+    real = telemetria.registrar_corrida
+    monkeypatch.setattr(
+        run_mod.telemetria, "registrar_corrida",
+        lambda m, dir_telemetria=tmp_path, ahora=None, fuente=None: real(
+            m, dir_telemetria=tmp_path, ahora=ahora, fuente=fuente),
+    )
+    monkeypatch.setattr(run_mod, "_cargar_tickers", lambda args: list(barras))
+    monkeypatch.setattr(run_mod.universe, "tickers", lambda **kw: list(barras))
+    monkeypatch.setattr(run_mod, "YahooProvider", lambda: _FakeProviderEscaneo(barras))
+    monkeypatch.setattr(run_mod, "_revisar_resumen_cierre", lambda *a, **k: None)
+    if diarios is not None:
+        monkeypatch.setattr(run_mod, "construir_candidatos_diarios", diarios)
+    return barras
+
+
+def test_main_shortlist_vacia_igual_escribe_telemetria_jsonl(monkeypatch, tmp_path, caplog):
+    barras = {
+        "OK": _barras("OK", precio=5.0, vol_prom=500_000.0),
+        "ILIQUIDO": _barras("ILIQUIDO", precio=5.0, vol_prom=1_000.0),
+    }
+
+    def _diarios(validos, barras, provider, cfg, con_cat, bandas=None, metricas=None):
+        if metricas is not None:
+            for t in validos:
+                metricas.sumar(metricas.operables, "small")
+            metricas.titulares_total = 12
+            metricas.sumar(metricas.con_alguna_noticia, "small", n=len(validos))
+        return []
+
+    _preparar_main_escaneo(monkeypatch, tmp_path, barras, diarios=_diarios)
+    caplog.set_level("INFO", logger="momentum_hunter.run")
+
+    run_mod.main()
+
+    path, lineas = _jsonl_de_escaneo(tmp_path)
+    assert path.parent.name in telemetria.FUENTES_VALIDAS
+    assert len(lineas) == 1
+    embudo = lineas[0]["embudo"]
+    assert embudo["operables"] == {"small": 1}          # ILIQUIDO no entra a etapa 1
+    assert embudo["con_alguna_noticia"] == {"small": 1}
+    assert embudo["titulares_total"] == 12
+    assert embudo["con_catalizador"] == {}
+    assert embudo["rechazos_universo"] == {"vol_bajo_small": 1}
+    assert "operables=1" in caplog.text
+    assert "vol_bajo_small" in caplog.text
+
+
+def test_main_sin_validos_igual_escribe_rechazos_en_jsonl(monkeypatch, tmp_path):
+    barras = {
+        "VACIO": Barras("VACIO", [], [], [], [], [], []),
+        "BARATO": _barras("BARATO", precio=0.40, vol_prom=500_000.0),
+    }
+    _preparar_main_escaneo(monkeypatch, tmp_path, barras)
+    run_mod.main()
+    _, lineas = _jsonl_de_escaneo(tmp_path)
+    assert lineas[0]["embudo"]["operables"] == {}
+    assert lineas[0]["embudo"]["rechazos_universo"] == {
+        "sin_close": 1,
+        "precio_bajo": 1,
+    }
+
+
+def test_main_dry_run_no_escribe_telemetria(monkeypatch, tmp_path):
+    barras = {"OK": _barras("OK", precio=5.0, vol_prom=500_000.0)}
+    _preparar_main_escaneo(
+        monkeypatch, tmp_path, barras, argv=["momentum_hunter.run", "--dry-run"],
+        diarios=lambda *a, **kw: [])
+    run_mod.main()
+    assert list(tmp_path.glob("*/*/events.jsonl")) == []
+
+
+def test_main_camino_normal_sigue_a_intradia_y_persiste_una_vez(monkeypatch, tmp_path):
+    barras = {"RKLB": _barras("RKLB", precio=5.0, vol_prom=500_000.0)}
+    llamadas_intradia = []
+
+    def _diarios(validos, barras, provider, cfg, con_cat, bandas=None, metricas=None):
+        if metricas is not None:
+            metricas.sumar(metricas.operables, "small")
+            metricas.sumar(metricas.con_alguna_noticia, "small")
+            metricas.sumar(metricas.con_catalizador, "small")
+            metricas.titulares_total = 3
+        return [_candidato_diario_intradia("RKLB")]
+
+    _preparar_main_escaneo(monkeypatch, tmp_path, barras, diarios=_diarios)
+    monkeypatch.setattr(
+        run_mod, "construir_candidatos_intradia",
+        lambda *a, **k: llamadas_intradia.append(1) or [])
+    monkeypatch.setattr(run_mod, "seleccionar_y_auditar", lambda *a, **k: ([], {}, []))
+    monkeypatch.setattr(
+        run_mod.mercado, "evaluar",
+        lambda provider: type("C", (), {"veredicto": "ok"})())
+    monkeypatch.setattr(
+        run_mod, "_actualizar_watchlist", lambda *a, **k: ([], {}, []))
+    monkeypatch.setattr(run_mod.audit, "registrar_corrida", lambda snapshots: None)
+    monkeypatch.setattr(run_mod.radar, "construir_resumen", lambda *a, **k: None)
+    monkeypatch.setattr(run_mod.tracker, "cargar", lambda: [])
+    monkeypatch.setattr(run_mod.tracker, "guardar", lambda xs: None)
+    monkeypatch.setattr(run_mod.vigilancia, "vigilar", lambda *a, **k: [])
+    monkeypatch.setattr(run_mod, "enviar_telegram", lambda *a, **k: None)
+
+    run_mod.main()
+
+    assert llamadas_intradia == [1]   # no se cortó en el silencio de etapa 1
+    _, lineas = _jsonl_de_escaneo(tmp_path)
+    assert len(lineas) == 1
+    assert lineas[0]["embudo"]["con_catalizador"] == {"small": 1}
+    assert lineas[0]["embudo"]["rechazos_universo"] == {}

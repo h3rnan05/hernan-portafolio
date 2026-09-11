@@ -77,6 +77,15 @@ class Metricas:
     evaluadas: Counter = field(default_factory=Counter)
     accionables: Counter = field(default_factory=Counter)
 
+    # Titulares parseados en esta corrida (no tickers: un ticker puede
+    # traer varios). Barato de contar donde ya se pidieron las noticias.
+    titulares_total: int = 0
+
+    # Por qué `_banda_de_universo` / el techo de tamaño dijeron que no.
+    # Un solo "no pasó precio/liquidez" no distingue 49% vs 4,5% de
+    # pass-rate -- hace falta el motivo. Nunca decide, solo cuenta.
+    rechazos_universo: Counter = field(default_factory=Counter)
+
     # Supervivencia de las cuatro condiciones obligatorias de `accionable`
     # -- responde "¿cuál nos está matando?" sin abrir la auditoría.
     paso_patron: int = 0
@@ -114,6 +123,8 @@ class Metricas:
                 "con_catalizador": dict(self.con_catalizador),
                 "evaluadas": dict(self.evaluadas),
                 "accionables": dict(self.accionables),
+                "titulares_total": self.titulares_total,
+                "rechazos_universo": dict(self.rechazos_universo),
             },
             "condiciones": {
                 "patron": self.paso_patron,

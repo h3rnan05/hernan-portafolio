@@ -166,6 +166,39 @@ def _excede_techo_de_tamano(meta: Metadata, b: Barras, cfg: MomentumConfig) -> b
     return False
 
 
+def _clasificar_banda_de_universo(
+    b: Barras, cfg: MomentumConfig,
+) -> tuple[str | None, str | None]:
+    """Misma decisión que `_banda_de_universo`, más el MOTIVO del
+    rechazo. El motivo no se usa para filtrar -- solo para contar.
+
+    El 2026-09-11 el pass-rate de precio/liquidez cayó de ~49% a ~4,5%
+    entre la mañana y la tarde (486/996 → 34/758) y un solo `None` no
+    decía cuál umbral lo mató. Los nombres espejan las ramas reales,
+    no umbrales nuevos."""
+    if not b.close or b.close[-1] <= 0:
+        return None, "sin_close"
+    precio = b.close[-1]
+    vol_prom = _volumen_promedio(b)
+    if cfg.precio_min <= precio <= cfg.precio_max:
+        if vol_prom is not None and vol_prom >= cfg.volumen_promedio_min:
+            return "small", None
+        if vol_prom is None:
+            return None, "vol_insuficiente_historial"
+        return None, "vol_bajo_small"
+    if cfg.incluir_large_cap and precio > cfg.precio_max:
+        if vol_prom is not None and vol_prom >= cfg.volumen_promedio_min_large_cap:
+            return "large", None
+        if vol_prom is None:
+            return None, "vol_insuficiente_historial"
+        return None, "vol_bajo_large"
+    if precio < cfg.precio_min:
+        return None, "precio_bajo"
+    # precio > precio_max con large-cap apagado -- la rama final del
+    # filtro original, no un umbral nuevo.
+    return None, "precio_fuera_rango_small"
+
+
 def _banda_de_universo(b: Barras, cfg: MomentumConfig) -> str | None:
     """"small" o "large", o None si no califica para ninguna banda.
     Large-cap (2026-08-07) es COMPLEMENTARIA a small-cap, no la
@@ -173,18 +206,8 @@ def _banda_de_universo(b: Barras, cfg: MomentumConfig) -> str | None:
     entra por ahí en vez de quedar descartado, con su propio piso de
     liquidez (empresas grandes trafican mucho más como línea de base) --
     ver docstring de `config.incluir_large_cap`."""
-    if not b.close or b.close[-1] <= 0:
-        return None
-    precio = b.close[-1]
-    vol_prom = _volumen_promedio(b)
-    if cfg.precio_min <= precio <= cfg.precio_max:
-        if vol_prom is not None and vol_prom >= cfg.volumen_promedio_min:
-            return "small"
-        return None
-    if cfg.incluir_large_cap and precio > cfg.precio_max:
-        if vol_prom is not None and vol_prom >= cfg.volumen_promedio_min_large_cap:
-            return "large"
-    return None
+    banda, _ = _clasificar_banda_de_universo(b, cfg)
+    return banda
 
 
 def construir_candidatos_diarios(
@@ -218,6 +241,8 @@ def construir_candidatos_diarios(
             if meta.es_etf or (cfg.excluir_spac and meta.es_spac) or (cfg.excluir_cef and meta.es_cef):
                 continue
             if not es_large_cap and _excede_techo_de_tamano(meta, b, cfg):
+                if metricas is not None:
+                    metricas.rechazos_universo["market_cap"] += 1
                 continue
             vol_prom = _volumen_promedio(b)
             if meta.es_adr and (vol_prom is None or vol_prom < cfg.liquidez_minima_adr):
@@ -236,8 +261,10 @@ def construir_candidatos_diarios(
                 # fuente; "tenía catalizador" es que además calificó.
                 # Separarlas dice si las small-caps mueren por falta de
                 # cobertura o por falta de noticias relevantes.
-                if metricas is not None and titulares:
-                    metricas.sumar(metricas.con_alguna_noticia, banda)
+                if metricas is not None:
+                    metricas.titulares_total += len(titulares)
+                    if titulares:
+                        metricas.sumar(metricas.con_alguna_noticia, banda)
                 catalizador = detectar_catalizador(titulares, cfg)
                 if metricas is not None and catalizador is not None:
                     metricas.sumar(metricas.con_catalizador, banda)
@@ -988,6 +1015,27 @@ def revisar_watchlist(
         watchlist.guardar(entradas)   # segunda vez -- persiste la latencia recién completada (best-effort)
 
 
+def _log_embudo_corrida(metricas: telemetria.Metricas) -> None:
+    """Foto del embudo en el log -- solo observa. El silencio temprano
+    (sin shortlist) se saltaba tanto esto como `registrar_corrida`;
+    sin estos números, 758→34→0 se veía igual que 'no corrió'."""
+    operables = sum(metricas.operables.values())
+    con_noticia = sum(metricas.con_alguna_noticia.values())
+    catalizadores = sum(metricas.con_catalizador.values())
+    log.info(
+        "embudo -- operables=%d con_alguna_noticia=%d titulares_total=%d catalizadores=%d",
+        operables, con_noticia, metricas.titulares_total, catalizadores,
+    )
+    log.info("rechazos universo -- %s", dict(metricas.rechazos_universo))
+
+
+def _persistir_telemetria_escaneo(metricas: telemetria.Metricas, dry_run: bool) -> None:
+    """En dry-run no se persiste -- igual que el resto del estado."""
+    if dry_run:
+        return
+    telemetria.registrar_corrida(metricas)
+
+
 def _revisar_resumen_cierre(dry_run: bool, ya_avisado_radar: bool = False) -> None:
     """Bug encontrado el 2026-07-27 corriendo el bot en vivo: el mensaje
     de "hoy no hubo nada" (heartbeat.py, PR #72) vivía solo al final de
@@ -1046,164 +1094,175 @@ def main() -> None:
         return
 
     metricas = telemetria.Metricas(modo="escaneo")
-    tickers = _cargar_tickers(args)
-    metricas.universo_escaneado = len(tickers)
+    # try/finally: el silencio temprano (universo vacío o sin shortlist)
+    # también tiene que dejar telemetría. Antes se returnaba ~L1074 y
+    # nunca se llegaba a registrar_corrida -- GHA 34636830680 terminó
+    # en `nothing to persist` con embudo 1000→758→34→0 y sin JSONL.
     try:
-        metricas.universo_total = len(universe.tickers()) if not args.universo else len(tickers)
-    except Exception as e:
-        metricas.registrar_error("universo", e)
-    log.info("universo candidato: %d tickers", len(tickers))
+        tickers = _cargar_tickers(args)
+        metricas.universo_escaneado = len(tickers)
+        try:
+            metricas.universo_total = len(universe.tickers()) if not args.universo else len(tickers)
+        except Exception as e:
+            metricas.registrar_error("universo", e)
+        log.info("universo candidato: %d tickers", len(tickers))
 
-    provider = YahooProvider()
-    barras = provider.barras(tickers, dias=280)
-    bandas = {t: banda for t, b in barras.items() if (banda := _banda_de_universo(b, CONFIG)) is not None}
-    validos = list(bandas)
-    log.info("etapa 1 -- tras filtros de precio/liquidez: %d/%d (%d large-cap)",
-              len(validos), len(barras), sum(1 for banda in bandas.values() if banda == "large"))
-    if not validos:
-        log.warning("ningún ticker pasó los filtros de universo -- no hay nada que evaluar hoy")
-        _revisar_resumen_cierre(args.dry_run)
-        return
+        provider = YahooProvider()
+        barras = provider.barras(tickers, dias=280)
+        bandas: dict[str, str] = {}
+        for t, b in barras.items():
+            banda, motivo = _clasificar_banda_de_universo(b, CONFIG)
+            if banda is not None:
+                bandas[t] = banda
+            elif motivo is not None:
+                metricas.rechazos_universo[motivo] += 1
+        validos = list(bandas)
+        log.info("etapa 1 -- tras filtros de precio/liquidez: %d/%d (%d large-cap)",
+                  len(validos), len(barras), sum(1 for banda in bandas.values() if banda == "large"))
+        if not validos:
+            _log_embudo_corrida(metricas)
+            log.warning("ningún ticker pasó los filtros de universo -- no hay nada que evaluar hoy")
+            _revisar_resumen_cierre(args.dry_run)
+            return
 
-    candidatos_diarios = construir_candidatos_diarios(
-        validos, barras, provider, CONFIG, not args.no_catalizadores, bandas, metricas)
-    shortlist = candidatos_para_etapa_intradia(candidatos_diarios, CONFIG)
-    log.info("etapa 1 -- candidatos con catalizador confirmado: %d -- pasan a intradía: %d",
-              sum(1 for c in candidatos_diarios if c.catalizador is not None), len(shortlist))
-    if not shortlist:
-        log.info("ningún candidato con catalizador confirmado hoy -- silencio (ver alerts.py)")
-        _revisar_resumen_cierre(args.dry_run)
-        return
+        candidatos_diarios = construir_candidatos_diarios(
+            validos, barras, provider, CONFIG, not args.no_catalizadores, bandas, metricas)
+        shortlist = candidatos_para_etapa_intradia(candidatos_diarios, CONFIG)
+        log.info("etapa 1 -- candidatos con catalizador confirmado: %d -- pasan a intradía: %d",
+                  sum(1 for c in candidatos_diarios if c.catalizador is not None), len(shortlist))
+        if not shortlist:
+            _log_embudo_corrida(metricas)
+            log.info("ningún candidato con catalizador confirmado hoy -- silencio (ver alerts.py)")
+            _revisar_resumen_cierre(args.dry_run)
+            return
 
-    # Reloj real capturado justo DESPUÉS de que llegan las velas intradía
-    # -- lo necesita `_actualizar_watchlist` para `data_received_ts` (ver
-    # su docstring: antes de este fix ese campo se rellenaba con el
-    # mismo reloj que `evaluador_ts`, como si pedir los datos tardara
-    # cero). Corrección 2026-08-11 (revisión de PR, sexta vuelta): un
-    # reloj tomado ANTES del pedido tampoco sirve -- el pedido secuencial
-    # a Yahoo para hasta `max_candidatos_intradia` tickers puede tardar
-    # minutos, y ese tiempo quedaba mal atribuido. `on_datos_recibidos`
-    # captura el instante real en que `provider.barras_intradia` ya
-    # devolvió, dentro de `construir_candidatos_intradia`.
-    _reloj_dato_recibido: dict[str, str] = {}
-    candidatos_intradia = construir_candidatos_intradia(
-        shortlist, barras, provider, CONFIG,
-        on_datos_recibidos=lambda: _reloj_dato_recibido.setdefault(
-            "ts", _ahora_iso_run(datetime.now(UTC))),
-    )
-    dato_recibido_ts = _reloj_dato_recibido.get("ts") or _ahora_iso_run(datetime.now(UTC))
-    log.info("etapa 2 -- candidatos evaluados: %d", len(candidatos_intradia))
+        # Reloj real capturado justo DESPUÉS de que llegan las velas intradía
+        # -- lo necesita `_actualizar_watchlist` para `data_received_ts` (ver
+        # su docstring: antes de este fix ese campo se rellenaba con el
+        # mismo reloj que `evaluador_ts`, como si pedir los datos tardara
+        # cero). Corrección 2026-08-11 (revisión de PR, sexta vuelta): un
+        # reloj tomado ANTES del pedido tampoco sirve -- el pedido secuencial
+        # a Yahoo para hasta `max_candidatos_intradia` tickers puede tardar
+        # minutos, y ese tiempo quedaba mal atribuido. `on_datos_recibidos`
+        # captura el instante real en que `provider.barras_intradia` ya
+        # devolvió, dentro de `construir_candidatos_intradia`.
+        _reloj_dato_recibido: dict[str, str] = {}
+        candidatos_intradia = construir_candidatos_intradia(
+            shortlist, barras, provider, CONFIG,
+            on_datos_recibidos=lambda: _reloj_dato_recibido.setdefault(
+                "ts", _ahora_iso_run(datetime.now(UTC))),
+        )
+        dato_recibido_ts = _reloj_dato_recibido.get("ts") or _ahora_iso_run(datetime.now(UTC))
+        log.info("etapa 2 -- candidatos evaluados: %d", len(candidatos_intradia))
 
-    # Etapa 2 en números: cuál de las cuatro condiciones obligatorias
-    # está matando las candidatas, y qué score máximo se alcanzó -- este
-    # último es la alarma temprana contra un umbral inalcanzable, el
-    # error que costó semanas (ver `config.score_minimo_alerta`).
-    for c in candidatos_intradia:
-        r = c.resultado
-        metricas.sumar(metricas.evaluadas, "large" if c.es_large_cap else "small")
-        if r.patron is not None:
-            metricas.paso_patron += 1
-        if r.temprano:
-            metricas.paso_temprano += 1
-        if getattr(r, "riesgo_definido", False):
-            metricas.paso_riesgo += 1
-        if r.dinero_entrando:
-            metricas.paso_dinero += 1
-        if r.score_ajustado >= CONFIG.score_minimo_alerta:
-            metricas.paso_umbral += 1
-        if r.accionable:
-            metricas.sumar(metricas.accionables, "large" if c.es_large_cap else "small")
-        metricas.score_maximo = max(metricas.score_maximo, r.score_ajustado or 0.0)
+        # Etapa 2 en números: cuál de las cuatro condiciones obligatorias
+        # está matando las candidatas, y qué score máximo se alcanzó -- este
+        # último es la alarma temprana contra un umbral inalcanzable, el
+        # error que costó semanas (ver `config.score_minimo_alerta`).
+        for c in candidatos_intradia:
+            r = c.resultado
+            metricas.sumar(metricas.evaluadas, "large" if c.es_large_cap else "small")
+            if r.patron is not None:
+                metricas.paso_patron += 1
+            if r.temprano:
+                metricas.paso_temprano += 1
+            if getattr(r, "riesgo_definido", False):
+                metricas.paso_riesgo += 1
+            if r.dinero_entrando:
+                metricas.paso_dinero += 1
+            if r.score_ajustado >= CONFIG.score_minimo_alerta:
+                metricas.paso_umbral += 1
+            if r.accionable:
+                metricas.sumar(metricas.accionables, "large" if c.es_large_cap else "small")
+            metricas.score_maximo = max(metricas.score_maximo, r.score_ajustado or 0.0)
 
-    oportunidades, vetadas, snapshots = seleccionar_y_auditar(
-        candidatos_intradia, CONFIG, n_universo=len(tickers))
+        oportunidades, vetadas, snapshots = seleccionar_y_auditar(
+            candidatos_intradia, CONFIG, n_universo=len(tickers))
 
-    clima = mercado.evaluar(provider)
-    log.info("clima de mercado: %s", clima.veredicto)
-    entradas_watchlist, disparadas_watchlist, mensajes_menor_prioridad = _actualizar_watchlist(
-        shortlist, candidatos_intradia, {o.ticker for o in oportunidades}, CONFIG, args.dry_run,
-        dato_recibido_ts=dato_recibido_ts, clima=clima)
+        clima = mercado.evaluar(provider)
+        log.info("clima de mercado: %s", clima.veredicto)
+        entradas_watchlist, disparadas_watchlist, mensajes_menor_prioridad = _actualizar_watchlist(
+            shortlist, candidatos_intradia, {o.ticker for o in oportunidades}, CONFIG, args.dry_run,
+            dato_recibido_ts=dato_recibido_ts, clima=clima)
 
-    oportunidades_nuevas, ya_resueltas_hoy = _filtrar_ya_resueltas_hoy(
-        oportunidades, entradas_watchlist, disparadas_watchlist)
-    for snap in snapshots:
-        if snap["ticker"] in ya_resueltas_hoy:
-            snap["decision"] = audit.DECISION_DUPLICADA_MISMO_DIA
-            snap["motivos"] = ["Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."]
-            snap["que_tendria_que_cambiar"] = []
+        oportunidades_nuevas, ya_resueltas_hoy = _filtrar_ya_resueltas_hoy(
+            oportunidades, entradas_watchlist, disparadas_watchlist)
+        for snap in snapshots:
+            if snap["ticker"] in ya_resueltas_hoy:
+                snap["decision"] = audit.DECISION_DUPLICADA_MISMO_DIA
+                snap["motivos"] = ["Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."]
+                snap["que_tendria_que_cambiar"] = []
 
-    for o in oportunidades_nuevas:
-        # "Fase 1" del detector de entradas (2026-08-10): a Telegram va
-        # el mensaje corto (`formatear_entrada`, 5-10 segundos de
-        # lectura); la narrativa larga (`formatear`) se sigue imprimiendo
-        # en el log de la corrida -- nada se pierde, solo deja de ser lo
-        # que llega al chat.
-        print("\n" + report.formatear(o))
-        mensaje_ts = _ahora_iso_run(datetime.now(UTC))
+        for o in oportunidades_nuevas:
+            # "Fase 1" del detector de entradas (2026-08-10): a Telegram va
+            # el mensaje corto (`formatear_entrada`, 5-10 segundos de
+            # lectura); la narrativa larga (`formatear`) se sigue imprimiendo
+            # en el log de la corrida -- nada se pierde, solo deja de ser lo
+            # que llega al chat.
+            print("\n" + report.formatear(o))
+            mensaje_ts = _ahora_iso_run(datetime.now(UTC))
+            if not args.dry_run:
+                enviar_telegram(report.formatear_entrada(o))
+            # Latencia real (corrección 2026-08-11, ver docstring de
+            # `_actualizar_watchlist`): se completa acá, con relojes tomados
+            # alrededor del envío de VERDAD, no con el reloj de antes de
+            # armar/mandar el mensaje.
+            telegram_ts = _ahora_iso_run(datetime.now(UTC))
+            entrada_disparada = disparadas_watchlist.get(o.ticker)
+            if entrada_disparada is not None:
+                watchlist.registrar_latencia(entrada_disparada, mensaje_ts, telegram_ts)
+                watchlist.completar_latencia_transicion(entrada_disparada, mensaje_ts, telegram_ts)
+
+        # "TRIGGERED -- PRIORIDAD MÁXIMA, debe enviarse inmediatamente"
+        # (pedido explícito): recién ACÁ, después de que la(s) alerta(s) de
+        # esta corrida ya salieron, se mandan los mensajes de menor prioridad
+        # (WATCHING/INVALIDATED/MISSED/EXPIRED de otros tickers) que
+        # `_actualizar_watchlist` ya calculó y persistió -- nunca antes.
         if not args.dry_run:
-            enviar_telegram(report.formatear_entrada(o))
-        # Latencia real (corrección 2026-08-11, ver docstring de
-        # `_actualizar_watchlist`): se completa acá, con relojes tomados
-        # alrededor del envío de VERDAD, no con el reloj de antes de
-        # armar/mandar el mensaje.
-        telegram_ts = _ahora_iso_run(datetime.now(UTC))
-        entrada_disparada = disparadas_watchlist.get(o.ticker)
-        if entrada_disparada is not None:
-            watchlist.registrar_latencia(entrada_disparada, mensaje_ts, telegram_ts)
-            watchlist.completar_latencia_transicion(entrada_disparada, mensaje_ts, telegram_ts)
+            for texto in mensajes_menor_prioridad:
+                enviar_telegram(texto)
 
-    # "TRIGGERED -- PRIORIDAD MÁXIMA, debe enviarse inmediatamente"
-    # (pedido explícito): recién ACÁ, después de que la(s) alerta(s) de
-    # esta corrida ya salieron, se mandan los mensajes de menor prioridad
-    # (WATCHING/INVALIDATED/MISSED/EXPIRED de otros tickers) que
-    # `_actualizar_watchlist` ya calculó y persistió -- nunca antes.
-    if not args.dry_run:
-        for texto in mensajes_menor_prioridad:
-            enviar_telegram(texto)
+        if not args.dry_run and disparadas_watchlist:
+            watchlist.guardar(entradas_watchlist)
 
-    if not args.dry_run and disparadas_watchlist:
-        watchlist.guardar(entradas_watchlist)
+        if not args.dry_run and oportunidades_nuevas:
+            tracker.registrar(oportunidades_nuevas)
+            log.info("registradas %d alerta(s) en el tracker", len(oportunidades_nuevas))
+        elif not oportunidades:
+            log.info("ninguna oportunidad sobrevivió todos los filtros hoy -- silencio, no es "
+                     "un error (Principio 1: la mejor operación muchas veces es no operar)")
 
-    if not args.dry_run and oportunidades_nuevas:
-        tracker.registrar(oportunidades_nuevas)
-        log.info("registradas %d alerta(s) en el tracker", len(oportunidades_nuevas))
-    elif not oportunidades:
-        log.info("ninguna oportunidad sobrevivió todos los filtros hoy -- silencio, no es "
-                 "un error (Principio 1: la mejor operación muchas veces es no operar)")
-
-    if not args.dry_run:
-        ruta = audit.registrar_corrida(snapshots)
-        if ruta:
-            log.info("auditoría de la corrida escrita en %s", ruta)
-
-    elegidas = {o.ticker for o in oportunidades_nuevas}
-    resumen_radar = radar.construir_resumen(candidatos_intradia, elegidas, vetadas, CONFIG)
-    if resumen_radar:
-        print("\n" + resumen_radar)
         if not args.dry_run:
-            enviar_telegram(resumen_radar)
+            ruta = audit.registrar_corrida(snapshots)
+            if ruta:
+                log.info("auditoría de la corrida escrita en %s", ruta)
 
-    # Punto 8 ("Head Trader"): el trabajo no termina al mandar Telegram.
-    # Cada corrida también vigila las alertas de HOY todavía abiertas y
-    # avisa SOLO cuando su estado cambia (rompió stop, alcanzó objetivo,
-    # debilitándose...). En dry-run se omite: vigilar muta el tracker.
-    if not args.dry_run:
-        todas = tracker.cargar()
-        avisos = vigilancia.vigilar(todas, provider, CONFIG)
-        tracker.guardar(todas)
-        for aviso in avisos:
-            print("\n" + aviso)
-            enviar_telegram(aviso)
-        if avisos:
-            log.info("vigilancia: %d cambio(s) de estado avisado(s)", len(avisos))
+        elegidas = {o.ticker for o in oportunidades_nuevas}
+        resumen_radar = radar.construir_resumen(candidatos_intradia, elegidas, vetadas, CONFIG)
+        if resumen_radar:
+            print("\n" + resumen_radar)
+            if not args.dry_run:
+                enviar_telegram(resumen_radar)
 
-    _revisar_resumen_cierre(args.dry_run, ya_avisado_radar=bool(resumen_radar))
+        # Punto 8 ("Head Trader"): el trabajo no termina al mandar Telegram.
+        # Cada corrida también vigila las alertas de HOY todavía abiertas y
+        # avisa SOLO cuando su estado cambia (rompió stop, alcanzó objetivo,
+        # debilitándose...). En dry-run se omite: vigilar muta el tracker.
+        if not args.dry_run:
+            todas = tracker.cargar()
+            avisos = vigilancia.vigilar(todas, provider, CONFIG)
+            tracker.guardar(todas)
+            for aviso in avisos:
+                print("\n" + aviso)
+                enviar_telegram(aviso)
+            if avisos:
+                log.info("vigilancia: %d cambio(s) de estado avisado(s)", len(avisos))
 
-    # Telemetría al final: la foto completa de la corrida (embudo por
-    # banda, qué condición mató a las candidatas, qué errores hubo). En
-    # dry-run no se persiste -- igual que el resto del estado.
-    if not args.dry_run:
-        telemetria.registrar_corrida(metricas)
+        _revisar_resumen_cierre(args.dry_run, ya_avisado_radar=bool(resumen_radar))
+    finally:
+        # Telemetría de la foto que haya -- también en silencio temprano
+        # o si el resto del pipeline revienta. En dry-run no se persiste.
+        _persistir_telemetria_escaneo(metricas, args.dry_run)
 
 
 if __name__ == "__main__":
