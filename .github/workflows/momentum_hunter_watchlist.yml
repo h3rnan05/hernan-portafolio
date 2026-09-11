@@ -9,9 +9,12 @@
 # 5 minutos es el mínimo que GitHub Actions garantiza de forma
 # confiable, no el "1 minuto ideal" original).
 #
-# Comparte el `concurrency.group` con momentum_hunter.yml a propósito:
-# los dos workflows leen y escriben el mismo watchlist.json, así que
-# nunca deben correr al mismo tiempo (se encolan, no se cancelan).
+# Ya no comparte `concurrency.group` con momentum_hunter.yml: serializar
+# ambos (cancel-in-progress: false) hacía que el escaneo completo
+# encolara este re-chequeo y abriera huecos de hasta ~2,5 h. Cada
+# workflow tiene su grupo. Los dos siguen escribiendo watchlist.json,
+# así que un overlap raro es posible -- se prefiere eso a perder la
+# cadencia.
 #
 # Mismos secrets que momentum_hunter.yml -- ver ese archivo.
 
@@ -23,7 +26,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: momentum-opportunity-hunter
+  group: momentum-opportunity-hunter-watchlist
   cancel-in-progress: false
 
 permissions:

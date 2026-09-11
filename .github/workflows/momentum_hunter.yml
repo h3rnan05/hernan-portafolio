@@ -53,6 +53,11 @@ on:
         required: false
         default: ""
 
+# Grupo propio. Antes compartía grupo con momentum_hunter_watchlist.yml
+# y, con cancel-in-progress: false, el escaneo (~6-30 min) encolaba el
+# re-chequeo de 5 min: huecos medidos de hasta ~2,5 h. Ya no se
+# serializan. Los dos siguen escribiendo watchlist.json; un overlap
+# raro es posible y se prefiere a perder la cadencia.
 concurrency:
   group: momentum-opportunity-hunter
   cancel-in-progress: false

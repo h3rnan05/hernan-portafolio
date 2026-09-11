@@ -424,8 +424,10 @@ en corridas reales de este proyecto:
 Por eso `.github/workflows/momentum_hunter_watchlist.yml` corre
 `--solo-watchlist` cada 5 minutos, en un workflow SEPARADO del escaneo
 completo (que sigue corriendo cada 30 minutos para descubrir candidatas
-nuevas) -- los dos comparten `concurrency.group` para nunca pisarse
-escribiendo `watchlist.json` a la vez. 5 minutos es la cadencia máxima
+nuevas). Ya no comparten `concurrency.group`: serializarlos atrasaba
+el re-chequeo detrás del escaneo completo (huecos de hasta ~2,5 h).
+Los dos siguen escribiendo `watchlist.json`; un overlap raro es
+posible y se prefiere a perder la cadencia. 5 minutos es la cadencia máxima
 realista con la arquitectura actual (Yahoo + GitHub Actions gratis); una
 cadencia de segundos requeriría un proveedor de pago con websockets
 (Polygon, Alpaca), lo cual `DataProvider` ya permite sin tocar ninguna
