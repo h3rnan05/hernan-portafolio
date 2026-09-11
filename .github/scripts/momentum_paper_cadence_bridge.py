@@ -48,6 +48,7 @@ ARCHIVOS_A_PERSISTIR = (
     "momentum_hunter/watchlist.json",
     "momentum_hunter/alertas_enviadas.json",
     "momentum_paper_trader/revisiones.json",
+    "momentum_paper_trader/archivo_triggered.jsonl",
 )
 DIRS_A_PERSISTIR = (
     "momentum_hunter/auditoria",

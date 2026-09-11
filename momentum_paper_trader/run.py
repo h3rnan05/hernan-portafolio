@@ -1,14 +1,18 @@
 """CLI del paper trader -- consume las señales TRIGGERED que ya resolvió
 `momentum_hunter/run.py` y coloca órdenes bracket en una cuenta de
 PRÁCTICA de Alpaca. Sistema completamente separado de momentum_hunter:
-nunca modifica su watchlist, nunca re-evalúa una señal, nunca toca dinero
-real (ver `alpaca_client.py`).
+nunca re-evalúa una señal, nunca inventa una oportunidad, nunca toca
+dinero real (ver `alpaca_client.py`). La única escritura sobre la
+watchlist es ARCHIVED después de un desenlace paper terminal
+(`archivo.py`) -- sin eso NTLA/BEAM se quedaban TRIGGERED para siempre.
 
 USO
   python -m momentum_paper_trader.run              # coloca órdenes paper reales (cuenta de práctica)
   python -m momentum_paper_trader.run --dry-run     # calcula y muestra, no coloca nada ni requiere credenciales
   python -m momentum_paper_trader.run --verificar-conexion  # GET /v2/account -- confirma que las
                                                       # credenciales conectan, nunca coloca una orden
+  python -m momentum_paper_trader.run --archivar-revisadas  # solo el archivo de zombies ya revisados;
+                                                      # no llama al mercado ni requiere credenciales
 
 VARIABLES DE ENTORNO
   ALPACA_PAPER_API_KEY / ALPACA_PAPER_API_SECRET
@@ -24,7 +28,7 @@ import logging
 import os
 from datetime import UTC, datetime
 
-from momentum_paper_trader import cierre, seguimiento, telemetria
+from momentum_paper_trader import archivo, cierre, seguimiento, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import CONFIG
 from momentum_paper_trader.executor import ejecutar
@@ -68,7 +72,15 @@ def main() -> None:
     ap.add_argument("--verificar-conexion", action="store_true",
                      help="GET /v2/account de solo lectura -- confirma que las credenciales conectan, "
                           "nunca coloca una orden ni requiere que exista una señal TRIGGERED")
+    ap.add_argument("--archivar-revisadas", action="store_true",
+                     help="pasa a ARCHIVED las TRIGGERED con desenlace paper terminal "
+                          "(NTLA/BEAM y las que vengan). No coloca órdenes ni pide credenciales")
     args = ap.parse_args()
+
+    if args.archivar_revisadas:
+        escritos = archivo.archivar_revisadas()
+        log.info("%d entrada(s) TRIGGERED archivada(s) tras revisión paper", len(escritos))
+        return
 
     api_key = os.getenv("ALPACA_PAPER_API_KEY")
     api_secret = os.getenv("ALPACA_PAPER_API_SECRET")
@@ -116,6 +128,13 @@ def main() -> None:
         metricas = telemetria.Metricas()
         nuevas = ejecutar(client, CONFIG, dry_run=args.dry_run, metricas=metricas)
         log.info("%d orden(es) paper colocada(s)", len(nuevas))
+        # Archivo DESPUÉS de seguimiento + revisión: un rechazo de esta
+        # corrida y un stop que acabamos de persistir salen de TRIGGERED
+        # en el mismo ciclo. Dry-run no toca disco.
+        if not args.dry_run:
+            archivadas = archivo.archivar_revisadas()
+            if archivadas:
+                log.info("%d entrada(s) TRIGGERED archivada(s)", len(archivadas))
         # Telemetría al final, igual que momentum_hunter: si medir
         # falla, se traga el error. Dry-run no persiste -- calcular
         # no debe dejar un archivo de sesión falso.
