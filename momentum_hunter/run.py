@@ -69,6 +69,7 @@ from momentum_hunter.alerts import (
     candidatos_para_etapa_intradia,
     cuota_alertas,
 )
+from momentum_hunter.catalysts.ancla import ancla_ok
 from momentum_hunter.catalysts.detector import YahooNewsProvider, detectar_catalizador, minutos_desde_catalizador
 from momentum_hunter.config import CONFIG, MomentumConfig
 from momentum_hunter.data.provider import DataProvider, YahooProvider
@@ -266,6 +267,16 @@ def construir_candidatos_diarios(
                     if titulares:
                         metricas.sumar(metricas.con_alguna_noticia, banda)
                 catalizador = detectar_catalizador(titulares, cfg)
+                # Keyword ≠ ancla: Yahoo atribuye titulares ajenos al
+                # ticker pedido. Sin ticker/alias/nombre en el texto no
+                # se vigila -- el None de abajo es el mismo "no hay
+                # catalizador" que ya entiende el resto del pipeline.
+                if catalizador is not None:
+                    ok, motivo = ancla_ok(t, meta.nombre, catalizador.titular)
+                    if not ok:
+                        if metricas is not None:
+                            metricas.ancla_bloqueados[motivo] += 1
+                        catalizador = None
                 if metricas is not None and catalizador is not None:
                     metricas.sumar(metricas.con_catalizador, banda)
 
@@ -1046,8 +1057,10 @@ def _log_embudo_corrida(metricas: telemetria.Metricas) -> None:
     con_noticia = sum(metricas.con_alguna_noticia.values())
     catalizadores = sum(metricas.con_catalizador.values())
     log.info(
-        "embudo -- operables=%d con_alguna_noticia=%d titulares_total=%d catalizadores=%d",
+        "embudo -- operables=%d con_alguna_noticia=%d titulares_total=%d "
+        "catalizadores=%d ancla_bloqueados=%s",
         operables, con_noticia, metricas.titulares_total, catalizadores,
+        dict(metricas.ancla_bloqueados),
     )
     log.info("rechazos universo -- %s", dict(metricas.rechazos_universo))
 
