@@ -65,6 +65,18 @@ def _suma_banda(corridas: list[dict], clave: str, banda: str) -> int:
     return sum((c.get("embudo", {}).get(clave, {}) or {}).get(banda, 0) for c in corridas)
 
 
+def _suma_ancla_bloqueados(corridas: list[dict]) -> Counter:
+    """Suma aditiva -- corridas viejas sin el campo no aportan nada."""
+    tot: Counter = Counter()
+    for c in corridas:
+        raw = (c.get("embudo") or {}).get("ancla_bloqueados") or {}
+        if isinstance(raw, dict):
+            for k, v in raw.items():
+                if isinstance(v, int):
+                    tot[str(k)] += v
+    return tot
+
+
 def _seccion_operacion(corridas: list[dict]) -> list[str]:
     errores: Counter = Counter()
     for c in corridas:
@@ -100,6 +112,11 @@ def _seccion_embudo(corridas: list[dict]) -> list[str]:
             f"  con catalizador: {cat:,} ({_pct(cat, op)})",
             f"  evaluadas a fondo: {ev:,}   accionables: {acc:,}",
         ]
+    ancla = _suma_ancla_bloqueados(corridas)
+    if ancla:
+        total = sum(ancla.values())
+        detalle = ", ".join(f"{k}={v}" for k, v in ancla.most_common())
+        lineas.append(f"ancla_bloqueados: {total:,} ({detalle})")
     return lineas or ["Sin datos de embudo esta semana."]
 
 

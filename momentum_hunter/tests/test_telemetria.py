@@ -41,9 +41,11 @@ def test_como_dict_incluye_rechazos_y_titulares_en_el_embudo():
     m.titulares_total = 7
     m.rechazos_universo["vol_bajo_small"] = 3
     m.rechazos_universo["market_cap"] = 1
+    m.ancla_bloqueados["sin_ancla"] = 4
     embudo = m.como_dict()["embudo"]
     assert embudo["titulares_total"] == 7
     assert embudo["rechazos_universo"] == {"vol_bajo_small": 3, "market_cap": 1}
+    assert embudo["ancla_bloqueados"] == {"sin_ancla": 4}
 
 
 def test_registrar_error_guarda_tipo_y_origen_no_el_mensaje():
@@ -211,6 +213,17 @@ def test_reporte_lee_jsonl_partido_igual_que_el_json_legacy(tmp_path):
     }) + "\n")
     texto = reporte_semanal.construir("2026-08-24", "2026-08-28", tmp_path)
     assert "Sin señales de alarma" in texto
+
+
+def test_reporte_muestra_ancla_bloqueados(tmp_path):
+    _escribir(tmp_path, "2026-08-24", {
+        "embudo": {"operables": {"large": 10}, "evaluadas": {"large": 10},
+                   "con_alguna_noticia": {}, "con_catalizador": {}, "accionables": {},
+                   "ancla_bloqueados": {"sin_ancla": 6, "sin_titular": 1}},
+        "condiciones": {}, "errores": {}, "score_maximo": 99})
+    texto = reporte_semanal.construir("2026-08-24", "2026-08-28", tmp_path)
+    assert "ancla_bloqueados: 7" in texto
+    assert "sin_ancla=6" in texto
 
 
 def test_reporte_sin_alarmas_lo_dice(tmp_path):

@@ -86,6 +86,11 @@ class Metricas:
     # pass-rate -- hace falta el motivo. Nunca decide, solo cuenta.
     rechazos_universo: Counter = field(default_factory=Counter)
 
+    # Keyword match sin ancla ticker/alias/nombre -- el titular era de
+    # otra empresa (o venía vacío). Aditivo: no cambia umbrales, solo
+    # deja ver `ancla_bloqueados` en el digest. Clave = motivo.
+    ancla_bloqueados: Counter = field(default_factory=Counter)
+
     # Supervivencia de las cuatro condiciones obligatorias de `accionable`
     # -- responde "¿cuál nos está matando?" sin abrir la auditoría.
     paso_patron: int = 0
@@ -125,6 +130,7 @@ class Metricas:
                 "accionables": dict(self.accionables),
                 "titulares_total": self.titulares_total,
                 "rechazos_universo": dict(self.rechazos_universo),
+                "ancla_bloqueados": dict(self.ancla_bloqueados),
             },
             "condiciones": {
                 "patron": self.paso_patron,
