@@ -1,0 +1,576 @@
+{
+  "corridas": [
+    {
+      "timestamp": "2026-09-12T20:33:19+00:00",
+      "candidatos_evaluados": 8,
+      "candidatos": [
+        {
+          "ticker": "RBLX",
+          "nombre": "Roblox Corporation",
+          "precio_actual": 45.5,
+          "factores_intradia": {
+            "precio_actual": 45.5,
+            "vwap": 45.75743835669309,
+            "ema9": 45.52726566109696,
+            "rvol_actual": 8.790808028591595,
+            "aceleracion_volumen": 7.4994257831312545,
+            "gap_pct": 0.009358247748431942,
+            "maximo_dia": 46.5,
+            "maximo_premarket": 45.7,
+            "rango_apertura_max": 45.68000030517578,
+            "rango_apertura_min": 45.189998626708984,
+            "velas_desde_ruptura": null,
+            "macd": -0.05438775865258805,
+            "macd_signal": -0.06547438149200518
+          },
+          "meta": {
+            "float_acciones": 643131228.0,
+            "short_pct_float": 0.036199998,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "insider_buying",
+            "titular": "GameStop Rises 4% as Collectibles Sales Jump 57% and a Director Buys $1M",
+            "fuente": "24/7 Wall St.",
+            "fecha": "2026-09-09T15:13:56Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4639.3192291333335,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 78.49462365591397,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 69.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BSP",
+          "nombre": "Bending Spoons S.p.A.",
+          "precio_actual": 38.77,
+          "factores_intradia": {
+            "precio_actual": 38.77,
+            "vwap": 39.249417799000696,
+            "ema9": 38.89467430517527,
+            "rvol_actual": 1.2241747557752873,
+            "aceleracion_volumen": 2.1561074107096028,
+            "gap_pct": -0.0007587909281600096,
+            "maximo_dia": 40.88,
+            "maximo_premarket": 40.88,
+            "rango_apertura_max": 39.97990036010742,
+            "rango_apertura_min": 39.09000015258789,
+            "velas_desde_ruptura": null,
+            "macd": -0.09633010164557732,
+            "macd_signal": -0.07397712270326547
+          },
+          "meta": {
+            "float_acciones": 229958103.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Bending Spoons to Acquire Miro in $1.36 Billion Enterprise Deal",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-10T15:28:39Z",
+            "confirmado": true,
+            "fuentes_adicionales": [
+              "InvestorsHub"
+            ]
+          },
+          "minutos_desde_catalizador": 3184.60259705,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 70.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 48.385518590998046,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "JEF",
+          "nombre": "Jefferies Financial Group Inc.",
+          "precio_actual": 51.96,
+          "factores_intradia": {
+            "precio_actual": 51.96,
+            "vwap": 52.26924945559732,
+            "ema9": 52.062235806686495,
+            "rvol_actual": 10.729466503686764,
+            "aceleracion_volumen": 7.554983672076814,
+            "gap_pct": 0.00685698207671953,
+            "maximo_dia": 54.529998779296875,
+            "maximo_premarket": null,
+            "rango_apertura_max": 54.529998779296875,
+            "rango_apertura_min": 54.150001525878906,
+            "velas_desde_ruptura": null,
+            "macd": -0.03911777708022868,
+            "macd_signal": -0.008185536330864603
+          },
+          "meta": {
+            "float_acciones": 193099055.0,
+            "short_pct_float": 0.0425,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Adobe set for inline Q3 results as new CEO era begins amid AI valuation reset",
+            "fuente": "Proactive",
+            "fecha": "2026-09-10T15:50:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3163.2526298666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 70.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 52.870001158470295,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "GMED",
+          "nombre": "Globus Medical, Inc.",
+          "precio_actual": 74.19,
+          "factores_intradia": {
+            "precio_actual": 74.19,
+            "vwap": 73.89875132997415,
+            "ema9": 74.25271869458231,
+            "rvol_actual": 4.406383644518619,
+            "aceleracion_volumen": 5.805619843026766,
+            "gap_pct": 0.011828621088911124,
+            "maximo_dia": 74.53500366210938,
+            "maximo_premarket": null,
+            "rango_apertura_max": 74.51000213623047,
+            "rango_apertura_min": 74.21499633789062,
+            "velas_desde_ruptura": null,
+            "macd": -0.008911887202060598,
+            "macd_signal": 0.027516868230565376
+          },
+          "meta": {
+            "float_acciones": 110203522.0,
+            "short_pct_float": 0.0596,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Revvity to Acquire Human Cell Design to Boost Metabolic Discovery",
+            "fuente": "Zacks",
+            "fecha": "2026-09-11T15:19:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1754.2526646833333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 75.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 95.37125316752659,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "CRCL",
+          "nombre": "Circle Internet Group",
+          "precio_actual": 91.01,
+          "factores_intradia": {
+            "precio_actual": 91.01,
+            "vwap": 92.6604870424159,
+            "ema9": 90.83926123925993,
+            "rvol_actual": 4.140548994269225,
+            "aceleracion_volumen": 3.4370319217660557,
+            "gap_pct": 0.017811711707301343,
+            "maximo_dia": 95.79959869384766,
+            "maximo_premarket": 93.7992,
+            "rango_apertura_max": 92.94999694824219,
+            "rango_apertura_min": 90.87999725341797,
+            "velas_desde_ruptura": 0,
+            "macd": 0.02289785920358156,
+            "macd_signal": 0.05248543920021598
+          },
+          "meta": {
+            "float_acciones": 205667390.0,
+            "short_pct_float": 0.089499995,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Sintana Energy advances deal to acquire KON-16 in Angola",
+            "fuente": "Proactive",
+            "fecha": "2026-09-10T06:43:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3710.2527450166667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 75.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 50.00397956619784,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "WDAY",
+          "nombre": "Workday, Inc.",
+          "precio_actual": 185.7,
+          "factores_intradia": {
+            "precio_actual": 185.7,
+            "vwap": 185.66074044245053,
+            "ema9": 185.77757047754113,
+            "rvol_actual": 11.896057118044432,
+            "aceleracion_volumen": 8.965048910533607,
+            "gap_pct": 0.0017287523224107006,
+            "maximo_dia": 190.9388,
+            "maximo_premarket": 190.9388,
+            "rango_apertura_max": 187.52999877929688,
+            "rango_apertura_min": 185.10000610351562,
+            "velas_desde_ruptura": null,
+            "macd": -0.010971151673942359,
+            "macd_signal": 0.008343815844732322
+          },
+          "meta": {
+            "float_acciones": 194325530.0,
+            "short_pct_float": 0.100200005,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Bending Spoons to Acquire Miro in $1.36 Billion Enterprise Deal",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-10T15:28:39Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3184.6027849666666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 72.56293639637413,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "GEHC",
+          "nombre": "GE HealthCare Technologies Inc.",
+          "precio_actual": 63.93,
+          "factores_intradia": {
+            "precio_actual": 63.93,
+            "vwap": 63.731448490429536,
+            "ema9": 63.96848719789445,
+            "rvol_actual": 10.16972388618189,
+            "aceleracion_volumen": 7.957632597138198,
+            "gap_pct": 0.011207989487017024,
+            "maximo_dia": 65.5,
+            "maximo_premarket": 65.5,
+            "rango_apertura_max": 65.30750274658203,
+            "rango_apertura_min": 64.76499938964844,
+            "velas_desde_ruptura": null,
+            "macd": 0.033355121568625634,
+            "macd_signal": 0.05128769991764444
+          },
+          "meta": {
+            "float_acciones": 450195687.0,
+            "short_pct_float": 0.0476,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "GE HealthCare Moves StarGuide GX 4D SPECT/CT Toward FDA Clearance",
+            "fuente": "Zacks",
+            "fecha": "2026-09-09T16:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4589.252822483333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 76.03053435114504,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "SUNB",
+          "nombre": "Sunbelt Rentals Holdings, Inc.",
+          "precio_actual": 72.68,
+          "factores_intradia": {
+            "precio_actual": 72.68,
+            "vwap": 73.9733301377589,
+            "ema9": 72.76795078548193,
+            "rvol_actual": 6.084766555151696,
+            "aceleracion_volumen": 4.939349579494245,
+            "gap_pct": 0.01113467374553293,
+            "maximo_dia": 75.16999816894531,
+            "maximo_premarket": 73.7,
+            "rango_apertura_max": 74.08999633789062,
+            "rango_apertura_min": 72.88999938964844,
+            "velas_desde_ruptura": null,
+            "macd": -0.11159773549024976,
+            "macd_signal": -0.06857796602768496
+          },
+          "meta": {
+            "float_acciones": 403674383.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Sunbelt Rentals shares rise 3% after Q1 results and higher fiscal 2027 guidance",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-09T12:56:08Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4777.119529799999,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 72.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 66.8751066968365,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 62.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    }
+  ]
+}

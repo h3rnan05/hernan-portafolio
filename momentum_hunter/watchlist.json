@@ -1,66 +1,6 @@
 {
   "entradas": [
     {
-      "ticker": "PSNYW",
-      "nombre": "Polestar Automotive Holding UK PLC",
-      "estado": "expired",
-      "creado_en": "2026-09-04T19:27:22+00:00",
-      "actualizado_en": "2026-09-04T21:50:05+00:00",
-      "transiciones": [
-        {
-          "estado": "watching",
-          "timestamp": "2026-09-04T19:27:22+00:00",
-          "motivo": "Catalizador confirmado -- en observación.",
-          "deteccion_ts": "2026-09-04T19:27:22+00:00",
-          "evaluacion_ts": "2026-09-04T19:27:22+00:00",
-          "mensaje_generado_ts": null,
-          "telegram_enviado_ts": null,
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": null
-        },
-        {
-          "estado": "expired",
-          "timestamp": "2026-09-04T21:50:05+00:00",
-          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
-          "deteccion_ts": null,
-          "evaluacion_ts": null,
-          "mensaje_generado_ts": null,
-          "telegram_enviado_ts": null,
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": null
-        }
-      ],
-      "catalizador_tipo": "earnings",
-      "catalizador_titular": "Polestar Shares Fall After Q2 Revenue Misses Estimates",
-      "catalizador_fuente": "InvestorsHub",
-      "catalizador_fecha": "2026-09-03T13:35:48Z",
-      "catalizador_confirmado": true,
-      "catalizador_fuentes_adicionales": [],
-      "shares_float": 29325670.0,
-      "short_pct_float": null,
-      "es_large_cap": false,
-      "score_base": 53.6,
-      "atr_diario": 1.053557140486581,
-      "gap_pct_congelado": -0.050751874476386655,
-      "tarde_consecutivas": 0,
-      "market_event_ts": null,
-      "data_received_ts": null,
-      "evaluador_ts": null,
-      "mensaje_generado_ts": null,
-      "telegram_enviado_ts": null,
-      "signal_latency_ms": null,
-      "watchlist_escrito_ts": null,
-      "ultima_entrada": 5.010000228881836,
-      "ultimo_stop": 4.483221658638546,
-      "ultimo_objetivo": 6.063557369368416,
-      "ultima_zona_entrada_baja": 5.012918451221071,
-      "ultimos_niveles_ts": "2026-09-04T21:24:23+00:00",
-      "stop_tesis": 4.453421243599483,
-      "clima_mercado": "debil"
-    },
-    {
       "ticker": "VOXR",
       "nombre": "Vox Royalty Corp.",
       "estado": "missed",
@@ -243,9 +183,9 @@
     {
       "ticker": "NTLA",
       "nombre": "Intellia Therapeutics, Inc.",
-      "estado": "triggered",
+      "estado": "archived",
       "creado_en": "2026-09-08T17:18:33+00:00",
-      "actualizado_en": "2026-09-08T17:18:33+00:00",
+      "actualizado_en": "2026-09-12T20:33:12+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -270,6 +210,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": 0.0
+        },
+        {
+          "estado": "archived",
+          "timestamp": "2026-09-12T20:33:12+00:00",
+          "motivo": "Desenlace paper terminal (stop). Causa raíz C: no había transición post-revisión. Revisión 2026-09-08T17:18:39+00:00.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
         }
       ],
       "catalizador_tipo": "fda",
@@ -1385,9 +1337,9 @@
     {
       "ticker": "BEAM",
       "nombre": "Beam Therapeutics Inc.",
-      "estado": "triggered",
+      "estado": "archived",
       "creado_en": "2026-09-10T17:06:35+00:00",
-      "actualizado_en": "2026-09-10T17:06:35+00:00",
+      "actualizado_en": "2026-09-12T20:33:12+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -1412,6 +1364,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": 1000.0
+        },
+        {
+          "estado": "archived",
+          "timestamp": "2026-09-12T20:33:12+00:00",
+          "motivo": "Desenlace paper terminal (rechazo_ia). Causa raíz C: no había transición post-revisión. Revisión 2026-09-10T17:06:42+00:00.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
         }
       ],
       "catalizador_tipo": "fda",
@@ -3132,9 +3096,9 @@
     {
       "ticker": "RBLX",
       "nombre": "Roblox Corporation",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-11T20:40:49+00:00",
-      "actualizado_en": "2026-09-11T20:40:49+00:00",
+      "actualizado_en": "2026-09-12T20:33:12+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3147,6 +3111,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-12T20:33:12+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-12T20:33:15+00:00",
+          "telegram_enviado_ts": "2026-09-12T20:33:16+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 4000.0
         }
       ],
       "catalizador_tipo": "insider_buying",
@@ -3173,7 +3149,7 @@
       "ultimo_stop": 44.521964345659526,
       "ultimo_objetivo": 47.45607130868095,
       "ultima_zona_entrada_baja": 45.52726566109696,
-      "ultimos_niveles_ts": "2026-09-11T21:46:31+00:00",
+      "ultimos_niveles_ts": "2026-09-12T20:33:12+00:00",
       "stop_tesis": 44.521964345659526,
       "clima_mercado": "debil"
     },
@@ -3300,9 +3276,9 @@
     {
       "ticker": "BSP",
       "nombre": "Bending Spoons S.p.A.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-11T20:40:49+00:00",
-      "actualizado_en": "2026-09-11T20:40:49+00:00",
+      "actualizado_en": "2026-09-12T20:33:12+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3315,6 +3291,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-12T20:33:12+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-12T20:33:16+00:00",
+          "telegram_enviado_ts": "2026-09-12T20:33:16+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 4000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -3343,16 +3331,16 @@
       "ultimo_stop": 37.50999977111817,
       "ultimo_objetivo": 41.290000457763675,
       "ultima_zona_entrada_baja": 38.89467430517527,
-      "ultimos_niveles_ts": "2026-09-11T21:46:31+00:00",
+      "ultimos_niveles_ts": "2026-09-12T20:33:12+00:00",
       "stop_tesis": 37.50999977111817,
       "clima_mercado": "debil"
     },
     {
       "ticker": "JEF",
       "nombre": "Jefferies Financial Group Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-11T20:40:49+00:00",
-      "actualizado_en": "2026-09-11T20:40:49+00:00",
+      "actualizado_en": "2026-09-12T20:33:12+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3365,6 +3353,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-12T20:33:12+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-12T20:33:16+00:00",
+          "telegram_enviado_ts": "2026-09-12T20:33:17+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 5000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3391,16 +3391,16 @@
       "ultimo_stop": 51.15571454184396,
       "ultimo_objetivo": 53.568570916312076,
       "ultima_zona_entrada_baja": 52.062235806686495,
-      "ultimos_niveles_ts": "2026-09-11T21:46:31+00:00",
+      "ultimos_niveles_ts": "2026-09-12T20:33:12+00:00",
       "stop_tesis": 51.15571454184396,
       "clima_mercado": "debil"
     },
     {
       "ticker": "GMED",
       "nombre": "Globus Medical, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-11T20:40:49+00:00",
-      "actualizado_en": "2026-09-11T20:40:49+00:00",
+      "actualizado_en": "2026-09-12T20:33:12+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3413,6 +3413,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-12T20:33:12+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-12T20:33:17+00:00",
+          "telegram_enviado_ts": "2026-09-12T20:33:17+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 5000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -3439,16 +3451,16 @@
       "ultimo_stop": 73.52925757332427,
       "ultimo_objetivo": 75.51148485335145,
       "ultima_zona_entrada_baja": 74.25271869458231,
-      "ultimos_niveles_ts": "2026-09-11T21:46:31+00:00",
+      "ultimos_niveles_ts": "2026-09-12T20:33:12+00:00",
       "stop_tesis": 73.52925757332427,
       "clima_mercado": "debil"
     },
     {
       "ticker": "CRCL",
       "nombre": "Circle Internet Group",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-11T20:40:49+00:00",
-      "actualizado_en": "2026-09-11T20:40:49+00:00",
+      "actualizado_en": "2026-09-12T20:33:12+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3461,6 +3473,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-12T20:33:12+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-12T20:33:17+00:00",
+          "telegram_enviado_ts": "2026-09-12T20:33:17+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 5000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -3487,16 +3511,16 @@
       "ultimo_stop": 90.38506493306363,
       "ultimo_objetivo": 92.25987013387275,
       "ultima_zona_entrada_baja": 90.83926123925993,
-      "ultimos_niveles_ts": "2026-09-11T21:46:31+00:00",
+      "ultimos_niveles_ts": "2026-09-12T20:33:12+00:00",
       "stop_tesis": 90.38506493306363,
       "clima_mercado": "debil"
     },
     {
       "ticker": "WDAY",
       "nombre": "Workday, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-11T20:40:49+00:00",
-      "actualizado_en": "2026-09-11T20:40:49+00:00",
+      "actualizado_en": "2026-09-12T20:33:12+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3509,6 +3533,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-12T20:33:12+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-12T20:33:17+00:00",
+          "telegram_enviado_ts": "2026-09-12T20:33:18+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 6000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -3535,16 +3571,16 @@
       "ultimo_stop": 184.73243674023828,
       "ultimo_objetivo": 187.6351265195234,
       "ultima_zona_entrada_baja": 185.77757047754113,
-      "ultimos_niveles_ts": "2026-09-11T21:46:31+00:00",
+      "ultimos_niveles_ts": "2026-09-12T20:33:12+00:00",
       "stop_tesis": 184.73243674023828,
       "clima_mercado": "debil"
     },
     {
       "ticker": "GEHC",
       "nombre": "GE HealthCare Technologies Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-11T20:40:49+00:00",
-      "actualizado_en": "2026-09-11T20:40:49+00:00",
+      "actualizado_en": "2026-09-12T20:33:12+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3557,6 +3593,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-12T20:33:12+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-12T20:33:18+00:00",
+          "telegram_enviado_ts": "2026-09-12T20:33:18+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 6000.0
         }
       ],
       "catalizador_tipo": "fda",
@@ -3580,19 +3628,19 @@
       "signal_latency_ms": null,
       "watchlist_escrito_ts": null,
       "ultima_entrada": 63.93,
-      "ultimo_stop": 63.412816414435305,
-      "ultimo_objetivo": 64.9643671711294,
+      "ultimo_stop": 63.41279124797739,
+      "ultimo_objetivo": 64.96441750404523,
       "ultima_zona_entrada_baja": 63.96848719789445,
-      "ultimos_niveles_ts": "2026-09-11T21:46:31+00:00",
+      "ultimos_niveles_ts": "2026-09-12T20:33:12+00:00",
       "stop_tesis": 63.412816414435305,
       "clima_mercado": "debil"
     },
     {
       "ticker": "SUNB",
       "nombre": "Sunbelt Rentals Holdings, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-11T20:40:49+00:00",
-      "actualizado_en": "2026-09-11T20:40:49+00:00",
+      "actualizado_en": "2026-09-12T20:33:12+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3605,6 +3653,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-12T20:33:12+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-12T20:33:18+00:00",
+          "telegram_enviado_ts": "2026-09-12T20:33:19+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 7000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3631,7 +3691,7 @@
       "ultimo_stop": 71.09607121058873,
       "ultimo_objetivo": 75.84785757882256,
       "ultima_zona_entrada_baja": 72.76795078548193,
-      "ultimos_niveles_ts": "2026-09-11T21:46:31+00:00",
+      "ultimos_niveles_ts": "2026-09-12T20:33:12+00:00",
       "stop_tesis": 71.09607121058873,
       "clima_mercado": "debil"
     }
