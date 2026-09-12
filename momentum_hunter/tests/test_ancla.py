@@ -44,6 +44,58 @@ _NTLA_FDA = (
 _ACQUISITION = "Company announces acquisition of a smaller rival"
 
 
+# Mínimo de la tabla v1 del diseño. El diccionario puede tener extras;
+# lo que no puede es faltar uno de estos ni colar "strategy" en MSTR.
+_ALIASES_DISENO_V1: dict[str, tuple[str, ...]] = {
+    "ABT": ("abbott",),
+    "ADI": ("analog devices",),
+    "ADBE": ("adobe",),
+    "ALAB": ("astera labs", "astera"),
+    "AMAT": ("applied materials",),
+    "AVGO": ("broadcom",),
+    "AZN": ("astrazeneca",),
+    "BEAM": ("beam therapeutics",),
+    "BJDX": ("bluejay",),
+    "BNS": ("scotiabank", "bank of nova scotia"),
+    "BRZE": ("braze",),
+    "BSP": ("bending spoons",),
+    "BSX": ("boston scientific",),
+    "CEG": ("constellation energy",),
+    "CHPT": ("chargepoint",),
+    "CRCL": ("circle internet",),
+    "CRM": ("salesforce",),
+    "CSCO": ("cisco",),
+    "EBAY": ("ebay",),
+    "ENB": ("enbridge",),
+    "GE": ("ge aerospace",),
+    "GEHC": ("ge healthcare", "ge health"),
+    "GILD": ("gilead",),
+    "GLUE": ("monte rosa",),
+    "GMED": ("globus medical", "globus"),
+    "JEF": ("jefferies",),
+    "KR": ("kroger",),
+    "MRVL": ("marvell",),
+    "MSTR": ("microstrategy",),
+    "NFLX": ("netflix",),
+    "NTLA": ("intellia",),
+    "ON": ("onsemi", "on semiconductor", "on semi"),
+    "PSNYW": ("polestar",),
+    "RBLX": ("roblox",),
+    "ROIV": ("roivant",),
+    "RVTY": ("revvity",),
+    "SEI": ("solaris energy", "solaris"),
+    "SHEL": ("shell",),
+    "SUNB": ("sunbelt rentals", "sunbelt"),
+    "TGT": ("target",),
+    "TTE": ("totalenergies",),
+    "TTWO": ("take-two", "take two"),
+    "UBER": ("uber",),
+    "VOXR": ("vox royalty",),
+    "WDAY": ("workday",),
+    "XPOF": ("xponential",),
+}
+
+
 def test_tablas_van_versionadas_y_mstr_no_lleva_strategy():
     # "strategy" ancla cualquier plan de negocio. MSTR solo acepta
     # microstrategy -- el nombre legal nuevo no se usa como alias.
@@ -52,6 +104,14 @@ def test_tablas_van_versionadas_y_mstr_no_lleva_strategy():
     assert "strategy" not in ALIASES["MSTR"]
     assert "microstrategy" in ALIASES["MSTR"]
     assert "semiconductor" in GENERIC_TOKENS
+
+
+def test_aliases_v1_cubre_la_tabla_del_diseno():
+    for ticker, minimos in _ALIASES_DISENO_V1.items():
+        assert ticker in ALIASES, ticker
+        for alias in minimos:
+            assert alias in ALIASES[ticker], (ticker, alias)
+    assert "strategy" not in ALIASES["MSTR"]
 
 
 # ------------------------- FP: titulares ajenos -------------------------
@@ -129,6 +189,54 @@ def test_sei_pasa_por_alias_solaris():
     ok, motivo = ancla_ok("SEI", "Solaris Energy Infrastructure, Inc.", titular)
     assert ok is True
     assert motivo in {"alias", "nombre"}
+
+
+def test_ttwo_pasa_por_alias_take_two_sin_ticker():
+    # nombre=None: solo cuenta el alias (el ticker no está en el titular).
+    ok, motivo = ancla_ok(
+        "TTWO", None,
+        "Take-Two Interactive shares edge lower as investors reassess Q1 results",
+    )
+    assert ok is True
+    assert motivo == "alias"
+
+
+def test_rblx_pasa_por_alias_roblox():
+    ok, motivo = ancla_ok("RBLX", None, "Roblox reports quarterly results")
+    assert ok is True
+    assert motivo == "alias"
+
+
+def test_gehc_ancla_tanto_ge_healthcare_como_ge_health():
+    nombre = "GE HealthCare Technologies Inc."
+    ok_largo, motivo_largo = ancla_ok(
+        "GEHC", nombre, "GE HealthCare Moves StarGuide GX toward FDA clearance")
+    ok_corto, motivo_corto = ancla_ok(
+        "GEHC", nombre, "GE Health submits new imaging system for FDA clearance")
+    assert ok_largo is True and motivo_largo == "alias"
+    assert ok_corto is True and motivo_corto == "alias"
+
+
+def test_bns_pasa_por_scotiabank_no_por_healwell():
+    ok, motivo = ancla_ok("BNS", None, "Scotiabank raises full-year guidance")
+    assert ok is True
+    assert motivo == "alias"
+    ajeno, _ = ancla_ok(
+        "BNS", "The Bank of Nova Scotia",
+        "Healwell AI (TSX:AIDX) Stock Draws Fresh Price Target Split After Quarterly Results",
+    )
+    assert ajeno is False
+
+
+def test_rblx_y_ttwo_siguen_sin_anclar_gamestop():
+    # Los alias nuevos no pueden abrir el FP de GameStop.
+    for ticker, nombre in (
+        ("RBLX", "Roblox Corporation"),
+        ("TTWO", "Take-Two Interactive Software, Inc."),
+    ):
+        ok, motivo = ancla_ok(ticker, nombre, _GME_DIRECTOR)
+        assert ok is False, ticker
+        assert motivo == "sin_ancla"
 
 
 # ------------------------- frontera de ticker corto -------------------------

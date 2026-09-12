@@ -74,7 +74,7 @@ ALIASES: dict[str, tuple[str, ...]] = {
     "ON": ("onsemi", "on semiconductor", "on semi"),
     "MSTR": ("microstrategy",),
     "SEI": ("solaris energy", "solaris"),
-    "GEHC": ("ge healthcare",),
+    "GEHC": ("ge healthcare", "ge health"),
     "CHPT": ("chargepoint",),
     "NTLA": ("intellia",),
     "CEG": ("constellation energy", "constellation"),
@@ -125,6 +125,19 @@ ALIASES: dict[str, tuple[str, ...]] = {
     "IBM": ("ibm",),
     "NFLX": ("netflix",),
     "TSLA": ("tesla",),
+    # Huecos de la tabla v1 del diseño -- tickers del corpus cuya marca
+    # no salía de name_tokens (o el nombre Yahoo falta) y hay que
+    # anclar por alias. No se toca MSTR: sigue sin "strategy".
+    "TTWO": ("take-two", "take two"),
+    "RBLX": ("roblox",),
+    "WDAY": ("workday",),
+    "JEF": ("jefferies",),
+    "GMED": ("globus medical", "globus"),
+    "GLUE": ("monte rosa",),
+    "BSX": ("boston scientific",),
+    "BNS": ("scotiabank", "bank of nova scotia"),
+    "BRZE": ("braze",),
+    "RVTY": ("revvity",),
 }
 
 
