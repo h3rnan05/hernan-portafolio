@@ -67,7 +67,8 @@ Propietario humano
 
 ```
 momentum_hunter → watchlist.json (WATCHING/TRIGGERED/...)
-momentum_paper_trader LEE TRIGGERED (nunca escribe watchlist)
+momentum_paper_trader LEE TRIGGERED; escribe ARCHIVED solo tras
+desenlace paper terminal (JSONL durable). No inventa oportunidades.
   → ia_decision (fail-closed)
   → alpaca_client → https://paper-api.alpaca.markets/v2 (hardcodeado)
 ```

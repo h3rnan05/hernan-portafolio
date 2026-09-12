@@ -50,14 +50,18 @@ costaría dinero o rompería una separación deliberada.
 ## Arquitectura en dos frases
 
 `momentum_hunter/` busca oportunidades con reglas deterministas y escribe en
-`watchlist.json`. `momentum_paper_trader/` lee ese archivo (solo lee, nunca
-escribe), consulta a un LLM y coloca órdenes en Alpaca.
+`watchlist.json`. `momentum_paper_trader/` lee ese archivo, consulta a un LLM
+y coloca órdenes en Alpaca. No inventa oportunidades ni cambia niveles.
+La única escritura paper sobre la watchlist es `TRIGGERED` → `ARCHIVED`
+después de un desenlace paper terminal (`archivo.py` + JSONL durable).
 
-Esa frontera unidireccional es la que impide que el ejecutor invente
-oportunidades y que el buscador coloque órdenes.
+Esa frontera impide que el ejecutor invente oportunidades y que el buscador
+coloque órdenes.
 
-**Máquina de estados:** `WATCHING` (único activo) → `TRIGGERED` / `INVALIDATED`
-/ `MISSED` / `EXPIRED` (los cuatro terminales, se purgan a los 7 días).
+**Máquina de estados:** `WATCHING` (único activo) → `TRIGGERED` /
+`INVALIDATED` / `MISSED` / `EXPIRED`. `TRIGGERED` es terminal para el
+buscador; el paper la pasa a `ARCHIVED` tras rechazo o cierre. Terminales
+se purgan a los 7 días; el JSONL de archivo no.
 
 **Mapa visual:** https://claude.ai/code/artifact/694cf3d4-f768-4465-a938-9504645736b4
 

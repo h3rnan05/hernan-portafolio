@@ -13,6 +13,7 @@ from momentum_hunter.catalysts.detector import Catalizador
 from momentum_hunter.models import FactoresMomentum, Metadata
 from momentum_hunter.scoring import Puntuacion
 from momentum_hunter.watchlist import (
+    ESTADO_ARCHIVED,
     ESTADO_EXPIRED,
     ESTADO_INVALIDATED,
     ESTADO_MISSED,
@@ -31,6 +32,7 @@ from momentum_hunter.watchlist import (
     desde_candidato_diario,
     expirar_vencidas,
     guardar,
+    marcar_archivada,
     marcar_invalidated,
     marcar_missed,
     marcar_triggered,
@@ -102,6 +104,15 @@ def test_agregar_nuevas_agrega_tickers_nuevos():
     entradas = agregar_nuevas([], [_candidato_diario("RKLB"), _candidato_diario("TTWO")], AHORA)
     assert {e.ticker for e in entradas} == {"RKLB", "TTWO"}
     assert all(e.estado == ESTADO_WATCHING for e in entradas)
+
+
+def test_agregar_nuevas_no_reagrega_archived_de_hoy():
+    e = desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    marcar_triggered(e, "m", "d", "ev", AHORA)
+    marcar_archivada(e, "revisión paper", AHORA)
+    entradas = agregar_nuevas([e], [_candidato_diario("RKLB")], AHORA + timedelta(minutes=10))
+    assert len(entradas) == 1
+    assert entradas[0].estado == ESTADO_ARCHIVED
 
 
 def test_agregar_nuevas_no_reagrega_estado_terminal_de_hoy():
@@ -197,6 +208,33 @@ def test_marcar_invalidated_y_missed():
     assert e.estado == ESTADO_INVALIDATED
     assert len(e.transiciones) == 2
     assert e.transiciones[-1].motivo == "El catalizador ya no es válido."
+
+
+def test_marcar_archivada_solo_desde_triggered():
+    e = desde_candidato_diario(_candidato_diario(), AHORA)
+    marcar_triggered(e, "m", "d", "ev", AHORA + timedelta(minutes=5))
+    assert marcar_archivada(e, "revisión paper terminal", AHORA + timedelta(minutes=10)) is True
+    assert e.estado == ESTADO_ARCHIVED
+    assert e.transiciones[-1].estado == ESTADO_ARCHIVED
+    assert e.transiciones[-1].motivo == "revisión paper terminal"
+    assert e.actualizado_en == "2026-08-11T14:10:00+00:00"
+
+
+def test_marcar_archivada_no_toca_watching_ni_missed():
+    watching = desde_candidato_diario(_candidato_diario("W"), AHORA)
+    missed = desde_candidato_diario(_candidato_diario("M"), AHORA)
+    marcar_missed(missed, "tarde", AHORA)
+    assert marcar_archivada(watching, "x", AHORA) is False
+    assert watching.estado == ESTADO_WATCHING
+    assert marcar_archivada(missed, "x", AHORA) is False
+    assert missed.estado == ESTADO_MISSED
+
+
+def test_purgar_antiguas_tambien_descarta_archived_viejas():
+    e = desde_candidato_diario(_candidato_diario(), AHORA)
+    marcar_triggered(e, "m", "d", "ev", AHORA)
+    marcar_archivada(e, "x", AHORA)
+    assert purgar_antiguas([e], AHORA + timedelta(days=8), dias=7) == []
 
 
 def test_marcar_triggered_guarda_los_tres_primeros_timestamps():

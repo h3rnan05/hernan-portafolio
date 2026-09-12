@@ -67,6 +67,7 @@ def test_vps_no_stagea_watchlist_ni_auditoria():
     assert "momentum_hunter/auditoria" not in bloque
     assert "momentum_paper_trader/telemetria" in bloque
     assert "momentum_paper_trader/revisiones.json" in bloque
+    assert "momentum_paper_trader/archivo_triggered.jsonl" in bloque
     assert "momentum_hunter/alertas_enviadas.json" in bloque
     assert "momentum_hunter/telemetria" in bloque
     # Sigue corriendo --solo-watchlist: paper lee el JSON local.
@@ -78,6 +79,7 @@ def test_gha_hunter_sigue_persistiendo_watchlist_y_auditoria():
     dejaría watchlist/auditoria sin escritor en git."""
     texto = HUNTER_WF.read_text(encoding="utf-8")
     assert "momentum_hunter/watchlist.json" in texto
+    assert "momentum_paper_trader/archivo_triggered.jsonl" in texto
     assert "git add momentum_hunter/auditoria" in texto
     assert "git add momentum_hunter/telemetria" in texto
 
@@ -96,6 +98,7 @@ def test_gitattributes_union_en_jsonl_de_telemetria():
     texto = GATTR.read_text(encoding="utf-8")
     assert "momentum_paper_trader/telemetria/**/*.jsonl merge=union" in texto
     assert "momentum_hunter/telemetria/**/*.jsonl merge=union" in texto
+    assert "momentum_paper_trader/archivo_triggered.jsonl merge=union" in texto
 
 
 def test_workflows_gha_no_agregan_paper_telem():

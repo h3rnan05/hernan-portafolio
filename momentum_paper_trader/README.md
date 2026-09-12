@@ -282,8 +282,13 @@ No cambia umbrales, riesgo ni el endpoint paper.
 
 ## Seguridad
 
-- Read-only sobre `momentum_hunter/`: nunca escribe `watchlist.json`,
-  nunca modifica una `EntradaWatchlist`, nunca re-evalúa una señal.
+- No inventa oportunidades ni re-evalúa una señal. La única escritura
+  sobre `watchlist.json` es `TRIGGERED` → `ARCHIVED` cuando la revisión
+  paper ya es terminal (`archivo.py`). El rastro durable va a
+  `archivo_triggered.jsonl` (append-only, no se purga a los 7 días).
+  Zombies actuales (NTLA 2026-09-08 stop, BEAM 2026-09-10 rechazo IA):
+  la próxima corrida los archiva, o
+  `python -m momentum_paper_trader.run --archivar-revisadas`.
 - Nunca coloca una orden fuera del entorno paper (ver arriba).
 - Un fallo al colocar una orden para un ticker (símbolo no soportado,
   Alpaca caído, etc.) se loguea y se omite -- nunca tumba el resto de

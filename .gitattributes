@@ -3,3 +3,5 @@
 # No aplica a JSON monolítico (ahí el arreglo es no compartir archivo).
 momentum_hunter/telemetria/**/*.jsonl merge=union
 momentum_paper_trader/telemetria/**/*.jsonl merge=union
+# Archivo de TRIGGERED ya revisadas: VPS y GHA pueden appendear.
+momentum_paper_trader/archivo_triggered.jsonl merge=union

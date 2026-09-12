@@ -93,7 +93,8 @@ jobs:
           git config user.name "momentum-opportunity-hunter"
           git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
           for f in momentum_hunter/watchlist.json momentum_hunter/alertas_enviadas.json \
-                   momentum_paper_trader/revisiones.json; do
+                   momentum_paper_trader/revisiones.json \
+                   momentum_paper_trader/archivo_triggered.jsonl; do
             [ -f "$f" ] && git add "$f" || true
           done
           [ -d momentum_hunter/auditoria ] && git add momentum_hunter/auditoria || true

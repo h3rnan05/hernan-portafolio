@@ -87,6 +87,7 @@ def test_invoca_el_mismo_camino_watchlist_paper():
     assert "--solo-watchlist" in fuente
     assert "momentum_paper_trader.run" in fuente
     assert "revisiones.json" in fuente
+    assert "archivo_triggered.jsonl" in fuente
 
 
 def test_gha_no_persiste_telemetria_paper_del_vps():

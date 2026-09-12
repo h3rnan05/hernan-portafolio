@@ -615,6 +615,7 @@ def _actualizar_watchlist(
     respetar `dry_run` y no enviarlo."""
     ahora = ahora or datetime.now(UTC)
     entradas = watchlist.cargar()
+    _archivar_triggered_ya_revisadas(entradas, ahora, dry_run)
     ya_conocidos_antes = {e.ticker for e in entradas}
     evaluacion_ts_creacion = _ahora_iso_run(datetime.now(UTC))
     entradas = watchlist.agregar_nuevas(
@@ -682,6 +683,27 @@ def _actualizar_watchlist(
 
 def _ahora_iso_run(ahora: datetime) -> str:
     return ahora.isoformat(timespec="seconds")
+
+
+def _archivar_triggered_ya_revisadas(
+    entradas: list, ahora: datetime, dry_run: bool,
+) -> None:
+    """Safety net: GHA es el escritor de `watchlist.json`. El paper
+    trader puede haber archivado solo en su JSONL (el VPS no git-add
+    de la watchlist). Sin esto, NTLA/BEAM seguirían `triggered` en
+    git aunque la revisión paper ya hubiera cerrado. Dry-run no toca
+    disco. Import diferido para no acoplar el módulo al arrancar."""
+    if dry_run:
+        return
+    try:
+        from momentum_paper_trader.archivo import archivar_revisadas
+    except ImportError:
+        return
+    archivadas = archivar_revisadas(
+        entradas=entradas, ahora=ahora, persistir_watchlist=False,
+    )
+    if archivadas:
+        log.info("%d TRIGGERED archivada(s) tras revisión paper", len(archivadas))
 
 
 def _filtrar_ya_resueltas_hoy(
@@ -863,6 +885,7 @@ def revisar_watchlist(
     provider = provider or YahooProvider()
     ahora = ahora or datetime.now(UTC)
     entradas = watchlist.cargar()
+    _archivar_triggered_ya_revisadas(entradas, ahora, dry_run)
     vigiladas = watchlist.activas(entradas)
     # Las TRIGGERED no se re-evalúan (son terminales), pero SÍ se les
     # refrescan los niveles -- ver `watchlist.con_niveles_que_refrescar`

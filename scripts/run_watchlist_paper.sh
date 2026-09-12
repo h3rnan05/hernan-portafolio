@@ -40,6 +40,7 @@ persistir_estado() {
   paths=(
     momentum_hunter/alertas_enviadas.json
     momentum_paper_trader/revisiones.json
+    momentum_paper_trader/archivo_triggered.jsonl
     momentum_hunter/telemetria
     momentum_paper_trader/telemetria
   )
