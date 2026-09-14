@@ -112,3 +112,7 @@ UI: https://github.com/h3rnan05/hernan-portafolio/actions
 - **Minutos Actions (repo privado):** sleep cuenta. ~8 h/día hábil ≈ 480 min/día ≈ 10 500 min/mes. Cuotas Free/Pro/Team privadas: 2 000–3 000 min/mes — las agota en días. En repo público no se cobran. No dejarlo encendido en privado sin aceptar esa factura.
 
 **HUECO:** el digest paper diario 16:00 MT Lun–Vie lo hace el Director (rutina de agentes Grok), no un workflow de este repo.
+
+### Watchdog de silencio (VPS paper)
+
+`scripts/watchdog_timer_miss.sh` (`momentum-watchlist-watchdog.timer`) alerta por Telegram si `momentum-watchlist.service` no termina OK en >1200 s **dentro de la sesión** (Lun–Vie 13–20 UTC). El silencio de finde / overnight no cuenta: si el último OK es anterior a las 13:00 UTC de hoy, la edad se mide desde el open de sesión, no desde el viernes (FP del 2026-09-14). Sin timestamp conocido, no alerta.
