@@ -82,6 +82,82 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-14T21:53:29+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "ARMP",
+          "nombre": "Armata Pharmaceuticals, Inc.",
+          "precio_actual": 5.52,
+          "factores_intradia": {
+            "precio_actual": 5.52,
+            "vwap": 6.00080068715847,
+            "ema9": 5.612427924263134,
+            "rvol_actual": 3.099427471496965,
+            "aceleracion_volumen": 3.6886428571428573,
+            "gap_pct": 0.1468401384848526,
+            "maximo_dia": 7.0,
+            "maximo_premarket": 7.0,
+            "rango_apertura_max": 6.28000020980835,
+            "rango_apertura_min": 5.829999923706055,
+            "velas_desde_ruptura": null,
+            "macd": 0.0431722717823666,
+            "macd_signal": 0.05710078616607842
+          },
+          "meta": {
+            "float_acciones": 11902323.0,
+            "short_pct_float": 0.078600004,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Armata Pharmaceuticals Shares Rise 8% After FDA Grants AP-SA02 Breakthrough Therapy Designation",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-14T13:34:15Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 499.2354774,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 51.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 44.308049278348086,
+                "distancia_maximo_dia": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }

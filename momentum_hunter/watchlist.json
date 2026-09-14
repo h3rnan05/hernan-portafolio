@@ -1,66 +1,6 @@
 {
   "entradas": [
     {
-      "ticker": "CHPT",
-      "nombre": "ChargePoint Holdings, Inc.",
-      "estado": "expired",
-      "creado_en": "2026-09-07T18:17:36+00:00",
-      "actualizado_en": "2026-09-07T21:20:17+00:00",
-      "transiciones": [
-        {
-          "estado": "watching",
-          "timestamp": "2026-09-07T18:17:36+00:00",
-          "motivo": "Catalizador confirmado -- en observación.",
-          "deteccion_ts": "2026-09-07T18:17:36+00:00",
-          "evaluacion_ts": "2026-09-07T18:17:36+00:00",
-          "mensaje_generado_ts": null,
-          "telegram_enviado_ts": null,
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": null
-        },
-        {
-          "estado": "expired",
-          "timestamp": "2026-09-07T21:20:17+00:00",
-          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
-          "deteccion_ts": null,
-          "evaluacion_ts": null,
-          "mensaje_generado_ts": "2026-09-07T21:20:18+00:00",
-          "telegram_enviado_ts": "2026-09-07T21:20:18+00:00",
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": 1000.0
-        }
-      ],
-      "catalizador_tipo": "earnings",
-      "catalizador_titular": "ChargePoint (CHPT) Posts Strong Q2 Results, But Q3 Outlook Raises Concerns",
-      "catalizador_fuente": "Insider Monkey",
-      "catalizador_fecha": "2026-09-07T11:22:24Z",
-      "catalizador_confirmado": true,
-      "catalizador_fuentes_adicionales": [],
-      "shares_float": 26030047.0,
-      "short_pct_float": 0.2259,
-      "es_large_cap": false,
-      "score_base": 79.8,
-      "atr_diario": 0.6326428481510707,
-      "gap_pct_congelado": 0.022026410897094548,
-      "tarde_consecutivas": 0,
-      "market_event_ts": null,
-      "data_received_ts": null,
-      "evaluador_ts": null,
-      "mensaje_generado_ts": null,
-      "telegram_enviado_ts": null,
-      "signal_latency_ms": null,
-      "watchlist_escrito_ts": null,
-      "ultima_entrada": 9.9,
-      "ultimo_stop": 9.78153488225046,
-      "ultimo_objetivo": 10.136930235499081,
-      "ultima_zona_entrada_baja": 9.969702824727582,
-      "ultimos_niveles_ts": "2026-09-07T21:20:17+00:00",
-      "stop_tesis": 9.78153488225046,
-      "clima_mercado": "debil"
-    },
-    {
       "ticker": "XPOF",
       "nombre": "Xponential Fitness, Inc.",
       "estado": "invalidated",
@@ -3638,9 +3578,9 @@
     {
       "ticker": "ARMP",
       "nombre": "Armata Pharmaceuticals, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-14T18:33:42+00:00",
-      "actualizado_en": "2026-09-14T18:33:42+00:00",
+      "actualizado_en": "2026-09-14T21:53:28+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3653,6 +3593,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-14T21:53:28+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-14T21:53:29+00:00",
+          "telegram_enviado_ts": "2026-09-14T21:53:29+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 1000.0
         }
       ],
       "catalizador_tipo": "fda",
@@ -3675,13 +3627,13 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 5.264999866485596,
-      "ultimo_stop": 5.203988634592017,
-      "ultimo_objetivo": 5.387022330272753,
-      "ultima_zona_entrada_baja": 5.2301393312482585,
-      "ultimos_niveles_ts": "2026-09-14T18:33:42+00:00",
+      "ultima_entrada": 5.52,
+      "ultimo_stop": 5.249653596878051,
+      "ultimo_objetivo": 6.060692806243896,
+      "ultima_zona_entrada_baja": 5.612427924263134,
+      "ultimos_niveles_ts": "2026-09-14T21:53:28+00:00",
       "stop_tesis": 5.203988634592017,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     }
   ]
 }
