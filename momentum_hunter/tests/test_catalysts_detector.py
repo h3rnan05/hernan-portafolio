@@ -35,7 +35,29 @@ def test_clasificar_titular_sin_match_devuelve_none():
     assert clasificar_titular("Company opens new office downtown") is None
 
 
-def test_clasificar_titular_prioriza_fda_sobre_earnings_si_ambos_matchean():
+def test_clasificar_titular_tanda1_crm_buybacks():
+    # Near-miss del pedido: plural pelado, no "share/stock buyback".
+    tit = (
+        "Salesforce Spent a Record $27.1 Billion on Buybacks in One Quarter. "
+        "Here Is Why That Signal Matters."
+    )
+    assert clasificar_titular(tit) == "buyback"
+
+
+def test_clasificar_titular_tanda1_orcl_upbeat_q1():
+    assert clasificar_titular("Oracle shares jump after upbeat Q1") == "earnings"
+    assert clasificar_titular("ORCL Q1 earnings beat lifts cloud outlook") == "earnings"
+
+
+def test_clasificar_titular_tanda1_no_prende_tanda2():
+    # reports qN, q1:, beats pelado, share repurchase = Tanda 2.
+    assert clasificar_titular(
+        "Monte Rosa Therapeutics (GLUE) Reports Q2 Loss, Misses Revenue Estimates"
+    ) is None
+    assert clasificar_titular("Board authorizes a $500 million share repurchase") is None
+    assert clasificar_titular("Zacks: This stock beats the market") is None
+    assert clasificar_titular("Company Q1: revenue watch") is None
+    assert clasificar_titular("No buyback this year, CEO says") is None
     texto = "Company beats estimates and receives FDA approval for new drug"
     assert clasificar_titular(texto) == "fda"
 

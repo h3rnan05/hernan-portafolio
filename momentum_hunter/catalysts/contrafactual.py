@@ -1,13 +1,15 @@
-"""Contrafactual SHADOW: CURRENT vs Wave 1 sobre titulares reales.
+"""Contrafactual: PRE-Tanda1 vs Tanda1 aplicada.
 
-POR QUÉ. El dueño pidió números ANTES de encender las frases: cuántos
-cats con la lista actual, cuántos con la propuesta, el delta, y la lista
-ticker|titular|tipo|frase de los nuevos. Si el propuesto se va hacia
-~40 cats (mediana histórica ~3), la lista está demasiado suelta -- eso
-se FLAG, no se "arregla" callando el número.
+POR QUÉ. El dueño pidió números ANTES de encender, y el 2026-09-14
+dio OK a Tanda 1. Este harness compara el set PRE (congelado) contra
+`CATALYST_KEYWORDS` de producción (ya con Tanda 1). Si el delta se
+fuera a ~40 cats (mediana histórica ~3), se FLAG.
 
-Corre offline. No toca `CATALYST_KEYWORDS` de producción, no toca el
-ancla, no coloca órdenes. `run.py` no lo importa.
+El Buscador midió aparte: 50 tickers 5→7, ~230 títulos 55→57, alarma
+~40 no disparó. Esas cifras van en el reporte como referencia del
+dueño, no se recalculan acá.
+
+`run.py` no importa este módulo. El ancla no se toca.
 
 Uso (desde la raíz del repo):
 
@@ -28,10 +30,10 @@ from momentum_hunter.audit import DIR_AUDITORIA
 from momentum_hunter.catalysts.ancla import ancla_ok
 from momentum_hunter.catalysts.detector import CATALYST_KEYWORDS, clasificar_titular
 from momentum_hunter.catalysts.shadow import (
+    CATALYST_KEYWORDS_PRE_TANDA1,
     WAVE1_VERSION,
     clasificar_sombra,
     cargar_frases_propuestas,
-    keywords_propuestos,
 )
 from momentum_hunter.telemetria import DIR_TELEMETRIA
 
@@ -47,6 +49,15 @@ PATH_REPORTE = DIR_CATALYSTS / "WAVE1_CONTRAFACTUAL.md"
 # por escaneo, ~40 = demasiado suelto. No se recalibra acá.
 MEDIANA_HISTORICA_REF = 3
 UMBRAL_DEMASIADO_SUELTO = 40
+
+# Medición del Buscador (dueño, 2026-09-14) sobre Tanda 1.
+# No es este snapshot: se cita como referencia, no se recompute.
+BUSCADOR_N_TICKERS = 50
+BUSCADOR_TICKERS_PRE = 5
+BUSCADOR_TICKERS_POST = 7
+BUSCADOR_N_TITULOS = 230
+BUSCADOR_TITULOS_PRE = 55
+BUSCADOR_TITULOS_POST = 57
 
 
 @dataclass
@@ -282,34 +293,34 @@ def _flag_suelto(
     yahoo: ResultadoCorpus,
     mediana: float | None,
 ) -> tuple[bool, str]:
-    """La alarma del dueño es sobre cats de embudo (~3 vs ~40), no
-    sobre titulares sueltos. Usamos el recuento ticker+ancla del
-    snapshot Yahoo (lo más parecido a `con_catalizador` que este
-    corpus permite) y una extrapolación honesta a la mediana."""
+    """La alarma del dueño es cats de EMBUDO por escaneo (~3 vs ~40),
+    no 'cuántos tickers de este sample matchean'. Un sample de 93
+    tickers con noticia puede tener 40 matches y eso NO es 40
+    cats/corrida. Se extrapola el ratio ticker+ancla sobre la mediana
+    histórica. La medición autoritativa del dueño es la del Buscador."""
     propuesto = yahoo.cats_ticker_ancla_propuesto
     actual = yahoo.cats_ticker_ancla_actual
     mediana_ref = mediana if mediana is not None else float(MEDIANA_HISTORICA_REF)
-    if propuesto >= UMBRAL_DEMASIADO_SUELTO:
-        return True, (
-            f"FLAG: el snapshot Yahoo ya da {propuesto} tickers con cat "
-            f"propuesto (≥ {UMBRAL_DEMASIADO_SUELTO}). Demasiado suelto."
-        )
     if actual > 0:
         ratio = propuesto / actual
         extra = mediana_ref * ratio
         if extra >= UMBRAL_DEMASIADO_SUELTO:
             return True, (
-                f"FLAG: Yahoo ancla {actual}→{propuesto} (×{ratio:.2f}). "
+                f"FLAG: Yahoo+ancla {actual}→{propuesto} (×{ratio:.2f}). "
                 f"Sobre mediana {mediana_ref:.1f} eso extrapolado es ~{extra:.0f} "
                 f"≥ {UMBRAL_DEMASIADO_SUELTO}."
             )
         return False, (
-            f"Sin FLAG de '~40'. Yahoo+ancla {actual}→{propuesto} (×{ratio:.2f}). "
-            f"Extrapolado sobre mediana {mediana_ref:.1f}: ~{extra:.1f} cats/escaneo "
-            f"-- lejos de {UMBRAL_DEMASIADO_SUELTO}. "
-            f"(Extrapolación grosera: el snapshot no es un escaneo de 1000 tickers.)"
+            f"Sin FLAG de '~{UMBRAL_DEMASIADO_SUELTO}' en unidades de embudo. "
+            f"Yahoo+ancla {actual}→{propuesto} (×{ratio:.2f}); "
+            f"extrapolado sobre mediana {mediana_ref:.1f}: ~{extra:.1f} cats/escaneo. "
+            f"El sample tuvo {propuesto} tickers con match — no confundir con "
+            f"{UMBRAL_DEMASIADO_SUELTO} cats/corrida. "
+            f"Referencia Buscador: {BUSCADOR_TICKERS_PRE}→{BUSCADOR_TICKERS_POST} "
+            f"tickers, {BUSCADOR_TITULOS_PRE}→{BUSCADOR_TITULOS_POST} títulos, "
+            f"alarma no disparó."
         )
-    return False, "Sin FLAG: no hay cats actuales en el snapshot Yahoo para extrapolar."
+    return False, "Sin FLAG: no hay cats PRE en el snapshot Yahoo para extrapolar."
 
 
 def render_reporte(
@@ -356,15 +367,23 @@ def render_reporte(
             f"(×{ru:.2f}), extrapolado ~{med * ru:.1f}. n chico; no es ~40."
         )
     return "\n".join([
-        "# Contrafactual Wave 1 — CURRENT vs PROPOSED",
+        "# Contrafactual Tanda 1 — PRE vs producción",
         "",
         f"Generado {hoy}. Versión de frases: `{WAVE1_VERSION}`. "
-        "Paper only. Producción `CATALYST_KEYWORDS` **no cambia**.",
+        "Paper only. Tanda 1 **aplicada** a `CATALYST_KEYWORDS`. "
+        "Este reporte compara PRE-Tanda1 vs producción.",
         "",
-        "## Resumen",
+        "## Referencia Buscador (dueño, 2026-09-14)",
         "",
-        f"- Frases Wave 1 cargadas del markdown: **{n_frases}** "
-        "(solo buyback + earnings; cero tipos nuevos).",
+        f"- {BUSCADOR_N_TICKERS} tickers: **{BUSCADOR_TICKERS_PRE}→{BUSCADOR_TICKERS_POST}**",
+        f"- ~{BUSCADOR_N_TITULOS} títulos: **{BUSCADOR_TITULOS_PRE}→{BUSCADOR_TITULOS_POST}**",
+        f"- Alarma ~{UMBRAL_DEMASIADO_SUELTO}: **no disparó**.",
+        "",
+        "## Resumen (este repo, snapshot Yahoo 2026-09-14 + auditoría)",
+        "",
+        f"- Frases Tanda 1 en el markdown: **{n_frases}** "
+        "(solo `buybacks`/`share buybacks`/`stock buybacks` + "
+        "`upbeat qN` + `qN earnings`).",
         f"- Mediana histórica `embudo.con_catalizador`: **{mediana_txt}**. "
         f"El dueño marcó ~{UMBRAL_DEMASIADO_SUELTO} como demasiado suelto.",
         f"- **{flag_txt}**{nota_uni}",
@@ -375,7 +394,10 @@ def render_reporte(
         "snapshot de `yfinance` el 2026-09-14 sobre 116 tickers (watchlist + "
         "rebanada del universo); 93 trajeron noticia. La watchlist ya venía "
         "con catalizador: el delta útil está en la rebanada de universo. "
-        "Curadas = huecos y trampas escritos a mano para las pruebas.",
+        "Curadas = huecos y trampas escritos a mano para las pruebas. "
+        "Este dump de 887 títulos salta más que el Buscador (55→57) "
+        "porque `qN earnings` pega templates Zacks ('Q2 Earnings Call "
+        "Highlights'). El dueño midió 50 tickers / ~230 títulos y dio OK.",
         "",
         "## Números por corpus",
         "",
@@ -393,15 +415,14 @@ def render_reporte(
         "- No se re-corrió el embudo completo (universo → operables → "
         "noticias). Un escaneo de ~1000 tickers no cabe en este "
         "contrafactual offline.",
-        "- `clasificar_titular` de producción sigue viendo catalizador "
-        "en los titulares de auditoría -- el shadow no reemplaza esa "
-        "función ni muta `CATALYST_KEYWORDS`.",
+        "- `clasificar_titular` de producción (con Tanda 1) sigue viendo "
+        "catalizador en los titulares de auditoría.",
         "",
         "## Qué no se tocó",
         "",
-        "- `CATALYST_KEYWORDS` en `detector.py`",
-        "- `ancla.py`",
+        "- `ancla.py` (ALIASES, GENERIC, la regla)",
         "- IA≥7, ATR, umbrales, universo",
+        "- Tanda 2 (`reports qN`, `beats` pelado, `q1:`, `share repurchase`)",
         "- paper endpoint",
         "",
     ])
@@ -422,9 +443,9 @@ def construir_reporte(
     path_yahoo: Path = PATH_YAHOO,
     path_curadas: Path = PATH_CURADAS,
 ) -> str:
-    actuales = CATALYST_KEYWORDS
+    actuales = CATALYST_KEYWORDS_PRE_TANDA1
     extras = cargar_frases_propuestas()
-    propuestos = keywords_propuestos(actuales, extras)
+    propuestos = CATALYST_KEYWORDS
     nombres = _nombres_universo()
 
     aud = cargar_auditoria(dir_auditoria)
@@ -460,7 +481,7 @@ def construir_reporte(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Contrafactual Wave 1 (shadow, paper only)")
+    parser = argparse.ArgumentParser(description="Contrafactual Tanda 1 (PRE vs producción)")
     parser.add_argument(
         "--salida",
         type=Path,

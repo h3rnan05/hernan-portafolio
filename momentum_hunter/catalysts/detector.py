@@ -71,6 +71,11 @@ CATALYST_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "buyback": (
         "share buyback", "repurchase program", "stock buyback", "buyback program",
+        # Tanda1 2026-09-14 (OK del dueño): el plural pelado no es
+        # "share/stock buyback" ni "buyback program". Los plurales
+        # con prefijo son redundantes por substring, pero van
+        # escritos igual que en la lista visible. Ver WAVE1_FRASES.md.
+        "buybacks", "share buybacks", "stock buybacks",
     ),
     "insider_buying": (
         "insider buying", "director buys", "ceo buys shares", "form 4 filing",
@@ -83,6 +88,11 @@ CATALYST_KEYWORDS: dict[str, tuple[str, ...]] = {
     "earnings": (
         "quarterly results", "earnings results", "beats estimates", "misses estimates",
         "q1 results", "q2 results", "q3 results", "q4 results", "reports revenue of",
+        # Tanda1 2026-09-14: "upbeat Qn" y "qN earnings" vs exacto
+        # "qN results". No entra `reports qN`, `q1:`, ni `beats`
+        # pelado -- eso es Tanda2. Lista visible: WAVE1_FRASES.md.
+        "upbeat q1", "upbeat q2", "upbeat q3", "upbeat q4",
+        "q1 earnings", "q2 earnings", "q3 earnings", "q4 earnings",
     ),
     "rumor": (
         "reportedly", "sources say", "according to sources", "is said to be",
