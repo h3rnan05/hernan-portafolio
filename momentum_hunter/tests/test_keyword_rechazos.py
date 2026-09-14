@@ -51,6 +51,18 @@ def test_titular_sin_keyword_queda_muestreable():
     assert rechazos[0]["ticker"] == "TST"
     assert rechazos[0]["titular"] == "Company opens new office downtown"
     assert rechazos[0]["motivo"] == MOTIVO_SIN_KEYWORD
+    assert "nota" not in rechazos[0]
+
+
+def test_sin_keyword_no_anota_almost_miss():
+    # Shadow-CF / frases almost-miss van en otro PR. "FDA meeting"
+    # no es keyword completa: acá solo se cuenta como sin_keyword,
+    # sin nota que sugiera un match.
+    titulares = [_t("Company schedules FDA meeting with investors")]
+    assert detectar_catalizador(titulares, CONFIG, hoy=HOY) is None
+    rechazos = explicar_rechazos_keyword("TST", titulares, CONFIG, hoy=HOY)
+    assert rechazos[0]["motivo"] == MOTIVO_SIN_KEYWORD
+    assert "nota" not in rechazos[0]
 
 
 def test_titular_fuera_de_ventana():
@@ -84,15 +96,6 @@ def test_rumor_confirmado_con_dos_fuentes_no_es_rechazo():
     ]
     assert detectar_catalizador(titulares, CONFIG, hoy=HOY) is not None
     assert explicar_rechazos_keyword("TST", titulares, CONFIG, hoy=HOY) == []
-
-
-def test_nota_casi_si_aparece_una_palabra_de_la_lista():
-    # "FDA" está en las keywords pero "FDA meeting" no es frase completa.
-    titulares = [_t("Company schedules FDA meeting with investors")]
-    assert detectar_catalizador(titulares, CONFIG, hoy=HOY) is None
-    rechazos = explicar_rechazos_keyword("TST", titulares, CONFIG, hoy=HOY)
-    assert rechazos[0]["motivo"] == MOTIVO_SIN_KEYWORD
-    assert "fda" in rechazos[0].get("nota", "")
 
 
 def test_explicar_no_cambia_lo_que_devuelve_el_detector():
@@ -155,12 +158,11 @@ def test_titular_largo_se_trunca_en_la_muestra():
 
 def test_como_dict_incluye_keyword_rechazos_y_no_el_contador_interno():
     m = telemetria.Metricas()
-    m.registrar_keyword_rechazo("TST", "office downtown", MOTIVO_SIN_KEYWORD, nota="casi:fda")
+    m.registrar_keyword_rechazo("TST", "office downtown", MOTIVO_SIN_KEYWORD)
     embudo = m.como_dict()["embudo"]
     assert embudo["keyword_rechazos"] == {MOTIVO_SIN_KEYWORD: 1}
     assert embudo["keyword_rechazos_muestra"] == [
-        {"ticker": "TST", "titular": "office downtown",
-         "motivo": MOTIVO_SIN_KEYWORD, "nota": "casi:fda"},
+        {"ticker": "TST", "titular": "office downtown", "motivo": MOTIVO_SIN_KEYWORD},
     ]
     dumped = json.dumps(m.como_dict())
     assert "_keyword_muestra_por_ticker" not in dumped
@@ -308,3 +310,12 @@ def test_este_cambio_no_toca_keywords_ancla_ni_umbrales():
     }
     from momentum_paper_trader.config import CONFIG as PAPER
     assert PAPER.riesgo_dolares_por_operacion == 100.0
+
+
+def test_observacion_no_importa_keywords_ni_anota_almost_miss():
+    import inspect
+    from momentum_hunter.catalysts import keyword_rechazos
+    src = inspect.getsource(keyword_rechazos)
+    assert "import CATALYST_KEYWORDS" not in src
+    assert "_nota_casi" not in src
+    assert "casi:" not in src

@@ -8,15 +8,16 @@ ya devolvió None, el ancla ni se evalúa.
 
 NUNCA cambia `detectar_catalizador`, `clasificar_titular`,
 `CATALYST_KEYWORDS`, umbrales ni el filtro de ancla. Relee los mismos
-predicados para explicar un None, nada más. Si esta explicación falla,
-el pipeline sigue -- registrar no es un requisito para operar."""
+predicados para explicar un None, nada más. Las frases almost-miss /
+shadow-CF van en otro PR: acá no se inventa un match ni se anota
+un "casi". Si esta explicación falla, el pipeline sigue -- registrar
+no es un requisito para operar."""
 
 from __future__ import annotations
 
 from datetime import date
 
 from momentum_hunter.catalysts.detector import (
-    CATALYST_KEYWORDS,
     Titular,
     clasificar_titular,
     dentro_de_ventana,
@@ -27,48 +28,10 @@ MOTIVO_SIN_KEYWORD = "sin_keyword"
 MOTIVO_FUERA_VENTANA = "fuera_ventana"
 MOTIVO_RUMOR_SIN_FUENTES = "rumor_sin_fuentes"
 
-# Palabras de las keywords que no dicen nada solas -- si las
-# contáramos como "casi", cualquier titular de mercado dispararía
-# una nota inútil. Se derivan de CATALYST_KEYWORDS, no se editan ahí.
-_STOP_CASI = frozenset({
-    "to", "of", "a", "an", "the", "and", "for", "by", "in", "on",
-    "is", "be", "with", "from", "that", "this", "or", "at",
-})
-
-
-def _tokens_casi() -> tuple[str, ...]:
-    """Tokens distintivos leídos de la lista actual -- si alguien
-    agrega una keyword, la nota de almost-miss la ve sola. No toca
-    el diccionario; solo lo recorre."""
-    vistos: list[str] = []
-    ya: set[str] = set()
-    for kws in CATALYST_KEYWORDS.values():
-        for kw in kws:
-            for w in kw.split():
-                if len(w) < 3 or w in _STOP_CASI or w in ya:
-                    continue
-                ya.add(w)
-                vistos.append(w)
-    return tuple(vistos)
-
-
-_TOKENS_CASI = _tokens_casi()
-
-
-def _nota_casi_keyword(texto: str) -> str | None:
-    """Si el titular no matcheó ninguna frase completa, ¿aparece
-    alguna palabra de la lista? Barato (substring sobre ~80 tokens)
-    y opcional: sin hits, no hay nota. No reclasifica nada."""
-    if not texto:
-        return None
-    bajo = texto.lower()
-    hits = [w for w in _TOKENS_CASI if w in bajo][:4]
-    if not hits:
-        return None
-    return "casi:" + ",".join(hits)
-
 
 def _nota_fuera_ventana(fecha: str | None, hoy: date, dias: int) -> str | None:
+    """Cuántos días tiene el titular vs la ventana -- no es un almost-
+    miss de keywords, es el dato que ya usó `dentro_de_ventana`."""
     if not fecha:
         return None
     try:
@@ -124,15 +87,11 @@ def explicar_rechazos_keyword(
             continue
         tipo = clasificar_titular(t.texto)
         if tipo is None:
-            muestra = {
+            out.append({
                 "ticker": ticker,
                 "titular": t.texto,
                 "motivo": MOTIVO_SIN_KEYWORD,
-            }
-            nota = _nota_casi_keyword(t.texto)
-            if nota:
-                muestra["nota"] = nota
-            out.append(muestra)
+            })
             continue
         if tipo == "rumor" and not rumor_confirmado:
             out.append({
