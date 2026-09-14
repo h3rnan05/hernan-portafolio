@@ -55,6 +55,26 @@ igual si este módulo se desinstala.
    abajo) sobre esa señal concreta, con el estado de la cuenta como
    contexto. Si la IA dice que no, la revisión queda registrada igual
    (con el razonamiento) y ahí termina -- nunca se coloca una orden.
+   La revisión guarda además la banda de la señal (`es_large_cap`) y el
+   veredicto crudo de la IA (`ia_entraria`), separado de si se operó
+   (`entro`).
+4b. **Compuerta de banda** (`PaperTraderConfig.bandas_operables`, default
+   `("small",)`): la tesis es momentum en small caps. Las large-caps
+   siguen entrando al embudo del hunter y a la revisión de la IA -- para
+   tener muestra de decisiones -- pero una señal fuera de las bandas
+   operables se registra con la decisión de la IA y **no coloca orden**,
+   diga lo que diga la IA. Se archiva con desenlace `fuera_de_banda`, no
+   `rechazo_ia`: son cosas distintas y mezclarlas contaminaría la
+   muestra. Es determinista (la IA no lo ve ni lo puede levantar) y se
+   revierte sin deploy con `("small", "large")`.
+
+   Limitación honesta: la muestra de decisiones sobre large-caps que esto
+   conserva NO mide la tesis. El prompt de `ia_decision.py` le dice a la
+   IA que es large-cap y le pide evaluarlo como debilidad estructural,
+   así que esas decisiones miden que sigue instrucciones, no si acierta.
+   Para medir la tesis harían falta un prompt neutral respecto a banda y
+   un seguimiento de desenlace para señales no operadas -- ninguna de
+   las dos existe hoy y las dos son decisiones aparte.
 5. Si la IA aprueba, calcula el tamaño de la posición por **riesgo fijo
    en dólares** (`PaperTraderConfig.riesgo_dolares_por_operacion`,
    default $100): `acciones = riesgo ÷ (entrada − stop)`, redondeado

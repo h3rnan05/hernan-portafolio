@@ -12,6 +12,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
+BANDA_SMALL = "small"
+BANDA_LARGE = "large"
+BANDAS_CONOCIDAS = frozenset({BANDA_SMALL, BANDA_LARGE})
+
+
+def banda_de(es_large_cap: bool | None) -> str:
+    """Nombre de banda a partir del flag que trae la watchlist. `None`
+    (entrada anterior al campo) se trata como small: es la banda de
+    siempre, la que existía antes del modo large-cap."""
+    return BANDA_LARGE if es_large_cap else BANDA_SMALL
+
+
 @dataclass(frozen=True)
 class PaperTraderConfig:
     # Cuánto arriesgar por operación (dólares de la cuenta PAPER, nunca
@@ -112,8 +124,24 @@ class PaperTraderConfig:
     # Derivarlo de la cuenta en vez de hardcodear "nada por encima de
     # $150" hace que el filtro se ajuste solo cuando el capital cambie.
     minimo_acciones_para_operar: int = 4
+    # Bandas de universo en las que este ejecutor PUEDE abrir posición
+    # (2026-09-14). La tesis es momentum en small caps; large-cap sigue
+    # entrando al embudo del hunter y a la revisión de la IA (para tener
+    # muestra de decisiones), pero una señal fuera de estas bandas se
+    # registra con la decisión de la IA y NO coloca orden. Es un
+    # guardarraíl determinista (regla 4 del CLAUDE.md): la IA nunca lo
+    # ve ni lo puede levantar.
+    #
+    # Revert sin deploy: ("small", "large") vuelve al comportamiento
+    # anterior. Nombres de banda = los de `momentum_hunter.telemetria`.
+    bandas_operables: tuple[str, ...] = ("small",)
 
     def validar(self) -> None:
+        if not self.bandas_operables:
+            raise ValueError("bandas_operables no puede estar vacío -- no operaría nada")
+        desconocidas = set(self.bandas_operables) - BANDAS_CONOCIDAS
+        if desconocidas:
+            raise ValueError(f"bandas_operables con banda(s) desconocida(s): {sorted(desconocidas)}")
         if self.riesgo_dolares_por_operacion <= 0:
             raise ValueError("riesgo_dolares_por_operacion debe ser > 0")
         if self.minimo_acciones < 1:

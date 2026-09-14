@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import json
 
-from momentum_paper_trader.estado import RevisionIA, cargar, guardar, ya_revisada
+from momentum_paper_trader.estado import (
+    MOTIVO_FUERA_DE_BANDA, RevisionIA, cargar, guardar, ya_revisada,
+)
 
 
 def _revision(ticker="RKLB", creado_en="2026-08-11T14:00:00+00:00", entro=True) -> RevisionIA:
@@ -114,6 +116,29 @@ def test_registro_viejo_sin_banda_carga_como_none_no_como_small(tmp_path):
     recargadas = cargar(path)
     assert len(recargadas) == 1
     assert recargadas[0].es_large_cap is None
+
+
+def test_veredicto_de_la_ia_y_motivo_sobreviven_el_roundtrip(tmp_path):
+    path = tmp_path / "revisiones.json"
+    r = _revision(entro=False)
+    r.ia_entraria = True
+    r.motivo_no_operada = MOTIVO_FUERA_DE_BANDA
+    guardar([r], path)
+    recargada = cargar(path)[0]
+    assert recargada.entro is False
+    assert recargada.ia_entraria is True
+    assert recargada.motivo_no_operada == "fuera_de_banda"
+
+
+def test_registro_viejo_sin_veredicto_ni_motivo_carga_como_none(tmp_path):
+    path = tmp_path / "revisiones.json"
+    path.write_text(json.dumps({"revisiones": [{
+        "ticker": "BEAM", "creado_en": "2026-09-10T17:06:35+00:00", "entro": False,
+        "confianza": 6, "razonamiento": "x", "timestamp": "t",
+    }]}))
+    recargada = cargar(path)[0]
+    assert recargada.ia_entraria is None
+    assert recargada.motivo_no_operada is None
 
 
 def test_cargar_archivo_corrupto_no_lanza(tmp_path):

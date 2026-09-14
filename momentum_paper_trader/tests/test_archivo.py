@@ -113,6 +113,37 @@ def test_el_jsonl_no_inventa_banda_para_una_revision_vieja(tmp_path):
     assert rec["revision_es_large_cap"] is None
 
 
+def test_fuera_de_banda_se_archiva_con_su_propio_desenlace(tmp_path):
+    # Una large-cap que la IA aprobó pero la compuerta no operó: es
+    # terminal (nunca va a colocar orden), pero NO es rechazo_ia.
+    e = _triggered("LLY")
+    r = _revision("LLY", e.creado_en, entro=False)
+    r.ia_entraria = True
+    r.motivo_no_operada = estado.MOTIVO_FUERA_DE_BANDA
+    escritos = _archivar([e], [r], tmp_path)
+
+    assert e.estado == watchlist.ESTADO_ARCHIVED
+    assert escritos[0]["desenlace_paper"] == "fuera_de_banda"
+    assert escritos[0]["revision_entro"] is False
+    assert _lineas_log(tmp_path)[0]["desenlace_paper"] == "fuera_de_banda"
+
+
+def test_fuera_de_banda_gana_aunque_la_ia_haya_dicho_que_no(tmp_path):
+    # El "no" de la IA sobre una señal no operable tampoco cuenta como
+    # rechazo_ia -- la muestra de rechazos genuinos queda limpia.
+    e = _triggered("BEAM")
+    r = _revision("BEAM", e.creado_en, entro=False)
+    r.ia_entraria = False
+    r.motivo_no_operada = estado.MOTIVO_FUERA_DE_BANDA
+    assert archivo.desenlace_paper(r) == "fuera_de_banda"
+
+
+def test_rechazo_ia_sin_motivo_sigue_siendo_rechazo_ia(tmp_path):
+    e = _triggered("NTLA")
+    r = _revision("NTLA", e.creado_en, entro=False)
+    assert archivo.desenlace_paper(r) == "rechazo_ia"
+
+
 def test_archiva_triggered_tras_stop_como_ntla(tmp_path):
     creado = datetime(2026, 9, 8, 17, 18, 33, tzinfo=UTC)
     e = _triggered("NTLA", creado)

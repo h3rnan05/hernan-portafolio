@@ -38,7 +38,7 @@ from momentum_hunter import watchlist
 
 from momentum_paper_trader import estado, ia_decision, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
-from momentum_paper_trader.config import PaperTraderConfig
+from momentum_paper_trader.config import PaperTraderConfig, banda_de
 
 log = logging.getLogger("momentum_paper_trader.executor")
 
@@ -237,7 +237,7 @@ def _revision_instrumentada(
     entro: bool, razonamiento: str | None = None,
     order_id: str | None = None, cantidad: int | None = None,
     precio_entrada: float | None = None, stop: float | None = None,
-    objetivo: float | None = None,
+    objetivo: float | None = None, motivo_no_operada: str | None = None,
 ) -> estado.RevisionIA:
     """Arma la revisión y le pone la cinta de tiempos. Un solo sitio
     para no olvidar un hop en alguno de los tres desenlaces (rechazo
@@ -252,6 +252,10 @@ def _revision_instrumentada(
         # `getattr` con None, no False: si la entrada no trae banda, la
         # revisión tampoco -- no se fabrica un "small" por omisión.
         es_large_cap=getattr(e, "es_large_cap", None),
+        # Veredicto crudo de la IA, en TODOS los desenlaces -- así el campo
+        # es uniforme y no hay que adivinar por qué falta.
+        ia_entraria=decision.entrar,
+        motivo_no_operada=motivo_no_operada,
     )
     telemetria.instrumentar_revision(
         registro, e,
@@ -405,6 +409,29 @@ def ejecutar(
             log.warning(
                 "%s: no se pudo obtener decisión de la IA -- se reintentará: %s",
                 e.ticker, decision.razonamiento)
+            continue
+
+        # -- Compuerta de banda (2026-09-14). DESPUÉS de la IA a propósito:
+        # la decisión se registra tal cual (con `ia_entraria`) para tener
+        # muestra, pero una señal fuera de `bandas_operables` no coloca
+        # orden, diga lo que diga la IA. Determinista: la IA no lo ve.
+        # ANTES del `not decision.entrar` también a propósito: un "no" de
+        # la IA sobre una large-cap tampoco es `rechazo_ia` -- la señal
+        # nunca fue operable, y mezclarlas contaminaría la muestra.
+        banda = banda_de(getattr(e, "es_large_cap", None))
+        if banda not in cfg.bandas_operables:
+            log.info(
+                "%s: banda %s fuera de bandas_operables=%s -- se registra la decisión "
+                "de la IA (entraría=%s, confianza %d/10) pero no se opera",
+                e.ticker, banda, cfg.bandas_operables, decision.entrar, decision.confianza)
+            registro = _revision_instrumentada(
+                e, decision, executor_leido_ts=executor_leido_ts,
+                ia_decision_ts=ia_decision_ts, entro=False,
+                motivo_no_operada=estado.MOTIVO_FUERA_DE_BANDA)
+            revisiones_previas.append(registro)
+            estado.guardar(revisiones_previas)
+            if metricas is not None:
+                metricas.anotar_revision(registro, e.signal_latency_ms)
             continue
 
         if not decision.entrar:
