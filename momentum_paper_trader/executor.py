@@ -249,6 +249,9 @@ def _revision_instrumentada(
         timestamp=_ahora_iso(),
         order_id=order_id, cantidad=cantidad,
         precio_entrada=precio_entrada, stop=stop, objetivo=objetivo,
+        # `getattr` con None, no False: si la entrada no trae banda, la
+        # revisión tampoco -- no se fabrica un "small" por omisión.
+        es_large_cap=getattr(e, "es_large_cap", None),
     )
     telemetria.instrumentar_revision(
         registro, e,

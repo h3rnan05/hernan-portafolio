@@ -63,6 +63,7 @@ CAMPOS_AUDITORIA = (
     "revision_entro",
     "revision_resultado",
     "revision_order_id",
+    "revision_es_large_cap",
     "desenlace_paper",
     "causa_raiz",
     "causa_raiz_detalle",
@@ -149,6 +150,10 @@ def registro_auditoria(
         "revision_entro": r.entro,
         "revision_resultado": r.resultado,
         "revision_order_id": r.order_id,
+        # El JSONL es el registro durable (la watchlist se purga a los 7
+        # días): la banda tiene que sobrevivir acá para poder contar
+        # small vs large después.
+        "revision_es_large_cap": r.es_large_cap,
         "desenlace_paper": desenlace,
         "causa_raiz": causa_raiz,
         "causa_raiz_detalle": detalle,

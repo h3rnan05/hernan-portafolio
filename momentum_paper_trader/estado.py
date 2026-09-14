@@ -67,6 +67,14 @@ class RevisionIA:
     ia_decision_ts: str | None = None
     latencia_descubrimiento_ms: float | None = None  # market_event → watchlist write
     latencia_e2e_ms: float | None = None             # market_event → timestamp
+    # -- Banda de universo de la señal (2026-09-14). Copiado de
+    # `EntradaWatchlist.es_large_cap` en el momento de la revisión, para
+    # poder separar la muestra de decisiones por banda sin cruzar contra
+    # `auditoria/*.json`. Hoy 4 de 5 revisiones son large-cap y no hay
+    # forma de verlo desde este archivo. Solo dato: no decide nada.
+    # `None` = registro anterior a este campo, NO "small" -- un campo
+    # ausente no es evidencia de nada.
+    es_large_cap: bool | None = None
 
 
 # `resultado` que ya no puede cambiar -- `seguimiento.revisar` no vuelve a

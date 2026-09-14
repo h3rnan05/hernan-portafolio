@@ -93,6 +93,29 @@ def test_registro_viejo_sin_campos_de_seguimiento_sigue_cargando(tmp_path):
     assert recargadas[0].pnl is None
 
 
+def test_banda_sobrevive_el_roundtrip(tmp_path):
+    # Sin esto, separar revisiones por banda exige cruzar contra la
+    # auditoría del hunter por ticker+fecha.
+    path = tmp_path / "revisiones.json"
+    r = _revision(entro=False)
+    r.es_large_cap = True
+    guardar([r], path)
+    assert cargar(path)[0].es_large_cap is True
+
+
+def test_registro_viejo_sin_banda_carga_como_none_no_como_small(tmp_path):
+    # Las 5 revisiones ya committeadas no traen el campo. Un ausente no
+    # es "small": tiene que quedar en None, no en False.
+    path = tmp_path / "revisiones.json"
+    path.write_text(json.dumps({"revisiones": [{
+        "ticker": "LLY", "creado_en": "2026-08-24T15:51:32+00:00", "entro": False,
+        "confianza": 7, "razonamiento": "x", "timestamp": "t",
+    }]}))
+    recargadas = cargar(path)
+    assert len(recargadas) == 1
+    assert recargadas[0].es_large_cap is None
+
+
 def test_cargar_archivo_corrupto_no_lanza(tmp_path):
     path = tmp_path / "revisiones.json"
     path.write_text("{esto no es json")

@@ -94,6 +94,25 @@ def test_archiva_triggered_tras_rechazo_ia(tmp_path):
     assert recargada.ticker == "BEAM"   # no se borró
 
 
+def test_el_jsonl_conserva_la_banda_de_la_revision(tmp_path):
+    # La watchlist se purga a los 7 días; el JSONL es el único sitio
+    # donde la banda de cada desenlace sobrevive.
+    e = _triggered("BEAM")
+    r = _revision("BEAM", e.creado_en, entro=False)
+    r.es_large_cap = True
+    rec = _archivar([e], [r], tmp_path)[0]
+    assert rec["revision_es_large_cap"] is True
+    assert _lineas_log(tmp_path)[0]["revision_es_large_cap"] is True
+
+
+def test_el_jsonl_no_inventa_banda_para_una_revision_vieja(tmp_path):
+    e = _triggered("NTLA")
+    r = _revision("NTLA", e.creado_en, entro=False)   # sin es_large_cap -> None
+    rec = _archivar([e], [r], tmp_path)[0]
+    assert "revision_es_large_cap" in rec
+    assert rec["revision_es_large_cap"] is None
+
+
 def test_archiva_triggered_tras_stop_como_ntla(tmp_path):
     creado = datetime(2026, 9, 8, 17, 18, 33, tzinfo=UTC)
     e = _triggered("NTLA", creado)
