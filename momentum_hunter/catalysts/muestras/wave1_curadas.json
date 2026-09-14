@@ -1,0 +1,165 @@
+{
+  "descripcion": "Near-misses de Wave 1, trampas que NO deben matchear, y controles que ya matchea producción. Fixture de pruebas -- no es el corpus del contrafactual completo.",
+  "titulares": [
+    {
+      "ticker": "DEMO",
+      "titular": "Company announces $2B in buybacks",
+      "origen": "curada_near_miss",
+      "esperado_actual": null,
+      "esperado_propuesto": "buyback",
+      "frase_propuesta": "buybacks"
+    },
+    {
+      "ticker": "DEMO",
+      "titular": "Board authorizes a $500 million share repurchase",
+      "origen": "curada_near_miss",
+      "esperado_actual": null,
+      "esperado_propuesto": "buyback",
+      "frase_propuesta": "share repurchase"
+    },
+    {
+      "ticker": "DEMO",
+      "titular": "Upbeat Q1 lifts shares",
+      "origen": "curada_near_miss",
+      "esperado_actual": null,
+      "esperado_propuesto": "earnings",
+      "frase_propuesta": "upbeat q1"
+    },
+    {
+      "ticker": "GLUE",
+      "titular": "Monte Rosa Therapeutics (GLUE) Reports Q2 Loss, Misses Revenue Estimates",
+      "origen": "curada_near_miss",
+      "esperado_actual": null,
+      "esperado_propuesto": "earnings",
+      "frase_propuesta": "reports q2"
+    },
+    {
+      "ticker": "DEMO",
+      "titular": "Profit beats Wall Street estimates",
+      "origen": "curada_near_miss",
+      "esperado_actual": null,
+      "esperado_propuesto": "earnings",
+      "frase_propuesta": "beats wall street estimates"
+    },
+    {
+      "ticker": "DEMO",
+      "titular": "Retailer tops estimates on strong demand",
+      "origen": "curada_near_miss",
+      "esperado_actual": null,
+      "esperado_propuesto": "earnings",
+      "frase_propuesta": "tops estimates"
+    },
+    {
+      "ticker": "BPRN",
+      "titular": "Princeton Bancorp (BPRN) Q2 Earnings and Revenues Beat Estimates",
+      "origen": "curada_near_miss",
+      "esperado_actual": null,
+      "esperado_propuesto": "earnings",
+      "frase_propuesta": "beat estimates"
+    },
+    {
+      "ticker": "DUOT",
+      "titular": "Duos Technologies Stock Jumps on Q2 Earnings Beat",
+      "origen": "curada_near_miss",
+      "esperado_actual": null,
+      "esperado_propuesto": "earnings",
+      "frase_propuesta": "earnings beat"
+    },
+    {
+      "ticker": "KO",
+      "titular": "Coca-Cola's stock buybacks: What its latest program means for investors",
+      "origen": "curada_control_produccion",
+      "esperado_actual": "buyback",
+      "esperado_propuesto": "buyback",
+      "frase_propuesta": null
+    },
+    {
+      "ticker": "CAH",
+      "titular": "Cardinal Health shares rise 4% as profit beats estimates and 2027 outlook tops forecasts",
+      "origen": "curada_control_produccion",
+      "esperado_actual": "earnings",
+      "esperado_propuesto": "earnings",
+      "frase_propuesta": null
+    },
+    {
+      "ticker": "ZACK",
+      "titular": "Zacks: This stock beats the market",
+      "origen": "curada_trampa",
+      "esperado_actual": null,
+      "esperado_propuesto": null,
+      "frase_propuesta": null
+    },
+    {
+      "ticker": "SPX",
+      "titular": "Stock XYZ beats the S&P 500 this year",
+      "origen": "curada_trampa",
+      "esperado_actual": null,
+      "esperado_propuesto": null,
+      "frase_propuesta": null
+    },
+    {
+      "ticker": "DEMO",
+      "titular": "Q2 Earnings Call Highlights",
+      "origen": "curada_trampa",
+      "esperado_actual": null,
+      "esperado_propuesto": null,
+      "frase_propuesta": null
+    },
+    {
+      "ticker": "ADBE",
+      "titular": "Should You Play Adobe's Q3 Earnings With ETFs?",
+      "origen": "curada_trampa",
+      "esperado_actual": null,
+      "esperado_propuesto": null,
+      "frase_propuesta": null
+    },
+    {
+      "ticker": "ON",
+      "titular": "Q2 Earnings Roundup: onsemi (NASDAQ:ON) And The Rest Of The Analog Semiconductors Segment",
+      "origen": "curada_trampa",
+      "esperado_actual": null,
+      "esperado_propuesto": null,
+      "frase_propuesta": null
+    },
+    {
+      "ticker": "DEMO",
+      "titular": "Meets Q2 Earnings Estimates",
+      "origen": "curada_trampa",
+      "esperado_actual": null,
+      "esperado_propuesto": null,
+      "frase_propuesta": null
+    },
+    {
+      "ticker": "DEMO",
+      "titular": "No buyback this year, CEO says",
+      "origen": "curada_trampa",
+      "esperado_actual": null,
+      "esperado_propuesto": null,
+      "frase_propuesta": null
+    },
+    {
+      "ticker": "DEMO",
+      "titular": "The great buyback debate continues",
+      "origen": "curada_trampa",
+      "esperado_actual": null,
+      "esperado_propuesto": null,
+      "frase_propuesta": null
+    },
+    {
+      "ticker": "DEMO",
+      "titular": "Q1 outlook raised for next year",
+      "origen": "curada_trampa",
+      "esperado_actual": null,
+      "esperado_propuesto": null,
+      "frase_propuesta": null
+    },
+    {
+      "ticker": "DEMO",
+      "titular": "Ahead of Q2, analysts are cautious",
+      "origen": "curada_trampa",
+      "esperado_actual": null,
+      "esperado_propuesto": null,
+      "frase_propuesta": null
+    }
+  ]
+}
