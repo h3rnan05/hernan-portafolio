@@ -59,6 +59,15 @@ BANDA_SMALL = "small"
 BANDA_LARGE = "large"
 BANDAS = (BANDA_SMALL, BANDA_LARGE)
 
+# Tope de muestras de rechazos KEYWORD por corrida. El lunes 2026-09-14
+# hubo 424 titulares; persistirlos todos inflaría el JSONL que GHA
+# commitea. Los CONTADORES cubren el total; la muestra es para auditar
+# texto. Por motivo para no llenar de `sin_keyword` y perder los otros;
+# por ticker para no gastar el cupo en un solo símbolo ruidoso.
+KEYWORD_RECHAZOS_MUESTRA_POR_MOTIVO = 12
+KEYWORD_RECHAZOS_MUESTRA_POR_TICKER = 2
+TITULAR_MUESTRA_MAX_CHARS = 240
+
 
 @dataclass
 class Metricas:
@@ -91,6 +100,13 @@ class Metricas:
     # deja ver `ancla_bloqueados` en el digest. Clave = motivo.
     ancla_bloqueados: Counter = field(default_factory=Counter)
 
+    # Rechazos en la etapa KEYWORD (antes del ancla). Clave = motivo
+    # (`sin_keyword` / `fuera_ventana` / `rumor_sin_fuentes`). Cuenta
+    # TODOS; `keyword_rechazos_muestra` es el recorte auditable.
+    keyword_rechazos: Counter = field(default_factory=Counter)
+    keyword_rechazos_muestra: list = field(default_factory=list)
+    _keyword_muestra_por_ticker: Counter = field(default_factory=Counter, repr=False)
+
     # Supervivencia de las cuatro condiciones obligatorias de `accionable`
     # -- responde "¿cuál nos está matando?" sin abrir la auditoría.
     paso_patron: int = 0
@@ -110,6 +126,31 @@ class Metricas:
 
     def registrar_error(self, origen: str, ex: BaseException) -> None:
         self.errores[f"{origen}:{type(ex).__name__}"] += 1
+
+    def registrar_keyword_rechazo(
+        self,
+        ticker: str,
+        titular: str,
+        motivo: str,
+        nota: str | None = None,
+    ) -> None:
+        """Cuenta siempre; muestra solo si queda cupo. Nunca decide
+        ni muta el catalizador -- si el caller ya descartó, esto
+        solo deja rastro para muestrear después."""
+        self.keyword_rechazos[motivo] += 1
+        if self._keyword_muestra_por_ticker[ticker] >= KEYWORD_RECHAZOS_MUESTRA_POR_TICKER:
+            return
+        n_motivo = sum(
+            1 for s in self.keyword_rechazos_muestra if s.get("motivo") == motivo
+        )
+        if n_motivo >= KEYWORD_RECHAZOS_MUESTRA_POR_MOTIVO:
+            return
+        texto = titular if len(titular) <= TITULAR_MUESTRA_MAX_CHARS else titular[:TITULAR_MUESTRA_MAX_CHARS]
+        muestra = {"ticker": ticker, "titular": texto, "motivo": motivo}
+        if nota:
+            muestra["nota"] = nota
+        self.keyword_rechazos_muestra.append(muestra)
+        self._keyword_muestra_por_ticker[ticker] += 1
 
     def sumar(self, contador: Counter, banda: str | None, n: int = 1) -> None:
         """`banda` None se cuenta aparte como 'desconocida' en vez de
@@ -131,6 +172,8 @@ class Metricas:
                 "titulares_total": self.titulares_total,
                 "rechazos_universo": dict(self.rechazos_universo),
                 "ancla_bloqueados": dict(self.ancla_bloqueados),
+                "keyword_rechazos": dict(self.keyword_rechazos),
+                "keyword_rechazos_muestra": list(self.keyword_rechazos_muestra),
             },
             "condiciones": {
                 "patron": self.paso_patron,

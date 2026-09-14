@@ -65,16 +65,20 @@ def _suma_banda(corridas: list[dict], clave: str, banda: str) -> int:
     return sum((c.get("embudo", {}).get(clave, {}) or {}).get(banda, 0) for c in corridas)
 
 
-def _suma_ancla_bloqueados(corridas: list[dict]) -> Counter:
+def _suma_contador_embudo(corridas: list[dict], clave: str) -> Counter:
     """Suma aditiva -- corridas viejas sin el campo no aportan nada."""
     tot: Counter = Counter()
     for c in corridas:
-        raw = (c.get("embudo") or {}).get("ancla_bloqueados") or {}
+        raw = (c.get("embudo") or {}).get(clave) or {}
         if isinstance(raw, dict):
             for k, v in raw.items():
                 if isinstance(v, int):
                     tot[str(k)] += v
     return tot
+
+
+def _suma_ancla_bloqueados(corridas: list[dict]) -> Counter:
+    return _suma_contador_embudo(corridas, "ancla_bloqueados")
 
 
 def _seccion_operacion(corridas: list[dict]) -> list[str]:
@@ -117,6 +121,11 @@ def _seccion_embudo(corridas: list[dict]) -> list[str]:
         total = sum(ancla.values())
         detalle = ", ".join(f"{k}={v}" for k, v in ancla.most_common())
         lineas.append(f"ancla_bloqueados: {total:,} ({detalle})")
+    keyword = _suma_contador_embudo(corridas, "keyword_rechazos")
+    if keyword:
+        total = sum(keyword.values())
+        detalle = ", ".join(f"{k}={v}" for k, v in keyword.most_common())
+        lineas.append(f"keyword_rechazos: {total:,} ({detalle})")
     return lineas or ["Sin datos de embudo esta semana."]
 
 

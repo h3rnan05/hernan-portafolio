@@ -42,10 +42,13 @@ def test_como_dict_incluye_rechazos_y_titulares_en_el_embudo():
     m.rechazos_universo["vol_bajo_small"] = 3
     m.rechazos_universo["market_cap"] = 1
     m.ancla_bloqueados["sin_ancla"] = 4
+    m.keyword_rechazos["sin_keyword"] = 9
     embudo = m.como_dict()["embudo"]
     assert embudo["titulares_total"] == 7
     assert embudo["rechazos_universo"] == {"vol_bajo_small": 3, "market_cap": 1}
     assert embudo["ancla_bloqueados"] == {"sin_ancla": 4}
+    assert embudo["keyword_rechazos"] == {"sin_keyword": 9}
+    assert embudo["keyword_rechazos_muestra"] == []
 
 
 def test_registrar_error_guarda_tipo_y_origen_no_el_mensaje():
@@ -224,6 +227,18 @@ def test_reporte_muestra_ancla_bloqueados(tmp_path):
     texto = reporte_semanal.construir("2026-08-24", "2026-08-28", tmp_path)
     assert "ancla_bloqueados: 7" in texto
     assert "sin_ancla=6" in texto
+
+
+def test_reporte_muestra_keyword_rechazos(tmp_path):
+    _escribir(tmp_path, "2026-08-24", {
+        "embudo": {"operables": {"large": 10}, "evaluadas": {"large": 10},
+                   "con_alguna_noticia": {}, "con_catalizador": {}, "accionables": {},
+                   "keyword_rechazos": {"sin_keyword": 400, "fuera_ventana": 20,
+                                        "rumor_sin_fuentes": 4}},
+        "condiciones": {}, "errores": {}, "score_maximo": 99})
+    texto = reporte_semanal.construir("2026-08-24", "2026-08-28", tmp_path)
+    assert "keyword_rechazos: 424" in texto
+    assert "sin_keyword=400" in texto
 
 
 def test_reporte_sin_alarmas_lo_dice(tmp_path):

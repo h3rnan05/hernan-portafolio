@@ -71,6 +71,7 @@ from momentum_hunter.alerts import (
 )
 from momentum_hunter.catalysts.ancla import ancla_ok
 from momentum_hunter.catalysts.detector import YahooNewsProvider, detectar_catalizador, minutos_desde_catalizador
+from momentum_hunter.catalysts.keyword_rechazos import explicar_rechazos_keyword
 from momentum_hunter.config import CONFIG, MomentumConfig
 from momentum_hunter.data.provider import DataProvider, YahooProvider
 from momentum_hunter.factors import intradia as fi
@@ -267,6 +268,23 @@ def construir_candidatos_diarios(
                     if titulares:
                         metricas.sumar(metricas.con_alguna_noticia, banda)
                 catalizador = detectar_catalizador(titulares, cfg)
+                # Observación KEYWORD (2026-09-14): si hay titulares y
+                # el detector devolvió None, persistir motivo+texto
+                # (capped). ANTES del ancla a propósito -- #118 es
+                # post-keyword y no debe mezclarse con estos contadores.
+                # try propio: un bug acá no puede tumbar el ticker
+                # (el except de más afuera lo sacaría de la etapa 1).
+                if metricas is not None and titulares and catalizador is None:
+                    try:
+                        for rechazo in explicar_rechazos_keyword(t, titulares, cfg):
+                            metricas.registrar_keyword_rechazo(
+                                rechazo["ticker"],
+                                rechazo["titular"],
+                                rechazo["motivo"],
+                                rechazo.get("nota"),
+                            )
+                    except Exception as ex:
+                        metricas.registrar_error("keyword_rechazos", ex)
                 # Keyword ≠ ancla: Yahoo atribuye titulares ajenos al
                 # ticker pedido. Sin ticker/alias/nombre en el texto no
                 # se vigila -- el None de abajo es el mismo "no hay
@@ -1058,9 +1076,10 @@ def _log_embudo_corrida(metricas: telemetria.Metricas) -> None:
     catalizadores = sum(metricas.con_catalizador.values())
     log.info(
         "embudo -- operables=%d con_alguna_noticia=%d titulares_total=%d "
-        "catalizadores=%d ancla_bloqueados=%s",
+        "catalizadores=%d ancla_bloqueados=%s keyword_rechazos=%s",
         operables, con_noticia, metricas.titulares_total, catalizadores,
         dict(metricas.ancla_bloqueados),
+        dict(metricas.keyword_rechazos),
     )
     log.info("rechazos universo -- %s", dict(metricas.rechazos_universo))
 
