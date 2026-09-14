@@ -471,6 +471,42 @@ def test_main_sin_validos_igual_escribe_rechazos_en_jsonl(monkeypatch, tmp_path)
     }
 
 
+def test_main_cuenta_los_tickers_que_no_volvieron_con_barras(monkeypatch, tmp_path, caplog):
+    # Hasta hoy un ticker sin barras desaparecía sin rastro: ni operable
+    # ni rechazado. Medido en producción: 5-49 por corrida, y una corrida
+    # truncada perdió 701 sin que nada lo dijera. Ahora se cuenta como
+    # `sin_barras` y el embudo cierra: operables + rechazos == escaneados.
+    barras = {
+        "OK": _barras("OK", precio=5.0, vol_prom=500_000.0),
+        "BARATO": _barras("BARATO", precio=0.40, vol_prom=500_000.0),
+    }
+
+    def _diarios(validos, barras, provider, cfg, con_cat, bandas=None, metricas=None):
+        if metricas is not None:
+            for _ in validos:
+                metricas.sumar(metricas.operables, "small")
+        return []
+
+    _preparar_main_escaneo(monkeypatch, tmp_path, barras, diarios=_diarios)
+    # Se piden 5, el proveedor solo devuelve 2 -- como cuando Yahoo falla
+    # o la corrida se corta a mitad del fetch.
+    pedidos = list(barras) + ["ROTO1", "ROTO2", "ROTO3"]
+    monkeypatch.setattr(run_mod, "_cargar_tickers", lambda args: pedidos)
+    caplog.set_level("WARNING", logger="momentum_hunter.run")
+
+    run_mod.main()
+
+    _, lineas = _jsonl_de_escaneo(tmp_path)
+    embudo = lineas[0]["embudo"]
+    assert lineas[0]["universo_escaneado"] == 5
+    assert embudo["rechazos_universo"]["sin_barras"] == 3
+    assert embudo["rechazos_universo"]["precio_bajo"] == 1
+    assert embudo["operables"] == {"small": 1}
+    total = sum(embudo["operables"].values()) + sum(embudo["rechazos_universo"].values())
+    assert total == 5   # el invariante que antes no se podía verificar
+    assert "3/5 tickers sin datos" in caplog.text
+
+
 def test_main_dry_run_no_escribe_telemetria(monkeypatch, tmp_path):
     barras = {"OK": _barras("OK", precio=5.0, vol_prom=500_000.0)}
     _preparar_main_escaneo(
