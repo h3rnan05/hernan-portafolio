@@ -1,17 +1,10 @@
-"""Clasificador SHADOW -- Tanda 1 ya está en producción.
+"""Clasificador SHADOW de Tanda 1 -- producción NO se toca en este PR.
 
-POR QUÉ. El dueño pidió medir el contrafactual ANTES de encender, y
-después OK 2026-09-14 para aplicar SOLO Tanda 1. Este módulo:
+POR QUÉ. El dueño pidió CF primero; el expand de producción va en #121.
+Este módulo lee `WAVE1_FRASES.md` (Tanda 1 mínima), las une al set PRE
+sin mutar `CATALYST_KEYWORDS`, y clasifica offline.
 
-  1. Congela las keywords PRE-Tanda1 (para el CF: qué habría pasado
-     sin el cambio).
-  2. Lee la lista visible `WAVE1_FRASES.md` (bloque TANDA1) y comprueba
-     que coincide con lo que hay en `detector.py`.
-  3. Clasifica offline con cualquier set -- misma regla que producción
-     (substring, `ORDEN_PRIORIDAD`).
-
-`run.py` no lo importa. NUNCA escribe watchlist ni llama a un bróker.
-Tanda 2 no se carga."""
+`run.py` no lo importa. NUNCA escribe watchlist ni llama a un bróker."""
 
 from __future__ import annotations
 
@@ -26,10 +19,9 @@ WAVE1_VERSION = "tanda1-v1"
 _MARCA_INICIO = "<!-- TANDA1_INICIO -->"
 _MARCA_FIN = "<!-- TANDA1_FIN -->"
 
-# Snapshot de producción ANTES del OK Tanda1. El CF compara esto contra
-# `CATALYST_KEYWORDS` actual. Si alguien edita esto para "hacer pasar"
-# el delta, el test de coincidencia markdown↔detector no lo cubre --
-# no tocar salvo que se revierta Tanda1.
+# Producción en ESTE PR (sin Tanda 1). El CF compara esto contra
+# PRE ∪ markdown. No mutar: si detector.py cambia, el test de
+# coincidencia PRE↔producción explota.
 CATALYST_KEYWORDS_PRE_TANDA1: dict[str, tuple[str, ...]] = {
     tipo: kws for tipo, kws in CATALYST_KEYWORDS.items()
     if tipo not in ("buyback", "earnings")
@@ -50,8 +42,6 @@ class MatchSombra:
 
 
 def _celda_frase(celda: str) -> str | None:
-    """Primera columna de la tabla: `frase` entre backticks, o None si
-    la fila es separador / cabecera / vacía."""
     texto = celda.strip()
     if not texto or texto == "frase" or set(texto) <= {"-", ":"}:
         return None
@@ -61,8 +51,7 @@ def _celda_frase(celda: str) -> str | None:
 
 
 def cargar_frases_propuestas(path: Path | None = None) -> dict[str, tuple[str, ...]]:
-    """Lee el markdown visible de Tanda 1. Si faltan marcas, falla:
-    más vale no inventar una lista."""
+    """Lee Tanda 1 del markdown. Sin marcas → falla, no inventa."""
     doc = Path(path) if path is not None else WAVE1_DOC
     crudo = doc.read_text(encoding="utf-8")
     if _MARCA_INICIO not in crudo or _MARCA_FIN not in crudo:
@@ -120,8 +109,6 @@ def clasificar_sombra(
     texto: str,
     keywords: dict[str, tuple[str, ...]] | None = None,
 ) -> MatchSombra | None:
-    """Misma regla que `clasificar_titular`, pero devuelve también la
-    frase que ganó."""
     kws = keywords if keywords is not None else CATALYST_KEYWORDS
     bajo = texto.lower()
     for tipo in ORDEN_PRIORIDAD:

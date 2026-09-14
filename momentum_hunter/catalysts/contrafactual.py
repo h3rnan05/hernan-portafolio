@@ -1,19 +1,9 @@
-"""Contrafactual: PRE-Tanda1 vs Tanda1 aplicada.
+"""Contrafactual SHADOW: PRE vs Tanda 1 (producción intacta en este PR).
 
-POR QUÉ. El dueño pidió números ANTES de encender, y el 2026-09-14
-dio OK a Tanda 1. Este harness compara el set PRE (congelado) contra
-`CATALYST_KEYWORDS` de producción (ya con Tanda 1). Si el delta se
-fuera a ~40 cats (mediana histórica ~3), se FLAG.
+El expand de producción es el #121. Acá se miden números y se deja
+la lista escrita. `run.py` no importa este módulo.
 
-El Buscador midió aparte: 50 tickers 5→7, ~230 títulos 55→57, alarma
-~40 no disparó. Esas cifras van en el reporte como referencia del
-dueño, no se recalculan acá.
-
-`run.py` no importa este módulo. El ancla no se toca.
-
-Uso (desde la raíz del repo):
-
-    python -m momentum_hunter.catalysts.contrafactual
+Uso: python -m momentum_hunter.catalysts.contrafactual
 """
 
 from __future__ import annotations
@@ -34,6 +24,7 @@ from momentum_hunter.catalysts.shadow import (
     WAVE1_VERSION,
     clasificar_sombra,
     cargar_frases_propuestas,
+    keywords_propuestos,
 )
 from momentum_hunter.telemetria import DIR_TELEMETRIA
 
@@ -370,8 +361,9 @@ def render_reporte(
         "# Contrafactual Tanda 1 — PRE vs producción",
         "",
         f"Generado {hoy}. Versión de frases: `{WAVE1_VERSION}`. "
-        "Paper only. Tanda 1 **aplicada** a `CATALYST_KEYWORDS`. "
-        "Este reporte compara PRE-Tanda1 vs producción.",
+        "Paper only. Este PR es **shadow**: `CATALYST_KEYWORDS` de "
+        "producción no cambia. El expand Tanda 1 de producción es #121. "
+        "Este reporte compara PRE vs PRE∪Tanda1.",
         "",
         "## Referencia Buscador (dueño, 2026-09-14)",
         "",
@@ -415,14 +407,15 @@ def render_reporte(
         "- No se re-corrió el embudo completo (universo → operables → "
         "noticias). Un escaneo de ~1000 tickers no cabe en este "
         "contrafactual offline.",
-        "- `clasificar_titular` de producción (con Tanda 1) sigue viendo "
-        "catalizador en los titulares de auditoría.",
+        "- `clasificar_titular` de producción (sin Tanda 1 en este PR) "
+        "sigue viendo catalizador en los titulares de auditoría.",
         "",
         "## Qué no se tocó",
         "",
+        "- `CATALYST_KEYWORDS` en `detector.py` (expand = #121)",
         "- `ancla.py` (ALIASES, GENERIC, la regla)",
         "- IA≥7, ATR, umbrales, universo",
-        "- Tanda 2 (`reports qN`, `beats` pelado, `q1:`, `share repurchase`)",
+        "- Tanda 2 (`reports qN`, `beats` pelado, `q1:`)",
         "- paper endpoint",
         "",
     ])
@@ -445,7 +438,7 @@ def construir_reporte(
 ) -> str:
     actuales = CATALYST_KEYWORDS_PRE_TANDA1
     extras = cargar_frases_propuestas()
-    propuestos = CATALYST_KEYWORDS
+    propuestos = keywords_propuestos(actuales, extras)
     nombres = _nombres_universo()
 
     aud = cargar_auditoria(dir_auditoria)

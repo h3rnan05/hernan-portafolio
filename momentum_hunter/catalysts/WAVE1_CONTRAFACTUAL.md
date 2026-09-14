@@ -1,6 +1,6 @@
 # Contrafactual Tanda 1 — PRE vs producción
 
-Generado 2026-09-14. Versión de frases: `tanda1-v1`. Paper only. Tanda 1 **aplicada** a `CATALYST_KEYWORDS`. Este reporte compara PRE-Tanda1 vs producción.
+Generado 2026-09-14. Versión de frases: `tanda1-v1`. Paper only. Este PR es **shadow**: `CATALYST_KEYWORDS` de producción no cambia. El expand Tanda 1 de producción es #121. Este reporte compara PRE vs PRE∪Tanda1.
 
 ## Referencia Buscador (dueño, 2026-09-14)
 
@@ -159,11 +159,12 @@ Nuevos matches (ticker|titular|tipo|frase):
 
 - El ancla se aplicó como **filtro posterior**, igual que en `run.py`. No se modificó (`flag demasiado suelto=False` se calcula sobre ticker+ancla del snapshot Yahoo mixto).
 - No se re-corrió el embudo completo (universo → operables → noticias). Un escaneo de ~1000 tickers no cabe en este contrafactual offline.
-- `clasificar_titular` de producción (con Tanda 1) sigue viendo catalizador en los titulares de auditoría.
+- `clasificar_titular` de producción (sin Tanda 1 en este PR) sigue viendo catalizador en los titulares de auditoría.
 
 ## Qué no se tocó
 
+- `CATALYST_KEYWORDS` en `detector.py` (expand = #121)
 - `ancla.py` (ALIASES, GENERIC, la regla)
 - IA≥7, ATR, umbrales, universo
-- Tanda 2 (`reports qN`, `beats` pelado, `q1:`, `share repurchase`)
+- Tanda 2 (`reports qN`, `beats` pelado, `q1:`)
 - paper endpoint
