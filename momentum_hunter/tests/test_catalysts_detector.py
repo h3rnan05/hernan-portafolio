@@ -137,7 +137,7 @@ class _FakeYFinance:
         self.tickers_creados: list[str] = []
         self.get_news_llamadas: list[tuple[int | None, str | None]] = []
         self.news_leido = 0
-        self.ids_ticker: list[int] = []
+        self.instancias: list[object] = []
         self.Ticker = self._ticker_cls()
 
     def _ticker_cls(self):
@@ -148,7 +148,7 @@ class _FakeYFinance:
                 if provider.error is not None:
                     raise provider.error
                 provider.tickers_creados.append(ticker)
-                provider.ids_ticker.append(id(self))
+                provider.instancias.append(self)
 
             def get_news(self, count=10, tab="news"):
                 provider.get_news_llamadas.append((count, tab))
@@ -190,8 +190,8 @@ def test_yahoo_news_provider_ticker_fresco_por_llamada(monkeypatch):
 
     assert fake.tickers_creados == ["CLIK", "JEM"]
     assert fake.get_news_llamadas == [(10, "all"), (10, "all")]
-    assert len(fake.ids_ticker) == 2
-    assert fake.ids_ticker[0] != fake.ids_ticker[1]
+    assert len(fake.instancias) == 2
+    assert fake.instancias[0] is not fake.instancias[1]
 
 
 def test_yahoo_news_provider_fallo_devuelve_lista_vacia(monkeypatch):
