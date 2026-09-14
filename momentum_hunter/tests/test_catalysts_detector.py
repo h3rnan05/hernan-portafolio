@@ -11,6 +11,8 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 
 from momentum_hunter.catalysts.detector import (
+    CATALYST_KEYWORDS,
+    TANDA1_NEAR_MISS,
     Titular,
     YahooNewsProvider,
     clasificar_titular,
@@ -38,6 +40,52 @@ def test_clasificar_titular_sin_match_devuelve_none():
 def test_clasificar_titular_prioriza_fda_sobre_earnings_si_ambos_matchean():
     texto = "Company beats estimates and receives FDA approval for new drug"
     assert clasificar_titular(texto) == "fda"
+
+
+# ------------------------- Tanda 1 near-miss -------------------------
+# Human OK 2026-09-14. Solo estas frases; "beats" suelto y Tanda 2 no.
+
+
+def test_tanda1_salesforce_buybacks_es_buyback():
+    # El plural suelto no contiene "share buyback" ni "buyback program".
+    assert clasificar_titular("Salesforce Announces $10 Billion Buybacks") == "buyback"
+
+
+def test_tanda1_oracle_reports_upbeat_q1_es_earnings():
+    assert clasificar_titular("Oracle Reports Upbeat Q1") == "earnings"
+
+
+def test_tanda1_boeing_beats_stock_market_no_matchea_por_beats_suelto():
+    # "beats" suelto caza ruido de mercado. No está en Tanda 1.
+    assert clasificar_titular("Boeing Beats Stock Market") is None
+    for frases in CATALYST_KEYWORDS.values():
+        assert "beats" not in frases
+
+
+def test_tanda1_frases_viejas_siguen_funcionando():
+    assert clasificar_titular("Company Announces Share Buyback") == "buyback"
+    assert clasificar_titular("Board Approves Stock Buyback") == "buyback"
+    assert clasificar_titular("Company Reports Q2 Results, Beats Estimates") == "earnings"
+    assert clasificar_titular("Company Receives FDA Approval for New Drug") == "fda"
+
+
+def test_tanda1_near_miss_vive_en_keywords_y_no_inventa_tanda2():
+    # La tabla es el techo: cada frase Tanda 1 está en prod, y Tanda 2 no.
+    assert TANDA1_NEAR_MISS["buyback"] == (
+        "buybacks", "share buybacks", "stock buybacks",
+    )
+    assert TANDA1_NEAR_MISS["earnings"] == (
+        "upbeat q1", "upbeat q2", "upbeat q3", "upbeat q4",
+        "q1 earnings", "q2 earnings", "q3 earnings", "q4 earnings",
+    )
+    for tipo, frases in TANDA1_NEAR_MISS.items():
+        for frase in frases:
+            assert frase in CATALYST_KEYWORDS[tipo], (tipo, frase)
+    todas = {kw for frases in CATALYST_KEYWORDS.values() for kw in frases}
+    assert "beats" not in todas
+    for prohibida in ("q1:", "fiscal q1", "fiscal q2", "fiscal q3", "fiscal q4",
+                      "reports q1", "reports q2", "reports q3", "reports q4"):
+        assert prohibida not in todas
 
 
 def test_detectar_catalizador_confirma_con_un_solo_titular_no_rumor():

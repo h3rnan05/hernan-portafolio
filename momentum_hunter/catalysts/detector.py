@@ -42,6 +42,29 @@ ORDEN_PRIORIDAD: tuple[str, ...] = (
     "upgrade_analista", "earnings", "rumor",
 )
 
+# Correcciones Tanda 1 -- near-miss del shadow CF. El detector no veía
+# titulares reales porque faltaba el plural ("Buybacks") y las formas
+# "Upbeat QN" / "QN earnings". Tabla versionada al estilo ALIASES: se
+# audita acá, no se toca la regla de matching (`kw in titular.lower()`).
+# Human OK 2026-09-14 para abrir PR; solo estas frases.
+#
+# POR QUÉ no van "beats" suelto ni Tanda 2 (`q1:`, `fiscal qN`,
+# `reports qN`): "beats" caza ruido de mercado ("Boeing Beats Stock
+# Market"); Tanda 2 no está autorizada. Esta tabla es el techo, no un
+# punto de partida. No cambia ancla, fuente de noticias, cron ni
+# umbrales de score/ATR/IA.
+TANDA1_NEAR_MISS: dict[str, tuple[str, ...]] = {
+    "buyback": (
+        "buybacks",
+        "share buybacks",
+        "stock buybacks",
+    ),
+    "earnings": (
+        "upbeat q1", "upbeat q2", "upbeat q3", "upbeat q4",
+        "q1 earnings", "q2 earnings", "q3 earnings", "q4 earnings",
+    ),
+}
+
 CATALYST_KEYWORDS: dict[str, tuple[str, ...]] = {
     "fda": (
         "fda approval", "fda clearance", "fda grants", "breakthrough therapy",
@@ -71,6 +94,7 @@ CATALYST_KEYWORDS: dict[str, tuple[str, ...]] = {
     ),
     "buyback": (
         "share buyback", "repurchase program", "stock buyback", "buyback program",
+        *TANDA1_NEAR_MISS["buyback"],
     ),
     "insider_buying": (
         "insider buying", "director buys", "ceo buys shares", "form 4 filing",
@@ -83,6 +107,7 @@ CATALYST_KEYWORDS: dict[str, tuple[str, ...]] = {
     "earnings": (
         "quarterly results", "earnings results", "beats estimates", "misses estimates",
         "q1 results", "q2 results", "q3 results", "q4 results", "reports revenue of",
+        *TANDA1_NEAR_MISS["earnings"],
     ),
     "rumor": (
         "reportedly", "sources say", "according to sources", "is said to be",
