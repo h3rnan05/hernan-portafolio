@@ -6,11 +6,13 @@ DISTINTAS; el resto de tipos se confirma con un solo titular."""
 
 from __future__ import annotations
 
+import sys
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
 
 from momentum_hunter.catalysts.detector import (
+    CATALYST_KEYWORDS,
     Titular,
     YahooNewsProvider,
     clasificar_titular,
@@ -118,3 +120,88 @@ def test_minutos_desde_catalizador_none_sin_catalizador():
 
 def test_yahoo_news_provider_sin_titulo_devuelve_none():
     assert YahooNewsProvider._parsear({"publisher": "Reuters"}) is None
+
+
+# ------------------------- fetch Yahoo: tab=all, count=10, Ticker fresco -------------------------
+# Ticker.news llama get_news() con tab="news" (latestNews). El cambio
+# es pedir tab="all" (newsAll) con count=10. Estas pruebas clavan la
+# llamada, no el parseo (eso ya está arriba) ni keywords/ventana.
+
+
+class _FakeYFinance:
+    """Sustituto de `yfinance` en sys.modules -- sin red."""
+
+    def __init__(self, items=None, error=None) -> None:
+        self.items = items if items is not None else []
+        self.error = error
+        self.tickers_creados: list[str] = []
+        self.get_news_llamadas: list[tuple[int | None, str | None]] = []
+        self.news_leido = 0
+        self.ids_ticker: list[int] = []
+        self.Ticker = self._ticker_cls()
+
+    def _ticker_cls(self):
+        provider = self
+
+        class _Ticker:
+            def __init__(self, ticker: str) -> None:
+                if provider.error is not None:
+                    raise provider.error
+                provider.tickers_creados.append(ticker)
+                provider.ids_ticker.append(id(self))
+
+            def get_news(self, count=10, tab="news"):
+                provider.get_news_llamadas.append((count, tab))
+                return provider.items
+
+            @property
+            def news(self):
+                # Si el código vuelve a Ticker.news, esta prueba explota.
+                provider.news_leido += 1
+                raise AssertionError("no usar Ticker.news (tab=news / latestNews)")
+
+        return _Ticker
+
+
+def test_yahoo_news_provider_pide_get_news_count_10_tab_all(monkeypatch):
+    fake = _FakeYFinance(items=[{
+        "title": "Company Awarded Contract",
+        "publisher": "Reuters",
+        "providerPublishTime": 1_700_000_000,
+    }])
+    monkeypatch.setitem(sys.modules, "yfinance", fake)
+
+    out = YahooNewsProvider().titulares("BFRI")
+
+    assert fake.tickers_creados == ["BFRI"]
+    assert fake.get_news_llamadas == [(10, "all")]
+    assert fake.news_leido == 0
+    assert len(out) == 1
+    assert out[0].texto == "Company Awarded Contract"
+
+
+def test_yahoo_news_provider_ticker_fresco_por_llamada(monkeypatch):
+    fake = _FakeYFinance(items=[])
+    monkeypatch.setitem(sys.modules, "yfinance", fake)
+    proveedor = YahooNewsProvider()
+
+    proveedor.titulares("CLIK")
+    proveedor.titulares("JEM")
+
+    assert fake.tickers_creados == ["CLIK", "JEM"]
+    assert fake.get_news_llamadas == [(10, "all"), (10, "all")]
+    assert len(fake.ids_ticker) == 2
+    assert fake.ids_ticker[0] != fake.ids_ticker[1]
+
+
+def test_yahoo_news_provider_fallo_devuelve_lista_vacia(monkeypatch):
+    fake = _FakeYFinance(error=RuntimeError("red"))
+    monkeypatch.setitem(sys.modules, "yfinance", fake)
+    assert YahooNewsProvider().titulares("X") == []
+
+
+def test_yahoo_news_provider_no_cambia_ventana_ni_keywords():
+    # Este PR solo cambia el fetch. La ventana de 3 días y las
+    # keywords siguen donde estaban.
+    assert CONFIG.dias_ventana_catalizador == 3
+    assert "fda approval" in CATALYST_KEYWORDS["fda"]

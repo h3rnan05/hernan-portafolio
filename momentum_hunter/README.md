@@ -727,7 +727,8 @@ horas, no una promesa de anticipación imposible.
 - **Borrow fee no existe gratis.** `Metadata.borrow_fee_pct` siempre es
   `None`.
 - **Catalizadores** se detectan solo en los titulares que devuelve
-  `yfinance` (`Ticker.news`) -- no hay integración con SEC EDGAR, FDA.gov
+  `yfinance` (`Ticker.get_news(count=10, tab="all")`, queryRef
+  `newsAll`) -- no hay integración con SEC EDGAR, FDA.gov
   ni terminales de noticias en tiempo real. `minutos_desde_catalizador`
   (usado por el Early Opportunity Engine) es `None` cuando la fuente solo
   da una fecha sin hora -- nunca se inventa la precisión que falta.
