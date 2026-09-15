@@ -193,6 +193,34 @@ def test_no_coloca_orden_cuando_la_ia_rechaza(monkeypatch, tmp_path):
     assert persistidas[0].order_id is None
 
 
+def test_la_revision_registra_la_banda_de_la_entrada(monkeypatch, tmp_path):
+    # La banda viaja de la watchlist a la revisión tal cual, en los dos
+    # desenlaces (rechazo y orden colocada). Es lo que permite contar
+    # small vs large desde revisiones.json.
+    large = _entrada_triggered(ticker="LLY")
+    large.es_large_cap = True
+    small = _entrada_triggered(ticker="NTLA")
+    assert small.es_large_cap is False
+    _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [large, small], decision=_DECISION_NO_ENTRA)
+
+    executor.ejecutar(_FakeAlpacaClient(cash=10_000.0), CFG, dry_run=False, ahora=AHORA)
+
+    por_ticker = {r.ticker: r for r in estado.cargar(rev_path)}
+    assert por_ticker["LLY"].es_large_cap is True
+    assert por_ticker["NTLA"].es_large_cap is False
+
+
+def test_la_banda_tambien_queda_en_una_orden_colocada(monkeypatch, tmp_path):
+    e = _entrada_triggered()
+    e.es_large_cap = True
+    _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e])
+
+    nuevas = executor.ejecutar(_FakeAlpacaClient(cash=10_000.0), CFG, dry_run=False, ahora=AHORA)
+
+    assert len(nuevas) == 1 and nuevas[0].entro is True
+    assert estado.cargar(rev_path)[0].es_large_cap is True
+
+
 def test_rechazo_de_la_ia_no_se_vuelve_a_preguntar(monkeypatch, tmp_path):
     e = _entrada_triggered()
     previa = estado.RevisionIA(
