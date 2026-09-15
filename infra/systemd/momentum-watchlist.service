@@ -1,0 +1,18 @@
+[Unit]
+Description=Momentum watchlist + paper trader (PAPER ONLY oneshot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+EnvironmentFile=/etc/momentum/paper.env
+ExecStart=/opt/hernan-portafolio/scripts/run_watchlist_paper.sh
+Nice=10
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target
