@@ -1,0 +1,8 @@
+[Unit]
+Description=PAPER watchdog timer (Mon-Fri US hours, every 10m)
+[Timer]
+OnCalendar=Mon..Fri 13..20:0/10:00 UTC
+Persistent=true
+Unit=momentum-watchlist-watchdog.service
+[Install]
+WantedBy=timers.target

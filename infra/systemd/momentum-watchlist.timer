@@ -1,0 +1,11 @@
+[Unit]
+Description=Timer for momentum watchlist+paper during US market hours (UTC)
+Requires=momentum-watchlist.service
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 13..20:0/5:00 UTC
+Persistent=false
+Unit=momentum-watchlist.service
+
+[Install]
+WantedBy=timers.target
