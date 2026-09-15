@@ -77,7 +77,14 @@ def _ahora_iso(ahora: datetime) -> str:
 def desenlace_paper(r: estado.RevisionIA) -> str | None:
     """Desenlace terminal de la revisión, o None si el ciclo paper
     todavía no cerró. None no se inventa: una orden viva no es un
-    archivo."""
+    archivo.
+
+    `fuera_de_banda` va ANTES de `rechazo_ia`: las dos tienen
+    `entro=False`, pero una es "la IA dijo que no" y la otra "nunca fue
+    operable, dijera lo que dijera la IA". Archivarlas igual borraría la
+    distinción que `estado.ia_entraria` existe para conservar."""
+    if r.motivo_no_operada == estado.MOTIVO_FUERA_DE_BANDA:
+        return estado.MOTIVO_FUERA_DE_BANDA
     if not r.entro:
         return "rechazo_ia"
     if r.resultado in estado.RESULTADOS_TERMINALES:

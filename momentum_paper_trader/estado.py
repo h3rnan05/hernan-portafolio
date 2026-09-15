@@ -75,6 +75,21 @@ class RevisionIA:
     # `None` = registro anterior a este campo, NO "small" -- un campo
     # ausente no es evidencia de nada.
     es_large_cap: bool | None = None
+    # -- Qué dijo la IA vs. qué se hizo (2026-09-14). `entro` sigue
+    # significando "se colocó orden"; `ia_entraria` es el veredicto crudo
+    # de la IA antes de cualquier guardarraíl. Difieren cuando la señal
+    # se revisó pero no se operó por una razón determinista -- hoy, la
+    # banda (`config.bandas_operables`). Sin esto, un "sí" de la IA sobre
+    # una large-cap quedaría archivado como `rechazo_ia`, contaminando
+    # justo la muestra que se quiere medir.
+    ia_entraria: bool | None = None
+    motivo_no_operada: str | None = None   # MOTIVO_FUERA_DE_BANDA | None
+
+
+# Única razón determinista, hoy, por la que una revisión con veredicto de
+# la IA no coloca orden. Es también el `desenlace_paper` con el que se
+# archiva (ver `archivo.desenlace_paper`).
+MOTIVO_FUERA_DE_BANDA = "fuera_de_banda"
 
 
 # `resultado` que ya no puede cambiar -- `seguimiento.revisar` no vuelve a
