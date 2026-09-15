@@ -1,0 +1,8 @@
+[Unit]
+Description=PAPER watchdog: alert if momentum-watchlist silent >20m in US hours
+[Service]
+Type=oneshot
+User=root
+EnvironmentFile=-/etc/momentum/paper.env
+Environment=WATCHDOG_THRESHOLD_SEC=1200
+ExecStart=/opt/momentum/bin/watchdog_timer_miss.sh
