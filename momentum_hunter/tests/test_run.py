@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import UTC, datetime
 
 from momentum_hunter import run as run_mod
 from momentum_hunter import telemetria
@@ -415,7 +416,7 @@ def _preparar_main_escaneo(monkeypatch, tmp_path, barras, argv=None, diarios=Non
         lambda m, dir_telemetria=tmp_path, ahora=None, fuente=None: real(
             m, dir_telemetria=tmp_path, ahora=ahora, fuente=fuente),
     )
-    monkeypatch.setattr(run_mod, "_cargar_tickers", lambda args: list(barras))
+    monkeypatch.setattr(run_mod, "_cargar_tickers", lambda args, **kw: list(barras))
     monkeypatch.setattr(run_mod.universe, "tickers", lambda **kw: list(barras))
     monkeypatch.setattr(run_mod, "YahooProvider", lambda: _FakeProviderEscaneo(barras))
     monkeypatch.setattr(run_mod, "_revisar_resumen_cierre", lambda *a, **k: None)
@@ -491,7 +492,7 @@ def test_main_cuenta_los_tickers_que_no_volvieron_con_barras(monkeypatch, tmp_pa
     # Se piden 5, el proveedor solo devuelve 2 -- como cuando Yahoo falla
     # o la corrida se corta a mitad del fetch.
     pedidos = list(barras) + ["ROTO1", "ROTO2", "ROTO3"]
-    monkeypatch.setattr(run_mod, "_cargar_tickers", lambda args: pedidos)
+    monkeypatch.setattr(run_mod, "_cargar_tickers", lambda args, **kw: pedidos)
     caplog.set_level("WARNING", logger="momentum_hunter.run")
 
     run_mod.main()
@@ -552,3 +553,44 @@ def test_main_camino_normal_sigue_a_intradia_y_persiste_una_vez(monkeypatch, tmp
     assert len(lineas) == 1
     assert lineas[0]["embudo"]["con_catalizador"] == {"small": 1}
     assert lineas[0]["embudo"]["rechazos_universo"] == {}
+
+
+def test_main_registra_inicio_y_slot_del_universo(monkeypatch, tmp_path):
+    # La semana del 7 al 14/9 hubo que deducir qué slot se había
+    # escaneado restando ~9 min al `timestamp` (que es el FIN). Ahora
+    # main registra el inicio y el slot con el MISMO reloj con el que
+    # eligió la ventana.
+    barras = {"OK": _barras("OK", precio=5.0, vol_prom=500_000.0)}
+    _preparar_main_escaneo(monkeypatch, tmp_path, barras,
+                           argv=["momentum_hunter.run", "--limit", "10"])
+    # Universo de 95 símbolos con límite 10 => 10 slots; el slot exacto
+    # depende del reloj, así que se fija el reloj.
+    universo = [f"T{i}" for i in range(95)]
+    monkeypatch.setattr(run_mod.universe, "tickers", lambda **kw: list(universo))
+    fijo = datetime(2026, 9, 15, 13, 0, 12, tzinfo=UTC)
+
+    class _Reloj(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fijo if tz is not None else fijo.replace(tzinfo=None)
+
+    monkeypatch.setattr(run_mod, "datetime", _Reloj)
+
+    run_mod.main()
+
+    _, lineas = _jsonl_de_escaneo(tmp_path)
+    assert lineas[0]["inicio_ts"] == "2026-09-15T13:00:12+00:00"
+    slot, n_slots = run_mod.universe.slot_rotativo(95, 10, fijo)
+    assert lineas[0]["slot"] == slot
+    assert lineas[0]["n_slots"] == n_slots == 10
+    assert lineas[0]["universo_total"] == 95
+
+
+def test_main_sin_rotacion_no_inventa_slot(monkeypatch, tmp_path):
+    barras = {"OK": _barras("OK", precio=5.0, vol_prom=500_000.0)}
+    _preparar_main_escaneo(monkeypatch, tmp_path, barras)   # sin --limit
+    run_mod.main()
+    _, lineas = _jsonl_de_escaneo(tmp_path)
+    assert lineas[0]["inicio_ts"] is not None
+    assert lineas[0]["slot"] is None
+    assert lineas[0]["n_slots"] is None

@@ -73,8 +73,17 @@ TITULAR_MUESTRA_MAX_CHARS = 240
 class Metricas:
     """Contadores de UNA corrida. Todos empiezan en cero y solo suben --
     nada acá interpreta ni decide, solo cuenta."""
-    timestamp: str = ""
+    timestamp: str = ""            # FIN de la corrida (se fija al persistir)
     modo: str = "escaneo"          # "escaneo" | "watchlist"
+    # Inicio de la corrida y ranura del universo que miró (2026-09-15).
+    # `timestamp` es el fin: para saber qué slot se escaneó hay que
+    # conocer el instante en que se eligió la ventana, y eso hasta hoy
+    # había que deducirlo restando ~9 min. `None` = corrida anterior a
+    # estos campos, o sin rotación (universo explícito / sin límite):
+    # un campo ausente no se inventa.
+    inicio_ts: str | None = None
+    slot: int | None = None        # ver universe.slot_rotativo
+    n_slots: int | None = None
 
     universo_total: int = 0        # símbolos que el universo ofrecía
     universo_escaneado: int = 0    # los que de verdad se pidieron (ventana rotativa)
@@ -161,6 +170,9 @@ class Metricas:
         return {
             "timestamp": self.timestamp or _ahora().isoformat(timespec="seconds"),
             "modo": self.modo,
+            "inicio_ts": self.inicio_ts,
+            "slot": self.slot,
+            "n_slots": self.n_slots,
             "universo_total": self.universo_total,
             "universo_escaneado": self.universo_escaneado,
             "embudo": {

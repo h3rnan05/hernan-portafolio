@@ -542,7 +542,11 @@ def seleccionar_y_auditar(
     return [o for _, o in elegidas], vetadas, snapshots
 
 
-def _cargar_tickers(args: argparse.Namespace) -> list[str]:
+def _cargar_tickers(args: argparse.Namespace, ahora: datetime | None = None) -> list[str]:
+    """`ahora` es el instante con el que se elige la ventana rotativa. Se
+    recibe de afuera para que `main` pueda registrar en la telemetría el
+    MISMO slot que se escaneó, sin volver a mirar el reloj (un segundo
+    de diferencia en el borde de una media hora cambiaría el slot)."""
     if args.universo:
         ticks = universe.desde_archivo(args.universo)
     else:
@@ -553,7 +557,7 @@ def _cargar_tickers(args: argparse.Namespace) -> list[str]:
         # explícito (`--universo archivo.txt`) es una lista curada por el
         # usuario: ahí sí se respeta el orden y se corta por el principio.
         ticks = (ticks[: args.limit] if args.universo
-                 else universe.ventana_rotativa(ticks, args.limit))
+                 else universe.ventana_rotativa(ticks, args.limit, ahora))
     return ticks
 
 
@@ -1149,17 +1153,25 @@ def main() -> None:
         return
 
     metricas = telemetria.Metricas(modo="escaneo")
+    # Un solo reloj para inicio, ventana y slot: `timestamp` es el FIN de
+    # la corrida, y sin el inicio no se sabe qué slot se miró.
+    inicio = datetime.now(UTC)
+    metricas.inicio_ts = inicio.isoformat(timespec="seconds")
     # try/finally: el silencio temprano (universo vacío o sin shortlist)
     # también tiene que dejar telemetría. Antes se returnaba ~L1074 y
     # nunca se llegaba a registrar_corrida -- GHA 34636830680 terminó
     # en `nothing to persist` con embudo 1000→758→34→0 y sin JSONL.
     try:
-        tickers = _cargar_tickers(args)
+        tickers = _cargar_tickers(args, ahora=inicio)
         metricas.universo_escaneado = len(tickers)
         try:
             metricas.universo_total = len(universe.tickers()) if not args.universo else len(tickers)
         except Exception as e:
             metricas.registrar_error("universo", e)
+        if args.limit and not args.universo:
+            ranura = universe.slot_rotativo(metricas.universo_total, args.limit, inicio)
+            if ranura is not None:
+                metricas.slot, metricas.n_slots = ranura
         log.info("universo candidato: %d tickers", len(tickers))
 
         provider = YahooProvider()
