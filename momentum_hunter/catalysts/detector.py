@@ -183,7 +183,12 @@ class YahooNewsProvider(NewsProvider):
     def titulares(self, ticker: str) -> list[Titular]:
         try:
             import yfinance as yf
-            items = yf.Ticker(ticker).news or []
+            # Ticker fresco a propósito: yfinance.get_news cachea en
+            # self._news y, si se reusa el objeto, ignora tab/count en
+            # la siguiente llamada. Ticker.news es get_news() con
+            # tab="news" (queryRef latestNews). Acá se pide tab="all"
+            # (newsAll). count=10 está clavado -- count=50 se descartó.
+            items = yf.Ticker(ticker).get_news(count=10, tab="all") or []
         except Exception as ex:
             # Se sigue devolviendo [] -- un ticker que falla nunca tumba
             # la corrida. Pero ahora el fallo queda CONTADO: hasta el
