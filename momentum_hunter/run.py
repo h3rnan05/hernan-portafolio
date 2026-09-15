@@ -1164,6 +1164,20 @@ def main() -> None:
 
         provider = YahooProvider()
         barras = provider.barras(tickers, dias=280)
+        # Tickers pedidos que NO volvieron con barras (2026-09-14). Hasta
+        # hoy desaparecían sin rastro: `_barras_una` se traga la excepción
+        # con log.debug y el ticker simplemente no está en `barras`, así
+        # que no cae en `operables` ni en ningún rechazo. Medido en las
+        # corridas reales: 5-49 por ventana de 1.000 (0,5-4,9 %), y una
+        # corrida truncada a mitad del fetch perdió 701 y nada lo dijo.
+        # Va en `rechazos_universo` (junto a `sin_close`) para que
+        # small + large + rechazos == universo_escaneado sea un invariante
+        # que se pueda verificar. Solo cuenta; no cambia qué se evalúa.
+        sin_barras = len(tickers) - len(barras)
+        if sin_barras > 0:
+            metricas.rechazos_universo["sin_barras"] += sin_barras
+            log.warning("barras: %d/%d tickers sin datos -- no se evalúan (Yahoo no respondió o falló)",
+                        sin_barras, len(tickers))
         bandas: dict[str, str] = {}
         for t, b in barras.items():
             banda, motivo = _clasificar_banda_de_universo(b, CONFIG)
