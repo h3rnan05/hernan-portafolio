@@ -1,15 +1,45 @@
 {
-  "fecha": "2026-09-14T17:58:28+00:00",
+  "fecha": "2026-09-15T16:35:23+00:00",
   "universo_escaneado": 497,
   "shortlist": [
     {
+      "ticker": "C",
+      "score": 79.4,
+      "sector": "Financial Services",
+      "sub_scores": {
+        "momentum": 77.0,
+        "tendencia": 96.8,
+        "baja_vol": 70.2,
+        "liquidez": 87.1,
+        "calidad": 56.2,
+        "valor": 93.1
+      },
+      "nombre": "Citigroup Inc.",
+      "industria": "Banks - Diversified"
+    },
+    {
+      "ticker": "COP",
+      "score": 78.8,
+      "sector": "Energy",
+      "sub_scores": {
+        "momentum": 89.1,
+        "tendencia": 96.0,
+        "baja_vol": 64.1,
+        "liquidez": 80.6,
+        "calidad": 57.4,
+        "valor": 65.7
+      },
+      "nombre": "ConocoPhillips",
+      "industria": "Oil & Gas E&P"
+    },
+    {
       "ticker": "AAPL",
-      "score": 79.6,
+      "score": 78.7,
       "sector": "Technology",
       "sub_scores": {
-        "momentum": 90.3,
+        "momentum": 87.3,
         "tendencia": 99.8,
-        "baja_vol": 51.2,
+        "baja_vol": 50.8,
         "liquidez": 99.2,
         "calidad": 98.2,
         "valor": 2.6
@@ -19,73 +49,43 @@
     },
     {
       "ticker": "BAC",
-      "score": 78.1,
+      "score": 77.7,
       "sector": "Financial Services",
       "sub_scores": {
-        "momentum": 72.6,
-        "tendencia": 78.0,
-        "baja_vol": 88.3,
-        "liquidez": 92.7,
-        "calidad": 61.6,
-        "valor": 89.3
+        "momentum": 71.0,
+        "tendencia": 78.4,
+        "baja_vol": 88.5,
+        "liquidez": 93.1,
+        "calidad": 61.8,
+        "valor": 89.1
       },
       "nombre": "Bank of America Corporation",
       "industria": "Banks - Diversified"
     },
     {
-      "ticker": "COP",
-      "score": 77.4,
+      "ticker": "DVN",
+      "score": 77.5,
       "sector": "Energy",
       "sub_scores": {
-        "momentum": 85.5,
-        "tendencia": 96.2,
-        "baja_vol": 60.5,
-        "liquidez": 80.4,
-        "calidad": 57.4,
-        "valor": 67.7
+        "momentum": 84.5,
+        "tendencia": 94.0,
+        "baja_vol": 49.0,
+        "liquidez": 67.9,
+        "calidad": 67.7,
+        "valor": 90.3
       },
-      "nombre": "ConocoPhillips",
+      "nombre": "Devon Energy Corporation",
       "industria": "Oil & Gas E&P"
     },
     {
-      "ticker": "BNY",
-      "score": 77.3,
-      "sector": "Financial Services",
-      "sub_scores": {
-        "momentum": 90.1,
-        "tendencia": 76.6,
-        "baja_vol": 81.9,
-        "liquidez": 59.9,
-        "calidad": 68.7,
-        "valor": 63.9
-      },
-      "nombre": "The Bank of New York Mellon Corporation",
-      "industria": "Banks - Diversified"
-    },
-    {
-      "ticker": "KO",
-      "score": 77.1,
-      "sector": "Consumer Defensive",
-      "sub_scores": {
-        "momentum": 75.4,
-        "tendencia": 89.3,
-        "baja_vol": 84.9,
-        "liquidez": 87.7,
-        "calidad": 84.0,
-        "valor": 24.8
-      },
-      "nombre": "The Coca-Cola Company",
-      "industria": "Beverages - Non-Alcoholic"
-    },
-    {
       "ticker": "BRK-B",
-      "score": 76.9,
+      "score": 77.4,
       "sector": "Financial Services",
       "sub_scores": {
-        "momentum": 49.6,
+        "momentum": 51.2,
         "tendencia": 97.0,
         "baja_vol": 99.6,
-        "liquidez": 93.3,
+        "liquidez": 92.9,
         "calidad": 55.8,
         "valor": 100.0
       },
@@ -93,133 +93,118 @@
       "industria": "Insurance - Diversified"
     },
     {
-      "ticker": "TRV",
-      "score": 76.7,
+      "ticker": "BMY",
+      "score": 77.2,
+      "sector": "Healthcare",
+      "sub_scores": {
+        "momentum": 78.2,
+        "tendencia": 97.2,
+        "baja_vol": 68.3,
+        "liquidez": 66.7,
+        "calidad": 86.7,
+        "valor": 44.2
+      },
+      "nombre": "Bristol-Myers Squibb Company",
+      "industria": "Drug Manufacturers - General"
+    },
+    {
+      "ticker": "CVX",
+      "score": 77.0,
+      "sector": "Energy",
+      "sub_scores": {
+        "momentum": 81.2,
+        "tendencia": 95.0,
+        "baja_vol": 77.6,
+        "liquidez": 90.5,
+        "calidad": 38.6,
+        "valor": 72.0
+      },
+      "nombre": "Chevron Corporation",
+      "industria": "Oil & Gas Integrated"
+    },
+    {
+      "ticker": "MPC",
+      "score": 77.0,
+      "sector": "Energy",
+      "sub_scores": {
+        "momentum": 97.4,
+        "tendencia": 88.1,
+        "baja_vol": 46.8,
+        "liquidez": 82.5,
+        "calidad": 70.7,
+        "valor": 43.3
+      },
+      "nombre": "Marathon Petroleum Corporation",
+      "industria": "Oil & Gas Refining & Marketing"
+    },
+    {
+      "ticker": "KO",
+      "score": 76.9,
+      "sector": "Consumer Defensive",
+      "sub_scores": {
+        "momentum": 74.8,
+        "tendencia": 88.9,
+        "baja_vol": 85.3,
+        "liquidez": 87.9,
+        "calidad": 84.0,
+        "valor": 24.8
+      },
+      "nombre": "The Coca-Cola Company",
+      "industria": "Beverages - Non-Alcoholic"
+    },
+    {
+      "ticker": "BNY",
+      "score": 76.8,
       "sector": "Financial Services",
       "sub_scores": {
-        "momentum": 87.7,
-        "tendencia": 83.3,
-        "baja_vol": 67.7,
-        "liquidez": 68.5,
-        "calidad": 62.2,
-        "valor": 74.4
+        "momentum": 88.1,
+        "tendencia": 77.0,
+        "baja_vol": 80.2,
+        "liquidez": 60.5,
+        "calidad": 68.9,
+        "valor": 65.1
+      },
+      "nombre": "The Bank of New York Mellon Corporation",
+      "industria": "Banks - Diversified"
+    },
+    {
+      "ticker": "TRV",
+      "score": 76.4,
+      "sector": "Financial Services",
+      "sub_scores": {
+        "momentum": 86.5,
+        "tendencia": 83.5,
+        "baja_vol": 66.9,
+        "liquidez": 69.4,
+        "calidad": 62.4,
+        "valor": 74.0
       },
       "nombre": "The Travelers Companies, Inc.",
       "industria": "Insurance - Property & Casualty"
     },
     {
       "ticker": "JNJ",
-      "score": 76.6,
+      "score": 76.3,
       "sector": "Healthcare",
       "sub_scores": {
-        "momentum": 83.5,
-        "tendencia": 89.7,
-        "baja_vol": 74.0,
-        "liquidez": 90.7,
-        "calidad": 69.5,
+        "momentum": 82.3,
+        "tendencia": 89.3,
+        "baja_vol": 74.8,
+        "liquidez": 90.9,
+        "calidad": 69.7,
         "valor": 29.8
       },
       "nombre": "Johnson & Johnson",
       "industria": "Drug Manufacturers - General"
     },
     {
-      "ticker": "BMY",
-      "score": 76.5,
-      "sector": "Healthcare",
-      "sub_scores": {
-        "momentum": 76.0,
-        "tendencia": 97.2,
-        "baja_vol": 67.5,
-        "liquidez": 67.1,
-        "calidad": 86.7,
-        "valor": 44.0
-      },
-      "nombre": "Bristol-Myers Squibb Company",
-      "industria": "Drug Manufacturers - General"
-    },
-    {
-      "ticker": "MPC",
-      "score": 76.3,
-      "sector": "Energy",
-      "sub_scores": {
-        "momentum": 97.2,
-        "tendencia": 88.5,
-        "baja_vol": 41.5,
-        "liquidez": 82.3,
-        "calidad": 70.7,
-        "valor": 44.2
-      },
-      "nombre": "Marathon Petroleum Corporation",
-      "industria": "Oil & Gas Refining & Marketing"
-    },
-    {
-      "ticker": "V",
-      "score": 76.3,
-      "sector": "Financial Services",
-      "sub_scores": {
-        "momentum": 72.0,
-        "tendencia": 83.1,
-        "baja_vol": 89.7,
-        "liquidez": 94.4,
-        "calidad": 94.7,
-        "valor": 9.5
-      },
-      "nombre": "Visa Inc.",
-      "industria": "Credit Services"
-    },
-    {
-      "ticker": "ALL",
-      "score": 76.0,
-      "sector": "Financial Services",
-      "sub_scores": {
-        "momentum": 81.2,
-        "tendencia": 80.4,
-        "baja_vol": 61.5,
-        "liquidez": 55.8,
-        "calidad": 81.2,
-        "valor": 86.1
-      },
-      "nombre": "The Allstate Corporation",
-      "industria": "Insurance - Property & Casualty"
-    },
-    {
-      "ticker": "CVX",
-      "score": 75.7,
-      "sector": "Energy",
-      "sub_scores": {
-        "momentum": 77.2,
-        "tendencia": 95.4,
-        "baja_vol": 76.0,
-        "liquidez": 90.3,
-        "calidad": 38.6,
-        "valor": 72.8
-      },
-      "nombre": "Chevron Corporation",
-      "industria": "Oil & Gas Integrated"
-    },
-    {
-      "ticker": "APA",
-      "score": 75.6,
-      "sector": "Energy",
-      "sub_scores": {
-        "momentum": 95.4,
-        "tendencia": 97.8,
-        "baja_vol": 24.4,
-        "liquidez": 28.2,
-        "calidad": 87.7,
-        "valor": 77.6
-      },
-      "nombre": "APA Corporation",
-      "industria": "Oil & Gas E&P"
-    },
-    {
       "ticker": "SCHW",
-      "score": 75.4,
+      "score": 76.2,
       "sector": "Financial Services",
       "sub_scores": {
-        "momentum": 70.8,
-        "tendencia": 84.7,
-        "baja_vol": 80.6,
+        "momentum": 73.2,
+        "tendencia": 84.5,
+        "baja_vol": 81.0,
         "liquidez": 79.2,
         "calidad": 82.4,
         "valor": 48.8
@@ -228,79 +213,94 @@
       "industria": "Capital Markets"
     },
     {
-      "ticker": "AMP",
-      "score": 75.2,
+      "ticker": "ALL",
+      "score": 75.8,
       "sector": "Financial Services",
       "sub_scores": {
-        "momentum": 77.0,
-        "tendencia": 98.4,
-        "baja_vol": 80.8,
-        "liquidez": 31.7,
-        "calidad": 89.7,
-        "valor": 37.1
+        "momentum": 81.0,
+        "tendencia": 80.6,
+        "baja_vol": 60.7,
+        "liquidez": 54.8,
+        "calidad": 81.2,
+        "valor": 86.5
       },
-      "nombre": "Ameriprise Financial, Inc.",
-      "industria": "Asset Management"
+      "nombre": "The Allstate Corporation",
+      "industria": "Insurance - Property & Casualty"
+    },
+    {
+      "ticker": "V",
+      "score": 75.8,
+      "sector": "Financial Services",
+      "sub_scores": {
+        "momentum": 70.4,
+        "tendencia": 83.3,
+        "baja_vol": 89.5,
+        "liquidez": 94.2,
+        "calidad": 94.7,
+        "valor": 9.5
+      },
+      "nombre": "Visa Inc.",
+      "industria": "Credit Services"
+    },
+    {
+      "ticker": "APA",
+      "score": 75.6,
+      "sector": "Energy",
+      "sub_scores": {
+        "momentum": 95.8,
+        "tendencia": 97.8,
+        "baja_vol": 25.0,
+        "liquidez": 29.2,
+        "calidad": 87.7,
+        "valor": 74.8
+      },
+      "nombre": "APA Corporation",
+      "industria": "Oil & Gas E&P"
     },
     {
       "ticker": "FANG",
-      "score": 74.9,
+      "score": 75.6,
       "sector": "Energy",
       "sub_scores": {
-        "momentum": 83.3,
-        "tendencia": 93.3,
-        "baja_vol": 49.0,
-        "liquidez": 54.2,
-        "calidad": 65.9,
-        "valor": 85.9
+        "momentum": 86.9,
+        "tendencia": 92.7,
+        "baja_vol": 47.0,
+        "liquidez": 54.6,
+        "calidad": 66.1,
+        "valor": 85.3
       },
       "nombre": "Diamondback Energy, Inc.",
       "industria": "Oil & Gas E&P"
     },
     {
-      "ticker": "JPM",
-      "score": 74.9,
+      "ticker": "AMP",
+      "score": 75.3,
       "sector": "Financial Services",
       "sub_scores": {
-        "momentum": 69.6,
-        "tendencia": 61.7,
-        "baja_vol": 90.5,
-        "liquidez": 93.1,
-        "calidad": 80.4,
-        "valor": 67.5
+        "momentum": 77.6,
+        "tendencia": 98.2,
+        "baja_vol": 80.4,
+        "liquidez": 31.5,
+        "calidad": 89.7,
+        "valor": 36.9
       },
-      "nombre": "JPMorgan Chase & Co.",
-      "industria": "Banks - Diversified"
+      "nombre": "Ameriprise Financial, Inc.",
+      "industria": "Asset Management"
     },
     {
-      "ticker": "MU",
-      "score": 74.7,
-      "sector": "Technology",
+      "ticker": "CF",
+      "score": 74.5,
+      "sector": "Basic Materials",
       "sub_scores": {
-        "momentum": 99.6,
-        "tendencia": 87.5,
-        "baja_vol": 1.4,
-        "liquidez": 99.8,
-        "calidad": 96.4,
-        "valor": 26.8
+        "momentum": 89.5,
+        "tendencia": 96.4,
+        "baja_vol": 32.7,
+        "liquidez": 49.2,
+        "calidad": 85.3,
+        "valor": 57.9
       },
-      "nombre": "Micron Technology, Inc.",
-      "industria": "Semiconductors"
-    },
-    {
-      "ticker": "C",
-      "score": 74.4,
-      "sector": "Financial Services",
-      "sub_scores": {
-        "momentum": 76.4,
-        "tendencia": 76.0,
-        "baja_vol": 65.9,
-        "liquidez": 86.3,
-        "calidad": 56.2,
-        "valor": 93.3
-      },
-      "nombre": "Citigroup Inc.",
-      "industria": "Banks - Diversified"
+      "nombre": "CF Industries Holdings, Inc.",
+      "industria": "Agricultural Inputs"
     }
   ]
 }
