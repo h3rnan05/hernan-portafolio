@@ -16,20 +16,18 @@
 # así que un overlap raro es posible -- se prefiere eso a perder la
 # cadencia.
 #
-# CADENCIA REAL. Este cron `*/5` sigue existiendo (fallback), pero GHA
-# no lo honra: huecos medidos de ~2,5 h. El puente temporal
-# `momentum_paper_cadence_bridge.yml` comparte ESTE mismo grupo
-# (`momentum-opportunity-hunter-watchlist`) y itera en proceso cada
-# ~5 min. No se re-mezcla con el grupo del hunter (PR #110). Apagar el
-# puente no apaga este cron -- ver ese workflow y RUNBOOK-PAPER-CEO.
+# SIN CRON desde el 2026-09-15. El re-chequeo de 5 min corre en el VPS
+# (infra/systemd/momentum-watchlist.timer), que sí cumple el reloj. GHA
+# nunca honró el `*/5` (huecos medidos de ~2,5 h) y, como escritor
+# secundario de watchlist.json, chocaba con el VPS. Queda solo
+# `workflow_dispatch` para un disparo manual; sigue committeando, así
+# que puede chocar con el VPS si coincide. Uso ocasional, no cadencia.
 #
 # Mismos secrets que momentum_hunter.yml -- ver ese archivo.
 
 name: momentum-opportunity-hunter-watchlist
 
 on:
-  schedule:
-    - cron: "*/5 13-20 * * 1-5"
   workflow_dispatch:
 
 concurrency:
@@ -86,10 +84,10 @@ jobs:
 
       - name: Persistir watchlist/tracker/auditoría
         run: |
-          # Escritor secundario de watchlist/auditoria (rechecks si el
-          # VPS no corre). El dueño es momentum_hunter.yml. El VPS ya
-          # no git-add esos paths (CONFLICT rebase, run 34641814733).
-          # No apagar este workflow: es el fallback de cadencia corta.
+          # Desde el 2026-09-15 el dueño de TODO el estado es el VPS
+          # (infra/systemd/bin/run_momentum_paper.sh). Este paso solo
+          # existe para que un disparo manual no deje su resultado
+          # tirado en el runner.
           git config user.name "momentum-opportunity-hunter"
           git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
           for f in momentum_hunter/watchlist.json momentum_hunter/alertas_enviadas.json \

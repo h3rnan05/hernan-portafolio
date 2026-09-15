@@ -57,10 +57,12 @@ def test_vps_es_escritor_primario_con_flock():
 
 
 def test_vps_no_stagea_watchlist_ni_auditoria():
-    """GHA discovery es el dueño de watchlist.json + auditoria.
-    El VPS las actualiza en local para paper (--solo-watchlist) pero
-    no las git-add: dos escritores reventaban el rebase
-    (CONFLICT, run 34641814733)."""
+    """OJO: `scripts/run_watchlist_paper.sh` es el wrapper VIEJO y es
+    código muerto en el VPS (el drop-in lo reemplaza por
+    infra/systemd/bin/run_momentum_paper.sh, que sí stagea todo porque
+    desde el 2026-09-15 el VPS es el único escritor). Este test fija el
+    contrato del script viejo mientras el dueño decida si se borra o se
+    unifica; no describe lo que corre en producción."""
     texto = VPS.read_text(encoding="utf-8")
     bloque = _vps_paths_de_persistencia(texto)
     assert "momentum_hunter/watchlist.json" not in bloque
@@ -74,9 +76,9 @@ def test_vps_no_stagea_watchlist_ni_auditoria():
     assert "--solo-watchlist" in texto
 
 
-def test_gha_hunter_sigue_persistiendo_watchlist_y_auditoria():
-    """El dueño de discovery no se mueve. Quitar estos git-add
-    dejaría watchlist/auditoria sin escritor en git."""
+def test_gha_hunter_manual_sigue_persistiendo_lo_que_produce():
+    """Sin cron (2026-09-15), pero un `workflow_dispatch` manual sigue
+    committeando: si no, su resultado se quedaría tirado en el runner."""
     texto = HUNTER_WF.read_text(encoding="utf-8")
     assert "momentum_hunter/watchlist.json" in texto
     assert "momentum_paper_trader/archivo_triggered.jsonl" in texto
@@ -84,14 +86,24 @@ def test_gha_hunter_sigue_persistiendo_watchlist_y_auditoria():
     assert "git add momentum_hunter/telemetria" in texto
 
 
-def test_gha_watchlist_sigue_como_escritor_secundario():
-    """Fallback de re-chequeo: no se apaga ni se le quita el
-    git-add de watchlist/auditoria. El overlap con hunter GHA
-    ya estaba aceptado; el VPS ya no es el tercer escritor."""
+def test_gha_watchlist_manual_sigue_persistiendo_lo_que_produce():
     texto = WATCHLIST_WF.read_text(encoding="utf-8")
     assert "momentum_hunter/watchlist.json" in texto
     assert "git add momentum_hunter/auditoria" in texto
-    assert 'cron: "*/5 13-20 * * 1-5"' in texto
+
+
+def test_ningun_workflow_de_momentum_tiene_cron():
+    """Un solo escritor de estado (2026-09-15): el VPS, con timers de
+    systemd (infra/systemd/). Medido la semana del 7 al 14 de
+    septiembre: GHA disparaba 2-3 de 16 veces por día, siempre a las
+    mismas horas (2-4 slots de 8), y cuando coincidía con el VPS el
+    rebase reventaba (4 escaneos perdidos el 11/9). Volver a poner un
+    cron acá es volver a tener dos escritores."""
+    for path in (HUNTER_WF, WATCHLIST_WF):
+        texto = path.read_text(encoding="utf-8")
+        assert "schedule:" not in texto, f"{path.name} volvió a tener cron"
+        assert "cron:" not in texto, f"{path.name} volvió a tener cron"
+        assert "workflow_dispatch:" in texto, f"{path.name} sin disparo manual"
 
 
 def test_gitattributes_union_en_jsonl_de_telemetria():

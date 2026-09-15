@@ -24,10 +24,12 @@
 # quedan pending (GitHub cancela el pending anterior). El hunter
 # completo sigue independiente. No se re-mezclan los grupos.
 #
-# CRONS CORTOS. No se borran. Siguen de fallback si este puente no
-# arranca (el underfire del schedule de GHA también puede atrasar ESTE
-# arranque; por eso hay un cron a cada hora en 13-19 UTC, más
-# workflow_dispatch, más re-dispatch al agotar presupuesto).
+# SIN CRON desde el 2026-09-15. El VPS (infra/systemd/) corre el
+# re-chequeo cada 5 min y el escaneo cada 30 con timers de systemd, y
+# es el único escritor de estado en git. Este puente queda solo como
+# `workflow_dispatch` de emergencia si el VPS se cae; mientras corre,
+# vuelve a haber dos escritores, así que apagarlo en cuanto el VPS
+# vuelva.
 #
 # VENTANA. Lun–Vie 13:00–21:00 UTC, la misma que `13-20` de los cron
 # existentes. En invierno la sesión regular es 14:30–21:00 UTC -- el
@@ -38,7 +40,8 @@
 #   1. Repo → Settings → Actions → Variables → MOMENTUM_CADENCE_BRIDGE=off
 #   2. Actions → este workflow → "Disable workflow"
 #   3. Revertir el PR que lo introdujo
-# El cron de 5 min de watchlist.yml NO se apaga con (1)/(2).
+# Desde el 2026-09-15 ningún workflow de momentum tiene cron; (1)/(2)
+# solo cortan un puente disparado a mano.
 #
 # MINUTOS DE ACTIONS (repo privado). Un job hosted cuenta sleep.
 # Sesión ~8 h = ~480 min/día hábil ≈ 10 500 min/mes. Cuotas GitHub
@@ -52,11 +55,6 @@
 name: momentum-paper-cadence-bridge
 
 on:
-  schedule:
-    # Varios arranques: GHA atrasa schedules, no el loop interno.
-    # Con concurrency cancel-in-progress:false solo uno corre; el
-    # último pending sobrevive y cubre si el job anterior murió.
-    - cron: "0 13-19 * * 1-5"
   workflow_dispatch:
     inputs:
       max_minutos:

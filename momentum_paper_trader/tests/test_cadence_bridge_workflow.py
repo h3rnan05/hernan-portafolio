@@ -56,11 +56,14 @@ def test_concurrency_comparte_watchlist_no_hunter():
     assert re.search(r"cancel-in-progress:\s*false", puente)
 
 
-def test_cron_corto_de_watchlist_sigue_en_pie():
-    """El puente no reemplaza el cron de 5 min: es extra, no migración
-    silenciosa. Apagar el puente deja el fallback."""
-    watchlist = WATCHLIST_WF.read_text(encoding="utf-8")
-    assert 'cron: "*/5 13-20 * * 1-5"' in watchlist
+def test_el_puente_ya_no_tiene_cron_solo_disparo_manual():
+    """Desde el 2026-09-15 la cadencia vive en el VPS (infra/systemd/),
+    único escritor de estado. El puente queda como emergencia manual:
+    mientras corre vuelve a haber dos escritores."""
+    puente = WORKFLOW.read_text(encoding="utf-8")
+    assert "schedule:" not in puente
+    assert "cron:" not in puente
+    assert "workflow_dispatch:" in puente
 
 
 def test_timeout_bajo_el_tope_hosted_de_6h():
