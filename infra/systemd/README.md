@@ -22,10 +22,9 @@ Alpaca.
 | `momentum-watchlist.service.d/10-restart-notify.conf` | `/etc/systemd/system/momentum-watchlist.service.d/` | `OnFailure` apagado (anti-spam, decisión del 2026-09-11) |
 | `momentum-watchlist.service.d/20-ownership-wrapper.conf` | ídem | reemplaza el `ExecStart` por el wrapper de abajo |
 | `momentum-watchlist.timer` | `/etc/systemd/system/` | cada 5 min, Lun–Vie 13–20 UTC |
-| `momentum-watchlist-watchdog.service` | `/etc/systemd/system/` | avisa por Telegram si el oneshot lleva >1200 s sin terminar OK dentro de sesión |
+| `momentum-watchlist-watchdog.service` | `/etc/systemd/system/` | avisa por Telegram si el oneshot lleva >1200 s sin terminar OK dentro de sesión; ejecuta `scripts/watchdog_timer_miss.sh` **desde el árbol** (ver "Watchdog") |
 | `momentum-watchlist-watchdog.timer` | `/etc/systemd/system/` | cada 10 min, Lun–Vie 13–20 UTC |
 | `bin/run_watchlist_paper.sh` | `/opt/momentum/bin/` | el wrapper (ver abajo por qué vive fuera del árbol) |
-| `bin/watchdog_timer_miss.sh` | `/opt/momentum/bin/` | copia byte a byte de `scripts/watchdog_timer_miss.sh` (ver "Conocido") |
 
 **No versionado a propósito:** `/etc/momentum/paper.env` (credenciales;
 viven en el VPS y en GitHub Secrets, nunca en el repo).
@@ -66,15 +65,48 @@ systemctl list-units 'momentum*' --all
 Deben aparecer exactamente cuatro unidades: dos `.service` (`inactive
 dead` entre corridas, es un oneshot) y dos `.timer` (`active waiting`).
 
-## Conocido (2026-09-15): la ruta de notificación del watchdog
+## Watchdog: por qué corre desde `scripts/` y no desde `/opt/momentum/bin/`
 
 `watchdog_timer_miss.sh` deriva la ruta de `notify_telegram.sh` de su
-propia ubicación (`ROOT=$SCRIPT_DIR/..`). Ejecutado desde
-`/opt/momentum/bin/` eso resuelve a `/opt/momentum/scripts/notify_telegram.sh`,
-que no es un archivo del repo. Por eso las alertas del watchdog no
-llegaban a Telegram.
+propia ubicación (`ROOT=$SCRIPT_DIR/..`). Hasta el 2026-09-15 la unidad
+ejecutaba una **copia** en `/opt/momentum/bin/`, y desde ahí eso
+resuelve a `/opt/momentum/scripts/notify_telegram.sh` — que no es un
+archivo del repo. Por eso las alertas del watchdog nunca llegaron a
+Telegram. El 2026-09-14 17:33 alguien lo mitigó a mano con un symlink
+en esa ruta: funcionaba, no estaba versionado, nada lo verificaba.
 
-Hoy está **mitigado, no arreglado**: en el VPS existe un symlink
-`/opt/momentum/scripts/notify_telegram.sh -> /opt/hernan-portafolio/scripts/notify_telegram.sh`
-creado a mano el 2026-09-14 17:33. Funciona, no está versionado, y nada
-lo verifica. El arreglo va en un PR aparte.
+El arreglo es no copiar: `ExecStart=/opt/hernan-portafolio/scripts/watchdog_timer_miss.sh`.
+El watchdog solo lee el journal y llama a `notify` — no escribe en git —
+así que no tiene la razón de ownership que sí tiene el wrapper para
+vivir fuera del árbol. Ejecutado desde `scripts/`, `ROOT` resuelve al
+repo y `NOTIFY` a `scripts/notify_telegram.sh` sin symlinks, y el
+`git pull` del wrapper lo mantiene al día.
+
+### Aplicar el arreglo en el VPS (una vez)
+
+```bash
+cd /opt/hernan-portafolio && git pull --rebase origin main
+sudo cp infra/systemd/momentum-watchlist-watchdog.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo rm -f /opt/momentum/bin/watchdog_timer_miss.sh
+sudo rm -f /opt/momentum/scripts/notify_telegram.sh && sudo rmdir /opt/momentum/scripts
+systemctl cat momentum-watchlist-watchdog.service | grep ^ExecStart
+```
+
+### Verificar que una alerta llega DE VERDAD a Telegram
+
+El script acepta `WATCHDOG_NOW_EPOCH` y `WATCHDOG_LAST_OK_EPOCH` por
+entorno: se simula un silencio de 30 min dentro de sesión, sin esperar
+uno real. Como root (así corre la unidad), con `paper.env` cargado:
+
+```bash
+sudo bash -c 'set -a; . /etc/momentum/paper.env; set +a; \
+  WATCHDOG_NOW_EPOCH=$(date -u -d "2026-09-15 15:00:00" +%s) \
+  WATCHDOG_LAST_OK_EPOCH=$(date -u -d "2026-09-15 14:30:00" +%s) \
+  /opt/hernan-portafolio/scripts/watchdog_timer_miss.sh; echo "rc=$?"'
+```
+
+Esperado: la línea `ERROR [paper][vps] ... silent 1800s`, luego
+`TELEGRAM_NOTIFY OK`, `rc=1`, y el mensaje en el chat. Si sale
+`TELEGRAM_NOTIFY FAIL: missing token or chat id`, `paper.env` no se
+cargó; si sale `WARN: telegram notify failed`, la ruta sigue mal.
