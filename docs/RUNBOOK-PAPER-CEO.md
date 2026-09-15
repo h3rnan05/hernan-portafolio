@@ -27,14 +27,13 @@ El VPS exporta `MOMENTUM_TELEM_FUENTE=vps`. GHA, si corre paper, escribe en `gha
 
 ### Quién commitea qué (git push)
 
-Dos escritores sobre el mismo JSON reventaban el rebase (clase CONFLICT, run 34641814733). Partición:
+Dos escritores sobre el mismo JSON reventaban el rebase (clase CONFLICT, run 34641814733; 4 escaneos perdidos el 2026-09-11). **Desde el 2026-09-15 hay UN solo escritor: el VPS** (`infra/systemd/bin/run_momentum_paper.sh`, lista `PATHS`). Ningún workflow de momentum tiene cron; un `workflow_dispatch` manual en GHA sigue committeando y puede chocar con el VPS si coincide (uso ocasional, riesgo aceptado).
 
 | Artefacto | Quién hace `git add` / push |
 |---|---|
-| `watchlist.json` | **GHA hunter** (dueño). El cron GHA watchlist puede seguir stagedándolo como escritor secundario (rechecks cuando el VPS no corre); overlap hunter↔watchlist GHA ya estaba aceptado. **VPS no lo commitea** (sí puede actualizarlo en local para paper). |
-| `auditoria/` | **GHA hunter** (dueño). GHA watchlist puede stagedarlo. **VPS no.** |
-| hunter telem (`momentum_hunter/telemetria/`) | **GHA hunter**. El VPS puede persistir su partición local si existe. |
-| paper telem (`momentum_paper_trader/telemetria/`) | **VPS** (único para git push). GHA no (`git add` quitado: run 34624961161). |
+| `watchlist.json`, `auditoria/`, `alertas_enviadas.json`, `estado_diario.json`, `universo_cache.json` | **VPS** (escaneo cada 30 min y re-chequeo cada 5). |
+| hunter telem (`momentum_hunter/telemetria/`) | **VPS** (`fuente=vps`). |
+| paper telem, `revisiones.json`, `archivo_triggered.jsonl` | **VPS**. GHA no (`git add` quitado: run 34624961161). |
 
 No se apaga `momentum_hunter_watchlist.yml`: es fallback de re-chequeo, no el dueño de discovery. No cambia umbrales ni el endpoint paper.
 
@@ -73,8 +72,8 @@ desenlace paper terminal (JSONL durable). No inventa oportunidades.
   → alpaca_client → https://paper-api.alpaca.markets/v2 (hardcodeado)
 ```
 
-Workflows (UTC Lun–Vie): hunter `*/30 13-20`; watchlist+paper `*/5 13-20`.
-**Nota operativa:** la cadencia real observada del cron corto puede ser mucho menor (gaps ~2.5h). El puente temporal `momentum-paper-cadence-bridge` itera watchlist+paper ~cada 5 min dentro de un job largo (ventana 13:00–21:00 UTC) hasta que haya VPS.
+Cadencia (UTC Lun–Vie, timers de systemd en el VPS, ver `infra/systemd/`): escaneo cada 30 min 13:00–20:30; watchlist+paper cada 5 min 13–20.
+**Nota operativa:** GHA ya no tiene cron para nada de momentum (2026-09-15). Medido la semana del 7 al 14/9: disparaba 2-3 de 16 veces por día, siempre a las mismas horas, y solo se visitaban 2-4 de los 8 slots del universo. Los workflows quedan como `workflow_dispatch` de emergencia.
 
 ## 3. Qué requiere OK humano
 
@@ -82,7 +81,7 @@ Workflows (UTC Lun–Vie): hunter `*/30 13-20`; watchlist+paper `*/5 13-20`.
 |---|---|
 | Live / cuenta real | Paper hardcodeado; cambio de URL + aprobación humana |
 | Umbrales / score / config | Humano decide; ninguna función auto-ajusta |
-| VPS / servidor propio | Decisión pendiente ante latencia GHA. El puente GHA es temporal; apagarlo al tener VPS (abajo). |
+| VPS / servidor propio | Decidido el 2026-09-15: el VPS corre escaneo y re-chequeo y es el único escritor. Los workflows GHA quedan solo para disparo manual. |
 | Stops / ATR como piso | Problema B abierto; no calibrar a ciegas |
 | Overnight | `permitir_aguantar_overnight = False` por decisión del usuario |
 
@@ -99,16 +98,16 @@ UI: https://github.com/h3rnan05/hernan-portafolio/actions
 
 | Workflow | Cron | Nota |
 |---|---|---|
-| hunter | `*/30 13-20 * * 1-5` | sesión; grupo `momentum-opportunity-hunter` |
-| watchlist (+ paper) | `*/5 13-20 * * 1-5` | fallback; GHA lo atrasa. Grupo `…-watchlist` |
-| **puente cadencia paper** | `0 13-19 * * 1-5` + loop interno ~5 min | temporal hasta VPS; mismo grupo que watchlist |
+| hunter | ninguno (solo `workflow_dispatch`) | la cadencia vive en `momentum-scan.timer` del VPS |
+| watchlist (+ paper) | ninguno (solo `workflow_dispatch`) | la cadencia vive en `momentum-watchlist.timer` del VPS |
+| puente cadencia paper | ninguno (solo `workflow_dispatch`) | emergencia si el VPS se cae; mientras corre hay dos escritores |
 | outcomes hunter | `30 21 * * 1-5` | ≈ 15:30 MT |
 | Daily ingestion + predictions | `0 22 * * 1-5` | **16:00 MT = OLS/backend, NO resumen paper** |
 
-### Puente de cadencia (temporal, hasta VPS)
+### Puente de cadencia (solo emergencia manual desde el 2026-09-15)
 
 - **Qué hace:** un job hosted (tope 350 min, presupuesto interno 340) corre `--solo-watchlist` + paper cada ~5 min en 13:00–21:00 UTC Lun–Vie, y se re-despacha si la ventana sigue abierta. No cambia umbrales, riesgo ni endpoint paper.
-- **Cómo apagar:** (1) variable de repo `MOMENTUM_CADENCE_BRIDGE=off`; (2) Actions → `momentum-paper-cadence-bridge` → Disable workflow; (3) revertir el PR. El cron `*/5` de watchlist **no** se apaga con (1)/(2).
+- **Cómo apagar:** (1) variable de repo `MOMENTUM_CADENCE_BRIDGE=off`; (2) Actions → `momentum-paper-cadence-bridge` → Disable workflow; (3) revertir el PR. Ya no hay cron que apagar: solo corre si alguien lo dispara.
 - **Minutos Actions (repo privado):** sleep cuenta. ~8 h/día hábil ≈ 480 min/día ≈ 10 500 min/mes. Cuotas Free/Pro/Team privadas: 2 000–3 000 min/mes — las agota en días. En repo público no se cobran. No dejarlo encendido en privado sin aceptar esa factura.
 
 **HUECO:** el digest paper diario 16:00 MT Lun–Vie lo hace el Director (rutina de agentes Grok), no un workflow de este repo.
