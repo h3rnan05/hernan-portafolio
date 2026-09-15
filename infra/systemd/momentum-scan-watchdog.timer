@@ -1,0 +1,8 @@
+[Unit]
+Description=PAPER scan watchdog timer (Mon-Fri US hours, every 15m)
+[Timer]
+OnCalendar=Mon..Fri 13..20:0/15:00 UTC
+Persistent=true
+Unit=momentum-scan-watchdog.service
+[Install]
+WantedBy=timers.target

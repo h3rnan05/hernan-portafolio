@@ -30,6 +30,8 @@ from __future__ import annotations
 
 import os
 import shlex
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -262,3 +264,75 @@ def test_timer_sin_exec_no_tiene_nada_que_validar(tmp_path):
     _, prefijos = _repo_falso(tmp_path)
     u = _unit(tmp_path, "algo.timer", "[Timer]\nOnCalendar=*:0/5\nPersistent=true\n")
     assert problemas_en(u, prefijos) == []
+
+
+# ------------------- escaneo en el VPS (2026-09-15) -------------------
+# El escaneo completo pasa de GHA (2-3 disparos/día de 16, siempre a
+# las mismas horas => 2-4 slots de 8 por día) al VPS. Estas pruebas
+# fijan lo que hace que eso funcione: un solo wrapper para las dos
+# unidades, el timer en punto y media, y el watchdog apuntado a la
+# unidad nueva. Ninguna corre nada: solo leen texto.
+
+WRAPPER_VPS = "/opt/momentum/bin/run_momentum_paper.sh"
+
+
+def _exec_start(unit: Path) -> str:
+    valores = [ln.partition("=")[2].strip()
+               for ln in unit.read_text(encoding="utf-8").splitlines()
+               if ln.strip().startswith("ExecStart=")]
+    # En un drop-in la primera línea es el reset (vacía); vale la última.
+    return valores[-1] if valores else ""
+
+
+@pytest.mark.parametrize("wrapper", sorted((DIR_UNITS / "bin").glob("*.sh")),
+                         ids=lambda p: p.name)
+def test_wrapper_tiene_sintaxis_bash_valida(wrapper: Path):
+    bash = shutil.which("bash")
+    if bash is None:
+        pytest.skip("sin bash en este entorno")
+    r = subprocess.run([bash, "-n", str(wrapper)], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+
+
+def test_las_dos_unidades_usan_el_mismo_wrapper_en_modos_distintos():
+    # Dos wrappers distintos volverían a divergir en qué stagean, que
+    # es exactamente cómo se llegó a tener dos escritores.
+    scan = _exec_start(DIR_UNITS / "momentum-scan.service")
+    watch = _exec_start(DIR_UNITS / "momentum-watchlist.service.d" / "20-ownership-wrapper.conf")
+    assert scan == f"{WRAPPER_VPS} escaneo"
+    assert watch == f"{WRAPPER_VPS} watchlist"
+
+
+def test_el_wrapper_stagea_todo_el_estado_y_nunca_fuerza():
+    texto = (DIR_UNITS / "bin" / "run_momentum_paper.sh").read_text(encoding="utf-8")
+    inicio = texto.find("PATHS=(")
+    assert inicio != -1
+    bloque = texto[inicio:texto.find(")", inicio)]
+    for p in ("momentum_hunter/watchlist.json", "momentum_hunter/auditoria",
+              "momentum_hunter/telemetria", "momentum_hunter/alertas_enviadas.json",
+              "momentum_paper_trader/revisiones.json",
+              "momentum_paper_trader/archivo_triggered.jsonl",
+              "momentum_paper_trader/telemetria"):
+        assert p in bloque, f"falta {p} en PATHS: quedaría modificado en local"
+    assert "MOMENTUM_TELEM_FUENTE=vps" in texto
+    assert "flock" in texto
+    assert "git_persist_rebase_push.sh" in texto
+    assert "--force" not in texto
+    assert "--solo-watchlist" in texto
+    assert "--limit" in texto
+
+
+def test_el_timer_del_escaneo_dispara_en_punto_y_media():
+    # Es la cadencia que asume universe.ventana_rotativa
+    # (MINUTOS_POR_CORRIDA=30): con otra, los slots se saltan o repiten.
+    texto = (DIR_UNITS / "momentum-scan.timer").read_text(encoding="utf-8")
+    assert "OnCalendar=Mon..Fri *-*-* 13..20:00,30:00 UTC" in texto
+    assert "Persistent=false" in texto
+
+
+def test_el_watchdog_del_escaneo_vigila_la_unidad_nueva():
+    texto = (DIR_UNITS / "momentum-scan-watchdog.service").read_text(encoding="utf-8")
+    assert "WATCHDOG_UNIT=momentum-scan.service" in texto
+    assert "WATCHDOG_THRESHOLD_SEC=" in texto
+    assert _exec_start(DIR_UNITS / "momentum-scan-watchdog.service") == \
+        "/opt/hernan-portafolio/scripts/watchdog_timer_miss.sh"

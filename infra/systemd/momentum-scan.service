@@ -1,0 +1,21 @@
+[Unit]
+Description=Momentum escaneo completo + paper trader (PAPER ONLY oneshot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+EnvironmentFile=/etc/momentum/paper.env
+ExecStart=/opt/momentum/bin/run_momentum_paper.sh escaneo
+Nice=10
+# El escaneo de 1.000 tickers tarda ~9 min (barras + metadata
+# secuenciales con pausa). 25 min = el mismo presupuesto que tenía
+# el job de GHA; si se pasa, algo está mal y conviene que muera.
+TimeoutStartSec=1500
+
+[Install]
+WantedBy=multi-user.target
