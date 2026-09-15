@@ -126,3 +126,36 @@ def test_ventana_rotativa_no_pierde_ni_duplica_dentro_de_una_ventana():
     simbolos = [f"T{i}" for i in range(100)]
     v = ventana_rotativa(simbolos, 25, _en_corrida(2))
     assert len(set(v)) == len(v) == 25
+
+
+# ------------------------- slot_rotativo -------------------------
+# Separado de ventana_rotativa para poder registrarlo en la telemetría
+# (2026-09-15). Lo único que importa: que diga el MISMO slot que la
+# ventana usa, y que no invente uno cuando no hay rotación.
+
+from momentum_hunter.universe import slot_rotativo  # noqa: E402
+
+
+def test_slot_rotativo_coincide_con_la_ventana_que_se_escanea():
+    simbolos = [f"T{i}" for i in range(95)]   # 10 ventanas, la última con wrap
+    for n in range(12):
+        t = _en_corrida(n)
+        ranura = slot_rotativo(len(simbolos), 10, t)
+        assert ranura is not None
+        slot, n_ventanas = ranura
+        assert n_ventanas == 10
+        esperada = ventana_rotativa(simbolos, 10, t)
+        assert esperada[0] == simbolos[slot * 10]
+
+
+def test_slot_rotativo_avanza_uno_por_corrida_y_da_la_vuelta():
+    slots = [slot_rotativo(100, 10, _en_corrida(n))[0] for n in range(10)]
+    assert sorted(slots) == list(range(10))
+    assert slot_rotativo(100, 10, _en_corrida(10)) == slot_rotativo(100, 10, _en_corrida(0))
+
+
+def test_slot_rotativo_none_cuando_no_hay_rotacion():
+    # Sin rotación no hay slot que registrar: None, no 0.
+    assert slot_rotativo(3, 10, _T0) is None
+    assert slot_rotativo(3, 0, _T0) is None
+    assert slot_rotativo(10, 10, _T0) is None
