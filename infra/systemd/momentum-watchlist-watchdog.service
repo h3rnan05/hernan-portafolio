@@ -5,4 +5,4 @@ Type=oneshot
 User=root
 EnvironmentFile=-/etc/momentum/paper.env
 Environment=WATCHDOG_THRESHOLD_SEC=1200
-ExecStart=/opt/momentum/bin/watchdog_timer_miss.sh
+ExecStart=/opt/hernan-portafolio/scripts/watchdog_timer_miss.sh
