@@ -148,6 +148,155 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-16T22:58:08+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "GO",
+          "nombre": "Grocery Outlet Holding Corp.",
+          "precio_actual": 11.46,
+          "factores_intradia": {
+            "precio_actual": 11.46,
+            "vwap": 11.550199529017501,
+            "ema9": 11.43756240526216,
+            "rvol_actual": 1.381512746563375,
+            "aceleracion_volumen": 2.387504469873056,
+            "gap_pct": -0.0034843173735210156,
+            "maximo_dia": 11.87,
+            "maximo_premarket": 11.87,
+            "rango_apertura_max": 11.479999542236328,
+            "rango_apertura_min": 11.414999961853027,
+            "velas_desde_ruptura": 1,
+            "macd": -0.012387184787680638,
+            "macd_signal": -0.018565009993859495
+          },
+          "meta": {
+            "float_acciones": 87772016.0,
+            "short_pct_float": 0.36450002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Grocery Outlet (GO) Raises Guidance While Nursing A Widening Loss",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-16T04:11:24Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1126.7350804833334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 65.45914069081726,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "ABTC",
+          "nombre": "American Bitcoin Corp",
+          "precio_actual": 8.149999618530273,
+          "factores_intradia": {
+            "precio_actual": 8.149999618530273,
+            "vwap": 8.055521363235933,
+            "ema9": 8.128707994038088,
+            "rvol_actual": 4.170033629303462,
+            "aceleracion_volumen": 3.0427177217215085,
+            "gap_pct": 0.01939933555515186,
+            "maximo_dia": 8.25,
+            "maximo_premarket": 8.25,
+            "rango_apertura_max": 8.199999809265137,
+            "rango_apertura_min": 8.020000457763672,
+            "velas_desde_ruptura": 2,
+            "macd": 0.04625446365279551,
+            "macd_signal": 0.04216453841270179
+          },
+          "meta": {
+            "float_acciones": 23343815.0,
+            "short_pct_float": 0.18190001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "American Bitcoin Shares Rise 1% Premarket After BTIG Initiates Coverage With Buy Rating",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-16T13:48:49Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 549.3184522833333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": true,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 78.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 87.87874164003317,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [],
+            "score_base": 50.8,
+            "score_ajustado": 50.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No fue accionable."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el conjunto sume más convicción: el total quedó en 51 y exijo más de 55."
+          ]
+        }
+      ]
     }
   ]
 }
