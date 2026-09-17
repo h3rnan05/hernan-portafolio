@@ -1,0 +1,11 @@
+[Unit]
+Description=PAPER watchdog: alert if momentum-scan silent >50m in US hours
+[Service]
+Type=oneshot
+User=root
+EnvironmentFile=-/etc/momentum/paper.env
+# Mismo script que el watchdog del re-chequeo, apuntado a la otra
+# unidad. 3000 s = cadencia (30 min) + duración (~9 min) + margen.
+Environment=WATCHDOG_UNIT=momentum-scan.service
+Environment=WATCHDOG_THRESHOLD_SEC=3000
+ExecStart=/opt/hernan-portafolio/scripts/watchdog_timer_miss.sh

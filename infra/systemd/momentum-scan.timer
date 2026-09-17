@@ -1,0 +1,15 @@
+[Unit]
+Description=Timer del escaneo completo (cada 30 min, Lun-Vie 13-20 UTC)
+Requires=momentum-scan.service
+
+[Timer]
+# Misma cadencia que pedía el cron de GHA (*/30 13-20) y que asume
+# universe.ventana_rotativa (MINUTOS_POR_CORRIDA=30): 16 corridas por
+# día, cada slot del universo dos veces. Persistent=false a propósito:
+# un escaneo atrasado no tiene sentido, la ventana ya pasó.
+OnCalendar=Mon..Fri *-*-* 13..20:00,30:00 UTC
+Persistent=false
+Unit=momentum-scan.service
+
+[Install]
+WantedBy=timers.target
