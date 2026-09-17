@@ -73,66 +73,6 @@
       "clima_mercado": null
     },
     {
-      "ticker": "CHPT",
-      "nombre": "ChargePoint Holdings, Inc.",
-      "estado": "expired",
-      "creado_en": "2026-09-09T22:33:48+00:00",
-      "actualizado_en": "2026-09-10T16:45:47+00:00",
-      "transiciones": [
-        {
-          "estado": "watching",
-          "timestamp": "2026-09-09T22:33:48+00:00",
-          "motivo": "Catalizador confirmado -- en observación.",
-          "deteccion_ts": "2026-09-09T22:33:48+00:00",
-          "evaluacion_ts": "2026-09-09T22:33:48+00:00",
-          "mensaje_generado_ts": null,
-          "telegram_enviado_ts": null,
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": null
-        },
-        {
-          "estado": "expired",
-          "timestamp": "2026-09-10T16:45:47+00:00",
-          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
-          "deteccion_ts": null,
-          "evaluacion_ts": null,
-          "mensaje_generado_ts": "2026-09-10T16:45:48+00:00",
-          "telegram_enviado_ts": "2026-09-10T16:45:49+00:00",
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": 2000.0
-        }
-      ],
-      "catalizador_tipo": "earnings",
-      "catalizador_titular": "ChargePoint (CHPT) Posts Strong Q2 Results, But Q3 Outlook Raises Concerns",
-      "catalizador_fuente": "Insider Monkey",
-      "catalizador_fecha": "2026-09-07T11:22:24Z",
-      "catalizador_confirmado": true,
-      "catalizador_fuentes_adicionales": [],
-      "shares_float": 26030047.0,
-      "short_pct_float": 0.2259,
-      "es_large_cap": false,
-      "score_base": 65.8,
-      "atr_diario": 0.7212142944335938,
-      "gap_pct_congelado": 0.00213452059850036,
-      "tarde_consecutivas": 0,
-      "market_event_ts": null,
-      "data_received_ts": null,
-      "evaluador_ts": null,
-      "mensaje_generado_ts": null,
-      "telegram_enviado_ts": null,
-      "signal_latency_ms": null,
-      "watchlist_escrito_ts": null,
-      "ultima_entrada": 8.720000267028809,
-      "ultimo_stop": 8.655118359919559,
-      "ultimo_objetivo": 8.849764081247308,
-      "ultima_zona_entrada_baja": 8.698611417004582,
-      "ultimos_niveles_ts": "2026-09-10T16:45:47+00:00",
-      "stop_tesis": 8.565692852783203,
-      "clima_mercado": "favorable"
-    },
-    {
       "ticker": "BEAM",
       "nombre": "Beam Therapeutics Inc.",
       "estado": "archived",
@@ -2556,9 +2496,9 @@
     {
       "ticker": "GO",
       "nombre": "Grocery Outlet Holding Corp.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-16T21:16:23+00:00",
-      "actualizado_en": "2026-09-16T21:16:23+00:00",
+      "actualizado_en": "2026-09-17T17:22:53+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2571,6 +2511,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-17T17:22:53+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-17T17:22:54+00:00",
+          "telegram_enviado_ts": "2026-09-17T17:22:56+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "guidance",
@@ -2593,20 +2545,20 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 11.46,
-      "ultimo_stop": 11.38037459323585,
-      "ultimo_objetivo": 11.619250813528303,
-      "ultima_zona_entrada_baja": 11.43756240526216,
-      "ultimos_niveles_ts": "2026-09-16T22:58:07+00:00",
+      "ultima_entrada": 11.539999961853027,
+      "ultimo_stop": 11.480594014185524,
+      "ultimo_objetivo": 11.658811857188034,
+      "ultima_zona_entrada_baja": 11.560297120248839,
+      "ultimos_niveles_ts": "2026-09-17T17:22:53+00:00",
       "stop_tesis": 11.38037459323585,
       "clima_mercado": "debil"
     },
     {
       "ticker": "ABTC",
       "nombre": "American Bitcoin Corp",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-16T21:16:23+00:00",
-      "actualizado_en": "2026-09-16T21:16:23+00:00",
+      "actualizado_en": "2026-09-17T17:22:53+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2619,6 +2571,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-17T17:22:53+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-17T17:22:56+00:00",
+          "telegram_enviado_ts": "2026-09-17T17:22:56+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "upgrade_analista",
@@ -2633,7 +2597,7 @@
       "score_base": 50.8,
       "atr_diario": 0.8315000874655587,
       "gap_pct_congelado": 0.01939933555515186,
-      "tarde_consecutivas": 0,
+      "tarde_consecutivas": 1,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -2641,11 +2605,11 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 8.149999618530273,
-      "ultimo_stop": 8.088064454067897,
-      "ultimo_objetivo": 8.273869947455026,
-      "ultima_zona_entrada_baja": 8.128707994038088,
-      "ultimos_niveles_ts": "2026-09-16T22:58:07+00:00",
+      "ultima_entrada": 9.09000015258789,
+      "ultimo_stop": 9.017877814698231,
+      "ultimo_objetivo": 9.23424482836721,
+      "ultima_zona_entrada_baja": 8.619999885559082,
+      "ultimos_niveles_ts": "2026-09-17T17:22:53+00:00",
       "stop_tesis": 8.088064454067897,
       "clima_mercado": "debil"
     }
