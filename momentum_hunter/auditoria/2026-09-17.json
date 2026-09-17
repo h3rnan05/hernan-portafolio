@@ -149,6 +149,220 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-17T21:20:25+00:00",
+      "candidatos_evaluados": 3,
+      "candidatos": [
+        {
+          "ticker": "BBNX",
+          "nombre": "Beta Bionics, Inc.",
+          "precio_actual": 21.43,
+          "factores_intradia": {
+            "precio_actual": 21.43,
+            "vwap": 21.45427512672204,
+            "ema9": 21.55549138647843,
+            "rvol_actual": 3.9825243688661454,
+            "aceleracion_volumen": 2.856916819380503,
+            "gap_pct": 0.012623930362685176,
+            "maximo_dia": 22.65999984741211,
+            "maximo_premarket": 22.6466,
+            "rango_apertura_max": 22.65999984741211,
+            "rango_apertura_min": 21.90999984741211,
+            "velas_desde_ruptura": null,
+            "macd": 0.0027369857445869172,
+            "macd_signal": 0.021706403468298618
+          },
+          "meta": {
+            "float_acciones": 26515123.0,
+            "short_pct_float": 0.20989999,
+            "market_cap": 964129024.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Beta Bionics Stock Surges on FDA Clearance for Mint Patch Pump",
+            "fuente": "Zacks",
+            "fecha": "2026-09-17T16:01:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 319.4057371833333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 70.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 45.71933558275898,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 72.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "GO",
+          "nombre": "Grocery Outlet Holding Corp.",
+          "precio_actual": 11.62,
+          "factores_intradia": {
+            "precio_actual": 11.62,
+            "vwap": 11.55817931977612,
+            "ema9": 11.602396122671692,
+            "rvol_actual": 1.4335713810094555,
+            "aceleracion_volumen": 1.9733040986286616,
+            "gap_pct": 0.0209423883350153,
+            "maximo_dia": 11.75,
+            "maximo_premarket": 11.75,
+            "rango_apertura_max": 11.710000038146973,
+            "rango_apertura_min": 11.489999771118164,
+            "velas_desde_ruptura": 3,
+            "macd": 0.01243927827907676,
+            "macd_signal": 0.006299258046294465
+          },
+          "meta": {
+            "float_acciones": 87772016.0,
+            "short_pct_float": 0.36450002,
+            "market_cap": 1151361792.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Grocery Outlet (GO) Raises Guidance While Nursing A Widening Loss",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-16T04:11:24Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2469.005767933333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 76.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.9361702127659,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 60.7,
+            "score_ajustado": 40.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "ABTC",
+          "nombre": "American Bitcoin Corp",
+          "precio_actual": 8.83,
+          "factores_intradia": {
+            "precio_actual": 8.83,
+            "vwap": 8.818641563473724,
+            "ema9": 8.836960299955642,
+            "rvol_actual": 7.457151735191181,
+            "aceleracion_volumen": 7.666325340614956,
+            "gap_pct": 0.03808347086823842,
+            "maximo_dia": 9.130000114440918,
+            "maximo_premarket": 8.57,
+            "rango_apertura_max": 8.619999885559082,
+            "rango_apertura_min": 8.386899948120117,
+            "velas_desde_ruptura": 313,
+            "macd": -0.005054810384470088,
+            "macd_signal": -0.0021013571529563653
+          },
+          "meta": {
+            "float_acciones": 23343815.0,
+            "short_pct_float": 0.18190001,
+            "market_cap": 1075668096.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "American Bitcoin Shares Rise 1% Premarket After BTIG Initiates Coverage With Buy Rating",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-16T13:48:49Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1891.5891340833334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": true,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 61.7,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 313 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 67.14128031976607,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 313 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 52.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        }
+      ]
     }
   ]
 }
