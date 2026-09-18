@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
-# Copia diaria del overlay VPS. /var/lib/momentum no está en git: sin
-# esto un rm, un disco lleno o un rollback mal hecho pierde las
-# transiciones locales (VRA watching→expired y las que vengan).
-# PAPER ONLY. No toca watchlist.json ni arranca el timer de rechequeo.
+# Backup diario del overlay VPS (condición Claude #1).
+# Cron: 15 2 * * *  TZ=America/Monterrey
+# Dest: /var/backups/momentum/watchlist_vps_state-YYYY-MM-DD.json
+# Retención: 14 días. PAPER ONLY. No arranca el timer de rechequeo.
 set -u
+export TZ="${TZ:-America/Monterrey}"
 STATE="${MOMENTUM_WATCHLIST_STATE:-/var/lib/momentum/watchlist_vps_state.json}"
-STAMP=$(date -u +%F)
-PREFERRED="${MOMENTUM_WATCHLIST_STATE_BACKUP_DIR:-/var/backups}"
+PREFERRED="${MOMENTUM_WATCHLIST_STATE_BACKUP_DIR:-/var/backups/momentum}"
 FALLBACK="/var/lib/momentum/backups"
+STAMP=$(date +%F)
+
+_purgar() {
+  local dir="$1"
+  [ -d "$dir" ] || return 0
+  find "$dir" -name 'watchlist_vps_state-*.json' -mtime +14 -delete 2>/dev/null || true
+}
 
 if [ ! -f "$STATE" ]; then
   echo "INFO: no VPS watchlist state at $STATE -- nothing to backup"
+  _purgar "$PREFERRED"
   exit 0
 fi
 
@@ -24,7 +32,8 @@ if ! mkdir -p "$dest_dir" 2>/dev/null || [ ! -w "$dest_dir" ]; then
   echo "WARN: $PREFERRED not writable; backing up to $dest_dir"
 fi
 
-DEST="$dest_dir/watchlist-vps-state-${STAMP}.json"
+DEST="$dest_dir/watchlist_vps_state-${STAMP}.json"
 cp -a "$STATE" "$DEST"
+_purgar "$dest_dir"
 echo "INFO: backed up $STATE -> $DEST"
 exit 0

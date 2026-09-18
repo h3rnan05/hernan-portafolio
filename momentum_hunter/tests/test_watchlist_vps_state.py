@@ -12,6 +12,7 @@ el timer de rechequeo.
 
 from __future__ import annotations
 
+import hashlib
 import inspect
 import json
 import os
@@ -121,13 +122,35 @@ def _preparar_vps(monkeypatch, tmp_path, entradas):
     return canonical, state, mtime_repo, mtime_canonical
 
 
-def _assert_sin_tocar_canonico(canonical, mtime_repo, mtime_canonical):
+def _assert_sin_tocar_canonico(canonical, mtime_repo, mtime_canonical, sha_canonical=None):
     assert canonical.stat().st_mtime_ns == mtime_canonical
+    if sha_canonical is not None:
+        assert hashlib.sha256(canonical.read_bytes()).hexdigest() == sha_canonical
     if mtime_repo is not None:
         assert watchlist.PATH.stat().st_mtime_ns == mtime_repo
 
 
-# ------------------------- fail-loud + call sites (Claude #1) -------------------------
+def _fail_si_escribe_path_canonico(monkeypatch):
+    """Condición Claude: PATH.write_text sobre el JSON versionado explota."""
+    real_write = Path.write_text
+
+    def _guarded(self, *args, **kwargs):
+        try:
+            mismo = self.resolve() == watchlist.PATH.resolve()
+        except OSError:
+            mismo = self == watchlist.PATH
+        if mismo:
+            raise AssertionError(
+                f"VPS --solo-watchlist escribió el PATH canónico ({self})"
+            )
+        return real_write(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "write_text", _guarded)
+
+
+# ------------------------- fail-loud + call sites (SPEC Claude) -------------------------
+# Anclas en origin/main 2026-09-18: L930 / L988 / L1034 / L1067.
+# Tras el wrapper, viven en `_revisar_watchlist_cuerpo` vía `_persistir_rechequeo`.
 
 def test_revisar_watchlist_cuerpo_tiene_exactamente_cuatro_persistencias_y_cero_guardar():
     src = inspect.getsource(run_mod._revisar_watchlist_cuerpo)
@@ -135,7 +158,8 @@ def test_revisar_watchlist_cuerpo_tiene_exactamente_cuatro_persistencias_y_cero_
     assert src.count("_persistir_rechequeo(") == 4
 
 
-def test_full_scan_sigue_escribiendo_el_canonico():
+def test_full_scan_guardar_still_writes_canonical():
+    """GHA full scan (main L1295 / `_actualizar_watchlist` L707) no se desvía."""
     src_upd = inspect.getsource(run_mod._actualizar_watchlist)
     src_main = inspect.getsource(run_mod.main)
     assert "watchlist.guardar(" in src_upd
@@ -143,25 +167,27 @@ def test_full_scan_sigue_escribiendo_el_canonico():
     assert "watchlist.guardar(" in src_main
 
 
-def test_guardar_canonico_explota_con_la_guardia(tmp_path):
-    e = watchlist.desde_candidato_diario(_candidato_diario(), AHORA)
-    with watchlist.prohibir_escritura_canonica():
-        with pytest.raises(watchlist.EscrituraWatchlistCanonicaProhibida):
-            watchlist.guardar([e])
-    dest = tmp_path / "ok.json"
-    watchlist.guardar([e], dest)
-    assert dest.exists()
+def test_cargar_aplica_overlay_por_ticker(tmp_path, monkeypatch):
+    """L916: canónico read-only + overlay por ticker. RKLB sin overlay no se toca."""
+    vra = watchlist.desde_candidato_diario(_candidato_diario("VRA"), AHORA)
+    rklb = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    canonical = tmp_path / "watchlist.json"
+    watchlist.guardar([vra, rklb], canonical)
+    overlay_e = watchlist.desde_candidato_diario(_candidato_diario("VRA"), AHORA)
+    watchlist.expirar_vencidas(
+        [overlay_e], minutos_maximos=1, ahora=AHORA + timedelta(hours=3))
+    state = tmp_path / "state.json"
+    watchlist.guardar_vps_state(
+        [overlay_e], path=state, ahora=AHORA + timedelta(hours=3))
+    monkeypatch.setenv("MOMENTUM_WATCHLIST_STATE", str(state))
+    fused = {e.ticker: e for e in watchlist.cargar(canonical, apply_vps_state=True)}
+    assert fused["VRA"].estado == watchlist.ESTADO_EXPIRED
+    assert fused["RKLB"].estado == watchlist.ESTADO_WATCHING
+    assert fused["VRA"].catalizador_tipo == "contrato"
 
 
-def test_guardar_vps_state_se_niega_a_escribir_el_path_canonico(tmp_path):
-    e = watchlist.desde_candidato_diario(_candidato_diario(), AHORA)
-    with pytest.raises(watchlist.EscrituraWatchlistCanonicaProhibida):
-        watchlist.guardar_vps_state([e], path=watchlist.PATH)
-
-
-def test_call_site_escapado_hacia_path_explota(monkeypatch, tmp_path):
-    """Si `_persistir_rechequeo` regresiona a `guardar(PATH)`, la corrida
-    tiene que morir a gritos -- no suciar el tree en silencio."""
+def test_solo_watchlist_canonical_write_fail_loud(monkeypatch, tmp_path):
+    """Forzar `guardar(PATH)` bajo flag VPS → RuntimeError. No suciar el tree."""
     e = watchlist.desde_candidato_diario(_candidato_diario(), AHORA)
     _preparar_vps(monkeypatch, tmp_path, [e])
     _parchear_efectos(monkeypatch)
@@ -173,37 +199,47 @@ def test_call_site_escapado_hacia_path_explota(monkeypatch, tmp_path):
     with pytest.raises(watchlist.EscrituraWatchlistCanonicaProhibida):
         run_mod.revisar_watchlist(CFG, _FakeProvider(set()), dry_run=False, ahora=AHORA)
 
+    with watchlist.prohibir_escritura_canonica():
+        with pytest.raises(watchlist.EscrituraWatchlistCanonicaProhibida):
+            watchlist.guardar([e])
+    with pytest.raises(watchlist.EscrituraWatchlistCanonicaProhibida):
+        watchlist.guardar_vps_state([e], path=watchlist.PATH)
 
-def test_call_site_purga_vacia_escribe_state_no_canonico(monkeypatch, tmp_path):
-    # Sitio ~961: watchlist vacía / solo terminales viejas.
+
+def test_solo_watchlist_early_empty_writes_state_not_canonical(monkeypatch, tmp_path):
+    """main L930: early exit vacío / purga. State sí, PATH.write_text no."""
     vieja = watchlist.desde_candidato_diario(
         _candidato_diario("RKLB"), AHORA - timedelta(days=10))
     watchlist.marcar_missed(vieja, "x", AHORA - timedelta(days=10))
     canonical, state, mtime_repo, mtime_canonical = _preparar_vps(
         monkeypatch, tmp_path, [vieja])
+    sha = hashlib.sha256(canonical.read_bytes()).hexdigest()
     _parchear_efectos(monkeypatch)
+    _fail_si_escribe_path_canonico(monkeypatch)
 
     run_mod.revisar_watchlist(CFG, _FakeProvider(set()), dry_run=False, ahora=AHORA)
 
-    _assert_sin_tocar_canonico(canonical, mtime_repo, mtime_canonical)
+    _assert_sin_tocar_canonico(canonical, mtime_repo, mtime_canonical, sha)
     assert state.exists()
     data = json.loads(state.read_text())
     assert data["schema"] == 1
     assert data["source"] == "vps-solo-watchlist"
-    assert "RKLB" not in data["entries"]   # purgada en el overlay
+    assert "RKLB" not in data["entries"]
 
 
-def test_call_site_sin_candidatos_escribe_state_no_canonico(monkeypatch, tmp_path):
-    # Sitio ~1019: proveedor sin datos → expirar + persistir.
+def test_solo_watchlist_no_candidates_expires_to_state_only(monkeypatch, tmp_path):
+    """main L988: sin candidatos → expirar al state, canónico intacto."""
     vieja = watchlist.desde_candidato_diario(
         _candidato_diario("VRA"), AHORA - timedelta(hours=3))
     canonical, state, mtime_repo, mtime_canonical = _preparar_vps(
         monkeypatch, tmp_path, [vieja])
+    sha = hashlib.sha256(canonical.read_bytes()).hexdigest()
     _parchear_efectos(monkeypatch)
+    _fail_si_escribe_path_canonico(monkeypatch)
 
     run_mod.revisar_watchlist(CFG, _FakeProvider(set()), dry_run=False, ahora=AHORA)
 
-    _assert_sin_tocar_canonico(canonical, mtime_repo, mtime_canonical)
+    _assert_sin_tocar_canonico(canonical, mtime_repo, mtime_canonical, sha)
     assert json.loads(canonical.read_text())["entradas"][0]["estado"] == watchlist.ESTADO_WATCHING
     data = json.loads(state.read_text())
     assert data["entries"]["VRA"]["estado"] == watchlist.ESTADO_EXPIRED
@@ -211,13 +247,46 @@ def test_call_site_sin_candidatos_escribe_state_no_canonico(monkeypatch, tmp_pat
     assert recargadas[0].estado == watchlist.ESTADO_EXPIRED
 
 
-def test_call_sites_pre_y_post_telegram_escriben_state_dos_veces(monkeypatch, tmp_path):
-    # Sitios ~1065 (COMMIT pre-Telegram, latencia todavía None) y
-    # ~1098 (post-Telegram, latencia sellada).
+def test_solo_watchlist_commit_before_telegram_state_only(monkeypatch, tmp_path):
+    """main L1034: COMMIT pre-Telegram. Canónico sha/mtime intacto; state tiene ticker."""
     e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
     canonical, state, mtime_repo, mtime_canonical = _preparar_vps(
         monkeypatch, tmp_path, [e])
+    sha = hashlib.sha256(canonical.read_bytes()).hexdigest()
     _parchear_efectos(monkeypatch)
+    _fail_si_escribe_path_canonico(monkeypatch)
+    monkeypatch.setattr(
+        run_mod, "_construir_candidato_intradia",
+        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=True))
+
+    primeras: list[str] = []
+    real = watchlist.guardar_vps_state
+
+    def spy(entradas, path=None, ahora=None):
+        if not primeras:
+            primeras.append(entradas[0].estado)
+        return real(entradas, path=path, ahora=ahora)
+
+    monkeypatch.setattr(watchlist, "guardar_vps_state", spy)
+
+    run_mod.revisar_watchlist(
+        CFG, _FakeProvider({"RKLB"}), dry_run=False, ahora=AHORA)
+
+    _assert_sin_tocar_canonico(canonical, mtime_repo, mtime_canonical, sha)
+    assert primeras == [watchlist.ESTADO_TRIGGERED]
+    assert json.loads(state.read_text())["entries"]["RKLB"]["estado"] == watchlist.ESTADO_TRIGGERED
+    recargadas = watchlist.aplicar_overlay(watchlist.cargar(canonical), state)
+    assert recargadas[0].estado == watchlist.ESTADO_TRIGGERED
+
+
+def test_solo_watchlist_latency_second_flush_state_only(monkeypatch, tmp_path):
+    """main L1067: segundo flush post-Telegram. Latencia en state, no en PATH."""
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    canonical, state, mtime_repo, mtime_canonical = _preparar_vps(
+        monkeypatch, tmp_path, [e])
+    sha = hashlib.sha256(canonical.read_bytes()).hexdigest()
+    _parchear_efectos(monkeypatch)
+    _fail_si_escribe_path_canonico(monkeypatch)
     monkeypatch.setattr(
         run_mod, "_construir_candidato_intradia",
         lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=True))
@@ -234,12 +303,11 @@ def test_call_sites_pre_y_post_telegram_escriben_state_dos_veces(monkeypatch, tm
     run_mod.revisar_watchlist(
         CFG, _FakeProvider({"RKLB"}), dry_run=False, ahora=AHORA)
 
-    _assert_sin_tocar_canonico(canonical, mtime_repo, mtime_canonical)
+    _assert_sin_tocar_canonico(canonical, mtime_repo, mtime_canonical, sha)
     assert len(llamadas) == 2
     assert llamadas[0] is None
     assert llamadas[1] is not None
     recargadas = watchlist.aplicar_overlay(watchlist.cargar(canonical), state)
-    assert recargadas[0].estado == watchlist.ESTADO_TRIGGERED
     assert recargadas[0].signal_latency_ms is not None
 
 
@@ -425,22 +493,23 @@ def test_vps_state_habilitado_lee_el_flag(monkeypatch):
     assert watchlist.vps_state_habilitado() is False
 
 
-# ------------------------- backup diario (Claude #3) -------------------------
+# ------------------------- backup diario (Claude #1) -------------------------
 
-def test_script_backup_copia_a_fecha_utc(tmp_path):
+def test_script_backup_copia_a_fecha_monterrey(tmp_path):
     script = REPO / "scripts" / "backup_watchlist_vps_state.sh"
     state = tmp_path / "state.json"
-    dest = tmp_path / "backups"
+    dest = tmp_path / "momentum"
     state.write_text('{"schema": 1, "entries": {"VRA": {"estado": "expired"}}}')
     env = {
         **os.environ,
+        "TZ": "America/Monterrey",
         "MOMENTUM_WATCHLIST_STATE": str(state),
         "MOMENTUM_WATCHLIST_STATE_BACKUP_DIR": str(dest),
     }
     r = subprocess.run(["bash", str(script)], capture_output=True, text=True, env=env)
     assert r.returncode == 0, r.stderr
-    stamp = datetime.now(UTC).strftime("%Y-%m-%d")
-    copia = dest / f"watchlist-vps-state-{stamp}.json"
+    stamp = subprocess.check_output(["date", "+%F"], env=env, text=True).strip()
+    copia = dest / f"watchlist_vps_state-{stamp}.json"
     assert copia.exists()
     assert "expired" in copia.read_text()
 
@@ -457,12 +526,46 @@ def test_script_backup_sin_state_no_falla(tmp_path):
     assert "nothing to backup" in r.stdout
 
 
+def test_script_backup_borra_copias_de_mas_de_14_dias(tmp_path):
+    script = REPO / "scripts" / "backup_watchlist_vps_state.sh"
+    state = tmp_path / "state.json"
+    dest = tmp_path / "momentum"
+    dest.mkdir()
+    state.write_text('{"schema": 1}')
+    vieja = dest / "watchlist_vps_state-2000-01-01.json"
+    vieja.write_text("old")
+    os.utime(vieja, (0, 0))
+    env = {
+        **os.environ,
+        "TZ": "America/Monterrey",
+        "MOMENTUM_WATCHLIST_STATE": str(state),
+        "MOMENTUM_WATCHLIST_STATE_BACKUP_DIR": str(dest),
+    }
+    r = subprocess.run(["bash", str(script)], capture_output=True, text=True, env=env)
+    assert r.returncode == 0, r.stderr
+    assert not vieja.exists()
+    stamp = subprocess.check_output(["date", "+%F"], env=env, text=True).strip()
+    assert (dest / f"watchlist_vps_state-{stamp}.json").exists()
+
+
+def test_crontab_backup_coincide_con_el_spec():
+    cron = (REPO / "infra" / "cron" / "momentum-watchlist-state-backup").read_text()
+    assert "CRON_TZ=America/Monterrey" in cron
+    assert "15 2 * * *" in cron
+    assert "/var/backups/momentum/watchlist_vps_state-" in cron
+    assert "-mtime +14 -delete" in cron
+    assert "momentum-watchlist.timer" not in cron.split("15 2")[1]  # la línea cron no arranca el timer
+
+
 def test_unidades_backup_existen_y_el_timer_de_rechequeo_no_se_toca():
     backup_service = REPO / "infra" / "systemd" / "momentum-watchlist-state-backup.service"
     backup_timer = REPO / "infra" / "systemd" / "momentum-watchlist-state-backup.timer"
     assert backup_service.is_file()
     assert backup_timer.is_file()
-    assert "backup_watchlist_vps_state.sh" in backup_service.read_text()
-    # Este PR no habilita el timer de rechequeo.
+    texto_svc = backup_service.read_text()
+    texto_tmr = backup_timer.read_text()
+    assert "backup_watchlist_vps_state.sh" in texto_svc
+    assert "America/Monterrey" in texto_svc
+    assert "02:15:00" in texto_tmr
     rechequeo = (REPO / "infra" / "systemd" / "momentum-watchlist.timer").read_text()
     assert "OnCalendar=" in rechequeo

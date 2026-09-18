@@ -4,10 +4,11 @@ Documentation=file:///opt/hernan-portafolio/docs/SPEC-vps-watchlist-state-file.m
 
 [Service]
 Type=oneshot
-# root: /var/backups no es escribible por `momentum`. El state
-# (/var/lib/momentum, 0750) sí lo puede leer root.
-User=root
-Group=root
+# User momentum: el dir /var/backups/momentum es suyo (SPEC).
+# TZ America/Monterrey = cron 15 2 * * * del SPEC.
+User=momentum
+Group=momentum
+Environment=TZ=America/Monterrey
 ExecStart=/opt/hernan-portafolio/scripts/backup_watchlist_vps_state.sh
 Nice=10
 TimeoutStartSec=60

@@ -1,9 +1,11 @@
 [Unit]
-Description=Daily 00:30 UTC backup of VPS watchlist overlay state
+Description=Daily 02:15 America/Monterrey backup of VPS watchlist overlay state
 Requires=momentum-watchlist-state-backup.service
 
 [Timer]
-OnCalendar=*-*-* 00:30:00 UTC
+# Equivale a crontab `15 2 * * *` con CRON_TZ=America/Monterrey.
+# NO habilitar junto al timer de rechequeo; ops post-merge.
+OnCalendar=*-*-* 02:15:00
 Persistent=true
 Unit=momentum-watchlist-state-backup.service
 

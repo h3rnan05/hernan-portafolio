@@ -445,9 +445,10 @@ del rechequeo viven en `/var/lib/momentum/watchlist_vps_state.json`
 (fuera de git) y se aplican como overlay al cargar. Feature flag:
 `MOMENTUM_WATCHLIST_VPS_STATE=1` (el wrapper VPS lo exporta);
 `=0` restaura `guardar` → PATH. **Limitación v1:** esas transiciones
-no llegan al GitHub; quien lea `watchlist.json` en origin ve solo la
-foto de GHA. Detalle, backup diario y rollback:
-`docs/SPEC-vps-watchlist-state-file.md`.
+**no llegan al repo**; `watchlist.json` en GitHub = vista GHA. Sync =
+fase 2. Backup diario: `15 2 * * *` America/Monterrey →
+`/var/backups/momentum/watchlist_vps_state-YYYY-MM-DD.json` (14 días).
+Detalle: `docs/SPEC-vps-watchlist-state-file.md`.
 
 **Puente temporal (hasta VPS):** el cron `*/5` de GHA no se cumple --
 la plataforma atrasa el arranque, no el YAML. Mientras no haya servidor
