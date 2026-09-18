@@ -4972,6 +4972,81 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-18T22:33:22+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "VRA",
+          "nombre": "Vera Bradley, Inc.",
+          "precio_actual": 4.25,
+          "factores_intradia": {
+            "precio_actual": 4.25,
+            "vwap": 4.2593217684144715,
+            "ema9": 4.270714994982834,
+            "rvol_actual": 0.5859174996104272,
+            "aceleracion_volumen": 6.028711484593837,
+            "gap_pct": 0.00470587786506204,
+            "maximo_dia": 4.349999904632568,
+            "maximo_premarket": 4.25,
+            "rango_apertura_max": 4.269999980926514,
+            "rango_apertura_min": 4.160699844360352,
+            "velas_desde_ruptura": null,
+            "macd": -0.007302097828683962,
+            "macd_signal": -0.005105098617096005
+          },
+          "meta": {
+            "float_acciones": 18742162.0,
+            "short_pct_float": 0.0348,
+            "market_cap": 121926824.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Vera Bradley Q2 Results Show Revenue Growth and Return to Operating Profit",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-15T14:56:38Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4776.649737933333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 77.01151567243191,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 57.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        }
+      ]
     }
   ]
 }
