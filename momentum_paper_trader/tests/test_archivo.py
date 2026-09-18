@@ -261,3 +261,22 @@ def test_causa_raiz_invalida_se_guarda_como_desconocida(tmp_path):
     rec = archivo.registro_auditoria(e, r, AHORA, causa_raiz="no-existe")
     assert rec["causa_raiz"] == archivo.CAUSA_DESCONOCIDA
     assert "desconocida" in rec["causa_raiz_detalle"]
+
+
+def test_archivar_con_flag_vps_escribe_state_no_el_canonico(monkeypatch, tmp_path):
+    """En VPS, ARCHIVED no puede suciar watchlist.json: ese PATH es de GHA."""
+    monkeypatch.setenv("MOMENTUM_WATCHLIST_VPS_STATE", "1")
+    state = tmp_path / "watchlist_vps_state.json"
+    monkeypatch.setenv("MOMENTUM_WATCHLIST_STATE", str(state))
+    e = _triggered("BEAM")
+    r = _revision("BEAM", e.creado_en, entro=False)
+    mtime = watchlist.PATH.stat().st_mtime_ns
+    escritos = archivo.archivar_revisadas(
+        entradas=[e], revisiones=[r], ahora=AHORA,
+        path_log=tmp_path / "archivo_triggered.jsonl",
+        persistir_watchlist=True,
+    )
+    assert escritos
+    assert state.exists()
+    assert json.loads(state.read_text())["entries"]["BEAM"]["estado"] == watchlist.ESTADO_ARCHIVED
+    assert watchlist.PATH.stat().st_mtime_ns == mtime

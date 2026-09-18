@@ -895,6 +895,20 @@ def _evaluar_no_disparada(
     return None
 
 
+def _persistir_rechequeo(entradas: list) -> None:
+    """Persistencia del path `--solo-watchlist`.
+
+    Con `MOMENTUM_WATCHLIST_VPS_STATE` ON escribe SOLO el state file
+    fuera de git. OFF (GHA / rollback) sigue siendo `guardar` → PATH.
+    Dry-run no llama esto. Los cuatro call sites de `revisar_watchlist`
+    pasan por acá para que un `watchlist.guardar(PATH)` escapado no
+    vuelva a suciar el worktree."""
+    if watchlist.vps_state_habilitado():
+        watchlist.guardar_vps_state(entradas)
+        return
+    watchlist.guardar(entradas)
+
+
 def revisar_watchlist(
     cfg: MomentumConfig = CONFIG, provider: DataProvider | None = None, dry_run: bool = False,
     ahora: datetime | None = None,
@@ -910,10 +924,27 @@ def revisar_watchlist(
     Reutiliza exactamente la misma competencia relativa + abogado del
     diablo + auditoría que ya usa el descubrimiento (`seleccionar_y_
     auditar`) -- si dos o más tickers vigilados confirman en el mismo
-    ciclo, se aplica la misma regla de "solo la mejor" de siempre."""
+    ciclo, se aplica la misma regla de "solo la mejor" de siempre.
+
+    En VPS (flag ON) la guardia canónica está activa durante toda la
+    corrida: cualquier `watchlist.guardar()` contra PATH explota."""
+    if watchlist.vps_state_habilitado():
+        watchlist.activar_prohibicion_canonica()
+    try:
+        _revisar_watchlist_cuerpo(cfg, provider, dry_run, ahora)
+    finally:
+        watchlist.desactivar_prohibicion_canonica()
+
+
+def _revisar_watchlist_cuerpo(
+    cfg: MomentumConfig, provider: DataProvider | None, dry_run: bool,
+    ahora: datetime | None,
+) -> None:
     provider = provider or YahooProvider()
     ahora = ahora or datetime.now(UTC)
     entradas = watchlist.cargar()
+    if watchlist.vps_state_habilitado():
+        entradas = watchlist.aplicar_overlay(entradas)
     _archivar_triggered_ya_revisadas(entradas, ahora, dry_run)
     vigiladas = watchlist.activas(entradas)
     # Las TRIGGERED no se re-evalúan (son terminales), pero SÍ se les
@@ -927,7 +958,7 @@ def revisar_watchlist(
         log.info("watchlist vacía -- nada que re-chequear")
         entradas = watchlist.purgar_antiguas(entradas, ahora)
         if not dry_run:
-            watchlist.guardar(entradas)
+            _persistir_rechequeo(entradas)
         return
 
     # Se piden velas también para las TRIGGERED: no para re-evaluarlas,
@@ -985,7 +1016,7 @@ def revisar_watchlist(
         entradas = watchlist.purgar_antiguas(entradas, ahora)
         expiradas = watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
         if not dry_run:
-            watchlist.guardar(entradas)
+            _persistir_rechequeo(entradas)
             for expirada in expiradas:
                 enviar_telegram(report.mensaje_expired(expirada.ticker))
         return
@@ -1031,7 +1062,7 @@ def revisar_watchlist(
 
     log.info("watchlist: %d en observación tras el re-chequeo", len(watchlist.activas(entradas)))
     if not dry_run:
-        watchlist.guardar(entradas)   # COMMIT primero -- ver comentario arriba
+        _persistir_rechequeo(entradas)   # COMMIT primero -- ver comentario arriba
 
     # Segunda pasada: recién ahora se manda a Telegram. "TRIGGERED --
     # PRIORIDAD MÁXIMA, debe enviarse inmediatamente" (pedido explícito):
@@ -1064,7 +1095,7 @@ def revisar_watchlist(
 
     if not dry_run:
         audit.registrar_corrida(snapshots)
-        watchlist.guardar(entradas)   # segunda vez -- persiste la latencia recién completada (best-effort)
+        _persistir_rechequeo(entradas)   # segunda vez -- persiste la latencia recién completada (best-effort)
 
 
 def _log_embudo_corrida(metricas: telemetria.Metricas) -> None:

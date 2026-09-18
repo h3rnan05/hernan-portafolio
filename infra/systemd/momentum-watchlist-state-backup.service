@@ -1,0 +1,17 @@
+[Unit]
+Description=Daily backup of VPS watchlist overlay state (PAPER ONLY)
+Documentation=file:///opt/hernan-portafolio/docs/SPEC-vps-watchlist-state-file.md
+
+[Service]
+Type=oneshot
+# User momentum: el dir /var/backups/momentum es suyo (SPEC).
+# TZ America/Monterrey = cron 15 2 * * * del SPEC.
+User=momentum
+Group=momentum
+Environment=TZ=America/Monterrey
+ExecStart=/opt/hernan-portafolio/scripts/backup_watchlist_vps_state.sh
+Nice=10
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target

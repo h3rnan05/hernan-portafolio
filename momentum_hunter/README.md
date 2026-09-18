@@ -438,6 +438,18 @@ cadencia de segundos requeriría un proveedor de pago con websockets
 (Polygon, Alpaca), lo cual `DataProvider` ya permite sin tocar ninguna
 lógica de trading (ver "Arquitectura" arriba).
 
+**VPS y el JSON canónico.** En el servidor paper, `--solo-watchlist`
+**no escribe** `momentum_hunter/watchlist.json`. Ese PATH es de GHA:
+suciarlo rompe `git pull --rebase` (medido 2026-09-18). Las mutaciones
+del rechequeo viven en `/var/lib/momentum/watchlist_vps_state.json`
+(fuera de git) y se aplican como overlay al cargar. Feature flag:
+`MOMENTUM_WATCHLIST_VPS_STATE=1` (el wrapper VPS lo exporta);
+`=0` restaura `guardar` → PATH. **Limitación v1:** esas transiciones
+**no llegan al repo**; `watchlist.json` en GitHub = vista GHA. Sync =
+fase 2. Backup diario: `15 2 * * *` America/Monterrey →
+`/var/backups/momentum/watchlist_vps_state-YYYY-MM-DD.json` (14 días).
+Detalle: `docs/SPEC-vps-watchlist-state-file.md`.
+
 **Puente temporal (hasta VPS):** el cron `*/5` de GHA no se cumple --
 la plataforma atrasa el arranque, no el YAML. Mientras no haya servidor
 propio, `momentum_paper_cadence_bridge.yml` itera el mismo

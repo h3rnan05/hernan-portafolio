@@ -63,7 +63,9 @@ from __future__ import annotations
 
 import json
 import logging
-from dataclasses import asdict, dataclass, field, replace
+import os
+from contextlib import contextmanager
+from dataclasses import asdict, dataclass, field, fields, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -73,6 +75,35 @@ from momentum_hunter.models import Metadata
 log = logging.getLogger("momentum_hunter.watchlist")
 
 PATH = Path(__file__).resolve().parent / "watchlist.json"
+
+# Estado runtime del VPS -- FUERA del repo a propósito. Escribir PATH
+# desde `--solo-watchlist` sucia el worktree y rompe `git pull --rebase`
+# (medido 2026-09-18). GHA sigue siendo el único escritor del canónico.
+STATE_PATH_DEFAULT = Path("/var/lib/momentum/watchlist_vps_state.json")
+ENV_VPS_STATE = "MOMENTUM_WATCHLIST_VPS_STATE"
+ENV_STATE_PATH = "MOMENTUM_WATCHLIST_STATE"
+
+# Campos que el rechequeo VPS sí muta. Alta, catalizador y snapshot
+# (nombre, float, score, gap…) se quedan en el canónico de GHA.
+CAMPOS_OVERLAY = (
+    "estado",
+    "actualizado_en",
+    "tarde_consecutivas",
+    "market_event_ts",
+    "data_received_ts",
+    "evaluador_ts",
+    "mensaje_generado_ts",
+    "telegram_enviado_ts",
+    "signal_latency_ms",
+    "watchlist_escrito_ts",
+    "ultima_entrada",
+    "ultimo_stop",
+    "ultimo_objetivo",
+    "ultima_zona_entrada_baja",
+    "ultimos_niveles_ts",
+    "stop_tesis",
+    "clima_mercado",
+)
 
 ESTADO_WATCHING = "watching"
 ESTADO_TRIGGERED = "triggered"
@@ -87,6 +118,19 @@ ESTADOS_TERMINALES = frozenset({
     ESTADO_TRIGGERED, ESTADO_INVALIDATED, ESTADO_MISSED, ESTADO_EXPIRED,
     ESTADO_ARCHIVED,
 })
+
+
+class EscrituraWatchlistCanonicaProhibida(RuntimeError):
+    """`--solo-watchlist` en VPS intentó escribir el JSON canónico.
+
+    Fallar fuerte es a propósito: un call site que se escape volvería a
+    suciar el worktree y rompería `git pull --rebase`. Rollback:
+    `MOMENTUM_WATCHLIST_VPS_STATE=0`.
+    """
+
+
+# Guardia de proceso: ON solo durante `revisar_watchlist` con el flag.
+_prohibir_escritura_canonica = False
 
 
 @dataclass(frozen=True)
@@ -349,17 +393,50 @@ def parsear(data: object) -> list[EntradaWatchlist]:
     return entradas
 
 
-def cargar(path: Path = PATH) -> list[EntradaWatchlist]:
+def cargar(
+    path: Path = PATH, apply_vps_state: bool = False,
+) -> list[EntradaWatchlist]:
     """Un archivo corrupto no debe tumbar la corrida -- se ignora y se
-    reinicia vacía (mismo principio que `heartbeat.cargar_estado`)."""
+    reinicia vacía (mismo principio que `heartbeat.cargar_estado`).
+
+    `apply_vps_state=True` aplica el overlay VPS encima del canónico.
+    GHA no lo usa: el state file no se consume fuera del host VPS (v1)."""
     if not path.exists():
-        return []
+        entradas: list[EntradaWatchlist] = []
+    else:
+        try:
+            data = json.loads(path.read_text())
+        except (json.JSONDecodeError, OSError) as e:
+            log.warning("watchlist corrupta (%s); se reinicia vacía", e)
+            data = None
+        entradas = [] if data is None else parsear(data)
+    if apply_vps_state:
+        return aplicar_overlay(entradas)
+    return entradas
+
+
+def cargar_con_overlay(path: Path = PATH) -> list[EntradaWatchlist]:
+    """Canónico de solo lectura + overlay VPS. Misma verdad operativa
+    que `--solo-watchlist` en el host: el paper trader del VPS tiene que
+    ver el TRIGGERED local, no la foto de GHA."""
+    return aplicar_overlay(cargar(path, apply_vps_state=False))
+
+
+def _es_path_canonico(path: Path) -> bool:
     try:
-        data = json.loads(path.read_text())
-    except (json.JSONDecodeError, OSError) as e:
-        log.warning("watchlist corrupta (%s); se reinicia vacía", e)
-        return []
-    return parsear(data)
+        return Path(path).resolve() == PATH.resolve()
+    except OSError:
+        return Path(path) == PATH
+
+
+def _sellar_watchlist_escrito_ts(
+    entradas: list[EntradaWatchlist], ahora: datetime | None,
+) -> str:
+    escrito = _ahora_iso(ahora or datetime.now(UTC))
+    for e in entradas:
+        if e.estado == ESTADO_TRIGGERED and e.watchlist_escrito_ts is None:
+            e.watchlist_escrito_ts = escrito
+    return escrito
 
 
 def guardar(
@@ -368,13 +445,268 @@ def guardar(
     """Persiste la watchlist. Como efecto secundario de instrumentación,
     sella `watchlist_escrito_ts` en cada TRIGGERED que todavía no lo
     tiene -- el dato solo existe en el momento de escribir, y no hay
-    otro sitio honesto donde tomarlo. No cambia estados ni niveles."""
-    escrito = _ahora_iso(ahora or datetime.now(UTC))
-    for e in entradas:
-        if e.estado == ESTADO_TRIGGERED and e.watchlist_escrito_ts is None:
-            e.watchlist_escrito_ts = escrito
+    otro sitio honesto donde tomarlo. No cambia estados ni niveles.
+
+    Con la guardia VPS activa, escribir el PATH canónico explota: un
+    call site escapado no puede suciar el worktree en silencio."""
+    if _prohibir_escritura_canonica and _es_path_canonico(path):
+        raise EscrituraWatchlistCanonicaProhibida(
+            f"VPS --solo-watchlist no puede escribir {PATH}; "
+            "usar guardar_vps_state (flag MOMENTUM_WATCHLIST_VPS_STATE)"
+        )
+    _sellar_watchlist_escrito_ts(entradas, ahora)
     data = {"entradas": [asdict(e) for e in entradas]}
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+
+
+def vps_state_habilitado() -> bool:
+    """Feature flag. Default OFF: GHA y tests siguen escribiendo PATH.
+    El wrapper VPS exporta `MOMENTUM_WATCHLIST_VPS_STATE=1`. Rollback:
+    `=0` restaura `guardar` → PATH."""
+    return os.environ.get(ENV_VPS_STATE, "").strip().lower() in {
+        "1", "true", "yes", "on",
+    }
+
+
+def state_path() -> Path:
+    raw = os.environ.get(ENV_STATE_PATH, "").strip()
+    return Path(raw) if raw else STATE_PATH_DEFAULT
+
+
+def activar_prohibicion_canonica() -> None:
+    global _prohibir_escritura_canonica
+    _prohibir_escritura_canonica = True
+
+
+def desactivar_prohibicion_canonica() -> None:
+    global _prohibir_escritura_canonica
+    _prohibir_escritura_canonica = False
+
+
+@contextmanager
+def prohibir_escritura_canonica():
+    """Durante `--solo-watchlist` con flag ON: `guardar(PATH)` explota."""
+    activar_prohibicion_canonica()
+    try:
+        yield
+    finally:
+        desactivar_prohibicion_canonica()
+
+
+def _parse_ts(iso: str | None) -> datetime | None:
+    if not iso:
+        return None
+    try:
+        return datetime.fromisoformat(iso)
+    except (TypeError, ValueError):
+        return None
+
+
+def _escribir_json_atomico(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+    os.replace(tmp, path)
+    try:
+        os.chmod(path, 0o640)
+    except OSError:
+        pass
+
+
+def _transicion_a_overlay(t: Transicion) -> dict:
+    d = {"a": t.estado, "motivo": t.motivo, "en": t.timestamp}
+    for campo in (
+        "deteccion_ts", "evaluacion_ts", "mensaje_generado_ts",
+        "telegram_enviado_ts", "latencia_desde_deteccion_ms",
+        "latencia_desde_evaluacion_ms", "latencia_desde_transicion_ms",
+    ):
+        val = getattr(t, campo)
+        if val is not None:
+            d[campo] = val
+    return d
+
+
+_CAMPOS_TRANSICION = {f.name for f in fields(Transicion)}
+
+
+def _transicion_desde_overlay(d: object) -> Transicion | None:
+    if not isinstance(d, dict):
+        return None
+    estado = d.get("a") or d.get("estado")
+    ts = d.get("en") or d.get("timestamp")
+    if not estado or not ts:
+        return None
+    kwargs = {
+        "estado": estado,
+        "timestamp": ts,
+        "motivo": d.get("motivo") or "",
+    }
+    for campo in _CAMPOS_TRANSICION:
+        if campo in kwargs or campo not in d:
+            continue
+        kwargs[campo] = d[campo]
+    try:
+        return Transicion(**kwargs)
+    except TypeError:
+        return None
+
+
+def _clave_transicion(t: Transicion) -> tuple[str, str, str]:
+    return (t.estado, t.timestamp, t.motivo)
+
+
+def _transicion_mas_completa(nueva: Transicion, vieja: Transicion) -> bool:
+    """La overlay puede completar latencia de Telegram sobre la misma
+    transición: mismo (estado, ts, motivo), más campos medidos."""
+    if _clave_transicion(nueva) != _clave_transicion(vieja):
+        return False
+    return (
+        (nueva.telegram_enviado_ts is not None and vieja.telegram_enviado_ts is None)
+        or (nueva.mensaje_generado_ts is not None and vieja.mensaje_generado_ts is None)
+        or (nueva.latencia_desde_transicion_ms is not None
+            and vieja.latencia_desde_transicion_ms is None)
+    )
+
+
+def _append_transiciones(e: EntradaWatchlist, overlay: dict) -> None:
+    por_clave = {_clave_transicion(t): i for i, t in enumerate(e.transiciones)}
+    for raw in overlay.get("transiciones_append") or []:
+        t = _transicion_desde_overlay(raw)
+        if t is None:
+            continue
+        idx = por_clave.get(_clave_transicion(t))
+        if idx is None:
+            e.transiciones.append(t)
+            por_clave[_clave_transicion(t)] = len(e.transiciones) - 1
+        elif _transicion_mas_completa(t, e.transiciones[idx]):
+            e.transiciones[idx] = t
+
+
+def _entrada_a_overlay(e: EntradaWatchlist, overlay_ts: str) -> dict:
+    d = {campo: getattr(e, campo) for campo in CAMPOS_OVERLAY}
+    d["overlay_ts"] = overlay_ts
+    d["transiciones_append"] = [_transicion_a_overlay(t) for t in e.transiciones]
+    return d
+
+
+def cargar_vps_state(path: Path | None = None) -> dict:
+    """State ilegible → overlay vacío. Un campo ausente no es evidencia."""
+    path = path or state_path()
+    if not path.exists():
+        return {"schema": 1, "entries": {}}
+    try:
+        data = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError) as e:
+        log.warning("state VPS corrupto (%s); se ignora el overlay", type(e).__name__)
+        return {"schema": 1, "entries": {}}
+    if not isinstance(data, dict):
+        log.warning("state VPS con formato inesperado; se ignora el overlay")
+        return {"schema": 1, "entries": {}}
+    if data.get("schema") not in (None, 1):
+        log.warning("state VPS schema=%s desconocido; se ignora el overlay", data.get("schema"))
+        return {"schema": 1, "entries": {}}
+    entries = data.get("entries")
+    if not isinstance(entries, dict):
+        return {"schema": 1, "entries": {}}
+    return data
+
+
+def guardar_vps_state(
+    entradas: list[EntradaWatchlist],
+    path: Path | None = None,
+    ahora: datetime | None = None,
+) -> None:
+    """Persiste SOLO el overlay. Nunca escribe PATH.
+
+    `overlay_ts` existe porque `actualizar_niveles` y `tarde_consecutivas`
+    no tocan `actualizado_en`: sin un reloj de escritura, el merge por
+    empate devolvería siempre GHA y se perderían esos mutadores."""
+    path = path or state_path()
+    if _es_path_canonico(path):
+        raise EscrituraWatchlistCanonicaProhibida(
+            f"guardar_vps_state se negó a escribir el PATH canónico ({PATH})"
+        )
+    escrito = _sellar_watchlist_escrito_ts(entradas, ahora)
+    data = {
+        "schema": 1,
+        "updated_at": escrito,
+        "source": "vps-solo-watchlist",
+        "entries": {
+            e.ticker: _entrada_a_overlay(e, escrito) for e in entradas
+        },
+    }
+    _escribir_json_atomico(path, data)
+    log.info("watchlist VPS state escrito en %s (%d ticker(s))", path, len(entradas))
+
+
+def _overlay_mas_nuevo(canon: EntradaWatchlist, overlay: dict) -> bool:
+    ts_canon = _parse_ts(canon.actualizado_en)
+    if ts_canon is None:
+        return False
+    candidatos = []
+    for key in ("actualizado_en", "overlay_ts", "ultimos_niveles_ts"):
+        t = _parse_ts(overlay.get(key) if isinstance(overlay.get(key), str) else None)
+        if t is not None:
+            candidatos.append(t)
+    if not candidatos:
+        return False
+    return max(candidatos) > ts_canon
+
+
+def _aplicar_campos_overlay(
+    e: EntradaWatchlist, overlay: dict, *, incluir_estado: bool,
+) -> None:
+    for campo in CAMPOS_OVERLAY:
+        if campo not in overlay:
+            continue
+        if campo == "estado" and not incluir_estado:
+            continue
+        valor = overlay[campo]
+        if valor is None:
+            continue
+        setattr(e, campo, valor)
+
+
+def _fusionar_overlay(canon: EntradaWatchlist, overlay: dict) -> EntradaWatchlist:
+    """Reglas de conflicto (v1): catalizador/alta=GHA; canónico terminal
+    que cambia de estado=GHA; watching+overlay más nuevo=VPS; empate=GHA."""
+    overlay_estado = overlay.get("estado")
+    if canon.estado in ESTADOS_TERMINALES:
+        if overlay_estado is not None and overlay_estado != canon.estado:
+            return canon
+        if not _overlay_mas_nuevo(canon, overlay):
+            return canon
+        _aplicar_campos_overlay(canon, overlay, incluir_estado=False)
+        _append_transiciones(canon, overlay)
+        return canon
+    if not _overlay_mas_nuevo(canon, overlay):
+        return canon
+    _aplicar_campos_overlay(canon, overlay, incluir_estado=True)
+    _append_transiciones(canon, overlay)
+    return canon
+
+
+def aplicar_overlay(
+    entradas: list[EntradaWatchlist],
+    path: Path | None = None,
+) -> list[EntradaWatchlist]:
+    """Aplica el state file ticker a ticker. Ticker en overlay ausente
+    del canónico se descarta: GHA es dueño del universo, no se resucitan
+    fantasmas."""
+    data = cargar_vps_state(path)
+    entries = data.get("entries") or {}
+    if not entries:
+        return entradas
+    resultado = []
+    for e in entradas:
+        overlay = entries.get(e.ticker)
+        if overlay is None:
+            overlay = entries.get(e.ticker.upper())
+        if not isinstance(overlay, dict):
+            resultado.append(e)
+            continue
+        resultado.append(_fusionar_overlay(e, overlay))
+    return resultado
 
 
 def activas(entradas: list[EntradaWatchlist]) -> list[EntradaWatchlist]:

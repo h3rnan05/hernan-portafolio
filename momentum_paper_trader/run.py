@@ -45,7 +45,12 @@ def _clima_de_la_watchlist() -> str | None:
     el cierre sin esa sección."""
     try:
         from momentum_hunter import watchlist
-        climas = [e.clima_mercado for e in watchlist.cargar() if e.clima_mercado]
+        entradas = (
+            watchlist.cargar_con_overlay()
+            if watchlist.vps_state_habilitado()
+            else watchlist.cargar()
+        )
+        climas = [e.clima_mercado for e in entradas if e.clima_mercado]
         return climas[-1] if climas else None
     except Exception:
         return None

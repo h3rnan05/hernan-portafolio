@@ -31,7 +31,7 @@ Dos escritores sobre el mismo JSON reventaban el rebase (clase CONFLICT, run 346
 
 | Artefacto | Quién hace `git add` / push |
 |---|---|
-| `watchlist.json` | **GHA hunter** (dueño). El cron GHA watchlist puede seguir stagedándolo como escritor secundario (rechecks cuando el VPS no corre); overlap hunter↔watchlist GHA ya estaba aceptado. **VPS no lo commitea** (sí puede actualizarlo en local para paper). |
+| `watchlist.json` | **GHA hunter** (dueño). El cron GHA watchlist puede seguir stagedándolo como escritor secundario. **VPS no lo commitea ni lo escribe en disco** (`MOMENTUM_WATCHLIST_VPS_STATE=1`: overlay en `/var/lib/momentum/watchlist_vps_state.json`). **Limitación v1:** mutaciones VPS no llegan al repo; GitHub = vista GHA; sync = fase 2. Backup: `15 2 * * *` → `/var/backups/momentum/watchlist_vps_state-YYYY-MM-DD.json` (14 días). |
 | `auditoria/` | **GHA hunter** (dueño). GHA watchlist puede stagedarlo. **VPS no.** |
 | hunter telem (`momentum_hunter/telemetria/`) | **GHA hunter**. El VPS puede persistir su partición local si existe. |
 | paper telem (`momentum_paper_trader/telemetria/`) | **VPS** (único para git push). GHA no (`git add` quitado: run 34624961161). |
