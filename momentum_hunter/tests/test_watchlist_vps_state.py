@@ -156,6 +156,9 @@ def test_revisar_watchlist_cuerpo_tiene_exactamente_cuatro_persistencias_y_cero_
     src = inspect.getsource(run_mod._revisar_watchlist_cuerpo)
     assert "watchlist.guardar(" not in src
     assert src.count("_persistir_rechequeo(") == 4
+    src_arch = inspect.getsource(run_mod._archivar_triggered_ya_revisadas)
+    assert "persistir_watchlist=False" in src_arch
+    assert "watchlist.guardar(" not in src_arch
 
 
 def test_full_scan_guardar_still_writes_canonical():
