@@ -2,12 +2,14 @@
 
 No habla con Telegram ni con systemd reales. Comprueba que el script
 existe, es bash válido, y que la gracia de open de sesión no cuenta el
-silencio del fin de semana contra el umbral de 1200s."""
+silencio del fin de semana contra el umbral de 1200s. También: si el
+timer de rechequeo está OFF a propósito, el silencio no alerta."""
 
 from __future__ import annotations
 
 import os
 import subprocess
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -29,6 +31,9 @@ def _run(now: datetime, last_ok: datetime | None = None, extra_env: dict | None 
         "WATCHDOG_DRY_RUN": "1",
         "WATCHDOG_NOW_EPOCH": str(int(now.timestamp())),
         "WATCHDOG_THRESHOLD_SEC": "1200",
+        # CI no tiene la unidad; el default de producción consulta systemctl.
+        "WATCHDOG_TIMER_ACTIVE": "active",
+        "WATCHDOG_STATE_DIR": tempfile.mkdtemp(prefix="watchdog-test-"),
     }
     if last_ok is None:
         env["WATCHDOG_LAST_OK_EPOCH"] = ""
@@ -60,6 +65,9 @@ def test_paper_only_sin_endpoint_live():
     assert "session_open" in texto
     assert 'bash "$NOTIFY"' in texto
     assert "No START/OK spam" in texto
+    assert "TELEGRAM_TRADES_ONLY" not in texto
+    assert "systemctl is-active" in texto
+    assert "momentum-watchlist.timer" in texto
 
 
 def test_runbook_documenta_gracia_de_sesion():
@@ -67,6 +75,8 @@ def test_runbook_documenta_gracia_de_sesion():
     assert "watchdog_timer_miss.sh" in texto
     assert "13:00 UTC" in texto
     assert "1200" in texto
+    assert "momentum-watchlist.timer" in texto
+    assert "timer inactive" in texto
 
 
 def test_finde_y_fuera_de_ventana_no_alertan():
@@ -115,3 +125,53 @@ def test_silencio_intra_sesion_usa_last_ok():
     assert "silent 1260s" in late.stdout
     # Ancla de sesión usada en los casos del lunes: 13:00 UTC.
     assert int(LUNES_OPEN.timestamp()) == int(last_ok.timestamp())
+
+
+def test_timer_inactivo_omite_silencio_sin_telegram():
+    """Post-#132 el timer de rechequeo está OFF a propósito. El silencio
+    del oneshot no es un fallo; no se dispara Telegram por esa causa."""
+    r = _run(
+        LUNES_13_21,
+        VIERNES_LAST_OK,
+        extra_env={"WATCHDOG_TIMER_ACTIVE": "inactive"},
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "timer inactive; skip" in r.stdout
+    assert "ERROR" not in r.stdout
+    assert "silent " not in r.stdout
+    # Los otros chequeos W1 siguen corriendo: no hay exit 0 global.
+    assert "persist_fail_count" in r.stdout
+    assert "git_ahead" in r.stdout
+
+
+def test_silencio_dedupe_diario_un_solo_telegram():
+    """Silencio usa el mismo dedupe diario que persist_fail / ahead / zero_push."""
+    state = tempfile.mkdtemp(prefix="watchdog-silence-")
+    extra = {"WATCHDOG_STATE_DIR": state, "WATCHDOG_TIMER_ACTIVE": "active"}
+    first = _run(LUNES_13_21, VIERNES_LAST_OK, extra_env=extra)
+    assert first.returncode == 1, first.stdout + first.stderr
+    assert "silent 1260s" in first.stdout
+    assert "dry-run skip notify" in first.stdout
+
+    second = _run(LUNES_13_21, VIERNES_LAST_OK, extra_env=extra)
+    assert second.returncode == 0, second.stdout + second.stderr
+    assert "silence already fired today" in second.stdout
+    assert "dry-run skip notify" not in second.stdout
+
+
+def test_timer_inactivo_no_silencia_chequeos_w1():
+    """El skip del timer solo cubre el silencio; persist/ahead/zero_push
+    siguen en el script con su dedupe existente, sin exit inmediato."""
+    texto = SCRIPT.read_text(encoding="utf-8")
+    skip_idx = texto.find("INFO: timer inactive; skip")
+    persist_idx = texto.find('_already_fired_today "persist_fail"')
+    ahead_idx = texto.find('_already_fired_today "ahead"')
+    zero_idx = texto.find('_already_fired_today "zero_push_session"')
+    silence_dedupe_idx = texto.find('_already_fired_today "silence"')
+    assert skip_idx > 0
+    assert persist_idx > skip_idx
+    assert ahead_idx > skip_idx
+    assert zero_idx > skip_idx
+    assert silence_dedupe_idx > skip_idx
+    after_skip = texto[skip_idx:skip_idx + 180]
+    assert "exit 0" not in after_skip

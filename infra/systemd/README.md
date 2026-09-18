@@ -105,12 +105,16 @@ systemctl cat momentum-watchlist-watchdog.service | grep ^ExecStart
 
 El script acepta `WATCHDOG_NOW_EPOCH` y `WATCHDOG_LAST_OK_EPOCH` por
 entorno: se simula un silencio de 30 min dentro de sesión, sin esperar
-uno real. Como root (así corre la unidad), con `paper.env` cargado:
+uno real. `WATCHDOG_TIMER_ACTIVE=active` fuerza el chequeo de silencio:
+post-#132 `momentum-watchlist.timer` está OFF a propósito, y sin el
+override el script registra `INFO: timer inactive; skip` y no Telegram.
+Como root (así corre la unidad), con `paper.env` cargado:
 
 ```bash
 sudo bash -c 'set -a; . /etc/momentum/paper.env; set +a; \
   WATCHDOG_NOW_EPOCH=$(date -u -d "2026-09-15 15:00:00" +%s) \
   WATCHDOG_LAST_OK_EPOCH=$(date -u -d "2026-09-15 14:30:00" +%s) \
+  WATCHDOG_TIMER_ACTIVE=active \
   /opt/hernan-portafolio/scripts/watchdog_timer_miss.sh; echo "rc=$?"'
 ```
 

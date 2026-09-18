@@ -13,9 +13,15 @@
 #   (3) local ahead of origin/main >= AHEAD_THRESHOLD (default 50)
 # Does NOT alert on empty watchlist (legitimate noise).
 # No START/OK spam: Telegram only on ERROR. Does not touch Alpaca.
+#
+# 2026-09-18 FP: watchdog.timer kept firing "silent >1200s" every ~10m
+# while momentum-watchlist.timer was intentionally OFF (post-#132).
+# Silence check skips when that timer is not active (no Telegram).
+# persist/ahead/zero_push are NOT skipped — they keep their daily dedupe.
 set -u
 
 UNIT="${WATCHDOG_UNIT:-momentum-watchlist.service}"
+TIMER_UNIT="${WATCHDOG_TIMER_UNIT:-momentum-watchlist.timer}"
 THRESHOLD_SEC="${WATCHDOG_THRESHOLD_SEC:-1200}"
 PERSIST_FAIL_N="${WATCHDOG_PERSIST_FAIL_N:-3}"
 PERSIST_WINDOW_SEC="${WATCHDOG_PERSIST_WINDOW_SEC:-900}"
@@ -100,51 +106,69 @@ fi
 fired=0
 
 # --- A) silence (grace #119 intact) ---
-last_ok_epoch=""
-if [ "${WATCHDOG_LAST_OK_EPOCH+set}" = "set" ]; then
-  last_ok_epoch="${WATCHDOG_LAST_OK_EPOCH}"
+# If the oneshot timer is not active, silence is expected. Skip this
+# check only — do not exit, so persist/ahead/zero_push still run.
+timer_state=""
+if [ "${WATCHDOG_TIMER_ACTIVE+set}" = "set" ]; then
+  # Test/ops override (CI has no systemd unit; VPS verify can force active).
+  timer_state="$WATCHDOG_TIMER_ACTIVE"
+elif command -v systemctl >/dev/null 2>&1; then
+  timer_state="$(systemctl is-active "$TIMER_UNIT" 2>/dev/null || true)"
+fi
+if [ "$timer_state" != "active" ]; then
+  echo "INFO: timer inactive; skip"
 else
-  if command -v journalctl >/dev/null 2>&1; then
-    line="$(journalctl -u "$UNIT" --since "8 days ago" --no-pager -o short-unix 2>/dev/null \
-      | grep -E "Finished |Deactivated successfully" \
-      | tail -n 1 || true)"
-    if [ -n "${line:-}" ]; then
-      ts="${line%% *}"
-      ts="${ts%%.*}"
-      case "$ts" in
-        ""|*[!0-9]*) ;;
-        *) last_ok_epoch="$ts" ;;
-      esac
+  last_ok_epoch=""
+  if [ "${WATCHDOG_LAST_OK_EPOCH+set}" = "set" ]; then
+    last_ok_epoch="${WATCHDOG_LAST_OK_EPOCH}"
+  else
+    if command -v journalctl >/dev/null 2>&1; then
+      line="$(journalctl -u "$UNIT" --since "8 days ago" --no-pager -o short-unix 2>/dev/null \
+        | grep -E "Finished |Deactivated successfully" \
+        | tail -n 1 || true)"
+      if [ -n "${line:-}" ]; then
+        ts="${line%% *}"
+        ts="${ts%%.*}"
+        case "$ts" in
+          ""|*[!0-9]*) ;;
+          *) last_ok_epoch="$ts" ;;
+        esac
+      fi
     fi
-  fi
-  if [ -z "$last_ok_epoch" ] && command -v systemctl >/dev/null 2>&1; then
-    raw="$(systemctl show -p InactiveExitTimestamp --value "$UNIT" 2>/dev/null || true)"
-    if [ -n "${raw:-}" ] && [ "$raw" != "n/a" ] && [ "$raw" != "0" ]; then
-      parsed="$(_epoch_from_date "$raw")"
-      if [ -n "${parsed:-}" ]; then
-        last_ok_epoch="$parsed"
+    if [ -z "$last_ok_epoch" ] && command -v systemctl >/dev/null 2>&1; then
+      raw="$(systemctl show -p InactiveExitTimestamp --value "$UNIT" 2>/dev/null || true)"
+      if [ -n "${raw:-}" ] && [ "$raw" != "n/a" ] && [ "$raw" != "0" ]; then
+        parsed="$(_epoch_from_date "$raw")"
+        if [ -n "${parsed:-}" ]; then
+          last_ok_epoch="$parsed"
+        fi
       fi
     fi
   fi
-fi
-case "$last_ok_epoch" in ""|*[!0-9]*) last_ok_epoch="" ;; esac
+  case "$last_ok_epoch" in ""|*[!0-9]*) last_ok_epoch="" ;; esac
 
-if [ -z "$last_ok_epoch" ]; then
-  echo "INFO: no known success timestamp; skip silence check"
-else
-  if [ "$last_ok_epoch" -lt "$session_open" ]; then
-    age=$((now_epoch - session_open))
-    age_basis="session_open"
+  if [ -z "$last_ok_epoch" ]; then
+    echo "INFO: no known success timestamp; skip silence check"
   else
-    age=$((now_epoch - last_ok_epoch))
-    age_basis="last_ok"
-  fi
-  if [ "$age" -lt 0 ]; then age=0; fi
-  if [ "$age" -gt "$THRESHOLD_SEC" ]; then
-    _notify "ERROR [paper][vps] ${UNIT} silent ${age}s (threshold ${THRESHOLD_SEC}s, basis=${age_basis})"
-    fired=1
-  else
-    echo "INFO: ok age=${age}s basis=${age_basis} threshold=${THRESHOLD_SEC}s"
+    if [ "$last_ok_epoch" -lt "$session_open" ]; then
+      age=$((now_epoch - session_open))
+      age_basis="session_open"
+    else
+      age=$((now_epoch - last_ok_epoch))
+      age_basis="last_ok"
+    fi
+    if [ "$age" -lt 0 ]; then age=0; fi
+    if [ "$age" -gt "$THRESHOLD_SEC" ]; then
+      if _already_fired_today "silence"; then
+        echo "INFO: silence already fired today; skip duplicate Telegram"
+      else
+        _notify "ERROR [paper][vps] ${UNIT} silent ${age}s (threshold ${THRESHOLD_SEC}s, basis=${age_basis})"
+        _mark_fired_today "silence"
+        fired=1
+      fi
+    else
+      echo "INFO: ok age=${age}s basis=${age_basis} threshold=${THRESHOLD_SEC}s"
+    fi
   fi
 fi
 
