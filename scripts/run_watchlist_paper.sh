@@ -37,11 +37,10 @@ persistir_estado() {
   # run 34641814733). El cron GHA watchlist sigue pudiendo
   # stagedarlos como escritor secundario (rechecks si el VPS
   # no corre); overlap hunter↔watchlist GHA ya estaba aceptado.
+  # Ownership: GHA=writer watchlist.json+auditoria; VPS=solo paper telem.
   paths=(
-    momentum_hunter/alertas_enviadas.json
     momentum_paper_trader/revisiones.json
     momentum_paper_trader/archivo_triggered.jsonl
-    momentum_hunter/telemetria
     momentum_paper_trader/telemetria
   )
   for p in "${paths[@]}"; do
