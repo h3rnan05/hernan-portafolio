@@ -58,9 +58,8 @@ def test_vps_es_escritor_primario_con_flock():
 
 def test_vps_no_stagea_watchlist_ni_auditoria():
     """GHA discovery es el dueño de watchlist.json + auditoria.
-    El VPS las actualiza en local para paper (--solo-watchlist) pero
-    no las git-add: dos escritores reventaban el rebase
-    (CONFLICT, run 34641814733)."""
+    El VPS ya no escribe el JSON canónico (overlay en
+    /var/lib/momentum/watchlist_vps_state.json) y no lo git-add."""
     texto = VPS.read_text(encoding="utf-8")
     bloque = _vps_paths_de_persistencia(texto)
     assert "momentum_hunter/watchlist.json" not in bloque
@@ -68,10 +67,11 @@ def test_vps_no_stagea_watchlist_ni_auditoria():
     assert "momentum_paper_trader/telemetria" in bloque
     assert "momentum_paper_trader/revisiones.json" in bloque
     assert "momentum_paper_trader/archivo_triggered.jsonl" in bloque
-    assert "momentum_hunter/alertas_enviadas.json" in bloque
-    assert "momentum_hunter/telemetria" in bloque
-    # Sigue corriendo --solo-watchlist: paper lee el JSON local.
+    assert "momentum_hunter/alertas_enviadas.json" not in bloque
+    assert "momentum_hunter/telemetria" not in bloque
     assert "--solo-watchlist" in texto
+    assert "MOMENTUM_WATCHLIST_VPS_STATE" in texto
+    assert "backup_watchlist_vps_state.sh" in texto
 
 
 def test_gha_hunter_sigue_persistiendo_watchlist_y_auditoria():

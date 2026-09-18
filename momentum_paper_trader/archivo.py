@@ -23,11 +23,11 @@ INVALIDATED. No archiva un TRIGGERED sin revisión, ni uno cuya
 orden paper sigue abierta (`entro=True` y `resultado` no terminal).
 Ante un archivo ilegible, no inventa el dato que falta: omite.
 
-Quién escribe `watchlist.json`: esta función puede mutarla. Es la
-única escritura del paper trader sobre la watchlist -- nunca inventa
-una oportunidad ni cambia un precio. El buscador sigue siendo el
-dueño de discovery; el VPS no git-add de `watchlist.json` (conflicto
-histórico), por eso el hunter también llama esto antes de persistir:
+Quién escribe `watchlist.json`: GHA es el dueño del canónico. En VPS
+con `MOMENTUM_WATCHLIST_VPS_STATE` ON esta función persiste ARCHIVED
+al state file, nunca a PATH -- suciar el JSON versionado rompe
+`git pull --rebase`. El buscador sigue siendo el dueño de discovery.
+El hunter también llama esto antes de persistir (sin escribir disco):
 si el archivo quedó solo en el JSONL, la próxima corrida del
 buscador aplica la transición y GHA la commitea.
 """
@@ -201,7 +201,12 @@ def archivar_revisadas(
     ahora = ahora or datetime.now(UTC)
     path_log = path_log or PATH_LOG
     if entradas is None:
-        entradas = watchlist.cargar(path_watchlist) if path_watchlist is not None else watchlist.cargar()
+        if path_watchlist is not None:
+            entradas = watchlist.cargar(path_watchlist)
+        elif watchlist.vps_state_habilitado():
+            entradas = watchlist.cargar_con_overlay()
+        else:
+            entradas = watchlist.cargar()
     if revisiones is None:
         revisiones = estado.cargar(path_revisiones) if path_revisiones is not None else estado.cargar()
 
@@ -230,6 +235,10 @@ def archivar_revisadas(
     if persistir_watchlist and escritos:
         if path_watchlist is not None:
             watchlist.guardar(entradas, path_watchlist, ahora=ahora)
+        elif watchlist.vps_state_habilitado():
+            # VPS: ARCHIVED es mutación local. Escribir PATH suciaría
+            # el worktree igual que `--solo-watchlist`.
+            watchlist.guardar_vps_state(entradas, ahora=ahora)
         else:
             watchlist.guardar(entradas, ahora=ahora)
     return escritos

@@ -300,7 +300,11 @@ def ejecutar(
     poder medir el embudo sin colocar."""
     cfg.validar()
     ahora = ahora or datetime.now(UTC)
-    entradas = watchlist.cargar()
+    entradas = (
+        watchlist.cargar_con_overlay()
+        if watchlist.vps_state_habilitado()
+        else watchlist.cargar()
+    )
     executor_leido_ts = _ahora_iso()
     revisiones_previas = estado.cargar()
     nuevas: list[estado.RevisionIA] = []

@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily 00:30 UTC backup of VPS watchlist overlay state
+Requires=momentum-watchlist-state-backup.service
+
+[Timer]
+OnCalendar=*-*-* 00:30:00 UTC
+Persistent=true
+Unit=momentum-watchlist-state-backup.service
+
+[Install]
+WantedBy=timers.target

@@ -22,6 +22,8 @@ Alpaca.
 | `momentum-watchlist.service.d/10-restart-notify.conf` | `/etc/systemd/system/momentum-watchlist.service.d/` | `OnFailure` apagado (anti-spam, decisión del 2026-09-11) |
 | `momentum-watchlist.service.d/20-ownership-wrapper.conf` | ídem | reemplaza el `ExecStart` por el wrapper de abajo |
 | `momentum-watchlist.timer` | `/etc/systemd/system/` | cada 5 min, Lun–Vie 13–20 UTC |
+| `momentum-watchlist-state-backup.service` | `/etc/systemd/system/` | oneshot: copia diaria del overlay VPS (`scripts/backup_watchlist_vps_state.sh`) |
+| `momentum-watchlist-state-backup.timer` | `/etc/systemd/system/` | 00:30 UTC; **no** se habilita junto al rechequeo |
 | `momentum-watchlist-watchdog.service` | `/etc/systemd/system/` | avisa por Telegram si el oneshot lleva >1200 s sin terminar OK dentro de sesión; ejecuta `scripts/watchdog_timer_miss.sh` **desde el árbol** (ver "Watchdog") |
 | `momentum-watchlist-watchdog.timer` | `/etc/systemd/system/` | cada 10 min, Lun–Vie 13–20 UTC |
 | `bin/run_watchlist_paper.sh` | `/opt/momentum/bin/` | el wrapper (ver abajo por qué vive fuera del árbol) |
@@ -58,12 +60,17 @@ sudo cp infra/systemd/momentum-watchlist.service.d/*.conf \
         /etc/systemd/system/momentum-watchlist.service.d/
 sudo install -m 755 infra/systemd/bin/* /opt/momentum/bin/
 sudo systemctl daemon-reload
-sudo systemctl enable --now momentum-watchlist.timer momentum-watchlist-watchdog.timer
+# NO arrancar momentum-watchlist.timer desde el PR del overlay.
+# El timer de backup del state es independiente del rechequeo:
+# sudo systemctl enable --now momentum-watchlist-state-backup.timer
+sudo systemctl enable --now momentum-watchlist-watchdog.timer
 systemctl list-units 'momentum*' --all
 ```
 
-Deben aparecer exactamente cuatro unidades: dos `.service` (`inactive
-dead` entre corridas, es un oneshot) y dos `.timer` (`active waiting`).
+Deben aparecer las unidades de watchdog. El oneshot de rechequeo y su
+timer siguen OFF hasta GO humano/Claude. El overlay VPS
+(`/var/lib/momentum/watchlist_vps_state.json`) se documenta en
+`docs/SPEC-vps-watchlist-state-file.md`.
 
 ## Watchdog: por qué corre desde `scripts/` y no desde `/opt/momentum/bin/`
 

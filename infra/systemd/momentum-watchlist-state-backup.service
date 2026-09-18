@@ -1,0 +1,16 @@
+[Unit]
+Description=Daily backup of VPS watchlist overlay state (PAPER ONLY)
+Documentation=file:///opt/hernan-portafolio/docs/SPEC-vps-watchlist-state-file.md
+
+[Service]
+Type=oneshot
+# root: /var/backups no es escribible por `momentum`. El state
+# (/var/lib/momentum, 0750) sí lo puede leer root.
+User=root
+Group=root
+ExecStart=/opt/hernan-portafolio/scripts/backup_watchlist_vps_state.sh
+Nice=10
+TimeoutStartSec=60
+
+[Install]
+WantedBy=multi-user.target

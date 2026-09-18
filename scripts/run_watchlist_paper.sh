@@ -14,6 +14,15 @@ set -a
 source /etc/momentum/paper.env
 set +a
 
+# Overlay VPS: --solo-watchlist NO escribe watchlist.json. Ese PATH es
+# de GHA; suciarlo rompe `git pull --rebase` (medido 2026-09-18).
+# Rollback: MOMENTUM_WATCHLIST_VPS_STATE=0 en paper.env.
+export MOMENTUM_WATCHLIST_VPS_STATE="${MOMENTUM_WATCHLIST_VPS_STATE:-1}"
+
+# /var/lib no está en git: copia diaria del state antes de mutar.
+bash "$ROOT/scripts/backup_watchlist_vps_state.sh" \
+  || echo "WARN: backup watchlist VPS state failed"
+
 # Best-effort sync (never abort run)
 git pull --rebase origin main >/dev/null 2>&1 || git pull --rebase >/dev/null 2>&1 || echo "WARN: git pull --rebase failed (continuing)"
 
@@ -22,6 +31,10 @@ paper_rc=0
 set +e
 "$PY" -m momentum_hunter.run --solo-watchlist
 hunter_rc=$?
+STATE="${MOMENTUM_WATCHLIST_STATE:-/var/lib/momentum/watchlist_vps_state.json}"
+if [ -f "$STATE" ]; then
+  echo "INFO: vps watchlist state bytes=$(wc -c < "$STATE") mtime=$(stat -c %y "$STATE" 2>/dev/null || true)"
+fi
 "$PY" -m momentum_paper_trader.run
 paper_rc=$?
 set -e
