@@ -2547,6 +2547,83 @@
           "que_tendria_que_cambiar": []
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-18T18:32:14+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "VRA",
+          "nombre": "Vera Bradley, Inc.",
+          "precio_actual": 4.329999923706055,
+          "factores_intradia": {
+            "precio_actual": 4.329999923706055,
+            "vwap": 4.249435243264253,
+            "ema9": 4.32974918411007,
+            "rvol_actual": 0.2459016393442623,
+            "aceleracion_volumen": 1.0829396325459317,
+            "gap_pct": 0.00470587786506204,
+            "maximo_dia": 4.349999904632568,
+            "maximo_premarket": 4.25,
+            "rango_apertura_max": 4.269999980926514,
+            "rango_apertura_min": 4.160699844360352,
+            "velas_desde_ruptura": 12,
+            "macd": 0.008395220841335593,
+            "macd_signal": 0.009321732243667285
+          },
+          "meta": {
+            "float_acciones": 18742162.0,
+            "short_pct_float": 0.0348,
+            "market_cap": 124221912.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Vera Bradley Q2 Results Show Revenue Growth and Return to Operating Profit",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-15T14:56:38Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4535.510484366667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": false,
+            "early": {
+              "score": 56.2,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 12 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 58.29396325459317,
+                "extension": 100.0,
+                "distancia_maximo_dia": 95.40230313448639,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía.",
+              "El patrón se activó hace 12 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 63.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        }
+      ]
     }
   ]
 }
