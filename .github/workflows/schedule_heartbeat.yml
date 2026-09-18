@@ -1,0 +1,46 @@
+# Heartbeat de diagnóstico de la cadencia del scheduler de GitHub
+# Actions. NO es el hunter de producción ni el re-chequeo de watchlist.
+#
+# PROPÓSITO. Medir la tasa de drop del cron de GHA (problema A:
+# pedir cada 5 min y correr cada 30-90, con días en que no corre).
+# Este job solo imprime timestamp UTC + run_id. Con eso se compara
+# disparos esperados vs ejecutados, sin contaminar el pipeline paper.
+#
+# QUÉ NO HACE. No hace checkout, no usa secrets, no escribe
+# watchlist.json, no importa hunter ni paper trader, no coloca
+# órdenes. El cron de `momentum_hunter.yml` no se toca a propósito:
+# un resultado de este diagnóstico no debe cambiar la cadencia de
+# producción sin decisión humana.
+#
+# POR QUÉ ESTOS MINUTOS. 7, 22, 37, 52 UTC evitan :00/:30, donde se
+# aglomeran los crons de este repo y de medio GitHub. Ventana Lun–Vie
+# 13–20 UTC = sesión US, la misma que el hunter. ~32 disparos
+# esperados por día hábil (8 h × 4). Hueco = drop del scheduler.
+#
+# Cómo leer: Actions → schedule-heartbeat. Ver docs/schedule-heartbeat.md.
+
+name: schedule-heartbeat
+
+on:
+  schedule:
+    - cron: "7,22,37,52 13-20 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: schedule-heartbeat
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  heartbeat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Latido (UTC + run_id)
+        run: |
+          echo "utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "run_id=${{ github.run_id }}"
+          echo "run_number=${{ github.run_number }}"
+          echo "event=${{ github.event_name }}"
+          echo "schedule=${{ github.event.schedule }}"
