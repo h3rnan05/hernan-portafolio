@@ -2624,6 +2624,382 @@
           "que_tendria_que_cambiar": []
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-18T19:14:32+00:00",
+      "candidatos_evaluados": 5,
+      "candidatos": [
+        {
+          "ticker": "BBNX",
+          "nombre": "Beta Bionics, Inc.",
+          "precio_actual": 21.790000915527344,
+          "factores_intradia": {
+            "precio_actual": 21.790000915527344,
+            "vwap": 21.7410255354899,
+            "ema9": 21.726755848662414,
+            "rvol_actual": 2.5121765601217656,
+            "aceleracion_volumen": 0.8115250504679759,
+            "gap_pct": -0.006993077880821036,
+            "maximo_dia": 22.155799865722656,
+            "maximo_premarket": 21.6,
+            "rango_apertura_max": 21.420000076293945,
+            "rango_apertura_min": 21.100000381469727,
+            "velas_desde_ruptura": 122,
+            "macd": -0.0030707248031411893,
+            "macd_signal": -0.02076521496632588
+          },
+          "meta": {
+            "float_acciones": 26515123.0,
+            "short_pct_float": 0.20989999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Beta Bionics Stock Surges on FDA Clearance for Mint Patch Pump",
+            "fuente": "Zacks",
+            "fecha": "2026-09-17T16:01:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1633.4976103333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 49.6,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 122 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 31.152505046797586,
+                "extension": 100.0,
+                "distancia_maximo_dia": 83.4896978483164,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "El patrón se activó hace 122 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 69.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "El patrón se activó hace 122 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "ABTC",
+          "nombre": "American Bitcoin Corp",
+          "precio_actual": 10.220000267028809,
+          "factores_intradia": {
+            "precio_actual": 10.220000267028809,
+            "vwap": 9.828989040858884,
+            "ema9": 10.181616215452818,
+            "rvol_actual": 2.5097723271566257,
+            "aceleracion_volumen": 4.860402840842939,
+            "gap_pct": 0.04481003704670581,
+            "maximo_dia": 10.25,
+            "maximo_premarket": 9.21,
+            "rango_apertura_max": 9.489899635314941,
+            "rango_apertura_min": 9.199999809265137,
+            "velas_desde_ruptura": 316,
+            "macd": 0.03721943746552725,
+            "macd_signal": 0.03565167673811342
+          },
+          "meta": {
+            "float_acciones": 23343815.0,
+            "short_pct_float": 0.18190001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "American Bitcoin Shares Rise 1% Premarket After BTIG Initiates Coverage With Buy Rating",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-16T13:48:49Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3205.6810015,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 62.5,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 316 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 89.13174595129892,
+                "distancia_maximo_dia": 97.0731967832984,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "El patrón se activó hace 316 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 63.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "El patrón se activó hace 316 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "TDOC",
+          "nombre": "Teladoc Health, Inc.",
+          "precio_actual": 6.204999923706055,
+          "factores_intradia": {
+            "precio_actual": 6.204999923706055,
+            "vwap": 6.235138043326366,
+            "ema9": 6.209283246425142,
+            "rvol_actual": 1.364600781686209,
+            "aceleracion_volumen": 1.82118549684445,
+            "gap_pct": 0.004777027383587767,
+            "maximo_dia": 6.59,
+            "maximo_premarket": 6.59,
+            "rango_apertura_max": 6.335000038146973,
+            "rango_apertura_min": 6.275000095367432,
+            "velas_desde_ruptura": null,
+            "macd": -0.0021953159361549623,
+            "macd_signal": 7.372806754849068e-05
+          },
+          "meta": {
+            "float_acciones": 180435852.0,
+            "short_pct_float": 0.1402,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "The Bull Case For Teladoc Health (TDOC) Could Change Following Weak Q2 Results And Lowered Guidance",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-18T14:14:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 300.2977036166667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 69.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 41.57813713293701,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 62.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "GO",
+          "nombre": "Grocery Outlet Holding Corp.",
+          "precio_actual": 11.3149995803833,
+          "factores_intradia": {
+            "precio_actual": 11.3149995803833,
+            "vwap": 11.414799391905435,
+            "ema9": 11.317588925370885,
+            "rvol_actual": 2.0602526724975703,
+            "aceleracion_volumen": 0.9566388365203339,
+            "gap_pct": -0.009032218686995967,
+            "maximo_dia": 12.9,
+            "maximo_premarket": 12.9,
+            "rango_apertura_max": 11.59000015258789,
+            "rango_apertura_min": 11.479999542236328,
+            "velas_desde_ruptura": null,
+            "macd": -0.0064882678395541404,
+            "macd_signal": -0.00433562296780011
+          },
+          "meta": {
+            "float_acciones": 87772016.0,
+            "short_pct_float": 0.36450002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Grocery Outlet (GO) Raises Guidance While Nursing A Widening Loss",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-16T04:11:24Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3783.0977321833334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 51.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 45.66388365203339,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "VRA",
+          "nombre": "Vera Bradley, Inc.",
+          "precio_actual": 4.289999961853027,
+          "factores_intradia": {
+            "precio_actual": 4.289999961853027,
+            "vwap": 4.256190976465362,
+            "ema9": 4.301291067271323,
+            "rvol_actual": 0.09288990825688073,
+            "aceleracion_volumen": 0.2784761539199693,
+            "gap_pct": 0.011848387019135972,
+            "maximo_dia": 4.349999904632568,
+            "maximo_premarket": 4.25,
+            "rango_apertura_max": 4.269999980926514,
+            "rango_apertura_min": 4.160699844360352,
+            "velas_desde_ruptura": null,
+            "macd": -0.005693644974197554,
+            "macd_signal": 0.00030938526788139515
+          },
+          "meta": {
+            "float_acciones": 18742162.0,
+            "short_pct_float": 0.0348,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Vera Bradley Q2 Results Show Revenue Growth and Return to Operating Profit",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-15T14:56:38Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4577.864423249999,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 51.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 86.2069094034591,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }

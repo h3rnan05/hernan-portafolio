@@ -2865,9 +2865,9 @@
     {
       "ticker": "BBNX",
       "nombre": "Beta Bionics, Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-18T17:13:48+00:00",
-      "actualizado_en": "2026-09-18T17:13:48+00:00",
+      "actualizado_en": "2026-09-18T19:14:28+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2880,6 +2880,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-18T19:14:28+00:00",
+          "motivo": "El precio ($21.79) cayó por debajo del stop de la idea ($21.83) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-09-18T19:14:29+00:00",
+          "evaluacion_ts": "2026-09-18T19:14:29+00:00",
+          "mensaje_generado_ts": "2026-09-18T19:14:29+00:00",
+          "telegram_enviado_ts": "2026-09-18T19:14:30+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "fda",
@@ -2902,20 +2914,20 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 21.959999084472656,
-      "ultimo_stop": 21.831564595451212,
-      "ultimo_objetivo": 22.216868062515545,
+      "ultima_entrada": 21.790000915527344,
+      "ultimo_stop": 21.63232040781245,
+      "ultimo_objetivo": 22.10536193095713,
       "ultima_zona_entrada_baja": 21.420000076293945,
-      "ultimos_niveles_ts": "2026-09-18T17:13:48+00:00",
+      "ultimos_niveles_ts": "2026-09-18T19:14:28+00:00",
       "stop_tesis": 21.831564595451212,
       "clima_mercado": "debil"
     },
     {
       "ticker": "ABTC",
       "nombre": "American Bitcoin Corp",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-09-18T17:13:48+00:00",
-      "actualizado_en": "2026-09-18T17:13:48+00:00",
+      "actualizado_en": "2026-09-18T19:14:28+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2928,6 +2940,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-09-18T19:14:28+00:00",
+          "motivo": "El patrón se activó hace 316 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-09-18T19:14:29+00:00",
+          "evaluacion_ts": "2026-09-18T19:14:29+00:00",
+          "mensaje_generado_ts": "2026-09-18T19:14:30+00:00",
+          "telegram_enviado_ts": "2026-09-18T19:14:30+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "upgrade_analista",
@@ -2942,7 +2966,7 @@
       "score_base": 63.6,
       "atr_diario": 0.8215000288827079,
       "gap_pct_congelado": 0.043035120920072154,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -2950,20 +2974,20 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 9.720000267028809,
-      "ultimo_stop": 9.309250252587455,
-      "ultimo_objetivo": 10.541500295911515,
+      "ultima_entrada": 10.220000267028809,
+      "ultimo_stop": 10.130708134375555,
+      "ultimo_objetivo": 10.398584532335317,
       "ultima_zona_entrada_baja": 9.489899635314941,
-      "ultimos_niveles_ts": "2026-09-18T17:13:48+00:00",
+      "ultimos_niveles_ts": "2026-09-18T19:14:28+00:00",
       "stop_tesis": 9.309250252587455,
       "clima_mercado": "debil"
     },
     {
       "ticker": "TDOC",
       "nombre": "Teladoc Health, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-18T17:13:48+00:00",
-      "actualizado_en": "2026-09-18T17:13:48+00:00",
+      "actualizado_en": "2026-09-18T19:14:28+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2976,6 +3000,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-18T19:14:28+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-18T19:14:31+00:00",
+          "telegram_enviado_ts": "2026-09-18T19:14:31+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3001,17 +3037,17 @@
       "ultima_entrada": 6.204999923706055,
       "ultimo_stop": 6.080714191709246,
       "ultimo_objetivo": 6.453571387699672,
-      "ultima_zona_entrada_baja": 6.205943541083712,
-      "ultimos_niveles_ts": "2026-09-18T17:13:48+00:00",
+      "ultima_zona_entrada_baja": 6.209283246425142,
+      "ultimos_niveles_ts": "2026-09-18T19:14:28+00:00",
       "stop_tesis": 6.080714191709246,
       "clima_mercado": "debil"
     },
     {
       "ticker": "GO",
       "nombre": "Grocery Outlet Holding Corp.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-18T17:13:48+00:00",
-      "actualizado_en": "2026-09-18T17:13:48+00:00",
+      "actualizado_en": "2026-09-18T19:14:28+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3024,6 +3060,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-18T19:14:28+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-18T19:14:31+00:00",
+          "telegram_enviado_ts": "2026-09-18T19:14:32+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 4000.0
         }
       ],
       "catalizador_tipo": "guidance",
@@ -3046,20 +3094,20 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 11.359999656677246,
-      "ultimo_stop": 11.125749656132289,
-      "ultimo_objetivo": 11.82849965776716,
-      "ultima_zona_entrada_baja": 11.36880547957282,
-      "ultimos_niveles_ts": "2026-09-18T17:13:48+00:00",
+      "ultima_entrada": 11.3149995803833,
+      "ultimo_stop": 11.080749579838344,
+      "ultimo_objetivo": 11.783499581473215,
+      "ultima_zona_entrada_baja": 11.317588925370885,
+      "ultimos_niveles_ts": "2026-09-18T19:14:28+00:00",
       "stop_tesis": 11.125749656132289,
       "clima_mercado": "debil"
     },
     {
       "ticker": "VRA",
       "nombre": "Vera Bradley, Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-18T18:12:36+00:00",
-      "actualizado_en": "2026-09-18T18:12:36+00:00",
+      "actualizado_en": "2026-09-18T19:14:28+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3072,6 +3120,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-18T19:14:28+00:00",
+          "motivo": "El precio ($4.29) cayó por debajo del stop de la idea ($4.31) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-09-18T19:14:29+00:00",
+          "evaluacion_ts": "2026-09-18T19:14:29+00:00",
+          "mensaje_generado_ts": "2026-09-18T19:14:30+00:00",
+          "telegram_enviado_ts": "2026-09-18T19:14:31+00:00",
+          "latencia_desde_deteccion_ms": 2000.0,
+          "latencia_desde_evaluacion_ms": 2000.0,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3094,11 +3154,11 @@
       "telegram_enviado_ts": null,
       "signal_latency_ms": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 4.329999923706055,
-      "ultimo_stop": 4.30810043818952,
-      "ultimo_objetivo": 4.373798894739124,
-      "ultima_zona_entrada_baja": 4.32974918411007,
-      "ultimos_niveles_ts": "2026-09-18T18:32:08+00:00",
+      "ultima_entrada": 4.289999961853027,
+      "ultimo_stop": 4.234910021583035,
+      "ultimo_objetivo": 4.400179842393012,
+      "ultima_zona_entrada_baja": 4.301291067271323,
+      "ultimos_niveles_ts": "2026-09-18T19:14:28+00:00",
       "stop_tesis": 4.307588553549177,
       "clima_mercado": "debil"
     }
