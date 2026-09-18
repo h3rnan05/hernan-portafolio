@@ -13,7 +13,16 @@
       "stop": null,
       "objetivo": null,
       "resultado": null,
-      "pnl": null
+      "pnl": null,
+      "market_event_ts": null,
+      "watchlist_escrito_ts": null,
+      "executor_leido_ts": null,
+      "ia_decision_ts": null,
+      "latencia_descubrimiento_ms": null,
+      "latencia_e2e_ms": null,
+      "es_large_cap": null,
+      "ia_entraria": null,
+      "motivo_no_operada": null
     },
     {
       "ticker": "AEM",
@@ -28,7 +37,16 @@
       "stop": null,
       "objetivo": null,
       "resultado": null,
-      "pnl": null
+      "pnl": null,
+      "market_event_ts": null,
+      "watchlist_escrito_ts": null,
+      "executor_leido_ts": null,
+      "ia_decision_ts": null,
+      "latencia_descubrimiento_ms": null,
+      "latencia_e2e_ms": null,
+      "es_large_cap": null,
+      "ia_entraria": null,
+      "motivo_no_operada": null
     },
     {
       "ticker": "SHEL",
@@ -43,7 +61,16 @@
       "stop": null,
       "objetivo": null,
       "resultado": null,
-      "pnl": null
+      "pnl": null,
+      "market_event_ts": null,
+      "watchlist_escrito_ts": null,
+      "executor_leido_ts": null,
+      "ia_decision_ts": null,
+      "latencia_descubrimiento_ms": null,
+      "latencia_e2e_ms": null,
+      "es_large_cap": null,
+      "ia_entraria": null,
+      "motivo_no_operada": null
     },
     {
       "ticker": "NTLA",
@@ -58,7 +85,16 @@
       "stop": 12.776037331326984,
       "objetivo": 13.087925680668786,
       "resultado": "stop",
-      "pnl": -6.38
+      "pnl": -6.38,
+      "market_event_ts": null,
+      "watchlist_escrito_ts": null,
+      "executor_leido_ts": null,
+      "ia_decision_ts": null,
+      "latencia_descubrimiento_ms": null,
+      "latencia_e2e_ms": null,
+      "es_large_cap": null,
+      "ia_entraria": null,
+      "motivo_no_operada": null
     },
     {
       "ticker": "BEAM",
@@ -73,7 +109,40 @@
       "stop": null,
       "objetivo": null,
       "resultado": null,
-      "pnl": null
+      "pnl": null,
+      "market_event_ts": null,
+      "watchlist_escrito_ts": null,
+      "executor_leido_ts": null,
+      "ia_decision_ts": null,
+      "latencia_descubrimiento_ms": null,
+      "latencia_e2e_ms": null,
+      "es_large_cap": null,
+      "ia_entraria": null,
+      "motivo_no_operada": null
+    },
+    {
+      "ticker": "AZN",
+      "creado_en": "2026-09-18T16:21:54+00:00",
+      "entro": false,
+      "confianza": 6,
+      "razonamiento": "El catalizador es real y con fuente (aprobación FDA), pero AZN es una large cap con float de 1.5B acciones y short interest casi nulo -- estructuralmente no es el perfil que sostiene un movimiento explosivo de momentum, más bien un drift lento. En el momento del trigger el precio ($166.26) está por debajo del VWAP ($166.60), lo que contradice la lectura de fuerza que se busca en una ruptura confirmada, aunque el RVOL y la aceleración de volumen son buenos. Sumado a un mercado general débil y solo 5 muestras históricas con catalizadores FDA (no hay edge probado), el riesgo/beneficio de 2:1 no compensa la falta de confirmación de fuerza direccional clara. Prefiero no arriesgar capital aquí y esperar una lectura con precio sostenido sobre VWAP antes de comprometerme.",
+      "timestamp": "2026-09-18T16:50:00+00:00",
+      "order_id": null,
+      "cantidad": null,
+      "precio_entrada": null,
+      "stop": null,
+      "objetivo": null,
+      "resultado": null,
+      "pnl": null,
+      "market_event_ts": "2026-09-18T16:47:00+00:00",
+      "watchlist_escrito_ts": "2026-09-18T16:49:32+00:00",
+      "executor_leido_ts": "2026-09-18T16:49:37+00:00",
+      "ia_decision_ts": "2026-09-18T16:50:00+00:00",
+      "latencia_descubrimiento_ms": 152000.0,
+      "latencia_e2e_ms": 180000.0,
+      "es_large_cap": true,
+      "ia_entraria": false,
+      "motivo_no_operada": "fuera_de_banda"
     }
   ]
 }
