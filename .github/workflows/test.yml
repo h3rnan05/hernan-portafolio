@@ -81,5 +81,5 @@ jobs:
           pip install -q -r momentum_hunter/requirements.txt
           pip install -q -r momentum_paper_trader/requirements.txt
 
-      - name: Tests momentum_hunter + momentum_paper_trader
-        run: python -m pytest momentum_hunter/tests momentum_paper_trader/tests -q
+      - name: Tests momentum_hunter + momentum_paper_trader + panel
+        run: python -m pytest momentum_hunter/tests momentum_paper_trader/tests tests/test_dashboard.py -q
