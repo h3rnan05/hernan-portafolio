@@ -42,6 +42,35 @@ from momentum_paper_trader.config import PaperTraderConfig, banda_de
 
 log = logging.getLogger("momentum_paper_trader.executor")
 
+# Eventos para el panel (dashboard/). SOLO observabilidad: ni el import ni
+# la llamada pueden afectar una orden. Si `dashboard` no existe o
+# `log_event` falla por lo que sea, se ignora y el ejecutor sigue igual.
+try:
+    from dashboard.events import log_event
+except Exception:  # pragma: no cover - sin panel instalado
+    def log_event(tipo: str, **campos) -> None:
+        return None
+
+
+def _evento(dry_run: bool, tipo: str, **campos) -> None:
+    """Dry-run no persiste nada (tampoco eventos). Nunca lanza."""
+    if dry_run:
+        return
+    try:
+        log_event(tipo, **campos)
+    except Exception:
+        pass
+
+
+def _velas_desde_senal(registro) -> float | None:
+    """Velas de 1 min entre la vela que confirmó y la orden, a partir de la
+    latencia e2e que `telemetria` YA calculó. None si no se midió."""
+    try:
+        ms = registro.latencia_e2e_ms
+        return None if ms is None else round(ms / telemetria.MS_POR_VELA, 1)
+    except Exception:
+        return None
+
 
 def _niveles_rancios(e, cfg: PaperTraderConfig, ahora: datetime) -> float | None:
     """Antigüedad en minutos de los niveles si superan el tope, o `None`
@@ -316,6 +345,7 @@ def ejecutar(
     ]
     if metricas is not None:
         metricas.triggered_nuevos = len(pendientes)
+    _evento(dry_run, "rechequeo", n_tickers=len(entradas), n_triggered=len(pendientes))
     if not pendientes:
         if metricas is not None and not dry_run:
             metricas.cerrar_corrida()
@@ -330,16 +360,21 @@ def ejecutar(
         cerrado = _mercado_cerrado(client)
         if cerrado is not None:
             log.info("no se colocan órdenes en esta corrida: %s", cerrado)
+            _evento(dry_run, "bloqueo_riesgo", ticker=None, limite="mercado_cerrado", motivo=cerrado)
             if metricas is not None:
                 metricas.cerrar_corrida()
             return nuevas
         cuenta = _leer_cuenta(client)
         if cuenta is None:
+            _evento(dry_run, "bloqueo_riesgo", ticker=None, limite="cuenta_ilegible",
+                    motivo="no se pudo leer la cuenta paper (fail-closed)")
             if metricas is not None:
                 metricas.cerrar_corrida()
             return nuevas
 
     for e in pendientes:
+        _evento(dry_run, "deteccion", ticker=e.ticker, creado_en=e.creado_en,
+                market_event_ts=getattr(e, "market_event_ts", None))
         if e.ultima_entrada is None or e.ultimo_stop is None or e.ultimo_objetivo is None:
             log.warning(
                 "%s: TRIGGERED sin niveles cacheados -- se omite (no se inventa un precio)", e.ticker)
@@ -353,6 +388,8 @@ def ejecutar(
             log.info(
                 "%s: los niveles tienen %.0f min (tope %.0f) -- se espera a que se recalculen "
                 "en vez de operar un precio viejo", e.ticker, rancios, cfg.minutos_maximos_niveles)
+            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="niveles_rancios",
+                    motivo="niveles rancios", minutos=rancios, tope=cfg.minutos_maximos_niveles)
             continue
 
         cantidad = _tamano_posicion(e.ultima_entrada, e.ultimo_stop, cfg)
@@ -360,6 +397,8 @@ def ejecutar(
             log.info(
                 "%s: riesgo de $%.2f no alcanza para 1 acción con este stop -- se omite",
                 e.ticker, cfg.riesgo_dolares_por_operacion)
+            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="riesgo_por_operacion",
+                    motivo="el riesgo por operación no alcanza para 1 acción")
             continue
 
         if dry_run:
@@ -374,11 +413,15 @@ def ejecutar(
         assert cuenta is not None
         if e.ticker in cuenta.tickers_comprometidos:
             log.info("%s: ya hay una posición u orden viva con este ticker -- se omite", e.ticker)
+            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="ticker_comprometido",
+                    motivo="ya hay posición u orden viva")
             continue
         if len(cuenta.tickers_comprometidos) >= cfg.maximo_posiciones_abiertas:
             log.info(
                 "%s: la cuenta ya está en el máximo de %d posiciones simultáneas -- se omite",
                 e.ticker, cfg.maximo_posiciones_abiertas)
+            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="maximo_posiciones",
+                    motivo="máximo de posiciones simultáneas", tope=cfg.maximo_posiciones_abiertas)
             continue
         # Techo de GRANULARIDAD (2026-08-25). Si el tope de
         # concentración no da para al menos `minimo_acciones_para_operar`
@@ -392,6 +435,8 @@ def ejecutar(
                 "%s: a $%.2f la cuenta solo da para %d acción(es) (mínimo %d) -- "
                 "esta señal no se puede dimensionar, se omite",
                 e.ticker, e.ultima_entrada, techo, cfg.minimo_acciones_para_operar)
+            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="concentracion",
+                    motivo="no se puede dimensionar", techo=techo, minimo=cfg.minimo_acciones_para_operar)
             continue
 
         no_operable = _activo_no_operable(client, e.ticker)
@@ -399,6 +444,8 @@ def ejecutar(
             # No se registra revisión: el símbolo puede volver a ser
             # operable en la corrida siguiente (un halt se levanta).
             log.info("%s: %s -- se omite", e.ticker, no_operable)
+            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="activo_no_operable",
+                    motivo=no_operable)
             continue
 
         decision = ia_decision.decidir(e, cuenta.contexto_para_ia())
@@ -413,7 +460,13 @@ def ejecutar(
             log.warning(
                 "%s: no se pudo obtener decisión de la IA -- se reintentará: %s",
                 e.ticker, decision.razonamiento)
+            _evento(dry_run, "decision", ticker=e.ticker, entra=None, fallo_tecnico=True,
+                    motivo="no se pudo obtener decisión de la IA -- se reintentará")
             continue
+
+        _evento(dry_run, "decision", ticker=e.ticker, entra=decision.entrar,
+                confianza=decision.confianza, fraccion=getattr(decision, "fraccion", None),
+                motivo=decision.razonamiento)
 
         # -- Compuerta de banda (2026-09-14). DESPUÉS de la IA a propósito:
         # la decisión se registra tal cual (con `ia_entraria`) para tener
@@ -428,6 +481,8 @@ def ejecutar(
                 "%s: banda %s fuera de bandas_operables=%s -- se registra la decisión "
                 "de la IA (entraría=%s, confianza %d/10) pero no se opera",
                 e.ticker, banda, cfg.bandas_operables, decision.entrar, decision.confianza)
+            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="fuera_de_banda",
+                    motivo="banda fuera de bandas_operables", banda=banda)
             registro = _revision_instrumentada(
                 e, decision, executor_leido_ts=executor_leido_ts,
                 ia_decision_ts=ia_decision_ts, entro=False,
@@ -471,6 +526,9 @@ def ejecutar(
             log.info(
                 "%s: la fracción %.0f%% pedida por la IA no alcanza para 1 acción -- no se opera",
                 e.ticker, decision.fraccion * 100)
+            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="fraccion_insuficiente",
+                    motivo="la fracción de la IA no alcanza para 1 acción",
+                    fraccion=getattr(decision, "fraccion", None))
             registro = _revision_instrumentada(
                 e, decision, executor_leido_ts=executor_leido_ts,
                 ia_decision_ts=ia_decision_ts, entro=False,
@@ -492,6 +550,8 @@ def ejecutar(
             log.warning(
                 "%s: la IA aprobó pero falló colocar la orden paper: %s",
                 e.ticker, _detalle_de_rechazo(ex))
+            _evento(dry_run, "orden", ticker=e.ticker, lado="buy", estado="rechazada",
+                    cantidad=cantidad, motivo=_detalle_de_rechazo(ex))
             # No se registra como revisada -- un fallo de RED/API de
             # Alpaca no es un "no" de la IA, así que la próxima corrida
             # debe poder reintentarlo con la misma entrada TRIGGERED.
@@ -512,6 +572,9 @@ def ejecutar(
         # El aviso sale en `seguimiento` cuando Alpaca confirma el fill
         # (o el cierre). Mandarlo ahora era spam de "ENVIADA" sin P&L.
         log.info("%s: orden paper colocada (%s)", e.ticker, orden.order_id)
+        _evento(dry_run, "orden", ticker=e.ticker, lado="buy", estado="enviada",
+                cantidad=orden.cantidad, order_id=orden.order_id,
+                velas=_velas_desde_senal(registro))
         if metricas is not None:
             metricas.anotar_revision(registro, e.signal_latency_ms)
 

@@ -1,6 +1,7 @@
 """Registro de eventos para el panel.
 
-Cada llamada agrega una línea JSON a logs/events.jsonl. Es solo observabilidad:
+Cada llamada agrega una línea JSON a $DASH_EVENTOS (en el VPS:
+/var/lib/momentum/events.jsonl, fuera de git; por defecto logs/events.jsonl). Es solo observabilidad:
 si falla la escritura, se ignora y el bot sigue exactamente igual.
 
 Tipos que el panel entiende:
@@ -23,15 +24,17 @@ def ruta_eventos() -> Path:
 
 
 def log_event(tipo: str, **campos) -> None:
-    registro = {
-        "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "tipo": tipo,
-        **campos,
-    }
+    """Nunca lanza. Cualquier falla (disco, permisos, un campo raro, lo que
+    sea) se traga: el panel es secundario y jamás puede afectar una orden."""
     try:
+        registro = {
+            "ts": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "tipo": tipo,
+            **campos,
+        }
         ruta = ruta_eventos()
         ruta.parent.mkdir(parents=True, exist_ok=True)
         with ruta.open("a", encoding="utf-8") as f:
             f.write(json.dumps(registro, ensure_ascii=False, default=str) + "\n")
-    except OSError:
-        pass  # el panel es secundario: nunca debe afectar al ejecutor
+    except Exception:
+        pass
