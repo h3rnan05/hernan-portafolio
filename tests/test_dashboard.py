@@ -12,7 +12,6 @@ def cfg(tmp_path, **extra):
         "watchlist": tmp_path / "watchlist.json",
         "eventos": tmp_path / "events.jsonl",
         "salida": tmp_path / "site",
-        "vela_min": 5.0,
         "presupuesto_velas": 8.0,
         "hunter_max_min": 45.0,
         "rechequeo_max_min": 12.0,
@@ -57,20 +56,26 @@ def test_pnl_del_dia(tmp_path):
     assert round(ctx["pnl_pct"], 2) == 1.0
 
 
-def test_latencia_por_timestamps_y_por_campo_velas(tmp_path):
+def test_latencia_solo_cuenta_la_medida_ruptura_a_orden(tmp_path):
     eventos(tmp_path,
             {"ts": "2026-09-18T14:00:00Z", "tipo": "deteccion", "ticker": "AAA"},
-            {"ts": "2026-09-18T14:30:00Z", "tipo": "orden", "ticker": "AAA", "estado": "enviada"},
-            {"ts": "2026-09-18T14:40:00Z", "tipo": "orden", "ticker": "BBB", "estado": "enviada", "velas": 3})
+            {"ts": "2026-09-18T14:30:00Z", "tipo": "orden", "ticker": "AAA", "estado": "enviada",
+             "velas": 9.5, "medida": "ruptura_a_orden"},
+            # v1 (disparo -> orden): otra medida, no entra al gráfico
+            {"ts": "2026-09-18T14:40:00Z", "tipo": "orden", "ticker": "BBB", "estado": "enviada", "velas": 3},
+            # falta velas_desde_ruptura: el ejecutor manda None, no 0
+            {"ts": "2026-09-18T14:45:00Z", "tipo": "orden", "ticker": "CCC", "estado": "enviada",
+             "velas": None, "medida": "ruptura_a_orden"})
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
-    assert ctx["lat"] == [("AAA", 6.0), ("BBB", 3.0)]
+    assert ctx["lat"] == [("AAA", 9.5)]
+    assert ctx["lat_fuera"] == 1  # 9.5 > 8
 
 
-def test_sin_vela_min_no_inventa_latencia(tmp_path):
+def test_sin_velas_no_se_reconstruye_por_tiempo(tmp_path):
     eventos(tmp_path,
             {"ts": "2026-09-18T14:00:00Z", "tipo": "deteccion", "ticker": "AAA"},
             {"ts": "2026-09-18T14:30:00Z", "tipo": "orden", "ticker": "AAA", "estado": "enviada"})
-    ctx = bd.construir(AHORA, cfg(tmp_path, vela_min=None), get=sin_alpaca)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     assert ctx["lat"] == [] and ctx["lat_mediana"] is None
 
 
