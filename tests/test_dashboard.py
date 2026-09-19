@@ -238,3 +238,39 @@ def test_rechequeo_viejo_no_oculta_un_bloqueo_real(tmp_path):
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     riesgo = _etapas(ctx)["Riesgo"]
     assert riesgo["estado"] == "alerta" and riesgo["detalle"] == "1 bloqueos hoy"
+
+
+def test_hora_muestra_el_dia_si_no_es_de_hoy():
+    utc = ZoneInfo("UTC")
+    assert bd._hora(datetime(2026, 9, 18, 14, 40, tzinfo=timezone.utc), utc, ahora=AHORA) == "14:40"
+    assert bd._hora(datetime(2026, 9, 17, 22, 33, tzinfo=timezone.utc), utc, ahora=AHORA) == "jue 22:33"
+    assert bd._hora(datetime(2026, 9, 12, 9, 5, tzinfo=timezone.utc), utc, ahora=AHORA) == "sáb 09:05"
+    assert bd._hora(datetime(2026, 9, 1, 22, 33, tzinfo=timezone.utc), utc, ahora=AHORA) == "1 sep 22:33"
+    assert bd._hora(None, utc, ahora=AHORA) == "—"
+
+
+def test_el_dia_se_calcula_en_la_zona_del_panel():
+    # 02:00 UTC del 18 = 20:00 del 17 en Monterrey: para el panel es "ayer".
+    mty = ZoneInfo("America/Monterrey")
+    ahora = datetime(2026, 9, 18, 15, 0, tzinfo=timezone.utc)
+    assert bd._hora(datetime(2026, 9, 18, 2, 0, tzinfo=timezone.utc), mty, ahora=ahora) == "jue 20:00"
+
+
+def test_hunter_y_generada_muestran_el_dia_de_una_watchlist_vieja(tmp_path):
+    (tmp_path / "watchlist.json").write_text(json.dumps({
+        "generado": "2026-09-17T22:33:00+00:00",
+        "entradas": [_entrada("AAA", "watching", creado_en="2026-09-16T14:00:00+00:00")]}))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    hunter = next(e for e in ctx["etapas"] if e["nombre"] == "Hunter")
+    assert hunter["detalle"] == "watchlist del jue 22:33"
+    html = bd.render(ctx)
+    assert "generada jue 22:33" in html
+    assert "mié 14:00" in html   # columna Detectado de la tabla
+
+
+def test_hunter_de_hoy_sigue_sin_dia(tmp_path):
+    (tmp_path / "watchlist.json").write_text(json.dumps({
+        "generado": "2026-09-18T14:40:00+00:00", "entradas": []}))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    hunter = next(e for e in ctx["etapas"] if e["nombre"] == "Hunter")
+    assert hunter["detalle"] == "watchlist de las 14:40"
