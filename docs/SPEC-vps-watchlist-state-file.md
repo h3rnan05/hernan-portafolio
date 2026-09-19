@@ -293,10 +293,10 @@ Las líneas L930/L988/L1034/L1067 son de **origin/main** (2026-09-18). Verificad
 
 Backup concreto (condición #1):
 
-- Cron versionado: `infra/cron/momentum-watchlist-state-backup` — `15 2 * * *` `CRON_TZ=America/Monterrey`
-- Destino: `/var/backups/momentum/watchlist_vps_state-$(date +%F).json`
-- Retención: `find … -mtime +14 -delete` en `scripts/backup_watchlist_vps_state.sh`
-- systemd equivalente (no habilitado): 02:15, `User=momentum`, `TZ=America/Monterrey`
+- Cron versionado: `infra/cron/momentum-watchlist-state-backup` — `15 2 * * *` `CRON_TZ=America/Monterrey`; solo llama a `scripts/backup_watchlist_vps_state.sh` (alternativa al timer systemd)
+- Destino: `/var/backups/momentum/watchlist_vps_state-$(date +%F).json` y `/var/backups/momentum/events-$(date +%F).jsonl` (log del panel, `MOMENTUM_EVENTS_LOG` / `DASH_EVENTOS`, default `/var/lib/momentum/events.jsonl`)
+- Retención: `find … -mtime +14 -delete` para ambos patrones en `scripts/backup_watchlist_vps_state.sh`
+- systemd equivalente (preferido): `momentum-watchlist-state-backup.timer` 02:15, `User=momentum`, `TZ=America/Monterrey`
 
 Feature flag: `MOMENTUM_WATCHLIST_VPS_STATE=0` restaura `guardar` → PATH. Wrapper VPS exporta `=1` por defecto.
 
