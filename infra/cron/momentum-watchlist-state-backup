@@ -1,7 +1,11 @@
-# PAPER ONLY. Backup diario del overlay VPS.
+# PAPER ONLY. Backup diario del overlay VPS + events.jsonl del panel.
 # Condición Claude #1. No arranca momentum-watchlist.timer.
-# Instalar post-merge (ops): sudo mkdir -p /var/backups/momentum && \
+# Destino y retención (14 días) viven en scripts/backup_watchlist_vps_state.sh;
+# esta línea solo lo llama. Preferir el timer systemd
+# momentum-watchlist-state-backup.timer (infra/systemd/); este cron es la
+# alternativa si el timer no está habilitado.
+# Instalar (ops): sudo mkdir -p /var/backups/momentum && \
 #   sudo chown momentum:momentum /var/backups/momentum && \
 #   sudo crontab -u momentum infra/cron/momentum-watchlist-state-backup
 CRON_TZ=America/Monterrey
-15 2 * * * [ -f /var/lib/momentum/watchlist_vps_state.json ] && cp -a /var/lib/momentum/watchlist_vps_state.json /var/backups/momentum/watchlist_vps_state-$(date +\%F).json; find /var/backups/momentum -name 'watchlist_vps_state-*.json' -mtime +14 -delete
+15 2 * * * /opt/hernan-portafolio/scripts/backup_watchlist_vps_state.sh

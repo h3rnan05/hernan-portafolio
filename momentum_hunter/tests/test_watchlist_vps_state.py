@@ -522,6 +522,7 @@ def test_script_backup_sin_state_no_falla(tmp_path):
     env = {
         **os.environ,
         "MOMENTUM_WATCHLIST_STATE": str(tmp_path / "no-existe.json"),
+        "MOMENTUM_EVENTS_LOG": str(tmp_path / "no-existe.jsonl"),
         "MOMENTUM_WATCHLIST_STATE_BACKUP_DIR": str(tmp_path / "backups"),
     }
     r = subprocess.run(["bash", str(script)], capture_output=True, text=True, env=env)
@@ -551,12 +552,37 @@ def test_script_backup_borra_copias_de_mas_de_14_dias(tmp_path):
     assert (dest / f"watchlist_vps_state-{stamp}.json").exists()
 
 
+
+def test_script_backup_copia_events_jsonl_y_purga(tmp_path):
+    """events.jsonl del panel (#136) vive fuera de git: misma copia diaria
+    y misma retención de 14 días que el state."""
+    script = REPO / "scripts" / "backup_watchlist_vps_state.sh"
+    events = tmp_path / "events.jsonl"
+    dest = tmp_path / "momentum"
+    dest.mkdir()
+    events.write_text('{"tipo": "orden"}\n')
+    vieja = dest / "events-2000-01-01.jsonl"
+    vieja.write_text("old")
+    os.utime(vieja, (0, 0))
+    env = {
+        **os.environ,
+        "TZ": "America/Monterrey",
+        "MOMENTUM_WATCHLIST_STATE": str(tmp_path / "no-existe.json"),
+        "MOMENTUM_EVENTS_LOG": str(events),
+        "MOMENTUM_WATCHLIST_STATE_BACKUP_DIR": str(dest),
+    }
+    r = subprocess.run(["bash", str(script)], capture_output=True, text=True, env=env)
+    assert r.returncode == 0, r.stderr
+    stamp = subprocess.check_output(["date", "+%F"], env=env, text=True).strip()
+    assert (dest / f"events-{stamp}.jsonl").read_text() == '{"tipo": "orden"}\n'
+    assert not vieja.exists()
+    assert not list(dest.glob("watchlist_vps_state-*.json"))
+
 def test_crontab_backup_coincide_con_el_spec():
     cron = (REPO / "infra" / "cron" / "momentum-watchlist-state-backup").read_text()
     assert "CRON_TZ=America/Monterrey" in cron
     assert "15 2 * * *" in cron
-    assert "/var/backups/momentum/watchlist_vps_state-" in cron
-    assert "-mtime +14 -delete" in cron
+    assert "/opt/hernan-portafolio/scripts/backup_watchlist_vps_state.sh" in cron
     assert "momentum-watchlist.timer" not in cron.split("15 2")[1]  # la línea cron no arranca el timer
 
 
