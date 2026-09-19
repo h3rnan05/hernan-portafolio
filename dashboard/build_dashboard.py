@@ -18,6 +18,7 @@ import math
 import os
 import re
 import statistics
+import subprocess
 import sys
 import urllib.error
 import urllib.parse
@@ -181,10 +182,43 @@ def leer_estado_vps(ruta: Path):
     return {str(k).upper(): v for k, v in entradas.items() if isinstance(v, dict)}, None
 
 
-def leer_watchlist(ruta: Path, ruta_estado: Path | None = None):
-    """Devuelve (items, momento_generado, error)."""
+def fecha_ultimo_commit(ruta: Path) -> datetime | None:
+    """Fecha del último commit que tocó `ruta` (`git log -1 --format=%cI`).
+    None si no es un repo git, git no está o falla por lo que sea. En un clon
+    superficial (`--depth`) el historial está cortado y git atribuiría el
+    archivo al commit más viejo que tiene, así que ahí tampoco hay dato."""
     try:
-        mtime = datetime.fromtimestamp(ruta.stat().st_mtime, tz=timezone.utc)
+        sup = subprocess.run(
+            ["git", "rev-parse", "--is-shallow-repository"],
+            cwd=ruta.parent, capture_output=True, text=True, timeout=10,
+        )
+        if sup.returncode != 0 or sup.stdout.strip() != "false":
+            return None
+        r = subprocess.run(
+            ["git", "log", "-1", "--format=%cI", "--", ruta.name],
+            cwd=ruta.parent, capture_output=True, text=True, timeout=10,
+        )
+    except Exception:
+        return None
+    if r.returncode != 0:
+        return None
+    return parse_ts(r.stdout.strip())
+
+
+# Marcas que escribe el hunter dentro de cada entrada (no el overlay VPS).
+CLAVES_TS_ENTRADA = ("actualizado_en", "watchlist_escrito_ts", "creado_en",
+                     "updated_at", "detectado", "detected_at", "added_at", "timestamp", "ts")
+
+
+def leer_watchlist(ruta: Path, ruta_estado: Path | None = None):
+    """Devuelve (items, momento_generado, error).
+
+    `momento_generado` sale del propio JSON (marca de nivel superior o la
+    entrada más reciente) o, si no hay, del último commit que tocó el
+    archivo. Nunca del mtime: tras un `git clone`/`git pull` el mtime es la
+    hora de la descarga, no la del hunter, y daría un "OK" falso. Si no hay
+    ninguna marca, None ("Sin datos")."""
+    try:
         crudo = json.loads(ruta.read_text(encoding="utf-8"))
     except FileNotFoundError:
         return [], None, f"No existe {ruta}."
@@ -196,16 +230,21 @@ def leer_watchlist(ruta: Path, ruta_estado: Path | None = None):
         generado = parse_ts(_primero(crudo, "generado", "generated_at", "updated_at", "ts"))
         lista = next((crudo[c] for c in CLAVES_LISTA if isinstance(crudo.get(c), list)), None)
     if not isinstance(lista, list):
-        return [], mtime, "Formato de watchlist no reconocido: ajusta leer_watchlist()."
+        return [], None, "Formato de watchlist no reconocido: ajusta leer_watchlist()."
 
     overlay, err_estado = leer_estado_vps(ruta_estado) if ruta_estado else ({}, None)
 
     items = []
+    mas_reciente = None
     for x in lista:
         if isinstance(x, str):
             x = {"ticker": x}
         if not isinstance(x, dict):
             continue
+        for clave in CLAVES_TS_ENTRADA:
+            ts = parse_ts(x.get(clave))
+            if ts is not None and (mas_reciente is None or ts > mas_reciente):
+                mas_reciente = ts
         catalizador = _catalizador(x)
         if isinstance(catalizador, list):
             catalizador = ", ".join(map(str, catalizador))
@@ -219,7 +258,10 @@ def leer_watchlist(ruta: Path, ruta_estado: Path | None = None):
             "estado": _primero(vps, "estado") or _primero(x, "estado", "status", "state"),
             "actualizado": parse_ts(_primero(vps, "actualizado_en") or _primero(x, "actualizado_en", "updated_at")),
         })
-    return items, generado or mtime, err_estado
+    if generado is None:
+        candidatos = [t for t in (mas_reciente, fecha_ultimo_commit(ruta)) if t is not None]
+        generado = max(candidatos) if candidatos else None
+    return items, generado, err_estado
 
 
 def alpaca_get(ruta: str, params: dict | None = None, timeout: float = 10):
