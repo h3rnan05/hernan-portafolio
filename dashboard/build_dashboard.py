@@ -367,20 +367,20 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
             "nombre": "Hunter", "donde": "GitHub Actions",
             "rol": "Busca candidatos. Determinista, sin IA ni bróker.",
             "estado": _estado_frescura(_edad_min(ahora, wl_momento), cfg["hunter_max_min"], en_sesion),
-            "detalle": f"watchlist de las {_hora(wl_momento, cfg['tz'])}",
+            "detalle": f"watchlist {_cuando(wl_momento, cfg['tz'], ahora)}",
         },
         {
             "nombre": "Rechequeo", "donde": "VPS",
             "rol": "Revisa la watchlist con --solo-watchlist.",
             "estado": estado_rechequeo,
-            "detalle": f"última corrida {_hora(ult_rechequeo, cfg['tz'])}",
+            "detalle": f"última corrida {_hora(ult_rechequeo, cfg['tz'], ahora=ahora)}",
         },
         {
             "nombre": "Ejecutor", "donde": "VPS",
             "rol": "Consulta al LLM y decide si entra.",
             "estado": "ok" if decisiones and conteos_validos else "sin-datos",
             # Un conteo > 0 es real aunque el rechequeo esté viejo; un 0 no.
-            "detalle": (f"{len(decisiones)} decisiones hoy · última {_hora(ult_decision, cfg['tz'])}"
+            "detalle": (f"{len(decisiones)} decisiones hoy · última {_hora(ult_decision, cfg['tz'], ahora=ahora)}"
                         if hay_eventos and (decisiones or conteos_validos)
                         else "— decisiones hoy · última —"),
         },
@@ -397,7 +397,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
     stream = []
     for o in (lista_ordenes or [])[:12]:
         stream.append({
-            "hora": _hora(parse_ts(o.get("submitted_at")), cfg["tz"], segundos=True),
+            "hora": _hora(parse_ts(o.get("submitted_at")), cfg["tz"], segundos=True, ahora=ahora),
             "ticker": o.get("symbol") or "—",
             "lado": {"buy": "compra", "sell": "venta"}.get(o.get("side"), o.get("side") or "—"),
             "estado": ESTADOS_ORDEN.get(o.get("status"), o.get("status") or "—"),
@@ -405,7 +405,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
         })
 
     dudas = [
-        {"ticker": d.get("ticker") or "—", "hora": _hora(d["_ts"], cfg["tz"]),
+        {"ticker": d.get("ticker") or "—", "hora": _hora(d["_ts"], cfg["tz"], ahora=ahora),
          "motivo": str(d.get("motivo") or "sin motivo registrado")}
         for d in reversed(decisiones) if d.get("entra") is False
     ][:6]
@@ -434,10 +434,36 @@ def esc(v) -> str:
     return html.escape("—" if v is None else str(v))
 
 
-def _hora(d: datetime | None, tz, segundos: bool = False) -> str:
+DIAS_ES = ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")
+MESES_ES = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+
+
+def _dia(d_local: datetime, hoy_local: datetime) -> str | None:
+    """None si es hoy; "vie" si es de los últimos 6 días; "18 sep" si no.
+    Así una hora vieja nunca se confunde con una de hoy."""
+    dias = (hoy_local.date() - d_local.date()).days
+    if dias == 0:
+        return None
+    if 0 < dias < 7:
+        return DIAS_ES[d_local.weekday()]
+    return f"{d_local.day} {MESES_ES[d_local.month - 1]}"
+
+
+def _hora(d: datetime | None, tz, segundos: bool = False, ahora: datetime | None = None) -> str:
     if d is None:
         return "—"
-    return d.astimezone(tz).strftime("%H:%M:%S" if segundos else "%H:%M")
+    local = d.astimezone(tz)
+    hora = local.strftime("%H:%M:%S" if segundos else "%H:%M")
+    dia = _dia(local, ahora.astimezone(tz)) if ahora is not None else None
+    return f"{dia} {hora}" if dia else hora
+
+
+def _cuando(d: datetime | None, tz, ahora: datetime) -> str:
+    """"de las 14:40" si es de hoy, "del vie 22:33" si no, "—" sin dato."""
+    if d is None:
+        return "—"
+    texto = _hora(d, tz, ahora=ahora)
+    return f"del {texto}" if " " in texto else f"de las {texto}"
 
 
 def fmt_dinero(v: float | None, signo: bool = False) -> str:
@@ -572,7 +598,7 @@ def render(ctx: dict) -> str:
     if ctx["watch"]:
         filas = "".join(
             f"<tr><td class='tk'>{esc(w['ticker'])}</td><td>{esc(w['cap'])}</td><td>{esc(w['catalizador'])}</td>"
-            f"<td>{_hora(w['detectado'], tz)}</td><td>{esc(w['estado'])}</td></tr>" for w in ctx["watch"])
+            f"<td>{_hora(w['detectado'], tz, ahora=ctx['ahora'])}</td><td>{esc(w['estado'])}</td></tr>" for w in ctx["watch"])
         watch = f"<div class='scroll'><table><thead><tr><th>Ticker</th><th>Cap</th><th>Catalizador</th><th>Detectado</th><th>Estado</th></tr></thead><tbody>{filas}</tbody></table></div>"
     else:
         watch = '<p class="vacio">Sin tickers en observación ni cambios de estado hoy.</p>'
@@ -597,7 +623,7 @@ def render(ctx: dict) -> str:
         filas = "".join(f"<tr><td>{esc(n)}</td><td>{c}</td></tr>" for n, c in ctx["bloqueos"])
         riesgo = f"<table><thead><tr><th>Límite</th><th>Bloqueos</th></tr></thead><tbody>{filas}</tbody></table>"
         ub = ctx["ult_bloqueo"]
-        riesgo += f'<div class="nota">Último: {esc(ub.get("ticker"))} a las {_hora(ub["_ts"], tz)}, {esc(ub.get("motivo") or ub.get("limite"))}</div>'
+        riesgo += f'<div class="nota">Último: {esc(ub.get("ticker"))} · {_hora(ub["_ts"], tz, ahora=ctx["ahora"])} · {esc(ub.get("motivo") or ub.get("limite"))}</div>'
     else:
         riesgo = ('<p class="vacio">Ningún límite ha bloqueado operaciones hoy.</p>' if ctx["conteos_validos"]
                   else f'<p class="vacio">Sin datos: {esc(ctx["motivo_sin_datos"])}.</p>')
@@ -632,7 +658,7 @@ def render(ctx: dict) -> str:
 <section class="fila c4" aria-label="Etapas del sistema">{etapas}</section>
 <section class="fila c5" aria-label="Cifras clave">{kpis_html}</section>
 <section class="fila c2">
-  <div class="panel"><div class="titulo"><h2>Watchlist actual</h2><span class="mono">generada {_hora(ctx['wl_momento'], tz)}</span></div>{watch}</div>
+  <div class="panel"><div class="titulo"><h2>Watchlist actual</h2><span class="mono">generada {_hora(ctx['wl_momento'], tz, ahora=ctx['ahora'])}</span></div>{watch}</div>
   <div class="panel"><div class="titulo"><h2>Latencia</h2><span class="mono">ruptura → orden, velas de 1 min</span></div>
     {_grafico_latencia(ctx)}
     <div class="stats"><div><span class="mono">Mediana</span><b>{fmt_num(ctx['lat_mediana'])}</b></div><div><span class="mono">P90</span><b>{fmt_num(ctx['lat_p90'])}</b></div><div><span class="mono">Fuera de presupuesto</span><b class="neg">{fmt_num(ctx['lat_fuera'])}</b></div></div>
