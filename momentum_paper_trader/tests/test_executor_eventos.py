@@ -124,3 +124,33 @@ def test_log_event_nunca_lanza(monkeypatch, tmp_path):
 
     monkeypatch.setenv("DASH_EVENTOS", str(tmp_path / "ok" / "events.jsonl"))
     log_event("orden", ticker="RKLB", raro=_Str())
+
+
+def test_orden_trae_latencia_completa_cuando_el_hunter_guardo_las_velas(monkeypatch, tmp_path):
+    ruta = tmp_path / "ev" / "events.jsonl"
+    monkeypatch.setenv("DASH_EVENTOS", str(ruta))
+    e = _entrada_triggered()
+    e.market_event_ts = "2026-08-11T13:57:00+00:00"   # 3 min antes de AHORA
+    e.velas_desde_ruptura = 6
+    _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA)
+    executor.ejecutar(_FakeAlpacaClient(cash=40_000.0), CFG, dry_run=False, ahora=AHORA)
+
+    (orden,) = [x for x in _eventos(ruta) if x["tipo"] == "orden"]
+    assert orden["medida"] == "ruptura_a_orden"
+    assert orden["velas_desde_ruptura"] == 6
+    # velas_desde_disparo sale del reloj real de la corrida, así que solo
+    # se verifica la suma, no un valor fijo.
+    assert orden["velas"] == round(6 + orden["velas_desde_disparo"], 1)
+
+
+def test_sin_velas_desde_ruptura_la_latencia_no_se_calcula(monkeypatch, tmp_path):
+    ruta = tmp_path / "ev" / "events.jsonl"
+    monkeypatch.setenv("DASH_EVENTOS", str(ruta))
+    e = _entrada_triggered()
+    e.market_event_ts = "2026-08-11T13:57:00+00:00"
+    assert e.velas_desde_ruptura is None
+    _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA)
+    executor.ejecutar(_FakeAlpacaClient(cash=40_000.0), CFG, dry_run=False, ahora=AHORA)
+
+    (orden,) = [x for x in _eventos(ruta) if x["tipo"] == "orden"]
+    assert orden["velas"] is None
