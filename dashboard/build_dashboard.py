@@ -51,8 +51,6 @@ def cargar_config() -> dict:
             os.environ.get("MOMENTUM_WATCHLIST_STATE", "/var/lib/momentum/watchlist_vps_state.json"))),
         "eventos": Path(os.environ.get("DASH_EVENTOS", "logs/events.jsonl")),
         "salida": Path(os.environ.get("DASH_SALIDA", "dashboard_site")),
-        # Minutos por vela. Sin este valor la latencia solo sale si el evento trae "velas".
-        "vela_min": _env_float("DASH_VELA_MIN"),
         "presupuesto_velas": _env_float("DASH_PRESUPUESTO_VELAS", 8.0),
         "hunter_max_min": _env_float("DASH_HUNTER_MAX_MIN", 45.0),
         "rechequeo_max_min": _env_float("DASH_RECHEQUEO_MAX_MIN", 12.0),
@@ -248,23 +246,24 @@ def alpaca_get(ruta: str, params: dict | None = None, timeout: float = 10):
 
 # ───────────────────────── cálculos ─────────────────────────
 
-def latencias(eventos: list[dict], vela_min: float | None) -> list[tuple[str, float]]:
-    """Velas entre la primera detección de un ticker y su orden enviada."""
-    detecciones: dict[str, datetime] = {}
+MEDIDA_LATENCIA = "ruptura_a_orden"
+
+
+def latencias(eventos: list[dict]) -> list[tuple[str, float]]:
+    """Velas de 1 min entre la RUPTURA y la orden enviada, la misma medida que
+    el presupuesto de 8 velas. Solo cuenta órdenes que traen `velas` con
+    `medida == "ruptura_a_orden"`: si el hunter no guardó las velas previas
+    al disparo, esa orden no entra al gráfico (no se reconstruye por tiempo,
+    porque eso mediría otra cosa)."""
     resultado = []
     for e in eventos:
-        tipo, ticker = e.get("tipo"), e.get("ticker")
-        if not ticker:
+        if e.get("tipo") != "orden" or e.get("estado") != "enviada" or not e.get("ticker"):
             continue
-        if tipo == "deteccion":
-            detecciones.setdefault(ticker, e["_ts"])
-        elif tipo == "orden" and e.get("estado") == "enviada":
-            velas = num(e.get("velas"))
-            if velas is None and vela_min and ticker in detecciones:
-                velas = (e["_ts"] - detecciones[ticker]).total_seconds() / 60 / vela_min
-            if velas is not None and velas >= 0:
-                resultado.append((ticker, round(velas, 1)))
-            detecciones.pop(ticker, None)
+        if e.get("medida") != MEDIDA_LATENCIA:
+            continue
+        velas = num(e.get("velas"))
+        if velas is not None and velas >= 0:
+            resultado.append((e["ticker"], round(velas, 1)))
     return resultado
 
 
@@ -337,7 +336,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
     n_ord = len(lista_ordenes) if lista_ordenes is not None else None
     n_rech = sum(1 for o in lista_ordenes if o.get("status") == "rejected") if lista_ordenes is not None else None
 
-    lat = latencias(eventos, cfg["vela_min"])
+    lat = latencias(eventos)
     valores = [v for _, v in lat]
     presupuesto = cfg["presupuesto_velas"]
 
@@ -405,7 +404,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
         "lat": lat, "lat_mediana": statistics.median(valores) if valores else None,
         "lat_p90": percentil(valores, 90),
         "lat_fuera": sum(1 for v in valores if v > presupuesto) if valores else None,
-        "presupuesto": presupuesto, "sin_vela_min": cfg["vela_min"] is None,
+        "presupuesto": presupuesto,
         "stream": stream, "dudas": dudas,
         "bloqueos": sorted(por_limite.items(), key=lambda kv: -kv[1]),
         "ult_bloqueo": bloqueos[-1] if bloqueos else None,
@@ -446,7 +445,7 @@ def _grafico_latencia(ctx: dict) -> str:
     tope = max([12.0, ctx["presupuesto"] + 4, *valores])
     y = lambda v: y0 - (v / tope) * (y0 - y1)
     partes = [
-        f'<svg viewBox="0 0 {ancho} {alto}" role="img" aria-label="Latencia por operación, en velas">',
+        f'<svg viewBox="0 0 {ancho} {alto}" role="img" aria-label="Latencia ruptura a orden por operación, en velas de 1 minuto">',
         f'<rect x="{x0+1}" y="{y1}" width="{ancho-x0-10}" height="{y(ctx["presupuesto"])-y1:.1f}" fill="#fbeceb"/>',
         f'<line x1="{x0}" y1="{y1}" x2="{x0}" y2="{y0}" stroke="#bdb9ad"/>',
         f'<line x1="{x0}" y1="{y0}" x2="{ancho-10}" y2="{y0}" stroke="#bdb9ad"/>',
@@ -463,8 +462,7 @@ def _grafico_latencia(ctx: dict) -> str:
             color = "#b3261e" if v > ctx["presupuesto"] else "#2451b8"
             partes.append(f'<rect x="{x0 + 6 + i*paso:.1f}" y="{y(v):.1f}" width="{barra:.1f}" height="{y0-y(v):.1f}" fill="{color}"/>')
     else:
-        mensaje = ("Configura DASH_VELA_MIN o registra 'velas' en cada orden."
-                   if ctx["sin_vela_min"] else "Todavía no hay órdenes enviadas hoy.")
+        mensaje = "Sin órdenes con latencia completa (ruptura → orden) hoy."
         partes.append(f'<text x="{(ancho+x0)/2}" y="120" text-anchor="middle" class="eje">{esc(mensaje)}</text>')
     partes.append("</svg>")
     return "".join(partes)
@@ -616,7 +614,7 @@ def render(ctx: dict) -> str:
 <section class="fila c5" aria-label="Cifras clave">{kpis_html}</section>
 <section class="fila c2">
   <div class="panel"><div class="titulo"><h2>Watchlist actual</h2><span class="mono">generada {_hora(ctx['wl_momento'], tz)}</span></div>{watch}</div>
-  <div class="panel"><div class="titulo"><h2>Latencia</h2><span class="mono">detección → orden, en velas</span></div>
+  <div class="panel"><div class="titulo"><h2>Latencia</h2><span class="mono">ruptura → orden, velas de 1 min</span></div>
     {_grafico_latencia(ctx)}
     <div class="stats"><div><span class="mono">Mediana</span><b>{fmt_num(ctx['lat_mediana'])}</b></div><div><span class="mono">P90</span><b>{fmt_num(ctx['lat_p90'])}</b></div><div><span class="mono">Fuera de presupuesto</span><b class="neg">{fmt_num(ctx['lat_fuera'])}</b></div></div>
   </div>
