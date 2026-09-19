@@ -176,3 +176,24 @@ def test_llaves_con_nombre_del_ejecutor(monkeypatch):
         monkeypatch.delenv(k, raising=False)
     _, err = bd.alpaca_get("/v2/account")
     assert "ALPACA_PAPER_API_KEY" in err
+
+
+def test_sin_log_de_eventos_ejecutor_y_riesgo_son_sin_datos_no_cero(tmp_path):
+    # No existe events.jsonl: no se sabe cuántas decisiones o bloqueos hubo.
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    etapas = {e["nombre"]: e for e in ctx["etapas"]}
+    for nombre in ("Ejecutor", "Riesgo"):
+        assert etapas[nombre]["estado"] == "sin-datos", nombre
+        assert "—" in etapas[nombre]["detalle"] and "0 " not in etapas[nombre]["detalle"], nombre
+    html = bd.render(ctx)
+    assert "0 decisiones" not in html and "0 bloqueos" not in html
+    assert "Ningún límite ha bloqueado" not in html
+    assert "no ha rechazado entradas" not in html
+
+
+def test_log_vacio_si_es_cero_real(tmp_path):
+    # El archivo existe pero hoy no hubo eventos: ahí 0 bloqueos es un dato.
+    (tmp_path / "events.jsonl").write_text("")
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = next(e for e in ctx["etapas"] if e["nombre"] == "Riesgo")
+    assert riesgo["estado"] == "ok" and riesgo["detalle"] == "0 bloqueos hoy"
