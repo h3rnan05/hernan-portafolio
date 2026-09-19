@@ -673,7 +673,9 @@ def _actualizar_watchlist(
         elif c.ticker in elegidas_tickers:
             market_ts = c.bi_hoy.timestamps[-1] if c.bi_hoy.timestamps else _ahora_iso_run(ahora)
             evaluador_ts = _ahora_iso_run(datetime.now(UTC))
-            watchlist.marcar_triggered(e, market_ts, dato_recibido_ts or evaluador_ts, evaluador_ts, ahora)
+            watchlist.marcar_triggered(
+                e, market_ts, dato_recibido_ts or evaluador_ts, evaluador_ts, ahora,
+                velas_desde_ruptura=getattr(c.factores, "velas_desde_ruptura", None))
             niveles = report.niveles_entrada_salida(c.factores, c.atr_diario)
             zona_baja, _ = report.zona_entrada(c, cfg)
             watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
@@ -1044,7 +1046,9 @@ def _revisar_watchlist_cuerpo(
             market_ts = (
                 candidato.bi_hoy.timestamps[-1] if candidato.bi_hoy.timestamps else evaluador_ts_disparo
             )
-            watchlist.marcar_triggered(e, market_ts, dato_recibido_ts, evaluador_ts_disparo, ahora)
+            watchlist.marcar_triggered(
+                e, market_ts, dato_recibido_ts, evaluador_ts_disparo, ahora,
+                velas_desde_ruptura=getattr(candidato.factores, "velas_desde_ruptura", None))
             watchlist.actualizar_niveles(
                 e, oportunidad.entrada, oportunidad.stop, oportunidad.objetivo,
                 oportunidad.zona_entrada_baja, ahora)
