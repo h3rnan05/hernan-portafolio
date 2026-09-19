@@ -102,6 +102,77 @@ def test_watchlist_en_varios_formatos(tmp_path):
     assert items[0]["catalizador"] == "fda, merger"
 
 
+def _hunter(ctx):
+    return next(e for e in ctx["etapas"] if e["nombre"] == "Hunter")
+
+
+def test_hunter_no_usa_mtime_sin_marca_es_sin_datos(tmp_path, monkeypatch):
+    # Archivo recién escrito (mtime = ahora), como tras un git pull, pero sin
+    # ninguna marca de tiempo dentro ni commit conocido: no hay dato.
+    monkeypatch.setattr(bd, "fecha_ultimo_commit", lambda ruta: None)
+    (tmp_path / "watchlist.json").write_text(json.dumps({"entradas": [{"ticker": "AAA", "estado": "watching"}]}))
+    _, generado, _ = bd.leer_watchlist(tmp_path / "watchlist.json")
+    assert generado is None
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert _hunter(ctx)["estado"] == "sin-datos"
+
+
+def test_hunter_usa_la_entrada_mas_reciente(tmp_path, monkeypatch):
+    monkeypatch.setattr(bd, "fecha_ultimo_commit", lambda ruta: None)
+    (tmp_path / "watchlist.json").write_text(json.dumps({"entradas": [
+        {"ticker": "AAA", "estado": "expired", "actualizado_en": "2026-09-18T13:00:00+00:00"},
+        {"ticker": "BBB", "estado": "watching", "actualizado_en": "2026-09-18T14:40:00+00:00"},
+    ]}))
+    _, generado, _ = bd.leer_watchlist(tmp_path / "watchlist.json")
+    assert generado == datetime(2026, 9, 18, 14, 40, tzinfo=timezone.utc)
+    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))["estado"] == "ok"
+
+
+def test_hunter_usa_el_ultimo_commit_si_el_json_no_trae_hora(tmp_path, monkeypatch):
+    monkeypatch.setattr(bd, "fecha_ultimo_commit",
+                        lambda ruta: datetime(2026, 9, 18, 12, 0, tzinfo=timezone.utc))
+    (tmp_path / "watchlist.json").write_text(json.dumps({"entradas": [{"ticker": "AAA"}]}))
+    _, generado, _ = bd.leer_watchlist(tmp_path / "watchlist.json")
+    assert generado == datetime(2026, 9, 18, 12, 0, tzinfo=timezone.utc)
+    # 3 h de antigüedad en plena sesión: "Revisar", no "OK".
+    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))["estado"] == "alerta"
+
+
+def test_marca_de_nivel_superior_manda(tmp_path, monkeypatch):
+    monkeypatch.setattr(bd, "fecha_ultimo_commit",
+                        lambda ruta: datetime(2026, 9, 18, 14, 59, tzinfo=timezone.utc))
+    (tmp_path / "watchlist.json").write_text(json.dumps({
+        "generado": "2026-09-18T10:00:00+00:00",
+        "entradas": [{"ticker": "AAA", "actualizado_en": "2026-09-18T14:58:00+00:00"}]}))
+    _, generado, _ = bd.leer_watchlist(tmp_path / "watchlist.json")
+    assert generado == datetime(2026, 9, 18, 10, 0, tzinfo=timezone.utc)
+
+
+def test_fecha_ultimo_commit_fuera_de_git_es_none(tmp_path):
+    (tmp_path / "watchlist.json").write_text("{}")
+    assert bd.fecha_ultimo_commit(tmp_path / "watchlist.json") is None
+
+
+def test_fecha_ultimo_commit_es_la_del_commit_que_toco_el_archivo(tmp_path):
+    import os
+    import subprocess
+
+    def git(*args, fecha):
+        env = {**os.environ, "GIT_AUTHOR_DATE": fecha, "GIT_COMMITTER_DATE": fecha}
+        subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *args],
+                       cwd=tmp_path, env=env, check=True, capture_output=True)
+
+    git("init", "-q", fecha="2026-09-18T12:00:00+00:00")
+    (tmp_path / "watchlist.json").write_text("{}")
+    git("add", "watchlist.json", fecha="2026-09-18T12:00:00+00:00")
+    git("commit", "-qm", "hunter", fecha="2026-09-18T12:00:00+00:00")
+    (tmp_path / "otro.txt").write_text("x")
+    git("add", "otro.txt", fecha="2026-09-18T14:59:00+00:00")
+    git("commit", "-qm", "otro", fecha="2026-09-18T14:59:00+00:00")
+    # El commit más nuevo no tocó la watchlist: cuenta el de las 12:00.
+    assert bd.fecha_ultimo_commit(tmp_path / "watchlist.json") == datetime(2026, 9, 18, 12, 0, tzinfo=timezone.utc)
+
+
 def test_lineas_corruptas_se_reportan(tmp_path):
     (tmp_path / "events.jsonl").write_text('{"ts":"2026-09-18T14:00:00Z","tipo":"rechequeo"}\nbasura\n')
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
