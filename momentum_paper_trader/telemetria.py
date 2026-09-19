@@ -70,6 +70,25 @@ PRESUPUESTO_VELAS = CONFIG.velas_maximas_desde_patron
 MS_POR_VELA = 60_000
 PRESUPUESTO_MS = PRESUPUESTO_VELAS * MS_POR_VELA
 
+# Versión de la medición (2026-09-19). v1 medía solo "vela del disparo ->
+# orden" (`e2e`) y la comparaba contra el presupuesto, pero el presupuesto
+# de `early_opportunity` cuenta desde la RUPTURA: v1 omitía las 0-8 velas
+# que ya habían pasado antes del disparo. v2 agrega `total` = velas desde la
+# ruptura al disparar + velas desde el disparo. Los números v1 y v2 NO son
+# comparables: v2 va a salir más alto porque mide completo, no porque el bot
+# se haya vuelto más lento.
+VERSION_MEDICION = 2
+
+
+def velas_totales(velas_desde_ruptura, latencia_e2e_ms: float | None) -> float | None:
+    """Latencia completa ruptura -> orden, en velas de 1 minuto. None si
+    falta cualquiera de las dos partes: nunca se asume 0."""
+    if isinstance(velas_desde_ruptura, bool) or not isinstance(velas_desde_ruptura, (int, float)):
+        return None
+    if latencia_e2e_ms is None:
+        return None
+    return round(velas_desde_ruptura + latencia_e2e_ms / MS_POR_VELA, 1)
+
 
 def delta_ms(inicio_iso: str | None, fin_iso: str | None) -> float | None:
     """Diferencia en ms, o None si falta un extremo o no parsea.
@@ -130,8 +149,12 @@ class Metricas:
     latencias_descubrimiento_ms: list[float] = field(default_factory=list)
     latencias_alerta_ms: list[float] = field(default_factory=list)
     latencias_e2e_ms: list[float] = field(default_factory=list)
+    # v2: ruptura -> orden, en velas (ver VERSION_MEDICION).
+    latencias_total_velas: list[float] = field(default_factory=list)
 
-    def anotar_revision(self, r, signal_latency_ms: float | None = None) -> None:
+    def anotar_revision(
+        self, r, signal_latency_ms: float | None = None, velas_desde_ruptura=None,
+    ) -> None:
         self.revisiones += 1
         if r.entro and r.order_id:
             self.ordenes_colocadas += 1
@@ -141,6 +164,9 @@ class Metricas:
             self.latencias_e2e_ms.append(r.latencia_e2e_ms)
         if signal_latency_ms is not None:
             self.latencias_alerta_ms.append(signal_latency_ms)
+        total = velas_totales(velas_desde_ruptura, r.latencia_e2e_ms)
+        if total is not None:
+            self.latencias_total_velas.append(total)
 
     def cerrar_corrida(self) -> None:
         """Se llama al terminar bien: un paso que no lanzó. Cero
@@ -156,6 +182,10 @@ class Metricas:
             "paper_step_success_zero_orders": self.paper_step_success_zero_orders,
             "presupuesto_velas": PRESUPUESTO_VELAS,
             "presupuesto_ms": PRESUPUESTO_MS,
+            "version_medicion": VERSION_MEDICION,
+            # `e2e` = vela del disparo -> orden (NO incluye las velas previas
+            # desde la ruptura). La medida contra el presupuesto es `total`.
+            "latencias_velas": {"total": list(self.latencias_total_velas)},
             "latencias_ms": {
                 "descubrimiento": list(self.latencias_descubrimiento_ms),
                 "alerta": list(self.latencias_alerta_ms),
@@ -165,12 +195,17 @@ class Metricas:
                 "descubrimiento": _sobre_presupuesto(self.latencias_descubrimiento_ms),
                 "alerta": _sobre_presupuesto(self.latencias_alerta_ms),
                 "e2e": _sobre_presupuesto(self.latencias_e2e_ms),
+                "total": _sobre_presupuesto_velas(self.latencias_total_velas),
             },
         }
 
 
 def _sobre_presupuesto(muestras: list[float]) -> int:
     return sum(1 for x in muestras if x > PRESUPUESTO_MS)
+
+
+def _sobre_presupuesto_velas(muestras: list[float]) -> int:
+    return sum(1 for x in muestras if x > PRESUPUESTO_VELAS)
 
 
 def _ahora() -> datetime:
@@ -184,6 +219,7 @@ def resumir_sesion(corridas: list[dict]) -> dict:
     por_serie: dict[str, list[float]] = {
         "descubrimiento": [], "alerta": [], "e2e": [],
     }
+    total_velas: list[float] = []
     for c in corridas:
         if not isinstance(c, dict):
             continue
@@ -191,6 +227,13 @@ def resumir_sesion(corridas: list[dict]) -> dict:
         revisiones += int(c.get("revisiones") or 0)
         ordenes += int(c.get("ordenes_colocadas") or 0)
         ceros += int(c.get("paper_step_success_zero_orders") or 0)
+        # Solo corridas v2 traen `total`; las viejas no aportan muestras
+        # (no se reconstruye lo que no se midió).
+        lat_velas = c.get("latencias_velas") or {}
+        if isinstance(lat_velas, dict):
+            for v in lat_velas.get("total") or []:
+                if isinstance(v, (int, float)) and not isinstance(v, bool):
+                    total_velas.append(float(v))
         lat = c.get("latencias_ms") or {}
         if not isinstance(lat, dict):
             continue
@@ -209,6 +252,13 @@ def resumir_sesion(corridas: list[dict]) -> dict:
         "sobre_presupuesto": {k: _sobre_presupuesto(vs) for k, vs in por_serie.items()},
         "presupuesto_velas": PRESUPUESTO_VELAS,
         "presupuesto_ms": PRESUPUESTO_MS,
+        "version_medicion": VERSION_MEDICION,
+        "latencia_total_velas": {
+            "muestras": len(total_velas),
+            "p50": percentil(total_velas, 0.50),
+            "p95": percentil(total_velas, 0.95),
+            "sobre_presupuesto": _sobre_presupuesto_velas(total_velas),
+        },
     }
 
 
