@@ -39,7 +39,6 @@ log_event("bloqueo_riesgo", ticker=t, limite="perdida_diaria", motivo=m) # cuand
 | `DASH_WATCHLIST_ESTADO` | overlay del VPS (`--solo-watchlist`); si no existe, manda el canónico | `MOMENTUM_WATCHLIST_STATE` o `/var/lib/momentum/watchlist_vps_state.json` |
 | `DASH_EVENTOS` | ruta del log de eventos (`logs/` está en `.gitignore`) | `logs/events.jsonl` |
 | `DASH_SALIDA` | carpeta donde se escribe index.html | `dashboard_site` |
-| `DASH_VELA_MIN` | minutos por vela, para calcular latencia | sin valor: no se calcula |
 | `DASH_PRESUPUESTO_VELAS` | línea roja del gráfico | `8` |
 | `DASH_TZ` | zona horaria de las horas mostradas | `UTC` |
 
@@ -47,11 +46,15 @@ La tabla de watchlist muestra las entradas activas (`watching`, `triggered`) y l
 de estado hoy. El estado sale del overlay del VPS cuando existe, porque el JSON de GitHub
 solo tiene la vista de GHA (ver `docs/SPEC-vps-watchlist-state-file.md`).
 
+La latencia es **ruptura → orden** en velas de 1 minuto: las velas que el hunter ya contaba
+al disparar (`velas_desde_ruptura`) más las que pasaron desde el disparo. Es la misma medida
+del presupuesto de 8 velas. Si una orden no trae las dos partes, no entra al gráfico.
+
 ## 3. Probar a mano
 
 ```bash
 python -m pytest tests/test_dashboard.py -q
-DASH_VELA_MIN=5 python -m dashboard.build_dashboard
+python -m dashboard.build_dashboard
 ```
 
 ## 4. Instalar en el VPS
