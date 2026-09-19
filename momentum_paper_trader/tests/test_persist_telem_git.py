@@ -74,7 +74,7 @@ def test_vps_no_stagea_watchlist_ni_auditoria():
     assert "backup_watchlist_vps_state.sh" in texto
     cron = (ROOT / "infra" / "cron" / "momentum-watchlist-state-backup").read_text(encoding="utf-8")
     assert "15 2 * * *" in cron
-    assert "watchlist_vps_state-" in cron
+    assert "/opt/hernan-portafolio/scripts/backup_watchlist_vps_state.sh" in cron
 
 
 def test_gha_hunter_sigue_persistiendo_watchlist_y_auditoria():
