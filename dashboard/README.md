@@ -9,7 +9,7 @@ No envía órdenes, no usa POST y el endpoint de Alpaca está fijo en paper.
 dashboard/__init__.py
 dashboard/events.py            log_event(): una línea JSON por evento en logs/events.jsonl
 dashboard/build_dashboard.py   lee las fuentes y escribe index.html
-tests/test_dashboard.py        10 pruebas
+tests/test_dashboard.py        15 pruebas
 deploy/*.service, *.timer      systemd
 ```
 
@@ -34,16 +34,18 @@ log_event("bloqueo_riesgo", ticker=t, limite="perdida_diaria", motivo=m) # cuand
 
 | Variable | Para qué | Por defecto |
 |---|---|---|
-| `APCA_API_KEY_ID`, `APCA_API_SECRET_KEY` | llaves de la cuenta paper | obligatorias |
-| `DASH_WATCHLIST` | ruta de watchlist.json | `watchlist.json` |
-| `DASH_EVENTOS` | ruta del log de eventos | `logs/events.jsonl` |
+| `ALPACA_PAPER_API_KEY`, `ALPACA_PAPER_API_SECRET` | llaves paper, las mismas del ejecutor (`APCA_*` sirve de respaldo) | obligatorias |
+| `DASH_WATCHLIST` | watchlist canónica que escribe GHA | `momentum_hunter/watchlist.json` |
+| `DASH_WATCHLIST_ESTADO` | overlay del VPS (`--solo-watchlist`); si no existe, manda el canónico | `MOMENTUM_WATCHLIST_STATE` o `/var/lib/momentum/watchlist_vps_state.json` |
+| `DASH_EVENTOS` | ruta del log de eventos (`logs/` está en `.gitignore`) | `logs/events.jsonl` |
 | `DASH_SALIDA` | carpeta donde se escribe index.html | `dashboard_site` |
 | `DASH_VELA_MIN` | minutos por vela, para calcular latencia | sin valor: no se calcula |
 | `DASH_PRESUPUESTO_VELAS` | línea roja del gráfico | `8` |
 | `DASH_TZ` | zona horaria de las horas mostradas | `UTC` |
 
-Si tus llaves tienen otro nombre en el `.env`, cámbialo en `alpaca_get()`.
-Si tu watchlist.json tiene otra forma, ajusta `leer_watchlist()`; el panel avisa en rojo cuando no la reconoce.
+La tabla de watchlist muestra las entradas activas (`watching`, `triggered`) y las que cambiaron
+de estado hoy. El estado sale del overlay del VPS cuando existe, porque el JSON de GitHub
+solo tiene la vista de GHA (ver `docs/SPEC-vps-watchlist-state-file.md`).
 
 ## 3. Probar a mano
 
@@ -54,13 +56,19 @@ DASH_VELA_MIN=5 python -m dashboard.build_dashboard
 
 ## 4. Instalar en el VPS
 
+Los servicios corren como `momentum`, en `/opt/hernan-portafolio` y con `/etc/momentum/paper.env`,
+igual que `momentum-watchlist.service`. El HTML se escribe en `/var/lib/momentum/dashboard_site`,
+fuera de git, para no ensuciar el árbol ni romper el `git pull --rebase` del wrapper.
+
 ```bash
-sudo cp deploy/momentum-dashboard.service deploy/momentum-dashboard.timer deploy/momentum-dashboard-http.service /etc/systemd/system/
+sudo cp /opt/hernan-portafolio/deploy/momentum-dashboard.service \
+        /opt/hernan-portafolio/deploy/momentum-dashboard.timer \
+        /opt/hernan-portafolio/deploy/momentum-dashboard-http.service /etc/systemd/system/
 sudo systemctl daemon-reload
+sudo systemctl start momentum-dashboard.service      # primera generación, a mano
+sudo systemctl status momentum-dashboard.service     # debe terminar sin error
 sudo systemctl enable --now momentum-dashboard.timer momentum-dashboard-http.service
 ```
-
-Revisa antes las rutas `WorkingDirectory` y `EnvironmentFile` en `momentum-dashboard.service`.
 
 ## 5. Abrirlo desde tu computadora
 
