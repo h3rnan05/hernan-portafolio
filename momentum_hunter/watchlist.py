@@ -95,6 +95,7 @@ CAMPOS_OVERLAY = (
     "mensaje_generado_ts",
     "telegram_enviado_ts",
     "signal_latency_ms",
+    "velas_desde_ruptura",
     "watchlist_escrito_ts",
     "ultima_entrada",
     "ultimo_stop",
@@ -198,6 +199,12 @@ class EntradaWatchlist:
     mensaje_generado_ts: str | None = None   # reloj: cuándo se armó el texto del mensaje
     telegram_enviado_ts: str | None = None   # reloj: cuándo enviar_telegram() devolvió
     signal_latency_ms: float | None = None   # telegram_enviado_ts - market_event_ts
+    # Velas de 1 min que el cierre llevaba sobre el nivel de ruptura AL
+    # disparar (`velas_desde_ruptura` de los factores de esa evaluación).
+    # Solo se guarda: no cambia umbrales ni la regla de "tarde". Sirve para
+    # medir la latencia completa ruptura -> orden (esto + velas desde el
+    # disparo). None = no se midió; nunca se asume 0.
+    velas_desde_ruptura: int | None = None
     # Reloj de la PRIMERA vez que esta entrada TRIGGERED se persistió
     # en disco. Distinto de `actualizado_en` (cambio de estado en
     # memoria): es el instante en que otra corrida -- u otro proceso
@@ -362,6 +369,9 @@ def desde_candidato_diario(
     )
 
 
+_CAMPOS_ENTRADA = {f.name for f in fields(EntradaWatchlist)}
+
+
 def parsear(data: object) -> list[EntradaWatchlist]:
     """El parseo puro (dict ya cargado -> entradas) -- separado de
     `cargar()` (2026-08-11, integración de Telegram) para que otros
@@ -380,6 +390,13 @@ def parsear(data: object) -> list[EntradaWatchlist]:
     for d in data.get("entradas", []):
         try:
             d = dict(d)
+            # Un campo que esta versión no conoce (lo escribió una versión
+            # más nueva) se ignora en vez de descartar la entrada entera.
+            desconocidos = sorted(set(d) - _CAMPOS_ENTRADA)
+            for campo in desconocidos:
+                d.pop(campo)
+            if desconocidos:
+                log.info("entrada %s: campos desconocidos ignorados: %s", d.get("ticker"), desconocidos)
             transiciones = [Transicion(**t) for t in d.pop("transiciones", [])]
             if "catalizador_fuentes_adicionales" in d:
                 # JSON no tiene tuplas -- se recarga como lista; se restaura
@@ -860,7 +877,7 @@ def marcar_missed(
 
 def marcar_triggered(
     e: EntradaWatchlist, market_event_ts: str, data_received_ts: str,
-    evaluador_ts: str, ahora: datetime,
+    evaluador_ts: str, ahora: datetime, velas_desde_ruptura: int | None = None,
 ) -> None:
     """Transición a TRIGGERED -- guarda los primeros tres timestamps de
     latencia (los dos que faltan, `mensaje_generado_ts`/
@@ -870,6 +887,7 @@ def marcar_triggered(
     e.market_event_ts = market_event_ts
     e.data_received_ts = data_received_ts
     e.evaluador_ts = evaluador_ts
+    e.velas_desde_ruptura = velas_desde_ruptura
 
 
 def marcar_archivada(
