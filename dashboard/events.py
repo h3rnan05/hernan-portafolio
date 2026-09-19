@@ -8,7 +8,8 @@ Tipos que el panel entiende:
     rechequeo       n_tickers=...                      (cada corrida del VPS)
     deteccion       ticker=...                         (el ejecutor ve la señal por primera vez)
     decision        ticker=..., entra=bool, motivo=... (respuesta del LLM)
-    orden           ticker=..., lado=..., estado="enviada"|"rechazada", velas=... (opcional)
+    orden           ticker=..., lado=..., estado="enviada"|"rechazada",
+                    velas=... + medida="ruptura_a_orden" (latencia completa; None si no se midió)
     bloqueo_riesgo  ticker=..., limite=..., motivo=...
 """
 from __future__ import annotations
