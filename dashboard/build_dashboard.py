@@ -355,6 +355,13 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
         nombre = str(b.get("limite") or "sin nombre")
         por_limite[nombre] = por_limite.get(nombre, 0) + 1
 
+    estado_rechequeo = _estado_frescura(_edad_min(ahora, ult_rechequeo), cfg["rechequeo_max_min"], en_sesion)
+    # Un 0 solo es un dato si hay log Y el bot corrió hace poco. Sin rechequeo
+    # reciente, "0 decisiones" o "0 bloqueos" no significa que no haya pasado nada.
+    conteos_validos = hay_eventos and estado_rechequeo == "ok"
+    motivo_sin_datos = ("no hay log de eventos" if not hay_eventos
+                        else "no hay un rechequeo reciente")
+
     etapas = [
         {
             "nombre": "Hunter", "donde": "GitHub Actions",
@@ -365,21 +372,25 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
         {
             "nombre": "Rechequeo", "donde": "VPS",
             "rol": "Revisa la watchlist con --solo-watchlist.",
-            "estado": _estado_frescura(_edad_min(ahora, ult_rechequeo), cfg["rechequeo_max_min"], en_sesion),
+            "estado": estado_rechequeo,
             "detalle": f"última corrida {_hora(ult_rechequeo, cfg['tz'])}",
         },
         {
             "nombre": "Ejecutor", "donde": "VPS",
             "rol": "Consulta al LLM y decide si entra.",
-            "estado": "ok" if decisiones else "sin-datos",
+            "estado": "ok" if decisiones and conteos_validos else "sin-datos",
+            # Un conteo > 0 es real aunque el rechequeo esté viejo; un 0 no.
             "detalle": (f"{len(decisiones)} decisiones hoy · última {_hora(ult_decision, cfg['tz'])}"
-                        if hay_eventos else "— decisiones hoy · última —"),
+                        if hay_eventos and (decisiones or conteos_validos)
+                        else "— decisiones hoy · última —"),
         },
         {
             "nombre": "Riesgo", "donde": "Código",
             "rol": "Límites deterministas. Sin margen. Fail-closed.",
-            "estado": ("alerta" if bloqueos else "ok") if hay_eventos else "sin-datos",
-            "detalle": f"{len(bloqueos)} bloqueos hoy" if hay_eventos else "— bloqueos hoy",
+            # Un bloqueo registrado siempre es alerta; "OK" exige conteos válidos.
+            "estado": "alerta" if bloqueos else ("ok" if conteos_validos else "sin-datos"),
+            "detalle": (f"{len(bloqueos)} bloqueos hoy"
+                        if hay_eventos and (bloqueos or conteos_validos) else "— bloqueos hoy"),
         },
     ]
 
@@ -412,6 +423,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
         "stream": stream, "dudas": dudas,
         "bloqueos": sorted(por_limite.items(), key=lambda kv: -kv[1]),
         "hay_eventos": hay_eventos,
+        "conteos_validos": conteos_validos, "motivo_sin_datos": motivo_sin_datos,
         "ult_bloqueo": bloqueos[-1] if bloqueos else None,
     }
 
@@ -578,8 +590,8 @@ def render(ctx: dict) -> str:
             f'<div class="duda"><div class="cab"><b>{esc(d["ticker"])}</b><span>{esc(d["hora"])}</span></div><p>{esc(d["motivo"])}</p></div>'
             for d in ctx["dudas"])
     else:
-        dudas = ('<p class="vacio">El ejecutor no ha rechazado entradas hoy.</p>' if ctx["hay_eventos"]
-                 else '<p class="vacio">Sin datos: no hay log de eventos.</p>')
+        dudas = ('<p class="vacio">El ejecutor no ha rechazado entradas hoy.</p>' if ctx["conteos_validos"]
+                 else f'<p class="vacio">Sin datos: {esc(ctx["motivo_sin_datos"])}.</p>')
 
     if ctx["bloqueos"]:
         filas = "".join(f"<tr><td>{esc(n)}</td><td>{c}</td></tr>" for n, c in ctx["bloqueos"])
@@ -587,8 +599,8 @@ def render(ctx: dict) -> str:
         ub = ctx["ult_bloqueo"]
         riesgo += f'<div class="nota">Último: {esc(ub.get("ticker"))} a las {_hora(ub["_ts"], tz)}, {esc(ub.get("motivo") or ub.get("limite"))}</div>'
     else:
-        riesgo = ('<p class="vacio">Ningún límite ha bloqueado operaciones hoy.</p>' if ctx["hay_eventos"]
-                  else '<p class="vacio">Sin datos: no hay log de eventos.</p>')
+        riesgo = ('<p class="vacio">Ningún límite ha bloqueado operaciones hoy.</p>' if ctx["conteos_validos"]
+                  else f'<p class="vacio">Sin datos: {esc(ctx["motivo_sin_datos"])}.</p>')
 
     sesion = '<span class="pildora ok">Sesión US abierta</span>' if ctx["en_sesion"] else '<span class="pildora">Sesión US cerrada</span>'
     alpaca = "" if ctx["alpaca_ok"] else '<span class="pildora mal">Alpaca sin conexión</span>'

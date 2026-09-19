@@ -191,9 +191,50 @@ def test_sin_log_de_eventos_ejecutor_y_riesgo_son_sin_datos_no_cero(tmp_path):
     assert "no ha rechazado entradas" not in html
 
 
-def test_log_vacio_si_es_cero_real(tmp_path):
-    # El archivo existe pero hoy no hubo eventos: ahí 0 bloqueos es un dato.
-    (tmp_path / "events.jsonl").write_text("")
+def test_con_rechequeo_reciente_cero_es_real(tmp_path):
+    # Log presente y el bot corrió hace 5 min sin bloquear nada: 0 es un dato.
+    eventos(tmp_path, {"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"})
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     riesgo = next(e for e in ctx["etapas"] if e["nombre"] == "Riesgo")
     assert riesgo["estado"] == "ok" and riesgo["detalle"] == "0 bloqueos hoy"
+    assert "Ningún límite ha bloqueado" in bd.render(ctx)
+
+
+def _etapas(ctx):
+    return {e["nombre"]: e for e in ctx["etapas"]}
+
+
+def test_log_sin_rechequeo_ejecutor_y_riesgo_sin_datos(tmp_path):
+    # El archivo existe pero no hay ningún rechequeo hoy: Rechequeo "Sin datos".
+    (tmp_path / "events.jsonl").write_text("")
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    et = _etapas(ctx)
+    assert et["Rechequeo"]["estado"] == "sin-datos"
+    for nombre in ("Ejecutor", "Riesgo"):
+        assert et[nombre]["estado"] == "sin-datos", nombre
+        assert "—" in et[nombre]["detalle"] and "0 " not in et[nombre]["detalle"], nombre
+    html = bd.render(ctx)
+    assert "Ningún límite ha bloqueado" not in html and "no ha rechazado entradas" not in html
+    assert "no hay un rechequeo reciente" in html
+
+
+def test_rechequeo_viejo_en_sesion_ejecutor_y_riesgo_sin_datos(tmp_path):
+    # Último rechequeo hace 60 min en plena sesión: Rechequeo "Revisar".
+    eventos(tmp_path, {"ts": "2026-09-18T14:00:00Z", "tipo": "rechequeo"})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    et = _etapas(ctx)
+    assert et["Rechequeo"]["estado"] == "alerta"
+    assert et["Ejecutor"]["estado"] == "sin-datos"
+    assert et["Riesgo"]["estado"] == "sin-datos"
+    assert et["Riesgo"]["detalle"] == "— bloqueos hoy"
+
+
+def test_rechequeo_viejo_no_oculta_un_bloqueo_real(tmp_path):
+    # Un bloqueo registrado es un hecho: sigue en alerta y con su conteo.
+    eventos(tmp_path,
+            {"ts": "2026-09-18T14:00:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:01:00Z", "tipo": "bloqueo_riesgo", "ticker": "AAA",
+             "limite": "maximo_posiciones"})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "alerta" and riesgo["detalle"] == "1 bloqueos hoy"
