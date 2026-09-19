@@ -305,6 +305,9 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
     problemas = []
 
     eventos, malas, err = leer_eventos(cfg["eventos"], desde)
+    # Sin log de eventos no se sabe cuántas decisiones o bloqueos hubo: eso
+    # es "—", no 0. Un archivo que existe pero no tiene eventos hoy sí es 0.
+    hay_eventos = err is None
     if err:
         problemas.append(err)
     if malas:
@@ -369,13 +372,14 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
             "nombre": "Ejecutor", "donde": "VPS",
             "rol": "Consulta al LLM y decide si entra.",
             "estado": "ok" if decisiones else "sin-datos",
-            "detalle": f"{len(decisiones)} decisiones hoy · última {_hora(ult_decision, cfg['tz'])}",
+            "detalle": (f"{len(decisiones)} decisiones hoy · última {_hora(ult_decision, cfg['tz'])}"
+                        if hay_eventos else "— decisiones hoy · última —"),
         },
         {
             "nombre": "Riesgo", "donde": "Código",
             "rol": "Límites deterministas. Sin margen. Fail-closed.",
-            "estado": "alerta" if bloqueos else "ok",
-            "detalle": f"{len(bloqueos)} bloqueos hoy",
+            "estado": ("alerta" if bloqueos else "ok") if hay_eventos else "sin-datos",
+            "detalle": f"{len(bloqueos)} bloqueos hoy" if hay_eventos else "— bloqueos hoy",
         },
     ]
 
@@ -407,6 +411,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
         "presupuesto": presupuesto,
         "stream": stream, "dudas": dudas,
         "bloqueos": sorted(por_limite.items(), key=lambda kv: -kv[1]),
+        "hay_eventos": hay_eventos,
         "ult_bloqueo": bloqueos[-1] if bloqueos else None,
     }
 
@@ -573,7 +578,8 @@ def render(ctx: dict) -> str:
             f'<div class="duda"><div class="cab"><b>{esc(d["ticker"])}</b><span>{esc(d["hora"])}</span></div><p>{esc(d["motivo"])}</p></div>'
             for d in ctx["dudas"])
     else:
-        dudas = '<p class="vacio">El ejecutor no ha rechazado entradas hoy.</p>'
+        dudas = ('<p class="vacio">El ejecutor no ha rechazado entradas hoy.</p>' if ctx["hay_eventos"]
+                 else '<p class="vacio">Sin datos: no hay log de eventos.</p>')
 
     if ctx["bloqueos"]:
         filas = "".join(f"<tr><td>{esc(n)}</td><td>{c}</td></tr>" for n, c in ctx["bloqueos"])
@@ -581,7 +587,8 @@ def render(ctx: dict) -> str:
         ub = ctx["ult_bloqueo"]
         riesgo += f'<div class="nota">Último: {esc(ub.get("ticker"))} a las {_hora(ub["_ts"], tz)}, {esc(ub.get("motivo") or ub.get("limite"))}</div>'
     else:
-        riesgo = '<p class="vacio">Ningún límite ha bloqueado operaciones hoy.</p>'
+        riesgo = ('<p class="vacio">Ningún límite ha bloqueado operaciones hoy.</p>' if ctx["hay_eventos"]
+                  else '<p class="vacio">Sin datos: no hay log de eventos.</p>')
 
     sesion = '<span class="pildora ok">Sesión US abierta</span>' if ctx["en_sesion"] else '<span class="pildora">Sesión US cerrada</span>'
     alpaca = "" if ctx["alpaca_ok"] else '<span class="pildora mal">Alpaca sin conexión</span>'
