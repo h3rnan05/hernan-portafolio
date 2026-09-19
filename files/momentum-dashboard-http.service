@@ -1,0 +1,11 @@
+[Unit]
+Description=Sirve el panel solo en localhost (se abre por túnel SSH)
+After=network.target
+
+[Service]
+User=ubuntu
+ExecStart=/usr/bin/python3 -m http.server 8787 --bind 127.0.0.1 --directory /home/ubuntu/momentum-dashboard
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

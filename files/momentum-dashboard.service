@@ -1,0 +1,11 @@
+[Unit]
+Description=Genera el panel del bot (solo lectura)
+
+[Service]
+Type=oneshot
+User=ubuntu
+# Ajusta estas dos rutas a donde vive el repo y su archivo de variables
+WorkingDirectory=/home/ubuntu/hernan-portafolio
+EnvironmentFile=/home/ubuntu/hernan-portafolio/.env
+Environment=DASH_SALIDA=/home/ubuntu/momentum-dashboard
+ExecStart=/usr/bin/python3 -m dashboard.build_dashboard
