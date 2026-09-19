@@ -62,6 +62,16 @@ def _evento(dry_run: bool, tipo: str, **campos) -> None:
         pass
 
 
+def _velas_totales(e, registro) -> float | None:
+    """Ruptura -> orden: velas que el hunter ya contaba al disparar + velas
+    desde el disparo. None si falta cualquiera (nunca se asume 0)."""
+    try:
+        return telemetria.velas_totales(
+            getattr(e, "velas_desde_ruptura", None), registro.latencia_e2e_ms)
+    except Exception:
+        return None
+
+
 def _velas_desde_senal(registro) -> float | None:
     """Velas de 1 min entre la vela que confirmó y la orden, a partir de la
     latencia e2e que `telemetria` YA calculó. None si no se midió."""
@@ -490,7 +500,8 @@ def ejecutar(
             revisiones_previas.append(registro)
             estado.guardar(revisiones_previas)
             if metricas is not None:
-                metricas.anotar_revision(registro, e.signal_latency_ms)
+                metricas.anotar_revision(
+                    registro, e.signal_latency_ms, getattr(e, "velas_desde_ruptura", None))
             continue
 
         if not decision.entrar:
@@ -503,7 +514,8 @@ def ejecutar(
             revisiones_previas.append(registro)
             estado.guardar(revisiones_previas)
             if metricas is not None:
-                metricas.anotar_revision(registro, e.signal_latency_ms)
+                metricas.anotar_revision(
+                    registro, e.signal_latency_ms, getattr(e, "velas_desde_ruptura", None))
             continue
 
         # ORDEN DE LAS OPERACIONES (corregido el 2026-08-25 -- costó un
@@ -539,7 +551,8 @@ def ejecutar(
             revisiones_previas.append(registro)
             estado.guardar(revisiones_previas)
             if metricas is not None:
-                metricas.anotar_revision(registro, e.signal_latency_ms)
+                metricas.anotar_revision(
+                    registro, e.signal_latency_ms, getattr(e, "velas_desde_ruptura", None))
             continue
 
         try:
@@ -574,9 +587,12 @@ def ejecutar(
         log.info("%s: orden paper colocada (%s)", e.ticker, orden.order_id)
         _evento(dry_run, "orden", ticker=e.ticker, lado="buy", estado="enviada",
                 cantidad=orden.cantidad, order_id=orden.order_id,
-                velas=_velas_desde_senal(registro))
+                velas=_velas_totales(e, registro), medida="ruptura_a_orden",
+                velas_desde_ruptura=getattr(e, "velas_desde_ruptura", None),
+                velas_desde_disparo=_velas_desde_senal(registro))
         if metricas is not None:
-            metricas.anotar_revision(registro, e.signal_latency_ms)
+            metricas.anotar_revision(
+                registro, e.signal_latency_ms, getattr(e, "velas_desde_ruptura", None))
 
     if metricas is not None and not dry_run:
         metricas.cerrar_corrida()
