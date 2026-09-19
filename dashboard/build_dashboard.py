@@ -44,7 +44,11 @@ def _env_float(nombre: str, defecto: float | None = None) -> float | None:
 
 def cargar_config() -> dict:
     return {
-        "watchlist": Path(os.environ.get("DASH_WATCHLIST", "watchlist.json")),
+        # Canónico (lo escribe GHA) y overlay de estado del VPS (fuera de git).
+        "watchlist": Path(os.environ.get("DASH_WATCHLIST", "momentum_hunter/watchlist.json")),
+        "watchlist_estado": Path(os.environ.get(
+            "DASH_WATCHLIST_ESTADO",
+            os.environ.get("MOMENTUM_WATCHLIST_STATE", "/var/lib/momentum/watchlist_vps_state.json"))),
         "eventos": Path(os.environ.get("DASH_EVENTOS", "logs/events.jsonl")),
         "salida": Path(os.environ.get("DASH_SALIDA", "dashboard_site")),
         # Minutos por vela. Sin este valor la latencia solo sale si el evento trae "velas".
@@ -144,11 +148,43 @@ def leer_eventos(ruta: Path, desde: datetime):
     return eventos, malas, None
 
 
-CLAVES_LISTA = ("watchlist", "tickers", "candidatos", "candidates", "items", "symbols")
+CLAVES_LISTA = ("entradas", "watchlist", "tickers", "candidatos", "candidates", "items", "symbols")
 
 
-def leer_watchlist(ruta: Path):
-    """Devuelve (items, momento_generado, error). Ajusta aquí si tu formato es distinto."""
+def _cap(x: dict):
+    if "es_large_cap" in x and isinstance(x["es_large_cap"], bool):
+        return "large" if x["es_large_cap"] else "small"
+    return _primero(x, "cap", "cap_class", "segmento", "universe")  # ausente = None, nunca "small"
+
+
+def _catalizador(x: dict):
+    tipo = _primero(x, "catalizador_tipo")
+    titular = _primero(x, "catalizador_titular")
+    if tipo or titular:
+        return " · ".join(str(v) for v in (tipo, titular) if v)
+    return _primero(x, "catalizador", "catalyst", "keyword", "keywords", "motivo")
+
+
+def leer_estado_vps(ruta: Path):
+    """Overlay que escribe el VPS (--solo-watchlist). Devuelve ({ticker: campos}, error).
+
+    Si el archivo no existe no es error: el overlay puede estar apagado
+    (MOMENTUM_WATCHLIST_VPS_STATE=0) y entonces manda el canónico.
+    """
+    try:
+        crudo = json.loads(ruta.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}, None
+    except (OSError, json.JSONDecodeError) as exc:
+        return {}, f"No se pudo leer el estado VPS de la watchlist ({type(exc).__name__})."
+    entradas = crudo.get("entries") if isinstance(crudo, dict) else None
+    if not isinstance(entradas, dict):
+        return {}, "Estado VPS de la watchlist con formato no reconocido."
+    return {str(k).upper(): v for k, v in entradas.items() if isinstance(v, dict)}, None
+
+
+def leer_watchlist(ruta: Path, ruta_estado: Path | None = None):
+    """Devuelve (items, momento_generado, error)."""
     try:
         mtime = datetime.fromtimestamp(ruta.stat().st_mtime, tz=timezone.utc)
         crudo = json.loads(ruta.read_text(encoding="utf-8"))
@@ -164,30 +200,36 @@ def leer_watchlist(ruta: Path):
     if not isinstance(lista, list):
         return [], mtime, "Formato de watchlist no reconocido: ajusta leer_watchlist()."
 
+    overlay, err_estado = leer_estado_vps(ruta_estado) if ruta_estado else ({}, None)
+
     items = []
     for x in lista:
         if isinstance(x, str):
             x = {"ticker": x}
         if not isinstance(x, dict):
             continue
-        catalizador = _primero(x, "catalizador", "catalyst", "keyword", "keywords", "motivo")
+        catalizador = _catalizador(x)
         if isinstance(catalizador, list):
             catalizador = ", ".join(map(str, catalizador))
+        ticker = _primero(x, "ticker", "symbol", "simbolo")
+        vps = overlay.get(str(ticker).upper(), {}) if ticker else {}
         items.append({
-            "ticker": _primero(x, "ticker", "symbol", "simbolo"),
-            "cap": _primero(x, "cap", "cap_class", "segmento", "universe"),
+            "ticker": ticker,
+            "cap": _cap(x),
             "catalizador": catalizador,
-            "detectado": parse_ts(_primero(x, "detectado", "detected_at", "timestamp", "added_at", "ts")),
-            "estado": _primero(x, "estado", "status", "state"),
+            "detectado": parse_ts(_primero(x, "detectado", "detected_at", "creado_en", "timestamp", "added_at", "ts")),
+            "estado": _primero(vps, "estado") or _primero(x, "estado", "status", "state"),
+            "actualizado": parse_ts(_primero(vps, "actualizado_en") or _primero(x, "actualizado_en", "updated_at")),
         })
-    return items, generado or mtime, None
+    return items, generado or mtime, err_estado
 
 
 def alpaca_get(ruta: str, params: dict | None = None, timeout: float = 10):
-    clave = os.environ.get("APCA_API_KEY_ID")
-    secreto = os.environ.get("APCA_API_SECRET_KEY")
+    # Mismos nombres que usa momentum_paper_trader/run.py; APCA_* queda como respaldo.
+    clave = os.environ.get("ALPACA_PAPER_API_KEY") or os.environ.get("APCA_API_KEY_ID")
+    secreto = os.environ.get("ALPACA_PAPER_API_SECRET") or os.environ.get("APCA_API_SECRET_KEY")
     if not clave or not secreto:
-        return None, "Faltan APCA_API_KEY_ID / APCA_API_SECRET_KEY."
+        return None, "Faltan ALPACA_PAPER_API_KEY / ALPACA_PAPER_API_SECRET."
     url = ALPACA_PAPER + ruta
     if params:
         url += "?" + urllib.parse.urlencode(params)
@@ -245,6 +287,19 @@ ESTADOS_ORDEN = {
 }
 
 
+ESTADOS_ACTIVOS = ("watching", "triggered")
+
+
+def filtrar_watchlist(items: list[dict], desde: datetime) -> list[dict]:
+    """Activas siempre; terminales solo si cambiaron hoy. Activas primero, luego lo más reciente."""
+    def activo(w):
+        return str(w.get("estado") or "").lower() in ESTADOS_ACTIVOS
+
+    visibles = [w for w in items if activo(w) or (w.get("actualizado") and w["actualizado"] >= desde)]
+    minimo = datetime.min.replace(tzinfo=timezone.utc)
+    return sorted(visibles, key=lambda w: (not activo(w), -(w.get("actualizado") or minimo).timestamp()))
+
+
 def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
     desde = inicio_dia_ny(ahora)
     en_sesion = sesion_abierta(ahora)
@@ -256,9 +311,10 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
     if malas:
         problemas.append(f"{malas} líneas del log de eventos no se pudieron leer.")
 
-    watch, wl_momento, err = leer_watchlist(cfg["watchlist"])
+    watch, wl_momento, err = leer_watchlist(cfg["watchlist"], cfg.get("watchlist_estado"))
     if err:
         problemas.append(err)
+    watch = filtrar_watchlist(watch, desde)
 
     cuenta, err_c = get("/v2/account")
     posiciones, err_p = get("/v2/positions")
@@ -504,7 +560,7 @@ def render(ctx: dict) -> str:
             f"<td>{_hora(w['detectado'], tz)}</td><td>{esc(w['estado'])}</td></tr>" for w in ctx["watch"])
         watch = f"<div class='scroll'><table><thead><tr><th>Ticker</th><th>Cap</th><th>Catalizador</th><th>Detectado</th><th>Estado</th></tr></thead><tbody>{filas}</tbody></table></div>"
     else:
-        watch = '<p class="vacio">La watchlist está vacía o no se pudo leer.</p>'
+        watch = '<p class="vacio">Sin tickers en observación ni cambios de estado hoy.</p>'
 
     if ctx["stream"]:
         filas = "".join(
