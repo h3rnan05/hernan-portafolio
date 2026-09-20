@@ -420,7 +420,10 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
         {
             "nombre": "Ejecutor", "donde": "VPS",
             "rol": "Consulta al LLM y decide si entra.",
-            "estado": "ok" if decisiones and conteos_validos else "sin-datos",
+            # Mismo criterio que Riesgo: con log y rechequeo reciente, 0
+            # decisiones es un dato ("OK", "0 decisiones"). "Sin datos" solo
+            # si falta el log o no hay un rechequeo reciente.
+            "estado": "ok" if conteos_validos else "sin-datos",
             # Un conteo > 0 es real aunque el rechequeo esté viejo; un 0 no.
             "detalle": (f"{len(decisiones)} decisiones hoy · última {_hora(ult_decision, cfg['tz'], ahora=ahora)}"
                         if hay_eventos and (decisiones or conteos_validos)
