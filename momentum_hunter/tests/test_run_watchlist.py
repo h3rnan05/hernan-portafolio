@@ -794,7 +794,12 @@ def _preparar_disparo(monkeypatch, tmp_path, creada_en):
     # `creada_en` importa: la entrada tiene un TTL de vigilancia
     # (`minutos_maximos_en_watching`), así que para aislar el chequeo de
     # sesión hay que crearla poco antes del momento evaluado.
-    e = watchlist.desde_candidato_diario(_candidato_diario("FLEX"), creada_en)
+    # Catalizador del mismo día: con el default (2026-08-11) la entrada ya
+    # nace fuera de `dias_ventana_catalizador` y, desde que la ventana se
+    # mira ANTES de evaluar, se invalida sin llegar al chequeo de sesión
+    # que estas pruebas aíslan (antes disparaba igual: era el mismo bug).
+    c = _candidato_diario("FLEX", fecha_catalizador=creada_en.isoformat())
+    e = watchlist.desde_candidato_diario(c, creada_en)
     path = _preparar_watchlist(monkeypatch, tmp_path, [e])
     enviados, _, _ = _parchear_efectos_secundarios(monkeypatch)
     monkeypatch.setattr(
