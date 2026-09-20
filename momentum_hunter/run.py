@@ -645,6 +645,10 @@ def _actualizar_watchlist(
     ahora = ahora or datetime.now(UTC)
     entradas = watchlist.cargar()
     _archivar_triggered_ya_revisadas(entradas, ahora, dry_run)
+    # Caducidad ANTES de evaluar -- ver `_resolver_vencidas_antes_de_evaluar`.
+    # Va antes de `agregar_nuevas`: una vencida que el escaneo re-descubre
+    # vuelve como intento NUEVO (TTL y catalizador frescos), nunca la vieja.
+    resueltas_antes = _resolver_vencidas_antes_de_evaluar(entradas, cfg, ahora)
     ya_conocidos_antes = {e.ticker for e in entradas}
     evaluacion_ts_creacion = _ahora_iso_run(datetime.now(UTC))
     entradas = watchlist.agregar_nuevas(
@@ -654,7 +658,7 @@ def _actualizar_watchlist(
     nuevas_tickers = {e.ticker for e in entradas if e.ticker not in ya_conocidos_antes}
 
     disparadas: dict[str, object] = {}
-    mensajes_pendientes: list[str] = []
+    mensajes_pendientes: list[str] = [texto for _, texto in resueltas_antes]
     for c in candidatos_intradia:
         e = por_ticker.get(c.ticker)
         if e is None or e.estado != watchlist.ESTADO_WATCHING:
@@ -804,6 +808,41 @@ def _hay_tiempo(cfg: MomentumConfig, ahora: datetime, ticker: str) -> bool:
     return False
 
 
+def _resolver_vencidas_antes_de_evaluar(
+    entradas: list, cfg: MomentumConfig, ahora: datetime,
+) -> list[tuple[object, str]]:
+    """Caducidad ANTES de evaluar (2026-09-19).
+
+    EL BUG: `expirar_vencidas` corría al FINAL de la corrida, después de
+    evaluar. Una WATCHING que ya llevaba más de
+    `minutos_maximos_en_watching` (típico: descubierta al cierre, o
+    acumulada mientras el rechequeo estuvo apagado) recibía una última
+    evaluación en la corrida siguiente y, si justo cumplía, se volvía
+    TRIGGERED antes de que el TTL la venciera. Lo mismo con el
+    catalizador: `catalizador_vigente` solo se miraba en
+    `_evaluar_no_disparada`, o sea para las que NO disparaban -- una
+    candidata con el catalizador ya fuera de ventana sí podía disparar.
+
+    Ahora las dos reglas que ya existían se aplican antes de construir o
+    evaluar nada. No hay umbrales nuevos: mismo TTL, misma ventana de
+    días, mismo motivo de INVALIDATED. Primero el catalizador (causa más
+    fuerte, y INVALIDATED bloquea re-agregarla hoy), después el TTL.
+
+    Muta `entradas` in-place, como las demás transiciones. Devuelve
+    `[(entrada, texto)]` para que el caller mande los avisos DESPUÉS de
+    persistir -- esta función nunca llama a Telegram."""
+    resueltas: list[tuple[object, str]] = []
+    for e in watchlist.activas(entradas):
+        if not watchlist.catalizador_vigente(e, cfg.dias_ventana_catalizador, ahora):
+            motivo = "El catalizador ya salió de la ventana de vigencia."
+            watchlist.marcar_invalidated(e, motivo, ahora)
+            resueltas.append(
+                (e, report.mensaje_invalidated(e.ticker, motivo, e.ultima_zona_entrada_baja)))
+    for e in watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora):
+        resueltas.append((e, report.mensaje_expired(e.ticker)))
+    return resueltas
+
+
 def _evaluar_no_disparada(
     e, c: CandidatoIntradia, cfg: MomentumConfig, ahora: datetime,
     deteccion_ts: str | None = None, evaluacion_ts: str | None = None,
@@ -948,6 +987,8 @@ def _revisar_watchlist_cuerpo(
     if watchlist.vps_state_habilitado():
         entradas = watchlist.aplicar_overlay(entradas)
     _archivar_triggered_ya_revisadas(entradas, ahora, dry_run)
+    # Caducidad ANTES de evaluar -- ver `_resolver_vencidas_antes_de_evaluar`.
+    resueltas_antes = _resolver_vencidas_antes_de_evaluar(entradas, cfg, ahora)
     vigiladas = watchlist.activas(entradas)
     # Las TRIGGERED no se re-evalúan (son terminales), pero SÍ se les
     # refrescan los niveles -- ver `watchlist.con_niveles_que_refrescar`
@@ -961,6 +1002,8 @@ def _revisar_watchlist_cuerpo(
         entradas = watchlist.purgar_antiguas(entradas, ahora)
         if not dry_run:
             _persistir_rechequeo(entradas)
+            for _, texto in resueltas_antes:
+                enviar_telegram(texto)
         return
 
     # Se piden velas también para las TRIGGERED: no para re-evaluarlas,
@@ -1019,6 +1062,8 @@ def _revisar_watchlist_cuerpo(
         expiradas = watchlist.expirar_vencidas(entradas, cfg.minutos_maximos_en_watching, ahora)
         if not dry_run:
             _persistir_rechequeo(entradas)
+            for _, texto in resueltas_antes:
+                enviar_telegram(texto)
             for expirada in expiradas:
                 enviar_telegram(report.mensaje_expired(expirada.ticker))
         return
@@ -1035,7 +1080,10 @@ def _revisar_watchlist_cuerpo(
     # misma transición (la única ventana de duplicación que esto NO
     # cierra -- un crash entre el envío y el commit de git del workflow --
     # queda documentada en el README).
-    pendientes: list[tuple[str, object, object]] = []   # (tipo, entrada, oportunidad|texto)
+    # (tipo, entrada, oportunidad|texto) -- arranca con lo que ya resolvió la
+    # caducidad previa a la evaluación.
+    pendientes: list[tuple[str, object, object]] = [
+        ("estado", e, texto) for e, texto in resueltas_antes]
     for candidato in candidatos:
         e = por_ticker[candidato.ticker]
         if candidato.ticker in elegidos and not _hay_tiempo(cfg, ahora, candidato.ticker):
