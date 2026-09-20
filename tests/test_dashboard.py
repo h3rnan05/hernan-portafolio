@@ -221,6 +221,64 @@ def test_overlay_vps_manda_sobre_el_canonico(tmp_path):
     assert items[0]["actualizado"] == datetime(2026, 9, 18, 14, 30, tzinfo=timezone.utc)
 
 
+def test_overlay_viejo_no_resucita_una_entrada_ya_expirada(tmp_path):
+    # SUNB, 2026-09-11: el rechequeo del VPS se apagó con SUNB en
+    # "watching" y GHA la expiró al día siguiente. El panel mostraba el
+    # overlay congelado. Mismas reglas que el ejecutor: el canónico
+    # terminal gana.
+    ruta = tmp_path / "watchlist.json"
+    ruta.write_text(json.dumps({"entradas": [_entrada(
+        "SUNB", "expired", creado_en="2026-09-11T20:40:49+00:00",
+        actualizado_en="2026-09-12T20:33:12+00:00")]}))
+    estado = tmp_path / "state.json"
+    estado.write_text(json.dumps({"schema": 1, "entries": {"SUNB": {
+        "estado": "watching", "actualizado_en": "2026-09-11T20:40:49+00:00",
+        "overlay_ts": "2026-09-11T20:45:00+00:00"}}}))
+    items, _, err = bd.leer_watchlist(ruta, estado)
+    assert err is None
+    assert items[0]["estado"] == "expired"
+    assert items[0]["actualizado"] == datetime(2026, 9, 12, 20, 33, 12, tzinfo=timezone.utc)
+
+
+def test_canonico_terminal_gana_aunque_el_overlay_sea_mas_nuevo(tmp_path):
+    ruta = tmp_path / "watchlist.json"
+    ruta.write_text(json.dumps({"entradas": [_entrada("AAA", "invalidated")]}))
+    estado = tmp_path / "state.json"
+    estado.write_text(json.dumps({"schema": 1, "entries": {"AAA": {
+        "estado": "watching", "actualizado_en": "2026-09-18T14:30:00+00:00"}}}))
+    items, _, _ = bd.leer_watchlist(ruta, estado)
+    assert items[0]["estado"] == "invalidated"
+
+
+def test_overlay_mas_viejo_que_el_canonico_no_pisa(tmp_path):
+    ruta = tmp_path / "watchlist.json"
+    ruta.write_text(json.dumps({"entradas": [_entrada(
+        "AAA", "watching", actualizado_en="2026-09-18T14:00:00+00:00")]}))
+    estado = tmp_path / "state.json"
+    estado.write_text(json.dumps({"schema": 1, "entries": {"AAA": {
+        "estado": "missed", "actualizado_en": "2026-09-18T13:00:00+00:00",
+        "overlay_ts": "2026-09-18T13:00:00+00:00"}}}))
+    items, _, _ = bd.leer_watchlist(ruta, estado)
+    assert items[0]["estado"] == "watching"
+
+
+def test_ticker_repetido_cada_entrada_con_su_estado(tmp_path):
+    # La EXPIRED vieja y el intento nuevo del mismo ticker conviven en el
+    # canónico: el overlay no convierte la vieja en "watching".
+    ruta = tmp_path / "watchlist.json"
+    ruta.write_text(json.dumps({"entradas": [
+        _entrada("AAA", "expired", creado_en="2026-09-17T14:00:00+00:00",
+                 actualizado_en="2026-09-17T16:10:00+00:00"),
+        _entrada("AAA", "watching", creado_en="2026-09-18T13:40:00+00:00"),
+    ]}))
+    estado = tmp_path / "state.json"
+    estado.write_text(json.dumps({"schema": 1, "entries": {"AAA": {
+        "estado": "watching", "actualizado_en": "2026-09-18T13:40:00+00:00",
+        "overlay_ts": "2026-09-18T14:45:00+00:00"}}}))
+    items, _, _ = bd.leer_watchlist(ruta, estado)
+    assert [i["estado"] for i in items] == ["expired", "watching"]
+
+
 def test_overlay_ausente_no_es_error_y_corrupto_si(tmp_path):
     ruta = tmp_path / "watchlist.json"
     ruta.write_text(json.dumps({"entradas": [_entrada("AAA", "watching")]}))
