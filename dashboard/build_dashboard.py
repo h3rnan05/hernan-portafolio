@@ -182,6 +182,36 @@ def leer_estado_vps(ruta: Path):
     return {str(k).upper(): v for k, v in entradas.items() if isinstance(v, dict)}, None
 
 
+def _estados_fusionados(lista: list, ruta_estado: Path | None):
+    """Estado y `actualizado_en` de cada entrada tras aplicar el overlay VPS
+    con las MISMAS reglas que usa el ejecutor (`watchlist.aplicar_overlay`,
+    vía `cargar_con_overlay`). Devuelve
+    ({(ticker, creado_en): (estado, actualizado_en)}, error).
+
+    Antes el panel ponía el estado del overlay encima del canónico sin más
+    reglas: con el rechequeo del VPS apagado, el overlay se quedaba viejo y
+    mostraba "watching" para una entrada que GHA ya había expirado (SUNB,
+    2026-09-11). Con las reglas de `watchlist.py` el canónico terminal gana
+    y un overlay más viejo que el canónico no pisa nada.
+
+    Clave (ticker, creado_en): un ticker puede aparecer dos veces (la
+    EXPIRED vieja y el intento nuevo). Lo que no se pueda fusionar (formato
+    ajeno, entrada incompleta) se queda con el canónico."""
+    if ruta_estado is None:
+        return {}, None
+    _, err = leer_estado_vps(ruta_estado)
+    if err:
+        return {}, err
+    try:
+        from momentum_hunter import watchlist as wl
+    except ImportError as exc:
+        return {}, (f"No se pudo cargar momentum_hunter.watchlist ({type(exc).__name__}); "
+                    "se muestra el canónico sin el estado VPS.")
+    crudas = [{"nombre": None, **x} for x in lista if isinstance(x, dict)]
+    entradas = wl.aplicar_overlay(wl.parsear({"entradas": crudas}), ruta_estado)
+    return {(e.ticker, e.creado_en): (e.estado, e.actualizado_en) for e in entradas}, None
+
+
 def fecha_ultimo_commit(ruta: Path) -> datetime | None:
     """Fecha del último commit que tocó `ruta` (`git log -1 --format=%cI`).
     None si no es un repo git, git no está o falla por lo que sea. En un clon
@@ -232,7 +262,7 @@ def leer_watchlist(ruta: Path, ruta_estado: Path | None = None):
     if not isinstance(lista, list):
         return [], None, "Formato de watchlist no reconocido: ajusta leer_watchlist()."
 
-    overlay, err_estado = leer_estado_vps(ruta_estado) if ruta_estado else ({}, None)
+    fusionados, err_estado = _estados_fusionados(lista, ruta_estado)
 
     items = []
     mas_reciente = None
@@ -249,14 +279,18 @@ def leer_watchlist(ruta: Path, ruta_estado: Path | None = None):
         if isinstance(catalizador, list):
             catalizador = ", ".join(map(str, catalizador))
         ticker = _primero(x, "ticker", "symbol", "simbolo")
-        vps = overlay.get(str(ticker).upper(), {}) if ticker else {}
+        # Estado y fecha ya fusionados con las reglas de `watchlist.py`; sin
+        # fusión (formato ajeno, sin overlay) manda el canónico.
+        estado, actualizado = fusionados.get(
+            (ticker, x.get("creado_en")),
+            (_primero(x, "estado", "status", "state"), _primero(x, "actualizado_en", "updated_at")))
         items.append({
             "ticker": ticker,
             "cap": _cap(x),
             "catalizador": catalizador,
             "detectado": parse_ts(_primero(x, "detectado", "detected_at", "creado_en", "timestamp", "added_at", "ts")),
-            "estado": _primero(vps, "estado") or _primero(x, "estado", "status", "state"),
-            "actualizado": parse_ts(_primero(vps, "actualizado_en") or _primero(x, "actualizado_en", "updated_at")),
+            "estado": estado,
+            "actualizado": parse_ts(actualizado),
         })
     if generado is None:
         candidatos = [t for t in (mas_reciente, fecha_ultimo_commit(ruta)) if t is not None]
