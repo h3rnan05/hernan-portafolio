@@ -794,7 +794,12 @@ def _preparar_disparo(monkeypatch, tmp_path, creada_en):
     # `creada_en` importa: la entrada tiene un TTL de vigilancia
     # (`minutos_maximos_en_watching`), así que para aislar el chequeo de
     # sesión hay que crearla poco antes del momento evaluado.
-    e = watchlist.desde_candidato_diario(_candidato_diario("FLEX"), creada_en)
+    # Catalizador del mismo día: con el default (2026-08-11) la entrada ya
+    # nace fuera de `dias_ventana_catalizador` y, desde que la ventana se
+    # mira ANTES de evaluar, se invalida sin llegar al chequeo de sesión
+    # que estas pruebas aíslan (antes disparaba igual: era el mismo bug).
+    c = _candidato_diario("FLEX", fecha_catalizador=creada_en.isoformat())
+    e = watchlist.desde_candidato_diario(c, creada_en)
     path = _preparar_watchlist(monkeypatch, tmp_path, [e])
     enviados, _, _ = _parchear_efectos_secundarios(monkeypatch)
     monkeypatch.setattr(
@@ -854,3 +859,147 @@ def test_una_senal_no_disparada_expira_en_vez_de_quedar_colgada(monkeypatch, tmp
     estado_final = watchlist.cargar(path)[0].estado
     assert estado_final == watchlist.ESTADO_EXPIRED
     assert estado_final != watchlist.ESTADO_TRIGGERED   # lo que importa: nunca se disparó
+
+
+# ------------------------- caducidad ANTES de evaluar (2026-09-19) -------------------------
+# EL BUG: `expirar_vencidas` corría al FINAL de la corrida y
+# `catalizador_vigente` solo se miraba para las que NO disparaban. Una
+# WATCHING vencida (o con el catalizador ya fuera de ventana) recibía una
+# evaluación más y, si justo cumplía, se volvía TRIGGERED. Ver
+# `run._resolver_vencidas_antes_de_evaluar`.
+
+def _registrar_evaluaciones(monkeypatch, accionable=True):
+    """Parchea la construcción del candidato y anota qué tickers llegaron
+    a evaluarse -- una entrada resuelta antes de evaluar no debe aparecer."""
+    evaluadas: list[str] = []
+
+    def _construir(ticker, *a, **kw):
+        evaluadas.append(ticker)
+        return _candidato_intradia(ticker, accionable=accionable)
+
+    monkeypatch.setattr(run_mod, "_construir_candidato_intradia", _construir)
+    return evaluadas
+
+
+def test_revisar_entrada_vencida_no_se_evalua_ni_dispara(monkeypatch, tmp_path):
+    vieja = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA - timedelta(hours=3))
+    path = _preparar_watchlist(monkeypatch, tmp_path, [vieja])
+    enviados, registrados, _ = _parchear_efectos_secundarios(monkeypatch)
+    evaluadas = _registrar_evaluaciones(monkeypatch, accionable=True)
+
+    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA)
+
+    r = watchlist.cargar(path)[0]
+    assert r.estado == watchlist.ESTADO_EXPIRED
+    assert evaluadas == []  # ni siquiera se construyó el candidato
+    assert registrados == []  # nunca llegó al tracker como oportunidad
+    assert len(enviados) == 1  # solo el aviso de EXPIRED
+
+
+def test_revisar_catalizador_fuera_de_ventana_no_se_evalua_ni_dispara(monkeypatch, tmp_path):
+    # Entrada reciente (TTL intacto) pero con el catalizador congelado del
+    # 2026-08-01, fuera de `dias_ventana_catalizador`. Antes del fix, como
+    # la candidata cumplía todo, disparaba sin mirar el catalizador.
+    c = _candidato_diario("RKLB", fecha_catalizador="2026-08-01T13:45:00+00:00")
+    e = watchlist.desde_candidato_diario(c, AHORA - timedelta(minutes=10))
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    enviados, registrados, _ = _parchear_efectos_secundarios(monkeypatch)
+    evaluadas = _registrar_evaluaciones(monkeypatch, accionable=True)
+
+    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA)
+
+    r = watchlist.cargar(path)[0]
+    assert r.estado == watchlist.ESTADO_INVALIDATED
+    assert "ventana de vigencia" in r.transiciones[-1].motivo
+    assert evaluadas == []
+    assert registrados == []
+    assert len(enviados) == 1 and "INVALIDADA" in enviados[0]
+
+
+def test_revisar_entrada_vigente_sigue_disparando_igual(monkeypatch, tmp_path):
+    # La otra mitad: a un minuto del TTL y con catalizador en ventana, el
+    # camino normal no cambia.
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA - timedelta(minutes=119))
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    enviados, registrados, _ = _parchear_efectos_secundarios(monkeypatch)
+    evaluadas = _registrar_evaluaciones(monkeypatch, accionable=True)
+
+    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA)
+
+    assert watchlist.cargar(path)[0].estado == watchlist.ESTADO_TRIGGERED
+    assert evaluadas == ["RKLB"]
+    assert len(registrados) == 1
+    assert len(enviados) == 1
+
+
+def test_revisar_vencida_en_dry_run_no_persiste_ni_avisa(monkeypatch, tmp_path):
+    vieja = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA - timedelta(hours=3))
+    path = _preparar_watchlist(monkeypatch, tmp_path, [vieja])
+    enviados, _, _ = _parchear_efectos_secundarios(monkeypatch)
+    _registrar_evaluaciones(monkeypatch)
+
+    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=True, ahora=AHORA)
+
+    assert enviados == []
+    assert watchlist.cargar(path)[0].estado == watchlist.ESTADO_WATCHING
+
+
+def test_escaneo_entrada_vencida_no_se_evalua_ni_dispara(monkeypatch, tmp_path):
+    vieja = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA - timedelta(hours=3))
+    _preparar_watchlist(monkeypatch, tmp_path, [vieja])
+    _parchear_efectos_secundarios(monkeypatch)
+    c_intradia = _candidato_intradia("RKLB", accionable=True)
+
+    # Sin re-descubrimiento (shortlist vacía): antes del fix la vieja
+    # WATCHING se evaluaba contra el candidato elegido y disparaba.
+    entradas, disparadas, mensajes = run_mod._actualizar_watchlist(
+        [], [c_intradia], {"RKLB"}, CFG, dry_run=False, ahora=AHORA)
+
+    assert disparadas == {}
+    assert [e.estado for e in entradas] == [watchlist.ESTADO_EXPIRED]
+    assert len(mensajes) == 1
+
+
+def test_escaneo_catalizador_fuera_de_ventana_no_se_evalua_ni_dispara(monkeypatch, tmp_path):
+    c = _candidato_diario("RKLB", fecha_catalizador="2026-08-01T13:45:00+00:00")
+    e = watchlist.desde_candidato_diario(c, AHORA - timedelta(minutes=10))
+    _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+    c_intradia = _candidato_intradia("RKLB", accionable=True)
+
+    entradas, disparadas, mensajes = run_mod._actualizar_watchlist(
+        [], [c_intradia], {"RKLB"}, CFG, dry_run=False, ahora=AHORA)
+
+    assert disparadas == {}
+    assert [e.estado for e in entradas] == [watchlist.ESTADO_INVALIDATED]
+    assert len(mensajes) == 1 and "INVALIDADA" in mensajes[0]
+
+
+def test_escaneo_vencida_re_descubierta_vuelve_como_intento_nuevo(monkeypatch, tmp_path):
+    # Diseño existente de EXPIRED (ver `watchlist.agregar_nuevas`): si el
+    # escaneo la vuelve a encontrar, entra como intento NUEVO con TTL y
+    # catalizador frescos. Lo que se evalúa es esa entrada nueva, nunca
+    # la vieja.
+    vieja = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA - timedelta(hours=3))
+    _preparar_watchlist(monkeypatch, tmp_path, [vieja])
+    _parchear_efectos_secundarios(monkeypatch)
+
+    entradas, disparadas, _ = run_mod._actualizar_watchlist(
+        [_candidato_diario("RKLB")], [_candidato_intradia("RKLB", accionable=True)], {"RKLB"},
+        CFG, dry_run=False, ahora=AHORA)
+
+    assert [e.estado for e in entradas] == [watchlist.ESTADO_EXPIRED, watchlist.ESTADO_TRIGGERED]
+    assert disparadas["RKLB"].creado_en == AHORA.isoformat(timespec="seconds")
+
+
+def test_escaneo_entrada_vigente_sigue_disparando_igual(monkeypatch, tmp_path):
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA - timedelta(minutes=119))
+    _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+
+    entradas, disparadas, mensajes = run_mod._actualizar_watchlist(
+        [], [_candidato_intradia("RKLB", accionable=True)], {"RKLB"}, CFG, dry_run=False, ahora=AHORA)
+
+    assert disparadas["RKLB"] is entradas[0]
+    assert entradas[0].estado == watchlist.ESTADO_TRIGGERED
+    assert mensajes == []
