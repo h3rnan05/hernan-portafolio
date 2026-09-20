@@ -311,6 +311,20 @@ def test_rechequeo_viejo_no_oculta_un_bloqueo_real(tmp_path):
     assert riesgo["estado"] == "alerta" and riesgo["detalle"] == "1 bloqueos hoy"
 
 
+def test_con_rechequeo_reciente_ejecutor_con_cero_decisiones_es_ok(tmp_path):
+    # Mismo criterio que Riesgo con 0 bloqueos: log presente y rechequeo
+    # hace 5 min sin ninguna decisión es un dato, no "Sin datos".
+    eventos(tmp_path, {"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    et = _etapas(ctx)
+    assert et["Ejecutor"]["estado"] == "ok"
+    assert et["Ejecutor"]["detalle"].startswith("0 decisiones hoy")
+    assert et["Riesgo"]["estado"] == "ok"  # los dos con el mismo criterio
+    html = bd.render(ctx)
+    assert "0 decisiones hoy" in html
+    assert "no ha rechazado entradas" in html
+
+
 def test_hora_muestra_el_dia_si_no_es_de_hoy():
     utc = ZoneInfo("UTC")
     assert bd._hora(datetime(2026, 9, 18, 14, 40, tzinfo=timezone.utc), utc, ahora=AHORA) == "14:40"
