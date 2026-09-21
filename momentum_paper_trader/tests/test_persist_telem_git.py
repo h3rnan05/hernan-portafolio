@@ -111,3 +111,50 @@ def test_workflows_gha_no_agregan_paper_telem():
         assert "git add momentum_paper_trader/telemetria" not in texto
         assert "git add momentum_hunter/telemetria" in texto
         assert "git_persist_rebase_push.sh" in texto
+
+
+def test_vps_deja_rastro_cuando_el_persist_falla():
+    """Un persist que falla no puede ser silencioso: evento para el
+    panel (se pinta en rojo) y Telegram, en los dos caminos en que el
+    estado se queda sin subir (git agotó reintentos, o no se consiguió
+    el flock). Nunca tumba la unidad ni fuerza el push."""
+    texto = VPS.read_text(encoding="utf-8")
+    assert "persist_fallido()" in texto
+    assert 'dashboard.events persist_fallido' in texto
+    assert "notify_telegram.sh" in texto
+    # Los dos caminos de fallo llaman al registro.
+    assert 'persist_fallido "git persist failed"' in texto
+    assert 'persist_fallido "flock timeout"' in texto
+    # El registro nunca puede hacer fallar al bot: todo con `|| true` o
+    # devolviendo 0, y sin `set -e` activo alrededor de la llamada a Telegram.
+    assert "return 0\n}" in texto
+    assert "git push --force" not in texto
+
+
+def test_vps_no_repite_el_telegram_de_persist_fallido_cada_corrida():
+    """El script corre cada ~5 min: si git sigue caído, un Telegram por
+    corrida es spam. Se marca el día del último aviso y no se repite."""
+    texto = VPS.read_text(encoding="utf-8")
+    assert "persist_fallido.avisado" in texto
+    assert 'date -u +%F' in texto
+
+
+def test_cli_de_eventos_escribe_el_evento_y_nunca_falla(tmp_path, monkeypatch):
+    import json
+    import subprocess
+    import sys
+    ruta = tmp_path / "events.jsonl"
+    env = {"DASH_EVENTOS": str(ruta), "PYTHONPATH": str(ROOT), "PATH": "/usr/bin:/bin"}
+    r = subprocess.run([sys.executable, "-m", "dashboard.events", "persist_fallido",
+                        "motivo=git persist failed", "intentos=5"],
+                       capture_output=True, text=True, env=env, cwd=str(tmp_path))
+    assert r.returncode == 0, r.stderr
+    evento = json.loads(ruta.read_text(encoding="utf-8").strip())
+    assert evento["tipo"] == "persist_fallido"
+    assert evento["motivo"] == "git persist failed" and evento["intentos"] == 5
+    assert "ts" in evento
+    # Ruta imposible: no escribe, pero tampoco falla (rc 0, sin traza).
+    env["DASH_EVENTOS"] = "/proc/no-existe/events.jsonl"
+    r = subprocess.run([sys.executable, "-m", "dashboard.events", "persist_fallido", "motivo=x"],
+                       capture_output=True, text=True, env=env, cwd=str(tmp_path))
+    assert r.returncode == 0 and "Traceback" not in r.stderr

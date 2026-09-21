@@ -400,6 +400,38 @@ def test_rechequeo_viejo_en_sesion_ejecutor_y_riesgo_sin_datos(tmp_path):
     assert et["Riesgo"]["detalle"] == "— bloqueos hoy"
 
 
+def test_persist_fallido_se_ve_en_rojo_en_cabecera_y_en_rechequeo(tmp_path):
+    # El VPS corrió hace 5 min (rechequeo fresco) pero no pudo subir su
+    # estado a main dos veces: alerta aunque la corrida sea reciente.
+    eventos(tmp_path,
+            {"ts": "2026-09-18T14:40:00Z", "tipo": "persist_fallido", "motivo": "git persist failed", "intentos": 5},
+            {"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:56:00Z", "tipo": "persist_fallido", "motivo": "flock <timeout>", "intentos": 0})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert [p["motivo"] for p in ctx["persist_fallidos"]] == ["git persist failed", "flock <timeout>"]
+    rechequeo = _etapas(ctx)["Rechequeo"]
+    assert rechequeo["estado"] == "alerta"
+    assert "2 persist fallidos, último 14:56" in rechequeo["detalle"]
+    html = bd.render(ctx)
+    assert '<span class="pildora mal">Persist fallido ×2 · último 14:56 (flock &lt;timeout&gt;)</span>' in html
+    assert "flock <timeout>" not in html   # el motivo viene de fuera: escapado
+
+
+def test_sin_persist_fallido_no_hay_pildora_ni_alerta(tmp_path):
+    eventos(tmp_path, {"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert ctx["persist_fallidos"] == []
+    assert _etapas(ctx)["Rechequeo"]["estado"] == "ok"
+    assert "Persist fallido" not in bd.render(ctx)
+
+
+def test_persist_fallido_de_ayer_no_cuenta_hoy(tmp_path):
+    # El panel es del día: un fallo de ayer ya lo vio (o lo vio el Telegram).
+    eventos(tmp_path, {"ts": "2026-09-17T14:40:00Z", "tipo": "persist_fallido", "motivo": "git persist failed"})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert ctx["persist_fallidos"] == [] and "Persist fallido" not in bd.render(ctx)
+
+
 def test_rechequeo_viejo_no_oculta_un_bloqueo_real(tmp_path):
     # Un bloqueo registrado es un hecho: sigue en alerta y con su conteo.
     eventos(tmp_path,

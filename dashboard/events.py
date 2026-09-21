@@ -11,6 +11,12 @@ Tipos que el panel entiende:
     orden           ticker=..., lado=..., estado="enviada"|"rechazada",
                     velas=... + medida="ruptura_a_orden" (latencia completa; None si no se midió)
     bloqueo_riesgo  ticker=..., limite=..., motivo=...
+    persist_fallido motivo=..., intentos=...            (el VPS no pudo subir su estado a main)
+
+Desde bash (scripts/run_watchlist_paper.sh) se usa la CLI:
+    python -m dashboard.events persist_fallido motivo="git persist failed" intentos=5
+Tampoco falla nunca: sale con 0 pase lo que pase, para que un `set -e`
+del script que la llama no convierta un aviso en una caída del bot.
 """
 from __future__ import annotations
 
@@ -39,3 +45,34 @@ def log_event(tipo: str, **campos) -> None:
             f.write(json.dumps(registro, ensure_ascii=False, default=str) + "\n")
     except Exception:
         pass
+
+
+def _campos_cli(argv: list[str]) -> dict:
+    """`k=v` → str. Un número se guarda como número para que el panel lo
+    pueda contar; cualquier otra cosa queda como texto tal cual."""
+    campos = {}
+    for arg in argv:
+        if "=" not in arg:
+            continue
+        k, v = arg.split("=", 1)
+        try:
+            campos[k] = int(v)
+        except ValueError:
+            campos[k] = v
+    return campos
+
+
+def main(argv: list[str] | None = None) -> int:
+    """`python -m dashboard.events <tipo> [k=v ...]`. Siempre devuelve 0."""
+    import sys
+    args = list(sys.argv[1:] if argv is None else argv)
+    try:
+        if args and args[0].strip():
+            log_event(args[0].strip(), **_campos_cli(args[1:]))
+    except Exception:
+        pass
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
