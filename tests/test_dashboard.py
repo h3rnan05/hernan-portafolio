@@ -18,9 +18,25 @@ def cfg(tmp_path, **extra):
         "hunter_max_min": 45.0,
         "rechequeo_max_min": 12.0,
         "tz": ZoneInfo("UTC"),
+        "telem_hunter": tmp_path / "telem",   # sin archivo: sin escaneo del VPS
     }
     base.update(extra)
     return base
+
+
+def escaneo_vps(tmp_path, fin, slot=3, n_slots=8, evaluadas=(9, 3), modo="escaneo", inicio=None, extra_lineas=()):
+    """Un registro de telemetría del hunter en el VPS, como lo escribe
+    momentum_hunter.telemetria (archivo por fecha UTC y fuente)."""
+    ruta = tmp_path / "telem" / fin.astimezone(timezone.utc).date().isoformat() / "vps" / "events.jsonl"
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    registro = {"timestamp": fin.isoformat(), "modo": modo, "inicio_ts": (inicio or fin).isoformat(),
+                "slot": slot, "n_slots": n_slots, "universo_escaneado": 1000,
+                "embudo": {"evaluadas": {"small": evaluadas[0], "large": evaluadas[1]}}, "fuente": "vps"}
+    with ruta.open("a", encoding="utf-8") as f:
+        for linea in extra_lineas:
+            f.write(linea + "\n")
+        f.write(json.dumps(registro) + "\n")
+    return ruta
 
 
 def sin_alpaca(ruta, params=None):
@@ -147,10 +163,10 @@ def test_hunter_usa_la_entrada_mas_reciente(tmp_path, monkeypatch):
     _, generado, _ = bd.leer_watchlist(tmp_path / "watchlist.json")
     assert generado == datetime(2026, 9, 18, 14, 40, tzinfo=timezone.utc)
     # La watchlist es fresca, pero el estado del Hunter ya no sale de ahí:
-    # sin respuesta de Actions no hay dato; con una corrida OK reciente, OK.
+    # sin escaneo del VPS hoy no hay dato; con uno reciente, OK.
     assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido()))["estado"] == "sin-datos"
-    reciente = datetime(2026, 9, 18, 14, 50, tzinfo=timezone.utc)
-    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_ok(reciente)))["estado"] == "ok"
+    escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 50, tzinfo=timezone.utc))
+    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido()))["estado"] == "ok"
 
 
 def test_hunter_usa_el_ultimo_commit_si_el_json_no_trae_hora(tmp_path, monkeypatch):
@@ -159,9 +175,9 @@ def test_hunter_usa_el_ultimo_commit_si_el_json_no_trae_hora(tmp_path, monkeypat
     (tmp_path / "watchlist.json").write_text(json.dumps({"entradas": [{"ticker": "AAA"}]}))
     _, generado, _ = bd.leer_watchlist(tmp_path / "watchlist.json")
     assert generado == datetime(2026, 9, 18, 12, 0, tzinfo=timezone.utc)
-    # Última corrida OK hace 3 h en plena sesión: "Revisar", no "OK".
-    vieja = datetime(2026, 9, 18, 12, 0, tzinfo=timezone.utc)
-    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_ok(vieja)))["estado"] == "alerta"
+    # Último escaneo del VPS hace 3 h en plena sesión: "Revisar", no "OK".
+    escaneo_vps(tmp_path, datetime(2026, 9, 18, 12, 0, tzinfo=timezone.utc))
+    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido()))["estado"] == "alerta"
 
 
 def test_marca_de_nivel_superior_manda(tmp_path, monkeypatch):
@@ -431,7 +447,7 @@ def test_hunter_y_generada_muestran_el_dia_de_una_watchlist_vieja(tmp_path):
         "entradas": [_entrada("AAA", "watching", creado_en="2026-09-16T14:00:00+00:00")]}))
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido())
     hunter = next(e for e in ctx["etapas"] if e["nombre"] == "Hunter")
-    assert hunter["detalle"] == "GitHub Actions no respondió (prueba) · watchlist del jue 22:33"
+    assert hunter["detalle"] == "sin escaneo del VPS hoy · watchlist del jue 22:33"
     html = bd.render(ctx)
     assert "generada jue 22:33" in html
     assert "mié 14:00" in html   # columna Detectado de la tabla
@@ -440,10 +456,10 @@ def test_hunter_y_generada_muestran_el_dia_de_una_watchlist_vieja(tmp_path):
 def test_hunter_de_hoy_sigue_sin_dia(tmp_path):
     (tmp_path / "watchlist.json").write_text(json.dumps({
         "generado": "2026-09-18T14:40:00+00:00", "entradas": []}))
-    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
-                       gha=gha_ok(datetime(2026, 9, 18, 14, 40, tzinfo=timezone.utc)))
+    escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 40, tzinfo=timezone.utc))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido())
     hunter = next(e for e in ctx["etapas"] if e["nombre"] == "Hunter")
-    assert hunter["detalle"] == "corrida OK de las 14:40 (#218) · watchlist de las 14:40"
+    assert hunter["detalle"] == "escaneo VPS de las 14:40 · slot 3/8 · 12 evaluadas · watchlist de las 14:40"
 
 
 # ───────────────────────── Hunter: última corrida en GitHub Actions ─────────────────────────
@@ -452,45 +468,66 @@ from dashboard import gha as dg  # noqa: E402
 
 
 def test_hunter_corrio_bien_sin_cambiar_la_watchlist_es_ok(tmp_path):
-    # El caso real (#218, 0 candidatos): watchlist vieja, corrida fresca.
+    # El caso real: watchlist vieja, escaneo del VPS fresco con 0 candidatos.
     (tmp_path / "watchlist.json").write_text(json.dumps({
         "generado": "2026-09-17T22:33:00+00:00", "entradas": []}))
+    escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 52, tzinfo=timezone.utc), evaluadas=(0, 0))
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
-                       gha=gha_ok(datetime(2026, 9, 18, 14, 52, tzinfo=timezone.utc)))
+                       gha=gha_ok(datetime(2026, 9, 18, 13, 46, tzinfo=timezone.utc)))
     hunter = _hunter(ctx)
-    assert hunter["estado"] == "ok"
-    assert hunter["detalle"] == "corrida OK de las 14:52 (#218) · watchlist del jue 22:33"
+    assert hunter["estado"] == "ok" and hunter["donde"] == "VPS"
+    assert hunter["detalle"] == ("escaneo VPS de las 14:52 · slot 3/8 · 0 evaluadas · watchlist del jue 22:33"
+                                 " · GitHub #218 de las 13:46")
     assert ctx["hunter_momento"] == datetime(2026, 9, 18, 14, 52, tzinfo=timezone.utc)
-    assert "GitHub Actions" not in " ".join(ctx["problemas"])
 
 
 def test_detalle_del_hunter_muestra_dia_y_hora_en_dash_tz(tmp_path):
-    # Caso real: watchlist del vie 18 sep 22:33 UTC y corrida #218 del lun 21
-    # sep 13:46 UTC, panel en Monterrey (UTC-6) el lunes a las 07:55.
+    # Caso real: watchlist del vie 18 sep 22:33 UTC, escaneo del lun 21 sep
+    # 13:46 UTC, panel en Monterrey (UTC-6) el lunes a las 07:55.
     (tmp_path / "watchlist.json").write_text(json.dumps({
         "generado": "2026-09-18T22:33:00+00:00", "entradas": []}))
     lunes = datetime(2026, 9, 21, 13, 55, tzinfo=timezone.utc)
-    ctx = bd.construir(lunes, cfg(tmp_path, tz=ZoneInfo("America/Monterrey")), get=sin_alpaca,
-                       gha=gha_ok(datetime(2026, 9, 21, 13, 46, 8, tzinfo=timezone.utc)))
-    assert _hunter(ctx)["detalle"] == "corrida OK de las 07:46 (#218) · watchlist del vie 16:33"
+    escaneo_vps(tmp_path, datetime(2026, 9, 21, 13, 46, 8, tzinfo=timezone.utc))
+    ctx = bd.construir(lunes, cfg(tmp_path, tz=ZoneInfo("America/Monterrey")), get=sin_alpaca, gha=gha_caido())
+    assert _hunter(ctx)["detalle"] == "escaneo VPS de las 07:46 · slot 3/8 · 12 evaluadas · watchlist del vie 16:33"
     assert "generada vie 16:33" in bd.render(ctx)
 
 
-def test_actions_caido_sin_cache_es_sin_datos_y_queda_en_problemas(tmp_path):
+def test_sin_escaneo_del_vps_es_sin_datos_aunque_github_y_la_watchlist_sean_frescos(tmp_path):
     (tmp_path / "watchlist.json").write_text(json.dumps({
-        "generado": "2026-09-18T14:55:00+00:00", "entradas": []}))   # fresca, y aun así no basta
-    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido())
+        "generado": "2026-09-18T14:55:00+00:00", "entradas": []}))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
+                       gha=gha_ok(datetime(2026, 9, 18, 14, 56, tzinfo=timezone.utc)))
     assert _hunter(ctx)["estado"] == "sin-datos" and ctx["hunter_momento"] is None
-    assert "GitHub Actions no respondió (prueba)" in ctx["problemas"]
+    assert _hunter(ctx)["detalle"] == "sin escaneo del VPS hoy · watchlist de las 14:55 · GitHub #218 de las 14:56"
     assert "Sin datos" in bd.render(ctx)
 
 
-def test_copia_vieja_de_actions_se_marca_como_cache_vencida(tmp_path):
-    momento = datetime(2026, 9, 18, 14, 50, tzinfo=timezone.utc)
-    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
-                       gha=gha_ok(momento, origen="cache vencida", error="GitHub Actions no respondió (Timeout)"))
+def test_un_escaneo_de_ayer_no_cuenta_hoy(tmp_path):
+    escaneo_vps(tmp_path, datetime(2026, 9, 17, 19, 50, tzinfo=timezone.utc))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido())
+    assert ctx["hunter_escaneo"] is None and _hunter(ctx)["estado"] == "sin-datos"
+
+
+def test_ultimo_escaneo_ignora_rechequeos_y_lineas_rotas_y_toma_el_mas_reciente(tmp_path):
+    escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 10, tzinfo=timezone.utc), slot=1,
+                extra_lineas=("no es json", json.dumps({"timestamp": "2026-09-18T14:58:00+00:00", "modo": "watchlist"})))
+    escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 40, tzinfo=timezone.utc), slot=2, evaluadas=(4, 1))
+    escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 30, tzinfo=timezone.utc), slot=9)   # más viejo, escrito después
+    ultimo = bd.ultimo_escaneo_vps(tmp_path / "telem", AHORA)
+    assert ultimo["fin"] == datetime(2026, 9, 18, 14, 40, tzinfo=timezone.utc)
+    assert ultimo["slot"] == 2 and ultimo["n_slots"] == 8 and ultimo["evaluadas"] == 5
+    escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 45, tzinfo=timezone.utc), modo="watchlist")
+    assert bd.ultimo_escaneo_vps(tmp_path / "telem", AHORA)["fin"] == datetime(2026, 9, 18, 14, 40, tzinfo=timezone.utc)
+    assert bd.ultimo_escaneo_vps(None, AHORA) is None
+
+
+def test_actions_caido_no_cambia_el_estado_del_hunter_ni_es_un_problema(tmp_path):
+    escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 52, tzinfo=timezone.utc))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido())
     assert _hunter(ctx)["estado"] == "ok"
-    assert "corrida OK de las 14:50 (#218) · caché vencida" in _hunter(ctx)["detalle"]
+    assert not any("GitHub" in p for p in ctx["problemas"])
+    assert "GitHub #" not in _hunter(ctx)["detalle"]
 
 
 def test_sin_repo_configurado_no_se_pregunta_a_github(tmp_path, monkeypatch):
@@ -498,8 +535,23 @@ def test_sin_repo_configurado_no_se_pregunta_a_github(tmp_path, monkeypatch):
         raise AssertionError("no debía haber petición")
     monkeypatch.setattr(dg.requests, "get", explota)
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)   # cfg de prueba: sin gha_repo
-    assert _hunter(ctx)["estado"] == "sin-datos"
-    assert any("no configurado" in p for p in ctx["problemas"])
+    assert ctx["hunter_gha"]["corrida"] is None and _hunter(ctx)["estado"] == "sin-datos"
+
+
+def test_el_panel_respeta_la_pausa_de_yahoo_del_bot_sin_escribirla(tmp_path):
+    pausa_bot = tmp_path / "yahoo_pausa_bot.json"
+    pausa_bot.write_text(json.dumps({"hasta": (AHORA + timedelta(minutes=10)).isoformat(), "motivo": "429", "origen": "bot"}))
+    def explota(ticker):
+        raise AssertionError("con la pausa del bot activa no se pide a Yahoo")
+    r = dv.obtener("AAA", AHORA, tmp_path / "cache", ttl_seg=120, fuente=explota, pausa_bot=pausa_bot)
+    assert r["velas"] is None and "el bot está en pausa con Yahoo" in r["error"] and "15:10 UTC" in r["error"]
+    assert not (tmp_path / "cache" / dv.ARCHIVO_PAUSA).exists()   # el panel no copia la pausa a su archivo
+    # Vencida: se pide normalmente. Y sin archivo, igual.
+    pausa_bot.write_text(json.dumps({"hasta": (AHORA - timedelta(minutes=1)).isoformat()}))
+    r = dv.obtener("AAA", AHORA, tmp_path / "cache", ttl_seg=120, fuente=lambda t: _velas(), pausa_bot=pausa_bot)
+    assert r["origen"] == "fuente"
+    r = dv.obtener("AAA", AHORA, tmp_path / "cache2", ttl_seg=120, fuente=lambda t: _velas(), pausa_bot=tmp_path / "no-existe.json")
+    assert r["origen"] == "fuente"
 
 
 def _cuerpo_runs(*runs):

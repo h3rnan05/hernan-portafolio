@@ -1,0 +1,20 @@
+[Unit]
+Description=Momentum escaneo completo en el VPS + paper trader (PAPER ONLY oneshot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+EnvironmentFile=/etc/momentum/paper.env
+ExecStart=/opt/momentum/bin/run_scan_paper.sh
+Nice=10
+# 1.000 tickers con pausa de 0,15 s tardan ~9 min. 25 min es el mismo
+# presupuesto que tenía el job de GitHub; si se pasa, algo está mal.
+TimeoutStartSec=1500
+
+[Install]
+WantedBy=multi-user.target

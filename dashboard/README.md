@@ -48,6 +48,8 @@ log_event("bloqueo_riesgo", ticker=t, limite="perdida_diaria", motivo=m) # cuand
 | `DASH_GHA_REPO` | repo público cuyo Actions se consulta para la última corrida OK del hunter (vacío = no preguntar) | `h3rnan05/hernan-portafolio` |
 | `DASH_GHA_WORKFLOW` | archivo del workflow del hunter | `momentum_hunter.yml` |
 | `DASH_GHA_TTL_SEG` | cuánto vale la respuesta de Actions antes de volver a preguntar | `300` |
+| `DASH_TELEM_HUNTER` | carpeta de telemetría del hunter; el estado del Hunter sale del último escaneo `vps` de hoy | `momentum_hunter/telemetria` |
+| `DASH_YAHOO_PAUSA_BOT` | archivo de pausa del BOT ante un 429 de Yahoo (solo lectura): el panel se frena también | (vacío) |
 
 La tabla de watchlist muestra las entradas activas (`watching`, `triggered`) y las que cambiaron
 de estado hoy. El estado sale del overlay del VPS cuando existe, porque el JSON de GitHub
@@ -99,7 +101,15 @@ ssh -N -L 8787:127.0.0.1:8787 ubuntu@momentum-paper
 Luego abre http://localhost:8787. El servidor escucha solo en 127.0.0.1, así que no
 hace falta abrir ningún puerto en Oracle Cloud.
 
-## Estado del Hunter: última corrida en GitHub Actions
+## Estado del Hunter: último escaneo del VPS (desde 2026-09-21)
+
+El escaneo corre en el VPS. El estado "Hunter" sale del último registro de modo
+`escaneo` en `momentum_hunter/telemetria/<hoy UTC>/vps/events.jsonl` (hora de
+fin, slot, evaluadas). Sin registro de hoy: "Sin datos", aunque la watchlist o
+GitHub sean frescos. La última corrida en GitHub Actions (abajo) se muestra al
+lado como dato, sin decidir el estado: GitHub es solo respaldo.
+
+## Última corrida en GitHub Actions (respaldo)
 
 El estado "Hunter" no sale de la hora de la watchlist sino de la última corrida
 **exitosa** de `momentum_hunter.yml` según la API pública de GitHub Actions

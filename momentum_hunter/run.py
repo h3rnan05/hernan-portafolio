@@ -104,6 +104,11 @@ def enviar_telegram(
     if not token or not chat:
         log.info("sin secrets de Telegram: no envío (solo registro en el tracker)")
         return
+    # Cuando GitHub actúa como respaldo del VPS, cada aviso lo dice: quien
+    # lee Telegram tiene que saber que el VPS estuvo callado.
+    prefijo = os.getenv("MOMENTUM_TELEGRAM_PREFIJO", "").strip()
+    if prefijo:
+        texto = f"{prefijo} {texto}"
     for i in range(0, len(texto), 3900):
         cuerpo: dict = {"chat_id": chat, "text": texto[i:i + 3900]}
         if parse_mode:
@@ -647,7 +652,11 @@ def _actualizar_watchlist(
     `mensajes_pendientes` igual se calcula (es puro), pero el caller debe
     respetar `dry_run` y no enviarlo."""
     ahora = ahora or datetime.now(UTC)
-    entradas = watchlist.cargar()
+    # En el VPS (flag ON) el escaneo arranca de la verdad operativa:
+    # canónico + overlay del rechequeo. Sin el overlay, un TRIGGERED del
+    # rechequeo de hace 3 minutos volvería a WATCHING en esta escritura.
+    entradas = (watchlist.cargar(apply_vps_state=True) if watchlist.vps_state_habilitado()
+                else watchlist.cargar())
     _archivar_triggered_ya_revisadas(entradas, ahora, dry_run)
     # Caducidad ANTES de evaluar -- ver `_resolver_vencidas_antes_de_evaluar`.
     # Va antes de `agregar_nuevas`: una vencida que el escaneo re-descubre
@@ -714,10 +723,22 @@ def _actualizar_watchlist(
         mensajes_pendientes.append(report.mensaje_expired(expirada.ticker))
 
     if not dry_run:
-        watchlist.guardar(entradas)   # COMMIT primero -- ver docstring
+        entradas = _persistir_escaneo(entradas)   # COMMIT primero -- ver docstring
     else:
         mensajes_pendientes = []   # dry-run: nunca se manda nada
     return entradas, disparadas, mensajes_pendientes
+
+
+def _persistir_escaneo(entradas: list) -> list:
+    """Persistencia del ESCANEO. En GHA (flag OFF) escribe el canónico
+    tal cual. En el VPS (flag ON) escribe el canónico con el overlay
+    aplicado en el instante de escribir, bajo candado, y devuelve lo que
+    quedó escrito, para que las alertas y el paper trabajen sobre eso y
+    no sobre la foto vieja (ver `watchlist.guardar_canonico_fusionado`)."""
+    if watchlist.vps_state_habilitado():
+        return watchlist.guardar_canonico_fusionado(entradas)
+    watchlist.guardar(entradas)
+    return entradas
 
 
 def _ahora_iso_run(ahora: datetime) -> str:
@@ -1225,7 +1246,15 @@ def main() -> None:
     ap.add_argument("--solo-watchlist", action="store_true",
                     help="no escanea el universo -- solo re-chequea la watchlist activa "
                          "(pensado para un workflow separado, cada ~5 minutos, ver watchlist.py)")
+    ap.add_argument("--materializar-overlay", action="store_true",
+                    help="no escanea ni re-chequea: vuelca canónico+overlay del VPS a watchlist.json "
+                         "para que el VPS lo commitee como dueño (ver watchlist.materializar_overlay)")
     args = ap.parse_args()
+
+    if args.materializar_overlay:
+        n = watchlist.materializar_overlay()
+        log.info("watchlist.json materializada con el overlay del VPS: %d entrada(s)", n)
+        return
 
     if args.actualizar_resultados:
         _modo_actualizar_resultados(CONFIG)
@@ -1387,7 +1416,7 @@ def main() -> None:
                 enviar_telegram(texto)
 
         if not args.dry_run and disparadas_watchlist:
-            watchlist.guardar(entradas_watchlist)
+            _persistir_escaneo(entradas_watchlist)
 
         if not args.dry_run and oportunidades_nuevas:
             tracker.registrar(oportunidades_nuevas)

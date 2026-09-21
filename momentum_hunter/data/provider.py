@@ -33,11 +33,13 @@ detalle de `YahooProvider`, no del contrato."""
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 import re
 import time
 from abc import ABC, abstractmethod
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import ClassVar
 
 import requests
@@ -173,6 +175,74 @@ class DataProvider(ABC):
         gratis. Omite los tickers que fallen."""
 
 
+ENV_PAUSA_YAHOO = "MOMENTUM_YAHOO_PAUSA_ARCHIVO"
+SEGUNDOS_PAUSA_429 = 900.0
+
+
+class PausaYahoo:
+    """Freno del BOT ante un 429 de Yahoo, en un archivo propio.
+
+    POR QUÉ. En el VPS el escaneo (~1.000 tickers por corrida) y el panel
+    (velas de los tickers en operación) salen de la misma IP. Si Yahoo
+    limita, insistir empeora: hasta hoy el proveedor reintentaba tres veces
+    cualquier excepción sin distinguir un 429. Ahora, ante un 429, escribe
+    `{"hasta": ...}` en el archivo que nombra `MOMENTUM_YAHOO_PAUSA_ARCHIVO`
+    y deja de pedir hasta esa hora (15 min): el siguiente slot llega en 30.
+
+    El archivo es del bot y solo del bot. El panel lo LEE para frenarse
+    él también (dashboard/velas.py), pero el bot nunca obedece la pausa
+    que el panel escribe en el suyo: una racha de 429 provocada por el
+    panel no puede apagar el escaneo. Sin la variable no hay archivo y
+    el comportamiento es el de siempre (salvo que un 429 ya no se
+    reintenta). Nunca lanza: la pausa es una cortesía, no una fuente."""
+
+    def __init__(self, ruta: str | None = None) -> None:
+        raw = ruta if ruta is not None else os.environ.get(ENV_PAUSA_YAHOO, "")
+        self.ruta = raw.strip() or None
+        self._avisado = False
+
+    def hasta(self) -> datetime | None:
+        if not self.ruta:
+            return None
+        try:
+            crudo = json.loads(open(self.ruta, encoding="utf-8").read())
+            momento = datetime.fromisoformat(crudo.get("hasta"))
+        except (OSError, ValueError, TypeError, AttributeError):
+            return None
+        return momento if momento.tzinfo is not None else None
+
+    def activa(self, ahora: datetime | None = None) -> bool:
+        limite = self.hasta()
+        if limite is None:
+            return False
+        vigente = (ahora or datetime.now(UTC)) < limite
+        if vigente and not self._avisado:
+            log.warning("Yahoo en pausa por un 429 previo hasta las %s UTC: no se piden más datos "
+                        "en esta corrida", limite.strftime("%H:%M"))
+            self._avisado = True
+        return vigente
+
+    def pausar(self, ahora: datetime | None = None, segundos: float = SEGUNDOS_PAUSA_429) -> None:
+        ahora = ahora or datetime.now(UTC)
+        limite = ahora + timedelta(seconds=segundos)
+        log.warning("Yahoo respondió 429: el bot deja de pedir hasta las %s UTC", limite.strftime("%H:%M"))
+        if not self.ruta:
+            return
+        try:
+            os.makedirs(os.path.dirname(self.ruta) or ".", exist_ok=True)
+            temporal = self.ruta + ".tmp"
+            with open(temporal, "w", encoding="utf-8") as fh:
+                json.dump({"hasta": limite.isoformat(timespec="seconds"),
+                           "desde": ahora.isoformat(timespec="seconds"), "motivo": "429", "origen": "bot"}, fh)
+            os.replace(temporal, self.ruta)
+        except OSError as e:
+            log.warning("no se pudo escribir la pausa de Yahoo (%s)", type(e).__name__)
+
+
+class LimiteDePeticionesYahoo(Exception):
+    """Yahoo respondió 429. Interna al proveedor: no sale de él."""
+
+
 class YahooProvider(DataProvider):
     """Precios vía la API de chart de Yahoo (misma robusta usada en
     `screener/`). Metadata vía yfinance si está instalado; si no, degrada
@@ -181,9 +251,22 @@ class YahooProvider(DataProvider):
     CHART = "https://query1.finance.yahoo.com/v8/finance/chart/{t}"
     HEADERS: ClassVar[dict[str, str]] = {"User-Agent": "Mozilla/5.0"}
 
-    def __init__(self, pausa: float = 0.15, reintentos: int = 3) -> None:
+    def __init__(self, pausa: float = 0.15, reintentos: int = 3, pausa_429: PausaYahoo | None = None) -> None:
         self.pausa = pausa
         self.reintentos = reintentos
+        self.pausa_429 = pausa_429 if pausa_429 is not None else PausaYahoo()
+
+    def _get_chart(self, ticker: str, params: dict):
+        """Una petición al chart. Un 429 escribe la pausa y corta sin
+        reintentos; con la pausa activa no se pide nada."""
+        if self.pausa_429.activa():
+            raise LimiteDePeticionesYahoo("pausa activa")
+        r = requests.get(self.CHART.format(t=ticker), params=params, headers=self.HEADERS, timeout=15)
+        # getattr: las pruebas viejas usan respuestas falsas sin status_code.
+        if getattr(r, "status_code", None) == 429:
+            self.pausa_429.pausar()
+            raise LimiteDePeticionesYahoo("429")
+        return r
 
     def barras(self, tickers: list[str], dias: int = 280) -> dict[str, Barras]:
         rango = "2y" if dias > 365 else "1y"
@@ -199,11 +282,7 @@ class YahooProvider(DataProvider):
     def _barras_una(self, ticker: str, rango: str) -> Barras | None:
         for intento in range(self.reintentos):
             try:
-                r = requests.get(
-                    self.CHART.format(t=ticker),
-                    params={"interval": "1d", "range": rango},
-                    headers=self.HEADERS, timeout=15,
-                )
+                r = self._get_chart(ticker, {"interval": "1d", "range": rango})
                 res = r.json()["chart"]["result"][0]
                 ts = res["timestamp"]
                 q = res["indicators"]["quote"][0]
@@ -238,6 +317,8 @@ class YahooProvider(DataProvider):
                 if c:
                     return Barras(ticker, fechas, o, c, h, lo, vol)
                 return None
+            except LimiteDePeticionesYahoo:
+                return None
             except Exception as e:
                 if intento == self.reintentos - 1:
                     log.debug("barras %s falló: %s", ticker, e)
@@ -268,12 +349,10 @@ class YahooProvider(DataProvider):
     def _intradia_una(self, ticker: str, intervalo: str, periodo: str) -> BarraIntradia | None:
         for intento in range(self.reintentos):
             try:
-                r = requests.get(
-                    self.CHART.format(t=ticker),
-                    params=self.params_intradia(intervalo, periodo),
-                    headers=self.HEADERS, timeout=15,
-                )
+                r = self._get_chart(ticker, self.params_intradia(intervalo, periodo))
                 return parsear_chart_intradia(ticker, r.json())
+            except LimiteDePeticionesYahoo:
+                return None
             except Exception as e:
                 if intento == self.reintentos - 1:
                     log.debug("barras intradía %s falló: %s", ticker, e)

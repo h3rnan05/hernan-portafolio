@@ -52,6 +52,10 @@ on:
         description: "Ruta a un archivo de watchlist propio (vacío = NYSE+NASDAQ+AMEX completo)"
         required: false
         default: ""
+      forzar:
+        description: "Escanear aunque el VPS esté vivo (respaldo manual)"
+        required: false
+        default: "false"
 
 # Grupo propio. Antes compartía grupo con momentum_hunter_watchlist.yml
 # y, con cancel-in-progress: false, el escaneo (~6-30 min) encolaba el
@@ -79,8 +83,21 @@ jobs:
       - name: Instalar dependencias
         run: pip install -q -r momentum_hunter/requirements.txt
 
-      - name: Correr Momentum Opportunity Hunter
+      # RESPALDO (2026-09-21). El escaneo vive en el VPS (infra/systemd/
+      # momentum-scan.timer). GitHub solo actúa si el VPS lleva >20 min sin
+      # commitear telemetría de hoy y ya pasaron 20 min desde las 13:00 UTC
+      # (.github/scripts/respaldo_gha.py). Cuando actúa, cada Telegram sale
+      # con el prefijo "[RESPALDO GITHUB]".
+      - name: ¿Actuar como respaldo del VPS?
+        id: vps
         env:
+          MOMENTUM_RESPALDO_FORZAR: ${{ github.event.inputs.forzar }}
+        run: python .github/scripts/respaldo_gha.py
+
+      - name: Correr Momentum Opportunity Hunter
+        if: steps.vps.outputs.respaldo == 'true'
+        env:
+          MOMENTUM_TELEGRAM_PREFIJO: "[RESPALDO GITHUB]"
           MOMENTUM_TELEGRAM_BOT_TOKEN: ${{ secrets.MOMENTUM_TELEGRAM_BOT_TOKEN }}
           MOMENTUM_TELEGRAM_CHAT_ID: ${{ secrets.MOMENTUM_TELEGRAM_CHAT_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -99,13 +116,19 @@ jobs:
       # separado (ver momentum_paper_trader/README.md), nunca dinero
       # real. Sin ALPACA_PAPER_API_KEY/_SECRET, el comando no hace nada
       # (mismo principio que los secrets de Telegram).
+      # APAGADO POR DEFECTO (2026-09-21): el ejecutor es el VPS y
+      # revisiones.json tiene un solo escritor. Solo corre con la variable
+      # de repo MOMENTUM_PAPER_GHA=on (Settings → Variables), y solo en
+      # modo respaldo.
       - name: Paper trading (Alpaca, cuenta de práctica)
+        if: steps.vps.outputs.respaldo == 'true' && vars.MOMENTUM_PAPER_GHA == 'on'
         # Una falla del trader nunca debe bloquear el paso de persistir
         # watchlist/auditoría de momentum_hunter (que viene después) --
         # el trader ya avisa sus propias fallas por Telegram (ver
         # momentum_paper_trader/run.py::_avisar_falla).
         continue-on-error: true
         env:
+          MOMENTUM_TELEGRAM_PREFIJO: "[RESPALDO GITHUB]"
           ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
           ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
           # Capa de decisión con IA (ver momentum_paper_trader/ia_decision.py)
@@ -121,12 +144,13 @@ jobs:
           python -m momentum_paper_trader.run
 
       - name: Persistir universo/tracker/auditoría
+        if: steps.vps.outputs.respaldo == 'true'
         run: |
           git config user.name "momentum-opportunity-hunter"
           git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
+          # revisiones.json NO: su único escritor es el VPS (2026-09-21).
           for f in momentum_hunter/universo_cache.json momentum_hunter/alertas_enviadas.json \
                    momentum_hunter/estado_diario.json momentum_hunter/watchlist.json \
-                   momentum_paper_trader/revisiones.json \
                    momentum_paper_trader/archivo_triggered.jsonl; do
             [ -f "$f" ] && git add "$f" || true
           done

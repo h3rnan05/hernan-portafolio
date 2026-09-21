@@ -78,6 +78,11 @@ def cargar_config() -> dict:
         "gha_repo": os.environ.get("DASH_GHA_REPO", "h3rnan05/hernan-portafolio").strip(),
         "gha_workflow": os.environ.get("DASH_GHA_WORKFLOW", "momentum_hunter.yml").strip(),
         "gha_ttl_seg": _env_float("DASH_GHA_TTL_SEG", 300.0),
+        # Escaneos del hunter en el VPS: telemetría JSONL por fuente
+        # (momentum_hunter/telemetria/{fecha}/vps/events.jsonl).
+        "telem_hunter": Path(os.environ.get("DASH_TELEM_HUNTER", "momentum_hunter/telemetria")),
+        # Archivo de pausa del BOT ante un 429 de Yahoo (solo lectura).
+        "pausa_bot": (Path(os.environ["DASH_YAHOO_PAUSA_BOT"]) if os.environ.get("DASH_YAHOO_PAUSA_BOT") else None),
     }
 
 
@@ -491,19 +496,26 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
                               ahora, cache_dir, cfg.get("gha_ttl_seg", 300.0))
     hunter_gha = gha()
     corrida = hunter_gha.get("corrida")
-    hunter_momento = parse_ts(corrida["terminada"]) if corrida else None
-    if corrida is None and hunter_gha.get("error") and hunter_gha["error"] not in problemas:
-        problemas.append(hunter_gha["error"])
-    if corrida:
-        origen = {"cache": " · caché", "cache vencida": " · caché vencida"}.get(hunter_gha.get("origen"), "")
-        detalle_hunter = (f"corrida OK {_cuando(hunter_momento, cfg['tz'], ahora)} (#{corrida['numero']}){origen}"
-                          f" · watchlist {_cuando(wl_momento, cfg['tz'], ahora)}")
+    gha_momento = parse_ts(corrida["terminada"]) if corrida else None
+
+    # El escaneo corre en el VPS (2026-09-21): el estado del Hunter sale de
+    # su telemetría de hoy. GitHub solo es respaldo; su última corrida se
+    # muestra al lado como dato, sin decidir el estado. Sin escaneo del VPS
+    # hoy: "Sin datos", aunque la watchlist o GitHub sean frescos.
+    escaneo = ultimo_escaneo_vps(cfg.get("telem_hunter"), ahora)
+    hunter_momento = escaneo["fin"] if escaneo else None
+    if escaneo:
+        slot = f" · slot {escaneo['slot']}/{escaneo['n_slots']}" if escaneo.get("slot") is not None else ""
+        detalle_hunter = (f"escaneo VPS {_cuando(hunter_momento, cfg['tz'], ahora)}{slot}"
+                          f" · {escaneo['evaluadas']} evaluadas · watchlist {_cuando(wl_momento, cfg['tz'], ahora)}")
     else:
-        detalle_hunter = f"{hunter_gha.get('error') or 'sin corrida'} · watchlist {_cuando(wl_momento, cfg['tz'], ahora)}"
+        detalle_hunter = f"sin escaneo del VPS hoy · watchlist {_cuando(wl_momento, cfg['tz'], ahora)}"
+    if corrida:
+        detalle_hunter += f" · GitHub #{corrida['numero']} {_cuando(gha_momento, cfg['tz'], ahora)}"
 
     etapas = [
         {
-            "nombre": "Hunter", "donde": "GitHub Actions",
+            "nombre": "Hunter", "donde": "VPS",
             "rol": "Busca candidatos. Determinista, sin IA ni bróker.",
             "estado": _estado_frescura(_edad_min(ahora, hunter_momento), cfg["hunter_max_min"], en_sesion),
             "detalle": detalle_hunter,
@@ -557,7 +569,8 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
     if velas is None:
         def velas(ticker):
             return dv.obtener(ticker, ahora, cache_dir, cfg.get("velas_ttl_seg", 120.0),
-                              pausa_seg=cfg.get("velas_pausa_seg", 900.0))
+                              pausa_seg=cfg.get("velas_pausa_seg", 900.0),
+                              pausa_bot=cfg.get("pausa_bot"))
     tickers_op = tickers_en_operacion(lista_posiciones, lista_ordenes or [])
     tope = int(cfg.get("velas_max_tickers", 6))
     operaciones = [{
@@ -576,7 +589,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         "desajuste_equity": _desajuste_equity(equity_mes, equity, last_equity),
         "n_pos": n_pos, "n_ord": n_ord, "n_rech": n_rech,
         "watch": watch, "wl_momento": wl_momento,
-        "hunter_gha": hunter_gha, "hunter_momento": hunter_momento,
+        "hunter_gha": hunter_gha, "hunter_momento": hunter_momento, "hunter_escaneo": escaneo,
         "lat": lat, "lat_mediana": statistics.median(valores) if valores else None,
         "lat_p90": percentil(valores, 90),
         "lat_fuera": sum(1 for v in valores if v > presupuesto) if valores else None,
@@ -641,6 +654,40 @@ def _historial_equity(get, params: dict, problemas: list, ahora: datetime) -> di
     sesion = puntos[-1][0].astimezone(NY).date() if puntos else None
     return {"puntos": puntos, "base": base, "error": None, "sesion": sesion,
             "es_hoy": sesion is not None and sesion == ahora.astimezone(NY).date()}
+
+
+def ultimo_escaneo_vps(dir_telemetria: Path | None, ahora: datetime) -> dict | None:
+    """Último escaneo completo del VPS de HOY (fecha UTC, como escribe
+    momentum_hunter.telemetria): {"fin", "inicio", "slot", "n_slots",
+    "evaluadas"}. Sin archivo, sin registros de modo "escaneo" o con un
+    timestamp ilegible: None. Nunca se estima nada."""
+    if dir_telemetria is None:
+        return None
+    ruta = Path(dir_telemetria) / ahora.astimezone(timezone.utc).date().isoformat() / "vps" / "events.jsonl"
+    try:
+        lineas = ruta.read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    ultimo = None
+    for linea in lineas:
+        try:
+            r = json.loads(linea)
+        except ValueError:
+            continue
+        if not isinstance(r, dict) or r.get("modo") != "escaneo":
+            continue
+        fin = parse_ts(r.get("timestamp"))
+        if fin is None:
+            continue
+        embudo = r.get("embudo") if isinstance(r.get("embudo"), dict) else {}
+        evaluadas = embudo.get("evaluadas") if isinstance(embudo.get("evaluadas"), dict) else {}
+        registro = {"fin": fin, "inicio": parse_ts(r.get("inicio_ts")),
+                    "slot": r.get("slot") if isinstance(r.get("slot"), int) else None,
+                    "n_slots": r.get("n_slots") if isinstance(r.get("n_slots"), int) else None,
+                    "evaluadas": sum(v for v in evaluadas.values() if isinstance(v, (int, float)))}
+        if ultimo is None or registro["fin"] >= ultimo["fin"]:
+            ultimo = registro
+    return ultimo
 
 
 def _fecha_corta(fecha) -> str:

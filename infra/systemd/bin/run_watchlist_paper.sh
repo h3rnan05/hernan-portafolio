@@ -19,6 +19,8 @@ set +a
 # de GHA; suciarlo rompe `git pull --rebase` (medido 2026-09-18).
 # Rollback: MOMENTUM_WATCHLIST_VPS_STATE=0 en paper.env.
 export MOMENTUM_WATCHLIST_VPS_STATE="${MOMENTUM_WATCHLIST_VPS_STATE:-1}"
+# Freno de Yahoo del bot (429): mismo archivo que usa el escaneo.
+export MOMENTUM_YAHOO_PAUSA_ARCHIVO="${MOMENTUM_YAHOO_PAUSA_ARCHIVO:-/var/lib/momentum/yahoo_pausa_bot.json}"
 
 # /var/lib no está en git: copia diaria del state antes de mutar.
 bash "$ROOT/scripts/backup_watchlist_vps_state.sh" \
@@ -43,7 +45,16 @@ git config user.name "momentum-opportunity-hunter" || true
 git config user.email "momentum-opportunity-hunter@users.noreply.github.com" || true
 
 persistir_estado() {
+  # Desde el 2026-09-21 el VPS es el dueño de la watchlist y de la
+  # auditoría/telemetría del hunter (el escaneo corre acá). Antes de
+  # commitear, el overlay se vuelca al canónico (candado interno, corto)
+  # para que GitHub vea la misma verdad que el VPS.
+  "$PY" -m momentum_hunter.run --materializar-overlay || echo "WARN: materializar overlay falló"
   paths=(
+    momentum_hunter/watchlist.json
+    momentum_hunter/auditoria
+    momentum_hunter/alertas_enviadas.json
+    momentum_hunter/telemetria
     momentum_paper_trader/revisiones.json
     momentum_paper_trader/archivo_triggered.jsonl
     momentum_paper_trader/telemetria

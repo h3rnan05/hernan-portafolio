@@ -61,6 +61,7 @@ garantiza GitHub Actions, ver README)."""
 
 from __future__ import annotations
 
+import fcntl
 import json
 import logging
 import os
@@ -628,6 +629,35 @@ def cargar_vps_state(path: Path | None = None) -> dict:
     return data
 
 
+def lock_path(path: Path | None = None) -> Path:
+    """Candado de ESCRITURA de la watchlist en el VPS, al lado del state
+    file. Lo toman solo las escrituras (overlay, canónico fusionado,
+    materialización): milisegundos. Nunca se sostiene durante un escaneo
+    ni un rechequeo, así que el rechequeo jamás espera al escaneo."""
+    base = path or state_path()
+    return base.with_name(base.name + ".lock")
+
+
+@contextmanager
+def _candado(path: Path | None = None):
+    ruta = lock_path(path)
+    try:
+        ruta.parent.mkdir(parents=True, exist_ok=True)
+        fh = ruta.open("a")
+    except OSError as e:
+        # Sin candado (p. ej. /var/lib no escribible en una prueba local):
+        # se escribe igual. Un candado imposible no puede tumbar la corrida.
+        log.warning("sin candado de watchlist (%s): se escribe sin él", type(e).__name__)
+        yield
+        return
+    with fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
+
+
 def guardar_vps_state(
     entradas: list[EntradaWatchlist],
     path: Path | None = None,
@@ -637,7 +667,11 @@ def guardar_vps_state(
 
     `overlay_ts` existe porque `actualizar_niveles` y `tarde_consecutivas`
     no tocan `actualizado_en`: sin un reloj de escritura, el merge por
-    empate devolvería siempre GHA y se perderían esos mutadores."""
+    empate devolvería siempre GHA y se perderían esos mutadores.
+
+    Bajo candado (ver `lock_path`): el escaneo del VPS escribe el
+    canónico fusionado desde otro proceso y ninguno debe ver una
+    escritura a medias del otro."""
     path = path or state_path()
     if _es_path_canonico(path):
         raise EscrituraWatchlistCanonicaProhibida(
@@ -652,8 +686,53 @@ def guardar_vps_state(
             e.ticker: _entrada_a_overlay(e, escrito) for e in entradas
         },
     }
-    _escribir_json_atomico(path, data)
+    with _candado(path):
+        _escribir_json_atomico(path, data)
     log.info("watchlist VPS state escrito en %s (%d ticker(s))", path, len(entradas))
+
+
+def guardar_canonico_fusionado(
+    entradas: list[EntradaWatchlist],
+    path: Path = PATH,
+    state: Path | None = None,
+    ahora: datetime | None = None,
+) -> list[EntradaWatchlist]:
+    """Escritura del ESCANEO en el VPS: el canónico, con el overlay
+    aplicado en el instante de escribir.
+
+    POR QUÉ. El escaneo dura ~9 min y arrancó con una foto. Mientras
+    tanto el rechequeo (cada 5 min) pudo disparar, invalidar o refrescar
+    niveles en el overlay. Escribir la foto tal cual pisaría eso. Se
+    vuelve a aplicar el overlay justo antes de escribir, con las mismas
+    reglas de fusión de siempre (`_fusionar_overlay`), bajo el candado,
+    y se devuelve lo que quedó escrito. Los tickers NUEVOS del escaneo
+    no están en el overlay y pasan tal cual: por eso el escaneo escribe
+    el canónico y no el overlay (el overlay guarda solo campos de estado,
+    no una entrada completa)."""
+    with _candado(state):
+        fusionadas = aplicar_overlay(entradas, state)
+        # Con el path por defecto se llama a `guardar` sin path: así un
+        # `guardar` redirigido (pruebas, wrappers) sigue mandando.
+        if path == PATH:
+            guardar(fusionadas, ahora=ahora)
+        else:
+            guardar(fusionadas, path, ahora)
+    log.info("watchlist canónica escrita con overlay aplicado (%d entrada(s))", len(fusionadas))
+    return fusionadas
+
+
+def materializar_overlay(path: Path = PATH, state: Path | None = None) -> int:
+    """Vuelca canónico+overlay al canónico, bajo candado, para que el
+    VPS pueda commitear `watchlist.json` como dueño. Idempotente: si el
+    overlay no cambia nada, el archivo queda igual. Devuelve cuántas
+    entradas se escribieron."""
+    with _candado(state):
+        entradas = aplicar_overlay(cargar(path, apply_vps_state=False), state)
+        if path == PATH:
+            guardar(entradas)
+        else:
+            guardar(entradas, path)
+    return len(entradas)
 
 
 def _overlay_mas_nuevo(canon: EntradaWatchlist, overlay: dict) -> bool:
@@ -684,12 +763,30 @@ def _aplicar_campos_overlay(
         setattr(e, campo, valor)
 
 
+def _overlay_decidio_antes(canon: EntradaWatchlist, overlay: dict) -> bool:
+    """Los dos lados llegaron a un estado terminal distinto (p. ej. el
+    rechequeo disparó TRIGGERED y el escaneo, que arrancó antes con datos
+    más viejos, marcó MISSED nueve minutos después). Gana la decisión que
+    ocurrió PRIMERO: es la que ya actuó (el paper pudo colocar una orden
+    sobre ese TRIGGERED). Empate o fecha ilegible: canónico, como siempre."""
+    ts_canon = _parse_ts(canon.actualizado_en)
+    ts_overlay = _parse_ts(overlay.get("actualizado_en") if isinstance(overlay.get("actualizado_en"), str) else None)
+    if ts_canon is None or ts_overlay is None:
+        return False
+    return ts_overlay < ts_canon
+
+
 def _fusionar_overlay(canon: EntradaWatchlist, overlay: dict) -> EntradaWatchlist:
-    """Reglas de conflicto (v1): catalizador/alta=GHA; canónico terminal
-    que cambia de estado=GHA; watching+overlay más nuevo=VPS; empate=GHA."""
+    """Reglas de conflicto (v1): catalizador/alta=canónico; canónico
+    terminal que cambia de estado=canónico, salvo que el overlay también
+    sea terminal y haya decidido ANTES (`_overlay_decidio_antes`);
+    watching+overlay más nuevo=VPS; empate=canónico."""
     overlay_estado = overlay.get("estado")
     if canon.estado in ESTADOS_TERMINALES:
         if overlay_estado is not None and overlay_estado != canon.estado:
+            if overlay_estado in ESTADOS_TERMINALES and _overlay_decidio_antes(canon, overlay):
+                _aplicar_campos_overlay(canon, overlay, incluir_estado=True)
+                _append_transiciones(canon, overlay)
             return canon
         if not _overlay_mas_nuevo(canon, overlay):
             return canon

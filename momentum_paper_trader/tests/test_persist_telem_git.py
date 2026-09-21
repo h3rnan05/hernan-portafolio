@@ -56,19 +56,20 @@ def test_vps_es_escritor_primario_con_flock():
     assert "force-with-lease" not in texto
 
 
-def test_vps_no_stagea_watchlist_ni_auditoria():
-    """GHA discovery es el dueño de watchlist.json + auditoria.
-    El VPS ya no escribe el JSON canónico (overlay en
-    /var/lib/momentum/watchlist_vps_state.json) y no lo git-add."""
+def test_vps_es_dueno_de_watchlist_y_auditoria():
+    """Desde el 2026-09-21 el escaneo corre en el VPS y el VPS es el dueño
+    de watchlist.json + auditoria + telemetría del hunter: los commitea
+    después de volcar el overlay al canónico. GitHub solo los toca en
+    modo respaldo (ver test_escaneo_vps_infra.py)."""
     texto = VPS.read_text(encoding="utf-8")
     bloque = _vps_paths_de_persistencia(texto)
-    assert "momentum_hunter/watchlist.json" not in bloque
-    assert "momentum_hunter/auditoria" not in bloque
+    assert "momentum_hunter/watchlist.json" in bloque
+    assert "momentum_hunter/auditoria" in bloque
+    assert "momentum_hunter/telemetria" in bloque
     assert "momentum_paper_trader/telemetria" in bloque
     assert "momentum_paper_trader/revisiones.json" in bloque
     assert "momentum_paper_trader/archivo_triggered.jsonl" in bloque
-    assert "momentum_hunter/alertas_enviadas.json" not in bloque
-    assert "momentum_hunter/telemetria" not in bloque
+    assert "momentum_hunter/alertas_enviadas.json" in bloque
     assert "--solo-watchlist" in texto
     assert "MOMENTUM_WATCHLIST_VPS_STATE" in texto
     assert "backup_watchlist_vps_state.sh" in texto
@@ -78,8 +79,8 @@ def test_vps_no_stagea_watchlist_ni_auditoria():
 
 
 def test_gha_hunter_sigue_persistiendo_watchlist_y_auditoria():
-    """El dueño de discovery no se mueve. Quitar estos git-add
-    dejaría watchlist/auditoria sin escritor en git."""
+    """GitHub conserva sus git-add para el modo RESPALDO (VPS callado):
+    quitarlos dejaría el respaldo sin escritor."""
     texto = HUNTER_WF.read_text(encoding="utf-8")
     assert "momentum_hunter/watchlist.json" in texto
     assert "momentum_paper_trader/archivo_triggered.jsonl" in texto

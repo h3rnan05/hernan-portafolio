@@ -15,4 +15,7 @@ Environment=DASH_TZ=America/Monterrey
 # Caché de velas de 1 min (dashboard/velas.py): fuera de git, junto al HTML.
 # Sin esta variable el panel usa el temporal del sistema, nunca el repo.
 Environment=DASH_CACHE_VELAS=/var/lib/momentum/dashboard_cache
+# Pausa de Yahoo escrita por el BOT ante un 429 (solo lectura): el panel
+# se frena también. El bot nunca lee la pausa del panel.
+Environment=DASH_YAHOO_PAUSA_BOT=/var/lib/momentum/yahoo_pausa_bot.json
 ExecStart=/opt/hernan-portafolio/.venv/bin/python -m dashboard.build_dashboard

@@ -31,8 +31,8 @@ Dos escritores sobre el mismo JSON reventaban el rebase (clase CONFLICT, run 346
 
 | Artefacto | Quién hace `git add` / push |
 |---|---|
-| `watchlist.json` | **GHA hunter** (dueño). El cron GHA watchlist puede seguir stagedándolo como escritor secundario. **VPS no lo commitea ni lo escribe en disco** (`MOMENTUM_WATCHLIST_VPS_STATE=1`: overlay en `/var/lib/momentum/watchlist_vps_state.json`). **Limitación v1:** mutaciones VPS no llegan al repo; GitHub = vista GHA; sync = fase 2. Backup: `15 2 * * *` → `/var/backups/momentum/watchlist_vps_state-YYYY-MM-DD.json` (14 días). |
-| `auditoria/` | **GHA hunter** (dueño). GHA watchlist puede stagedarlo. **VPS no.** |
+| `watchlist.json` | **VPS** (dueño desde 2026-09-21: escaneo + rechequeo, overlay volcado al canónico antes de cada commit). GitHub solo escribe en modo respaldo (VPS callado >20 min). Texto anterior: **GHA hunter** (dueño). El cron GHA watchlist puede seguir stagedándolo como escritor secundario. **VPS no lo commitea ni lo escribe en disco** (`MOMENTUM_WATCHLIST_VPS_STATE=1`: overlay en `/var/lib/momentum/watchlist_vps_state.json`). **Limitación v1:** mutaciones VPS no llegan al repo; GitHub = vista GHA; sync = fase 2. Backup: `15 2 * * *` → `/var/backups/momentum/watchlist_vps_state-YYYY-MM-DD.json` (14 días). |
+| `auditoria/` | **VPS** (dueño desde 2026-09-21). GitHub solo en modo respaldo. |
 | hunter telem (`momentum_hunter/telemetria/`) | **GHA hunter**. El VPS puede persistir su partición local si existe. |
 | paper telem (`momentum_paper_trader/telemetria/`) | **VPS** (único para git push). GHA no (`git add` quitado: run 34624961161). |
 
@@ -99,9 +99,9 @@ UI: https://github.com/h3rnan05/hernan-portafolio/actions
 
 | Workflow | Cron | Nota |
 |---|---|---|
-| hunter | `*/30 13-20 * * 1-5` | sesión; grupo `momentum-opportunity-hunter` |
+| hunter | `*/30 13-20 * * 1-5` | **solo respaldo** (VPS callado >20 min, `.github/scripts/respaldo_gha.py`); el escaneo real es `momentum-scan.timer` en el VPS (:01/:31) |
 | **schedule-heartbeat** | `7,22,37,52 13-20 * * 1-5` | diagnóstico de drop del cron GHA; **no** es el hunter. Ver `docs/schedule-heartbeat.md` |
-| watchlist (+ paper) | `*/5 13-20 * * 1-5` | fallback; GHA lo atrasa. Grupo `…-watchlist` |
+| watchlist (+ paper) | `*/5 13-20 * * 1-5` | **solo respaldo**; paper apagado salvo `MOMENTUM_PAPER_GHA=on`. Grupo `…-watchlist` |
 | **puente cadencia paper** | `0 13-19 * * 1-5` + loop interno ~5 min | temporal hasta VPS; mismo grupo que watchlist |
 | outcomes hunter | `30 21 * * 1-5` | ≈ 15:30 MT |
 | Daily ingestion + predictions | `0 22 * * 1-5` | **16:00 MT = OLS/backend, NO resumen paper** |
