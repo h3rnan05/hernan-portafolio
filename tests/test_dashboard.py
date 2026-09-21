@@ -25,9 +25,13 @@ def sin_alpaca(ruta, params=None):
     return None, "sin conexión (prueba)"
 
 
-def alpaca_falso(cuenta):
+def alpaca_falso(cuenta, **rutas_extra):
+    rutas = {"/v2/account": cuenta, "/v2/positions": [], "/v2/orders": [], **rutas_extra}
+
     def get(ruta, params=None):
-        return {"/v2/account": cuenta, "/v2/positions": [], "/v2/orders": []}[ruta], None
+        if ruta in rutas:
+            return rutas[ruta], None
+        return None, f"sin datos en {ruta} (prueba)"
     return get
 
 
@@ -417,3 +421,106 @@ def test_hunter_de_hoy_sigue_sin_dia(tmp_path):
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     hunter = next(e for e in ctx["etapas"] if e["nombre"] == "Hunter")
     assert hunter["detalle"] == "watchlist de las 14:40"
+
+
+# ───────────────────────── curva de equity ─────────────────────────
+
+HIST = bd.RUTA_HISTORIAL
+
+
+def _historial(equity, timestamps=None, base=None):
+    inicio = int(datetime(2026, 9, 18, 15, 40, tzinfo=timezone.utc).timestamp())
+    ts = timestamps or [inicio + 300 * i for i in range(len(equity))]  # cada 5 min
+    return {"timestamp": ts, "equity": equity, "base_value": base, "timeframe": "5Min"}
+
+
+def _svgs_equity(html):
+    import re
+    return re.findall(r'<svg viewBox="0 0 480 230" role="img" aria-label="Equity[^"]*">.*?</svg>', html)
+
+
+def test_equity_alpaca_caido_muestra_sin_datos_y_ninguna_linea(tmp_path):
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert ctx["equity_dia"]["puntos"] == [] and ctx["equity_mes"]["puntos"] == []
+    svgs = _svgs_equity(bd.render(ctx))
+    assert len(svgs) == 2
+    for svg in svgs:
+        assert "Sin datos" in svg and "Alpaca no respondió" in svg
+        assert "<polyline" not in svg
+
+
+def test_equity_historial_vacio_es_sin_datos_no_cero(tmp_path):
+    get = alpaca_falso({"equity": "5000"}, **{HIST: {"timestamp": [], "equity": [], "base_value": 0}})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get)
+    assert ctx["equity_dia"]["puntos"] == [] and ctx["equity_dia"]["base"] is None
+    svg = _svgs_equity(bd.render(ctx))[0]
+    assert "Sin datos" in svg and "sin historial" in svg and "<polyline" not in svg
+    assert "$0.00" not in svg
+
+
+def test_equity_relleno_en_cero_no_se_dibuja(tmp_path):
+    # Alpaca rellena con 0 los tramos sin cuenta: eso no es una caída a cero.
+    get = alpaca_falso({"equity": "5000"}, **{HIST: _historial([0, 0, 0, None], base=0)})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get)
+    assert ctx["equity_dia"]["puntos"] == []
+    svg = _svgs_equity(bd.render(ctx))[0]
+    assert "Sin datos" in svg and "<polyline" not in svg
+
+
+def test_equity_datos_reales_se_grafican_con_la_inicial(tmp_path):
+    get = alpaca_falso({"equity": "5030"}, **{HIST: _historial([5000, 5010.5, 4995, 5030], base=5000)})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get)
+    puntos = ctx["equity_dia"]["puntos"]
+    assert [v for _, v in puntos] == [5000, 5010.5, 4995, 5030]
+    assert puntos[0][0] == datetime(2026, 9, 18, 15, 40, tzinfo=timezone.utc)
+    assert ctx["equity_dia"]["base"] == 5000
+    svg = _svgs_equity(bd.render(ctx))[0]
+    assert svg.count("<polyline") == 1
+    coords = svg.split('points="')[1].split('"')[0].split(" ")
+    assert len(coords) == 4
+    assert "inicial $5,000.00" in svg and 'stroke-dasharray="5 4"' in svg
+    assert "Sin datos" not in svg
+    assert "15:40" in svg and "15:55" in svg   # eje X en la zona del panel (UTC)
+
+
+def test_equity_plana_real_se_dibuja_plana(tmp_path):
+    get = alpaca_falso({"equity": "5000"}, **{HIST: _historial([5000, 5000, 5000], base=5000)})
+    svg = _svgs_equity(bd.render(bd.construir(AHORA, cfg(tmp_path), get=get)))[0]
+    coords = svg.split('points="')[1].split('"')[0].split(" ")
+    ys = {c.split(",")[1] for c in coords}
+    assert len(coords) == 3 and len(ys) == 1   # misma y en los tres puntos
+
+
+def test_equity_mezcla_solo_conserva_los_puntos_reales(tmp_path):
+    get = alpaca_falso({"equity": "5000"}, **{HIST: _historial([0, 5000, None, 5020, "basura"], base=5000)})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get)
+    assert [v for _, v in ctx["equity_dia"]["puntos"]] == [5000, 5020]
+
+
+def test_equity_sin_base_value_no_inventa_la_inicial(tmp_path):
+    get = alpaca_falso({"equity": "5000"}, **{HIST: _historial([5000, 5020])})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get)
+    assert ctx["equity_dia"]["base"] is None
+    html = bd.render(ctx)
+    svg = _svgs_equity(html)[0]
+    assert "inicial" not in svg and "<polyline" in svg
+    assert "<span class=\"mono\">Inicial</span><b>—</b>" in html
+
+
+def test_equity_pide_las_dos_vistas_solo_con_get(tmp_path):
+    llamadas = []
+
+    def espia(ruta, params=None):
+        llamadas.append((ruta, params))
+        return None, "sin datos (prueba)"
+
+    bd.construir(AHORA, cfg(tmp_path), get=espia)
+    historial = [p for r, p in llamadas if r == HIST]
+    assert {"period": "1D", "timeframe": "5Min"} in historial
+    assert {"period": "1M", "timeframe": "1D"} in historial
+    assert all(r.startswith("/v2/") for r, _ in llamadas)
+
+
+def test_equity_error_de_alpaca_queda_en_problemas_una_vez(tmp_path):
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert ctx["problemas"].count("sin conexión (prueba)") == 1
