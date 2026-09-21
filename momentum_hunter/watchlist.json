@@ -2537,13 +2537,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 95.06999969482422,
-      "ultimo_stop": 94.59171066134552,
-      "ultimo_objetivo": 96.02657776178162,
-      "ultima_zona_entrada_baja": 95.06704589079952,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_entrada": 95.07250213623047,
+      "ultimo_stop": 94.59176356656991,
+      "ultimo_objetivo": 96.03397927555159,
+      "ultima_zona_entrada_baja": 95.0670990618793,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 94.31874738420758,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "AZN",
@@ -2586,20 +2586,20 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 167.91000366210938,
-      "ultimo_stop": 167.01589734778236,
-      "ultimo_objetivo": 169.6982162907634,
-      "ultima_zona_entrada_baja": 167.85517321385163,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_entrada": 168.27000427246094,
+      "ultimo_stop": 167.19220219314107,
+      "ultimo_objetivo": 170.42560843110067,
+      "ultima_zona_entrada_baja": 168.03236401320711,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 166.00821467808314,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "TSEM",
       "nombre": "Tower Semiconductor Ltd.",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-09-21T16:29:23+00:00",
-      "actualizado_en": "2026-09-21T16:29:23+00:00",
+      "actualizado_en": "2026-09-21T16:50:03+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2612,6 +2612,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-09-21T16:50:03+00:00",
+          "motivo": "El patrón se activó hace 181 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-09-21T16:50:09+00:00",
+          "evaluacion_ts": "2026-09-21T16:50:10+00:00",
+          "mensaje_generado_ts": "2026-09-21T16:50:10+00:00",
+          "telegram_enviado_ts": "2026-09-21T16:50:10+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 0.0,
+          "latencia_desde_transicion_ms": 7000.0
         }
       ],
       "catalizador_tipo": "upgrade_analista",
@@ -2626,7 +2638,7 @@
       "score_base": 69.4,
       "atr_diario": 11.569286891392299,
       "gap_pct_congelado": 0.015339859490850528,
-      "tarde_consecutivas": 1,
+      "tarde_consecutivas": 2,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -2635,13 +2647,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 234.8350067138672,
-      "ultimo_stop": 229.05036326817103,
-      "ultimo_objetivo": 246.4042936052595,
+      "ultima_entrada": 234.5399932861328,
+      "ultimo_stop": 228.75534984043665,
+      "ultimo_objetivo": 246.10928017752514,
       "ultima_zona_entrada_baja": 229.3300018310547,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 233.82088427744014,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "MDT",
@@ -2684,13 +2696,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 91.81289672851562,
-      "ultimo_stop": 90.64057540893555,
-      "ultimo_objetivo": 94.15753936767578,
-      "ultima_zona_entrada_baja": 91.82162894280357,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_entrada": 91.94000244140625,
+      "ultimo_stop": 91.42815316906882,
+      "ultimo_objetivo": 92.96370098608111,
+      "ultima_zona_entrada_baja": 91.88759112469228,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 91.29405378582591,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "ACN",
@@ -2736,13 +2748,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 185.98500061035156,
-      "ultimo_stop": 182.4985716683524,
-      "ultimo_objetivo": 192.95785849434986,
-      "ultima_zona_entrada_baja": 186.41903287509493,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_entrada": 186.0749969482422,
+      "ultimo_stop": 182.58856800624304,
+      "ultimo_objetivo": 193.0478548322405,
+      "ultima_zona_entrada_baja": 186.2691462877773,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 183.71857288905554,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "FIVE",
@@ -2785,13 +2797,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 239.27999877929688,
-      "ultimo_stop": 237.28093429151173,
-      "ultimo_objetivo": 243.27812775486717,
-      "ultima_zona_entrada_baja": 239.47065696334593,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_entrada": 239.22000122070312,
+      "ultimo_stop": 237.28600545260147,
+      "ultimo_objetivo": 243.08799275690643,
+      "ultima_zona_entrada_baja": 239.29667082101489,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 238.2658568626505,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "DRI",
@@ -2834,13 +2846,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 210.44500732421875,
-      "ultimo_stop": 207.98536464146204,
-      "ultimo_objetivo": 215.36429268973217,
-      "ultima_zona_entrada_baja": 211.6226150313758,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_entrada": 210.8000030517578,
+      "ultimo_stop": 208.3403603690011,
+      "ultimo_objetivo": 215.71928841727123,
+      "ultima_zona_entrada_baja": 210.9569446364759,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 209.43035670689173,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "NEM",
@@ -2883,13 +2895,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 122.1050033569336,
-      "ultimo_stop": 120.00018283299038,
-      "ultimo_objetivo": 126.31464440482003,
-      "ultima_zona_entrada_baja": 122.1298846612315,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_entrada": 122.1697006225586,
+      "ultimo_stop": 121.55479190819595,
+      "ultimo_objetivo": 123.39951805128388,
+      "ultima_zona_entrada_baja": 122.16562000823714,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 119.965179170881,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "BCS",
@@ -3020,10 +3032,10 @@
       "ultima_entrada": 127.4800033569336,
       "ultimo_stop": 125.66036088126046,
       "ultimo_objetivo": 131.11928830827986,
-      "ultima_zona_entrada_baja": 127.51246037195725,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_zona_entrada_baja": 127.49996275541812,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 126.8665391380771,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "ZIM",
@@ -3066,13 +3078,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 30.045000076293945,
-      "ultimo_stop": 29.6545501436506,
-      "ultimo_objetivo": 30.825899941580637,
-      "ultima_zona_entrada_baja": 30.070427345462843,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_entrada": 30.065200805664062,
+      "ultimo_stop": 29.91253297554202,
+      "ultimo_objetivo": 30.370536465908145,
+      "ultima_zona_entrada_baja": 30.062847211600022,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 29.6595493044172,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "RARE",
@@ -3117,13 +3129,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 14.795000076293945,
-      "ultimo_stop": 14.717104425715434,
-      "ultimo_objetivo": 14.950791377450969,
-      "ultima_zona_entrada_baja": 14.791059724337119,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_entrada": 14.755000114440918,
+      "ultimo_stop": 14.629115530100465,
+      "ultimo_objetivo": 15.006769283121823,
+      "ultima_zona_entrada_baja": 14.778220406995285,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 14.627847727000033,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "KBH",
@@ -3166,13 +3178,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 47.95000076293945,
-      "ultimo_stop": 47.58103891920973,
-      "ultimo_objetivo": 48.687924450398896,
-      "ultima_zona_entrada_baja": 47.962622951950976,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_entrada": 47.942298889160156,
+      "ultimo_stop": 47.58147823199702,
+      "ultimo_objetivo": 48.66394020348643,
+      "ultima_zona_entrada_baja": 47.956202734113745,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 47.5790497020062,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "WHR",
@@ -3206,7 +3218,7 @@
       "score_base": 58.7,
       "atr_diario": 1.6778578077043806,
       "gap_pct_congelado": 0.015952462928855896,
-      "tarde_consecutivas": 0,
+      "tarde_consecutivas": 1,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -3215,13 +3227,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 32.57500076293945,
-      "ultimo_stop": 32.41096650316969,
-      "ultimo_objetivo": 32.90306928247898,
-      "ultima_zona_entrada_baja": 32.57383568157758,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_entrada": 32.599998474121094,
+      "ultimo_stop": 32.42511025738108,
+      "ultimo_objetivo": 32.949774907601125,
+      "ultima_zona_entrada_baja": 32.52000045776367,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 32.40685743273536,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "CAVA",
@@ -3264,13 +3276,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 52.04499816894531,
-      "ultimo_stop": 51.683690854161604,
-      "ultimo_objetivo": 52.76761279851273,
-      "ultima_zona_entrada_baja": 51.943407893629754,
-      "ultimos_niveles_ts": "2026-09-21T16:45:02+00:00",
+      "ultima_entrada": 52.209999084472656,
+      "ultimo_stop": 51.843419194809236,
+      "ultimo_objetivo": 52.943158863799496,
+      "ultima_zona_entrada_baja": 52.10393888925552,
+      "ultimos_niveles_ts": "2026-09-21T16:50:03+00:00",
       "stop_tesis": 51.62932185585302,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     }
   ]
 }
