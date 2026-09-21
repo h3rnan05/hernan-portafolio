@@ -1,5 +1,5 @@
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
 from dashboard import build_dashboard as bd
@@ -428,9 +428,11 @@ def test_hunter_de_hoy_sigue_sin_dia(tmp_path):
 HIST = bd.RUTA_HISTORIAL
 
 
-def _historial(equity, timestamps=None, base=None):
-    inicio = int(datetime(2026, 9, 18, 15, 40, tzinfo=timezone.utc).timestamp())
-    ts = timestamps or [inicio + 300 * i for i in range(len(equity))]  # cada 5 min
+def _historial(equity, timestamps=None, base=None, inicio=None):
+    # Por defecto desde las 10:00 de Nueva York del mismo viernes de AHORA
+    # (sesión abierta, puntos ya ocurridos).
+    inicio = inicio or datetime(2026, 9, 18, 14, 0, tzinfo=timezone.utc)
+    ts = timestamps or [int(inicio.timestamp()) + 300 * i for i in range(len(equity))]  # cada 5 min
     return {"timestamp": ts, "equity": equity, "base_value": base, "timeframe": "5Min"}
 
 
@@ -472,7 +474,7 @@ def test_equity_datos_reales_se_grafican_con_la_inicial(tmp_path):
     ctx = bd.construir(AHORA, cfg(tmp_path), get=get)
     puntos = ctx["equity_dia"]["puntos"]
     assert [v for _, v in puntos] == [5000, 5010.5, 4995, 5030]
-    assert puntos[0][0] == datetime(2026, 9, 18, 15, 40, tzinfo=timezone.utc)
+    assert puntos[0][0] == datetime(2026, 9, 18, 14, 0, tzinfo=timezone.utc)
     assert ctx["equity_dia"]["base"] == 5000
     svg = _svgs_equity(bd.render(ctx))[0]
     assert svg.count("<polyline") == 1
@@ -480,7 +482,9 @@ def test_equity_datos_reales_se_grafican_con_la_inicial(tmp_path):
     assert len(coords) == 4
     assert "inicial $5,000.00" in svg and 'stroke-dasharray="5 4"' in svg
     assert "Sin datos" not in svg
-    assert "15:40" in svg and "15:55" in svg   # eje X en la zona del panel (UTC)
+    assert "14:00" in svg and "14:15" in svg   # eje X en la zona del panel (UTC)
+    assert "<h2>Equity de hoy</h2>" in bd.render(ctx) and "vie 18 sep · velas de 5 min" in bd.render(ctx)
+    assert "Sin sesión hoy todavía" not in bd.render(ctx)
 
 
 def test_equity_plana_real_se_dibuja_plana(tmp_path):
@@ -505,6 +509,43 @@ def test_equity_sin_base_value_no_inventa_la_inicial(tmp_path):
     svg = _svgs_equity(html)[0]
     assert "inicial" not in svg and "<polyline" in svg
     assert "<span class=\"mono\">Inicial</span><b>—</b>" in html
+
+
+def test_equity_antes_de_la_apertura_dice_de_que_sesion_es(tmp_path):
+    # Madrugada del lunes: Alpaca devuelve con period=1D la sesión completa
+    # del viernes. Se dibuja, pero el título dice de qué día es y se avisa
+    # que hoy todavía no hay sesión.
+    lunes_madrugada = datetime(2026, 9, 21, 7, 41, tzinfo=timezone.utc)
+    viernes = datetime(2026, 9, 18, 13, 30, tzinfo=timezone.utc)
+    get = alpaca_falso({"equity": "4993.57"}, **{HIST: _historial([5000, 4993.57, 4993.57], base=5000, inicio=viernes)})
+    ctx = bd.construir(lunes_madrugada, cfg(tmp_path), get=get)
+    assert ctx["equity_dia"]["sesion"] == date(2026, 9, 18) and ctx["equity_dia"]["es_hoy"] is False
+    html = bd.render(ctx)
+    assert "<h2>Equity de hoy</h2>" not in html
+    assert "<h2>Equity de la última sesión</h2>" in html and "vie 18 sep · velas de 5 min" in html
+    assert "Sin sesión hoy todavía" in html and "la del vie 18 sep" in html
+    assert "<polyline" in _svgs_equity(html)[0]
+
+
+def test_equity_nunca_dibuja_puntos_futuros(tmp_path):
+    # Tres puntos ya ocurridos y dos posteriores a AHORA (15:00 UTC): los
+    # futuros no existen como dato medido y no entran ni en la serie ni en
+    # el eje X.
+    inicio = datetime(2026, 9, 18, 14, 50, tzinfo=timezone.utc)
+    get = alpaca_falso({"equity": "5000"}, **{HIST: _historial([5000, 5001, 5002, 5003, 5004], base=5000, inicio=inicio)})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get)
+    assert [v for _, v in ctx["equity_dia"]["puntos"]] == [5000, 5001, 5002]
+    assert ctx["equity_dia"]["es_hoy"] is True
+    svg = _svgs_equity(bd.render(ctx))[0]
+    assert len(svg.split('points="')[1].split('"')[0].split(" ")) == 3
+    assert "15:00" in svg and "15:05" not in svg and "15:10" not in svg
+
+
+def test_equity_sin_puntos_no_inventa_sesion(tmp_path):
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert ctx["equity_dia"]["sesion"] is None and ctx["equity_dia"]["es_hoy"] is False
+    html = bd.render(ctx)
+    assert "<h2>Equity de hoy</h2>" in html and "Sin sesión hoy todavía" not in html
 
 
 def test_equity_pide_las_dos_vistas_solo_con_get(tmp_path):
