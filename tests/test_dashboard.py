@@ -1,5 +1,6 @@
 import json
 from datetime import date, datetime, timezone
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from dashboard import build_dashboard as bd
@@ -814,21 +815,133 @@ def test_respuesta_invalida_no_se_cachea(tmp_path):
     assert not (tmp_path / "cache" / "velas_AAA.json").exists()
 
 
-def test_fuente_por_defecto_es_la_misma_llamada_del_hunter(monkeypatch):
+class _Respuesta:
+    def __init__(self, status, cuerpo=None):
+        self.status_code, self._cuerpo = status, cuerpo
+
+    def json(self):
+        return self._cuerpo
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise dv.requests.HTTPError(f"HTTP {self.status_code}")
+
+
+def _chart_yahoo(epochs, precios, volumenes=None):
+    n = len(epochs)
+    vol = volumenes or [100.0] * n
+    return {"chart": {"result": [{"timestamp": epochs, "indicators": {"quote": [{
+        "open": precios, "close": precios, "high": [p + 0.01 for p in precios],
+        "low": [p - 0.01 for p in precios], "volume": vol}]}}]}}
+
+
+def _epoch(*hms, dia=18):
+    return int(datetime(2026, 9, dia, *hms, tzinfo=timezone.utc).timestamp())
+
+
+def test_fuente_por_defecto_hace_la_misma_peticion_y_el_mismo_parseo_que_el_hunter(monkeypatch):
     from momentum_hunter import config as hcfg
     from momentum_hunter.data import provider
-    from momentum_hunter.models import BarraIntradia
+    llamadas = []
+    # Ayer + 6 velas de hoy + una vela en formación con volumen 0 explícito.
+    epochs = [_epoch(15, 0, dia=17)] + [_epoch(14, 30 + i) for i in range(7)]
+    precios = [1.0] + [5.0 + 0.01 * i for i in range(7)]
+    cuerpo = _chart_yahoo(epochs, precios, [100.0] * 7 + [0.0])
+
+    def get(url, params=None, headers=None, timeout=None):
+        llamadas.append((url, params, headers))
+        return _Respuesta(200, cuerpo)
+
+    monkeypatch.setattr(dv.requests, "get", get)
+    velas = dv.fuente_hunter("AAA")
+    prov = provider.YahooProvider()
+    assert llamadas == [(prov.CHART.format(t="AAA"),
+                         prov.params_intradia(hcfg.CONFIG.intervalo_intradia, hcfg.CONFIG.periodo_intradia),
+                         prov.HEADERS)]
+    # Mismo resultado que el hunter: parseo idéntico (descarta la vela en
+    # formación) y recorte a hoy.
+    esperado = provider.parsear_chart_intradia("AAA", cuerpo)
+    assert velas["close"] == esperado.close[1:] == [5.0 + 0.01 * i for i in range(6)]
+    assert velas["timestamps"][0] == "2026-09-18T14:30:00+00:00"
+
+
+def test_fuente_429_lanza_limite_con_una_sola_peticion_sin_reintentos(monkeypatch):
+    import pytest
+    llamadas = []
+    monkeypatch.setattr(dv.requests, "get", lambda *a, **k: (llamadas.append(1), _Respuesta(429))[1])
+    with pytest.raises(dv.LimiteDePeticiones):
+        dv.fuente_hunter("AAA")
+    assert len(llamadas) == 1
+
+
+def test_fuente_con_pocas_velas_es_none_como_en_el_hunter(monkeypatch):
+    epochs = [_epoch(14, 30 + i) for i in range(3)]
+    monkeypatch.setattr(dv.requests, "get", lambda *a, **k: _Respuesta(200, _chart_yahoo(epochs, [5.0] * 3)))
+    assert dv.fuente_hunter("AAA") is None
+
+
+def test_429_pausa_a_todos_los_tickers_y_sirve_la_copia_vieja_marcada(tmp_path):
+    from datetime import timedelta
+    cache = tmp_path / "cache"
+    dv.obtener("AAA", AHORA, cache, 120, fuente=lambda t: _velas())   # copia buena de AAA
     llamadas = []
 
-    def barras_intradia(self, tickers, intervalo="1m", periodo="5d"):
-        llamadas.append((tickers, intervalo, periodo))
-        # Dos días: barras_de_hoy debe quedarse solo con el último.
-        return {"AAA": BarraIntradia("AAA",
-                                     ["2026-09-17T15:00:00+00:00", "2026-09-18T14:30:00+00:00", "2026-09-18T14:31:00+00:00"],
-                                     [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [9, 9, 9])}
+    def limitada(ticker):
+        llamadas.append(ticker)
+        raise dv.LimiteDePeticiones("429")
 
-    monkeypatch.setattr(provider.YahooProvider, "barras_intradia", barras_intradia)
-    velas = dv.fuente_hunter("AAA")
-    assert llamadas == [(["AAA"], hcfg.CONFIG.intervalo_intradia, hcfg.CONFIG.periodo_intradia)]
-    assert velas["timestamps"] == ["2026-09-18T14:30:00+00:00", "2026-09-18T14:31:00+00:00"]
-    assert velas["close"] == [2, 3]
+    t1 = AHORA + timedelta(seconds=200)   # TTL vencido: toca pedir
+    r = dv.obtener("AAA", t1, cache, 120, fuente=limitada, pausa_seg=900)
+    assert llamadas == ["AAA"]
+    assert r["origen"] == "cache vencida" and r["velas"]["close"] == _velas()["close"]
+    assert "429" in r["error"] and "15:18" in r["error"]   # 15:03:20 + 900 s
+    assert dv.pausa_hasta(cache) == t1 + timedelta(seconds=900)
+    # Otro ticker, sin copia, dentro de la pausa: NO se pide y es "Sin datos".
+    r2 = dv.obtener("BBB", t1 + timedelta(seconds=60), cache, 120, fuente=limitada)
+    assert llamadas == ["AAA"] and r2["velas"] is None and "429" in r2["error"]
+    # AAA dentro de la pausa: tampoco se pide, sigue la copia vieja.
+    r3 = dv.obtener("AAA", t1 + timedelta(seconds=120), cache, 120, fuente=limitada)
+    assert llamadas == ["AAA"] and r3["origen"] == "cache vencida"
+    # Pasada la pausa, se vuelve a pedir.
+    r4 = dv.obtener("BBB", t1 + timedelta(seconds=901), cache, 120, fuente=lambda t: _velas())
+    assert r4["origen"] == "fuente"
+
+
+def test_pausa_por_429_se_ve_en_el_panel(tmp_path):
+    from datetime import timedelta
+    cache = tmp_path / "cache"
+    dv.obtener("AAA", AHORA - timedelta(seconds=600), cache, 120, fuente=lambda t: _velas())
+
+    def limitada(ticker):
+        raise dv.LimiteDePeticiones("429")
+
+    def velas(ticker):
+        return dv.obtener(ticker, AHORA, cache, 120, fuente=limitada, pausa_seg=900)
+
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": []})
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas))
+    assert "5 velas · caché vencida 14:50" in html
+    assert "Yahoo limitó peticiones (429)" in html
+    assert 'class="vela"' in html   # la copia vieja sí se dibuja
+
+
+def test_cache_por_defecto_nunca_dentro_del_repo(monkeypatch):
+    monkeypatch.delenv("DASH_CACHE_VELAS", raising=False)
+    ruta = bd.cargar_config()["cache_velas"]
+    assert not ruta.resolve().is_relative_to(bd.REPO)
+
+
+def test_cache_configurada_dentro_del_repo_se_ignora_con_aviso():
+    problemas = []
+    ruta = bd.cache_velas_segura(bd.REPO / "dashboard_cache", problemas)
+    assert ruta == bd.CACHE_VELAS_DEFECTO
+    assert any("dentro del repo" in p for p in problemas)
+    problemas = []
+    assert bd.cache_velas_segura(Path("/var/lib/momentum/dashboard_cache"), problemas) == Path("/var/lib/momentum/dashboard_cache")
+    assert problemas == []
+
+
+def test_unidad_del_panel_fija_la_cache_fuera_del_repo():
+    texto = (bd.REPO / "deploy" / "momentum-dashboard.service").read_text(encoding="utf-8")
+    assert "Environment=DASH_CACHE_VELAS=/var/lib/momentum/dashboard_cache" in texto
+    assert "DASH_CACHE_VELAS=/opt/hernan-portafolio" not in texto

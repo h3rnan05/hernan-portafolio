@@ -41,6 +41,10 @@ log_event("bloqueo_riesgo", ticker=t, limite="perdida_diaria", motivo=m) # cuand
 | `DASH_SALIDA` | carpeta donde se escribe index.html | `dashboard_site` |
 | `DASH_PRESUPUESTO_VELAS` | línea roja del gráfico | `8` |
 | `DASH_TZ` | zona horaria de las horas mostradas | `UTC` |
+| `DASH_CACHE_VELAS` | caché de velas de 1 min (fuera de git; en el VPS `/var/lib/momentum/dashboard_cache`). Si falta, el temporal del sistema; si apunta dentro del repo, se ignora con aviso | temporal del sistema |
+| `DASH_VELAS_TTL_SEG` | cuánto vale una copia de velas antes de volver a pedir | `120` |
+| `DASH_VELAS_MAX_TICKERS` | tope de tickers graficados por corrida | `6` |
+| `DASH_VELAS_PAUSA_SEG` | cuánto deja de pedir a Yahoo tras un 429 (todos los tickers) | `900` |
 
 La tabla de watchlist muestra las entradas activas (`watching`, `triggered`) y las que cambiaron
 de estado hoy. El estado sale del overlay del VPS cuando existe, porque el JSON de GitHub
@@ -49,6 +53,16 @@ solo tiene la vista de GHA (ver `docs/SPEC-vps-watchlist-state-file.md`).
 La latencia es **ruptura → orden** en velas de 1 minuto: las velas que el hunter ya contaba
 al disparar (`velas_desde_ruptura`) más las que pasaron desde el disparo. Es la misma medida
 del presupuesto de 8 velas. Si una orden no trae las dos partes, no entra al gráfico.
+
+### Velas del ticker en operación
+
+Las velas se piden con la misma petición y se parsean con la misma función que el hunter
+(`provider.parsear_chart_intradia`), así que coinciden con lo que vio el bot. Yahoo se comparte
+con el bot desde la misma IP, y el panel no puede perjudicarlo: un ticker se pide como mucho
+una vez por TTL, hay tope de tickers, y ante un 429 el panel deja de pedir velas durante
+`DASH_VELAS_PAUSA_SEG` y muestra la copia vieja marcada como "caché vencida" con la hora
+(o "Sin datos" si no hay copia). Las marcas (ruptura, entrada del fill, stop) salen de la
+watchlist y de Alpaca: si falta una, no se dibuja y el pie dice "sin dato".
 
 ## 3. Probar a mano
 

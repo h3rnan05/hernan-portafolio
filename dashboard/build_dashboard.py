@@ -21,6 +21,7 @@ import re
 import statistics
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -31,6 +32,11 @@ from zoneinfo import ZoneInfo
 from dashboard import velas as dv
 
 ALPACA_PAPER = "https://paper-api.alpaca.markets"  # fijo: el panel nunca habla con la cuenta real
+REPO = Path(__file__).resolve().parents[1]
+# Sin DASH_CACHE_VELAS la caché va al directorio temporal del sistema,
+# NUNCA al árbol del repo: un archivo suelto dentro de /opt/hernan-portafolio
+# rompe el `git pull --rebase` del wrapper (medido 2026-09-18).
+CACHE_VELAS_DEFECTO = Path(tempfile.gettempdir()) / "momentum-dashboard-cache"
 NY = ZoneInfo("America/New_York")
 
 
@@ -61,9 +67,10 @@ def cargar_config() -> dict:
         "tz": ZoneInfo(os.environ.get("DASH_TZ", "UTC")),
         # Velas de los tickers en operación: caché fuera de git (en el VPS,
         # junto al HTML) y tope de tickers por corrida para no saturar a Yahoo.
-        "cache_velas": Path(os.environ.get("DASH_CACHE_VELAS", "dashboard_cache")),
+        "cache_velas": Path(os.environ.get("DASH_CACHE_VELAS") or CACHE_VELAS_DEFECTO),
         "velas_ttl_seg": _env_float("DASH_VELAS_TTL_SEG", 120.0),
         "velas_max_tickers": int(_env_float("DASH_VELAS_MAX_TICKERS", 6.0) or 6),
+        "velas_pausa_seg": _env_float("DASH_VELAS_PAUSA_SEG", 900.0),
     }
 
 
@@ -517,9 +524,11 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None) -> dict:
     lista_posiciones = posiciones if isinstance(posiciones, list) else []
     todas_ordenes = _unir_ordenes(lista_ordenes or [], abiertas if isinstance(abiertas, list) else [])
     if velas is None:
+        cache_dir = cache_velas_segura(cfg.get("cache_velas"), problemas)
+
         def velas(ticker):
-            return dv.obtener(ticker, ahora, cfg.get("cache_velas", Path("dashboard_cache")),
-                              cfg.get("velas_ttl_seg", 120.0))
+            return dv.obtener(ticker, ahora, cache_dir, cfg.get("velas_ttl_seg", 120.0),
+                              pausa_seg=cfg.get("velas_pausa_seg", 900.0))
     tickers_op = tickers_en_operacion(lista_posiciones, lista_ordenes or [])
     tope = int(cfg.get("velas_max_tickers", 6))
     operaciones = [{
@@ -728,6 +737,22 @@ def _unir_ordenes(*listas: list) -> list[dict]:
             vistas.add(clave)
             out.append(o)
     return out
+
+
+def cache_velas_segura(ruta: Path | None, problemas: list) -> Path:
+    """La caché de velas jamás dentro del repo. Si la configuración apunta
+    adentro (por error o por una ruta relativa con el cwd en el árbol), se
+    usa el temporal del sistema y se avisa."""
+    ruta = Path(ruta) if ruta else CACHE_VELAS_DEFECTO
+    try:
+        dentro = ruta.resolve().is_relative_to(REPO)
+    except (OSError, RuntimeError):
+        dentro = False
+    if dentro:
+        problemas.append(f"DASH_CACHE_VELAS apunta dentro del repo ({ruta}); "
+                         f"la caché de velas se guarda en {CACHE_VELAS_DEFECTO}.")
+        return CACHE_VELAS_DEFECTO
+    return ruta
 
 
 def tickers_en_operacion(posiciones: list, ordenes_hoy: list) -> list[str]:
