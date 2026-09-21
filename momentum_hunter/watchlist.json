@@ -3136,9 +3136,9 @@
     {
       "ticker": "ZIM",
       "nombre": "ZIM Integrated Shipping Services Ltd.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-21T16:42:08+00:00",
-      "actualizado_en": "2026-09-21T16:42:08+00:00",
+      "actualizado_en": "2026-09-21T18:45:22+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3151,6 +3151,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-21T18:45:22+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-21T18:45:24+00:00",
+          "telegram_enviado_ts": "2026-09-21T18:45:24+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -3248,9 +3260,9 @@
     {
       "ticker": "KBH",
       "nombre": "KB Home",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-21T16:42:08+00:00",
-      "actualizado_en": "2026-09-21T16:42:08+00:00",
+      "actualizado_en": "2026-09-21T18:45:22+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3263,6 +3275,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-21T18:45:22+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-21T18:45:24+00:00",
+          "telegram_enviado_ts": "2026-09-21T18:45:25+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3297,9 +3321,9 @@
     {
       "ticker": "WHR",
       "nombre": "Whirlpool Corporation",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-21T16:42:08+00:00",
-      "actualizado_en": "2026-09-21T16:42:08+00:00",
+      "actualizado_en": "2026-09-21T18:45:22+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3312,6 +3336,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-21T18:45:22+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-21T18:45:25+00:00",
+          "telegram_enviado_ts": "2026-09-21T18:45:25+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 3000.0
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3445,11 +3481,11 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 6.270999908447266,
-      "ultimo_stop": 6.15278559071677,
-      "ultimo_objetivo": 6.507428543908256,
-      "ultima_zona_entrada_baja": 6.272131847845204,
-      "ultimos_niveles_ts": "2026-09-21T18:40:22+00:00",
+      "ultima_entrada": 6.269999980926514,
+      "ultimo_stop": 6.151785663196018,
+      "ultimo_objetivo": 6.506428616387504,
+      "ultima_zona_entrada_baja": 6.2724813169877125,
+      "ultimos_niveles_ts": "2026-09-21T18:45:22+00:00",
       "stop_tesis": 6.237832742249323,
       "clima_mercado": "favorable"
     }
