@@ -699,6 +699,51 @@ el instante en que el catalizador + el gap premarket ya son detectables,
 antes de que abra el mercado regular -- una ventana real de minutos u
 horas, no una promesa de anticipación imposible.
 
+## Descubrimiento "movers" EN SOMBRA (pedido 2026-09-21)
+
+**Por qué.** El embudo actual muere en el catalizador: el 21/9 (slot 3) 332
+small caps pasaron precio/liquidez, 324 tenían alguna noticia y **0** tenían un
+catalizador dentro de la ventana de 3 días; el 97 % de los titulares que Yahoo
+devuelve para small caps son de hace semanas. `movers.py` invierte el orden:
+primero lo que YA se mueve hoy, después la noticia como etiqueta.
+
+**Qué hace, en sombra.** `python -m momentum_hunter.run --movers-sombra`:
+
+1. Una consulta al screener de Yahoo (`yf.screen` con `EquityQuery`, yfinance
+   ≥ 1.7): región US, precio 0,75–20, market cap < 2B, volumen del día > 300k,
+   cambio ≥ +5 %. Top 40 por % de cambio. Campos verificados en yfinance 1.7.0:
+   `intradayprice`, `percentchange`, `dayvolume`, `intradaymarketcap`, `region`.
+2. Solo para esos 40: velas intradía y barras diarias. RVOL ajustado a la hora
+   = volumen de hoy / (promedio de 20 días × fracción de sesión transcurrida),
+   volumen en dólares (Σ cierre×volumen) y VWAP real. Pasa con RVOL ≥ 3,
+   ≥ $2M y precio > VWAP.
+3. Catalizador como **etiqueta**, solo para las que pasaron: detector y filtro
+   de ancla de siempre. Clase A = con catalizador. Clase B = sin catalizador y
+   RVOL ≥ 5. El resto se descarta con motivo.
+4. Todo va a `telemetria/{fecha}/{fuente}/movers.jsonl`: inicio y fin,
+   embudo, motivos de rechazo y cada candidata con todos sus números
+   (incluido `hora_dato` = `regularMarketTime` del screener, para medir qué tan
+   fresco llega el dato).
+
+**Lo que NO hace.** No escribe `watchlist.json`, no manda Telegram, no toca el
+escaneo ni el rechequeo, y sigue sin importar nada de IA, brókers ni ejecución.
+Apagado por omisión (`config.movers_sombra = False`); en el VPS se enciende con
+`MOMENTUM_MOVERS_SOMBRA=1` en `paper.env` y el timer de ejemplo de
+`infra/systemd/` (que **no se instala solo**).
+
+**Umbrales.** Todos en `config.py` con prefijo `movers_` y su POR QUÉ. Son
+puntos de partida razonados, no evidencia: la sombra existe para producirla.
+
+**Datos.** Un campo que Yahoo no devuelve es `None` y la candidata se rechaza
+con `campo_faltante:<campo>`; nunca `float(v or 0)`. Si el screener falla o
+viene vacío, la corrida registra el error y termina sin candidatas.
+
+**Limitaciones anotadas.** La frescura de `intradayprice`/`dayvolume` del
+screener no se pudo medir desde el entorno de desarrollo (Yahoo bloqueado): se
+mide en el VPS con `hora_dato`. El screener y las noticias van por yfinance,
+con los mismos límites de peticiones que el resto; ante un 429 el bot ya se
+frena (`MOMENTUM_YAHOO_PAUSA_ARCHIVO`).
+
 ## Limitaciones honestas (datos gratis)
 
 - **Escanear el mercado completo es lento con datos gratis.** NYSE+NASDAQ+AMEX

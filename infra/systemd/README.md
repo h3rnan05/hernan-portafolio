@@ -30,6 +30,8 @@ Alpaca.
 | `momentum-scan.service` | `/etc/systemd/system/` | oneshot: **escaneo completo** (`--limit 1000`, slot rotativo) + paper trader + persist (desde 2026-09-21; antes vivía en GitHub Actions) |
 | `momentum-scan.timer` | `/etc/systemd/system/` | cada 30 min en :01 y :31, Lun–Vie 13–20 UTC |
 | `bin/run_scan_paper.sh` | `/opt/momentum/bin/` | wrapper del escaneo: sin candado durante el escaneo; candado solo al escribir la watchlist y al commitear |
+| `momentum-movers-sombra.service` / `.timer` | **NO se instala solo** | ejemplo: descubrimiento "movers" en sombra cada 5 min (:02, :07, …), solo telemetría (`momentum_hunter/movers.py`) |
+| `bin/run_movers_sombra.sh` | `/opt/momentum/bin/` (solo si se instala la sombra) | wrapper: no-op salvo `MOMENTUM_MOVERS_SOMBRA=1`; flock solo contra sí mismo |
 
 **No versionado a propósito:** `/etc/momentum/paper.env` (credenciales;
 viven en el VPS y en GitHub Secrets, nunca en el repo).
@@ -168,3 +170,22 @@ código (GitHub escanea y opera cuando su cron dispara; el VPS solo rechequea).
 Limitación anotada: si el push del VPS falla (conflicto con un respaldo de
 GitHub), el commit local queda y el siguiente `git pull --rebase` fallará hasta
 resolverlo a mano; #150 lo hace visible en el panel y por Telegram.
+
+## "Movers" en sombra (2026-09-21): NO se instala solo
+
+Descubrimiento alternativo que solo deja telemetría
+(`momentum_hunter/telemetria/<fecha>/vps/movers.jsonl`, la commitea el
+rechequeo con el resto). No escribe la watchlist ni manda Telegram. Para
+encenderlo en el VPS, a mano y solo cuando el dueño lo decida:
+
+```bash
+echo 'MOMENTUM_MOVERS_SOMBRA=1' | sudo tee -a /etc/momentum/paper.env
+sudo install -m 755 infra/systemd/bin/run_movers_sombra.sh /opt/momentum/bin/
+sudo cp infra/systemd/momentum-movers-sombra.service infra/systemd/momentum-movers-sombra.timer /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now momentum-movers-sombra.timer
+```
+
+Apagar: `sudo systemctl disable --now momentum-movers-sombra.timer` (y quitar la
+variable, aunque sin ella el wrapper ya es no-op). No bloquea al escaneo ni al
+rechequeo: por decisión del dueño nada los espera; la convivencia con Yahoo la
+resuelve el archivo de pausa del bot.
