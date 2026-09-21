@@ -27,6 +27,9 @@ Alpaca.
 | `momentum-watchlist-watchdog.service` | `/etc/systemd/system/` | avisa por Telegram si el oneshot lleva >1200 s sin terminar OK dentro de sesión; ejecuta `scripts/watchdog_timer_miss.sh` **desde el árbol** (ver "Watchdog") |
 | `momentum-watchlist-watchdog.timer` | `/etc/systemd/system/` | cada 10 min, Lun–Vie 13–20 UTC |
 | `bin/run_watchlist_paper.sh` | `/opt/momentum/bin/` | el wrapper (ver abajo por qué vive fuera del árbol) |
+| `momentum-scan.service` | `/etc/systemd/system/` | oneshot: **escaneo completo** (`--limit 1000`, slot rotativo) + paper trader + persist (desde 2026-09-21; antes vivía en GitHub Actions) |
+| `momentum-scan.timer` | `/etc/systemd/system/` | cada 30 min en :01 y :31, Lun–Vie 13–20 UTC |
+| `bin/run_scan_paper.sh` | `/opt/momentum/bin/` | wrapper del escaneo: sin candado durante el escaneo; candado solo al escribir la watchlist y al commitear |
 
 **No versionado a propósito:** `/etc/momentum/paper.env` (credenciales;
 viven en el VPS y en GitHub Secrets, nunca en el repo).
@@ -122,3 +125,46 @@ Esperado: la línea `ERROR [paper][vps] ... silent 1800s`, luego
 `TELEGRAM_NOTIFY OK`, `rc=1`, y el mensaje en el chat. Si sale
 `TELEGRAM_NOTIFY FAIL: missing token or chat id`, `paper.env` no se
 cargó; si sale `WARN: telegram notify failed`, la ruta sigue mal.
+
+## Escaneo completo en el VPS (2026-09-21)
+
+Desde hoy el escaneo del universo corre acá (`momentum-scan.timer`) y **el VPS
+es el dueño** de `watchlist.json`, `auditoria/`, `alertas_enviadas.json` y la
+telemetría del hunter: los commitea él, después de volcar el overlay del
+rechequeo al canónico (`python -m momentum_hunter.run --materializar-overlay`).
+GitHub conserva sus dos workflows solo como **respaldo**: actúan si el VPS lleva
+más de 20 min sin commitear telemetría de hoy y ya pasaron 20 min desde las
+13:00 UTC (`.github/scripts/respaldo_gha.py`), y cada Telegram de ese modo
+sale con `[RESPALDO GITHUB]`. El paso de paper en GitHub está apagado salvo
+`MOMENTUM_PAPER_GHA=on` (variable de repo): `revisiones.json` tiene un solo
+escritor, el VPS.
+
+**Candados.** Ninguno durante el escaneo (~9 min): el rechequeo de 5 min nunca
+espera ni se salta. El escaneo escribe el canónico con el overlay aplicado en el
+instante de escribir (`watchlist.guardar_canonico_fusionado`, candado
+`watchlist_vps_state.json.lock`, milisegundos); si los dos llegaron a un estado
+terminal distinto, gana la decisión anterior. El commit/push usa el mismo flock
+que el rechequeo.
+
+**Yahoo.** Escaneo y panel salen de la misma IP. Ante un 429 el bot escribe
+`/var/lib/momentum/yahoo_pausa_bot.json` y deja de pedir 15 min (sin
+reintentos); el panel lo lee y se frena también (`DASH_YAHOO_PAUSA_BOT`). El bot
+nunca obedece la pausa que escribe el panel (`dashboard_cache/yahoo_pausa.json`).
+
+**Instalar** (además de lo de arriba):
+
+```bash
+sudo cp infra/systemd/bin/run_scan_paper.sh /opt/momentum/bin/ && sudo chmod +x /opt/momentum/bin/run_scan_paper.sh
+sudo cp infra/systemd/momentum-scan.service infra/systemd/momentum-scan.timer /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now momentum-scan.timer
+```
+
+**Vuelta atrás.** (1) `sudo systemctl disable --now momentum-scan.timer` y, en
+GitHub, variable `MOMENTUM_PAPER_GHA=on`: se vuelve al estado anterior sin tocar
+código (GitHub escanea y opera cuando su cron dispara; el VPS solo rechequea).
+(2) `MOMENTUM_SCAN_VPS=0` en `paper.env` deja el wrapper del escaneo como no-op.
+(3) Revertir el squash del PR.
+
+Limitación anotada: si el push del VPS falla (conflicto con un respaldo de
+GitHub), el commit local queda y el siguiente `git pull --rebase` fallará hasta
+resolverlo a mano; #150 lo hace visible en el panel y por Telegram.

@@ -1,0 +1,15 @@
+[Unit]
+Description=Timer del escaneo completo en el VPS (cada 30 min, Lun-Vie 13-20 UTC)
+Requires=momentum-scan.service
+
+[Timer]
+# :01 y :31 para no arrancar encima del rechequeo de :00 y :30. El slot
+# del universo se deriva del reloj en tramos de 30 min, así que un minuto
+# de corrimiento no cambia qué se escanea. Persistent=false a propósito:
+# un escaneo atrasado no sirve, la ventana ya pasó.
+OnCalendar=Mon..Fri *-*-* 13..20:01,31:00 UTC
+Persistent=false
+Unit=momentum-scan.service
+
+[Install]
+WantedBy=timers.target

@@ -161,13 +161,27 @@ def test_revisar_watchlist_cuerpo_tiene_exactamente_cuatro_persistencias_y_cero_
     assert "watchlist.guardar(" not in src_arch
 
 
-def test_full_scan_guardar_still_writes_canonical():
-    """GHA full scan (main L1295 / `_actualizar_watchlist` L707) no se desvía."""
+def test_full_scan_guardar_still_writes_canonical(monkeypatch, tmp_path):
+    """El escaneo escribe SIEMPRE el canónico (nunca el overlay): en GHA
+    tal cual, en el VPS con el overlay aplicado al escribir. Las dos
+    escrituras del escaneo pasan por `_persistir_escaneo`."""
     src_upd = inspect.getsource(run_mod._actualizar_watchlist)
     src_main = inspect.getsource(run_mod.main)
-    assert "watchlist.guardar(" in src_upd
-    assert "guardar_vps_state" not in src_upd
-    assert "watchlist.guardar(" in src_main
+    assert "_persistir_escaneo(" in src_upd and "_persistir_escaneo(" in src_main
+    assert "watchlist.guardar(" not in src_upd and "watchlist.guardar(" not in src_main
+    assert "guardar_vps_state" not in inspect.getsource(run_mod._persistir_escaneo)
+    # Flag OFF: `guardar` canónico, sin fusión.
+    monkeypatch.setenv("MOMENTUM_WATCHLIST_VPS_STATE", "0")
+    llamadas = []
+    monkeypatch.setattr(watchlist, "guardar", lambda es, p=None, ahora=None: llamadas.append(("guardar", len(es))))
+    monkeypatch.setattr(watchlist, "guardar_canonico_fusionado", lambda es: llamadas.append(("fusionado", len(es))) or es)
+    run_mod._persistir_escaneo([])
+    assert llamadas == [("guardar", 0)]
+    # Flag ON: canónico fusionado con el overlay.
+    _activar_vps(monkeypatch, tmp_path)
+    llamadas.clear()
+    run_mod._persistir_escaneo([])
+    assert llamadas == [("fusionado", 0)]
 
 
 def test_cargar_aplica_overlay_por_ticker(tmp_path, monkeypatch):

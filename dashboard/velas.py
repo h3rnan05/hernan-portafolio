@@ -144,8 +144,20 @@ def _con_cache(velas_cache, obtenido_cache, ahora, ttl_seg, error) -> dict:
             "origen": "cache" if vigente else "cache vencida", "error": error}
 
 
+def pausa_del_bot(ruta: Path | None) -> datetime | None:
+    """Hasta cuándo el BOT dejó de pedir a Yahoo (su propio archivo,
+    MOMENTUM_YAHOO_PAUSA_ARCHIVO en el VPS). El panel lo lee y se frena
+    también: si el escaneo ya recibió un 429 desde esta IP, pedir velas
+    para el panel solo alarga el castigo. Solo lectura: el panel jamás
+    escribe ese archivo, y el bot nunca lee el del panel."""
+    if ruta is None:
+        return None
+    crudo = _leer_json(Path(ruta))
+    return _fecha(crudo.get("hasta")) if crudo else None
+
+
 def obtener(ticker: str, ahora: datetime, cache_dir: Path, ttl_seg: float,
-            fuente=fuente_hunter, pausa_seg: float = 900.0) -> dict:
+            fuente=fuente_hunter, pausa_seg: float = 900.0, pausa_bot: Path | None = None) -> dict:
     """{"velas": dict | None, "obtenido": datetime | None,
         "origen": "fuente" | "cache" | "cache vencida" | None, "error": str | None}
 
@@ -162,6 +174,10 @@ def obtener(ticker: str, ahora: datetime, cache_dir: Path, ttl_seg: float,
     if hasta is not None and ahora < hasta:
         return _con_cache(velas_cache, obtenido_cache, ahora, ttl_seg,
                           f"Yahoo limitó peticiones (429): sin pedir velas hasta las {hasta:%H:%M} UTC")
+    hasta_bot = pausa_del_bot(pausa_bot)
+    if hasta_bot is not None and ahora < hasta_bot:
+        return _con_cache(velas_cache, obtenido_cache, ahora, ttl_seg,
+                          f"el bot está en pausa con Yahoo (429): sin pedir velas hasta las {hasta_bot:%H:%M} UTC")
 
     try:
         velas = fuente(ticker)
