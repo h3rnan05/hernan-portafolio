@@ -464,6 +464,18 @@ def test_hunter_corrio_bien_sin_cambiar_la_watchlist_es_ok(tmp_path):
     assert "GitHub Actions" not in " ".join(ctx["problemas"])
 
 
+def test_detalle_del_hunter_muestra_dia_y_hora_en_dash_tz(tmp_path):
+    # Caso real: watchlist del vie 18 sep 22:33 UTC y corrida #218 del lun 21
+    # sep 13:46 UTC, panel en Monterrey (UTC-6) el lunes a las 07:55.
+    (tmp_path / "watchlist.json").write_text(json.dumps({
+        "generado": "2026-09-18T22:33:00+00:00", "entradas": []}))
+    lunes = datetime(2026, 9, 21, 13, 55, tzinfo=timezone.utc)
+    ctx = bd.construir(lunes, cfg(tmp_path, tz=ZoneInfo("America/Monterrey")), get=sin_alpaca,
+                       gha=gha_ok(datetime(2026, 9, 21, 13, 46, 8, tzinfo=timezone.utc)))
+    assert _hunter(ctx)["detalle"] == "corrida OK de las 07:46 (#218) · watchlist del vie 16:33"
+    assert "generada vie 16:33" in bd.render(ctx)
+
+
 def test_actions_caido_sin_cache_es_sin_datos_y_queda_en_problemas(tmp_path):
     (tmp_path / "watchlist.json").write_text(json.dumps({
         "generado": "2026-09-18T14:55:00+00:00", "entradas": []}))   # fresca, y aun así no basta
