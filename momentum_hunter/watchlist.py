@@ -808,11 +808,24 @@ def _overlay_decidio_antes(canon: EntradaWatchlist, overlay: dict) -> bool:
 def _fusionar_overlay(canon: EntradaWatchlist, overlay: dict) -> EntradaWatchlist:
     """Reglas de conflicto (v1): catalizador/alta=canónico; canónico
     terminal que cambia de estado=canónico, salvo que el overlay también
-    sea terminal y haya decidido ANTES (`_overlay_decidio_antes`);
+    sea terminal y haya decidido ANTES (`_overlay_decidio_antes`) o sea
+    el ARCHIVED del paper sobre un TRIGGERED (sucesor, no competidor);
     watching+overlay más nuevo=VPS; empate=canónico."""
     overlay_estado = overlay.get("estado")
     if canon.estado in ESTADOS_TERMINALES:
         if overlay_estado is not None and overlay_estado != canon.estado:
+            # TRIGGERED -> ARCHIVED es la ÚNICA escritura del paper sobre la
+            # watchlist (CLAUDE.md): el sucesor natural del disparo, no una
+            # decisión que compita con él. Siempre ocurre DESPUÉS del
+            # TRIGGERED, así que "gana la decisión anterior" la dejaba
+            # fuera del canónico para siempre (BNS, 21/9: archivada en el
+            # VPS a las 18:25, TRIGGERED en main hasta la purga). Se
+            # aplica sin mirar relojes; #154 ya garantiza que el overlay
+            # es de esta misma encarnación.
+            if canon.estado == ESTADO_TRIGGERED and overlay_estado == ESTADO_ARCHIVED:
+                _aplicar_campos_overlay(canon, overlay, incluir_estado=True)
+                _append_transiciones(canon, overlay)
+                return canon
             if overlay_estado in ESTADOS_TERMINALES and _overlay_decidio_antes(canon, overlay):
                 _aplicar_campos_overlay(canon, overlay, incluir_estado=True)
                 _append_transiciones(canon, overlay)
