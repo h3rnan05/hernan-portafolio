@@ -36,7 +36,7 @@ from datetime import UTC, datetime
 
 from momentum_hunter import watchlist
 
-from momentum_paper_trader import estado, ia_decision, telemetria
+from momentum_paper_trader import aviso_fallo_ia, estado, ia_decision, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig, banda_de
 
@@ -353,6 +353,9 @@ def ejecutar(
         if e.estado == watchlist.ESTADO_TRIGGERED
         and not estado.ya_revisada(revisiones_previas, e.ticker, e.creado_en)
     ]
+    # Solo observabilidad del fail-closed de la IA. No decide entrar.
+    fallos_ia: list[tuple[str, str]] = []
+    hubo_decision_ia = False
     if metricas is not None:
         metricas.triggered_nuevos = len(pendientes)
     _evento(dry_run, "rechequeo", n_tickers=len(entradas), n_triggered=len(pendientes))
@@ -467,13 +470,17 @@ def ejecutar(
             # señal del día -- mismo criterio que ya se aplica más abajo
             # cuando falla la orden en Alpaca. La próxima corrida (a 5
             # minutos) lo reintenta.
+            codigo = getattr(decision, "codigo_fallo", None) or "api"
             log.warning(
-                "%s: no se pudo obtener decisión de la IA -- se reintentará: %s",
-                e.ticker, decision.razonamiento)
+                "%s: no se pudo obtener decisión de la IA (%s) -- se reintentará",
+                e.ticker, codigo)
             _evento(dry_run, "decision", ticker=e.ticker, entra=None, fallo_tecnico=True,
+                    codigo=codigo,
                     motivo="no se pudo obtener decisión de la IA -- se reintentará")
+            fallos_ia.append((e.ticker, codigo))
             continue
 
+        hubo_decision_ia = True
         _evento(dry_run, "decision", ticker=e.ticker, entra=decision.entrar,
                 confianza=decision.confianza, fraccion=getattr(decision, "fraccion", None),
                 motivo=decision.razonamiento)
@@ -594,6 +601,9 @@ def ejecutar(
             metricas.anotar_revision(
                 registro, e.signal_latency_ms, getattr(e, "velas_desde_ruptura", None))
 
+    if not dry_run:
+        aviso_fallo_ia.observar_corrida(
+            fallos=fallos_ia, hubo_decision=hubo_decision_ia, dry_run=False)
     if metricas is not None and not dry_run:
         metricas.cerrar_corrida()
     return nuevas

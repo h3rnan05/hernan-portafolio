@@ -362,18 +362,67 @@ class DecisionIA:
     # minutos después. Mismo principio que el executor ya aplicaba a un
     # fallo de Alpaca ("no se registra como revisada").
     fallo_tecnico: bool = False
+    # Etiqueta corta del fallo técnico, para observabilidad. No es un
+    # veredicto y no cambia `entrar`. Valores: sin_clave, sin_niveles,
+    # credito (HTTP 400 de saldo), api, respuesta. None cuando sí hubo
+    # decisión. Nunca lleva el texto de la excepción.
+    codigo_fallo: str | None = None
 
 
-_DECISION_FALLBACK_SIN_CLAVE = DecisionIA(
-    entrar=False, confianza=0,
-    razonamiento="Sin ANTHROPIC_API_KEY configurada -- no se puede pedir el criterio de la IA, así que no se opera.",
-    fallo_tecnico=True,
-)
-_DECISION_FALLBACK_ERROR = DecisionIA(
-    entrar=False, confianza=0,
-    razonamiento="La revisión de la IA falló o no devolvió un veredicto usable -- por seguridad, no se opera (fail-closed).",
-    fallo_tecnico=True,
-)
+def _decision_de_fallo(codigo: str) -> DecisionIA:
+    """Fail-closed con una etiqueta segura. El texto es nuestro: no se
+    copia nada de la excepción (puede traer una URL con la clave)."""
+    if codigo == "sin_clave":
+        razon = ("Sin ANTHROPIC_API_KEY configurada -- no se puede pedir el "
+                 "criterio de la IA, así que no se opera.")
+    else:
+        razon = ("La revisión de la IA falló o no devolvió un veredicto usable "
+                 "-- por seguridad, no se opera (fail-closed).")
+    return DecisionIA(
+        entrar=False, confianza=0, razonamiento=razon,
+        fallo_tecnico=True, codigo_fallo=codigo,
+    )
+
+
+def clasificar_excepcion_api(ex: BaseException) -> str:
+    """`credito` solo para el rechazo de saldo medido el 2026-09-21
+    (HTTP 400, "credit balance ... too low"). El resto de la consulta
+    es `api`. No devuelve texto de la excepción."""
+    status = getattr(ex, "status_code", None)
+    try:
+        status_i = int(status) if status is not None else None
+    except (TypeError, ValueError):
+        status_i = None
+    if _parece_saldo_agotado(ex, status_i):
+        return "credito"
+    return "api"
+
+
+def _parece_saldo_agotado(ex: BaseException, status: int | None) -> bool:
+    """La frase fija, en el cuerpo del SDK o en el str de la excepción.
+    Ese str se mira y se descarta: no se loguea ni se persiste. Un status
+    distinto de 400 (o ausente-pero-sin-frase) no se etiqueta como saldo:
+    un 5xx que cite la frase en una página de error no es este caso."""
+    fragmentos: list[str] = []
+    body = getattr(ex, "body", None)
+    if isinstance(body, dict):
+        err = body.get("error")
+        if isinstance(err, dict) and isinstance(err.get("message"), str):
+            fragmentos.append(err["message"])
+        if isinstance(body.get("message"), str):
+            fragmentos.append(body["message"])
+    elif isinstance(body, str):
+        fragmentos.append(body)
+    try:
+        fragmentos.append(str(ex))
+    except Exception:
+        pass
+    texto = " ".join(fragmentos).lower()
+    if "credit balance" not in texto:
+        return False
+    if "too low" not in texto and "insufficient" not in texto:
+        return False
+    return status is None or status == 400
 
 
 def _snapshot_intradia(ticker: str) -> str | None:
@@ -508,10 +557,10 @@ def decidir(e: EntradaWatchlist, contexto_cuenta: str | None = None) -> Decision
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         log.info("%s: sin ANTHROPIC_API_KEY -- no se opera", e.ticker)
-        return _DECISION_FALLBACK_SIN_CLAVE
+        return _decision_de_fallo("sin_clave")
 
     if e.ultima_entrada is None or e.ultimo_stop is None or e.ultimo_objetivo is None:
-        return _DECISION_FALLBACK_ERROR
+        return _decision_de_fallo("sin_niveles")
 
     try:
         client = Anthropic(api_key=api_key)
@@ -519,8 +568,13 @@ def decidir(e: EntradaWatchlist, contexto_cuenta: str | None = None) -> Decision
             client, model=MODEL, max_tokens=MAX_TOKENS_ENTRADA, system=SYSTEM_PROMPT,
             contenido=construir_paquete_evidencia(e, contexto_cuenta), ticker=e.ticker)
     except Exception as ex:
-        log.warning("%s: falló la consulta a la IA: %s", e.ticker, ex)
-        return _DECISION_FALLBACK_ERROR
+        # Tipo y etiqueta, nunca el texto: un 400 de saldo no trae la
+        # clave, pero otras excepciones del SDK sí pueden traer la URL.
+        codigo = clasificar_excepcion_api(ex)
+        log.warning(
+            "%s: falló la consulta a la IA (%s, %s)",
+            e.ticker, type(ex).__name__, codigo)
+        return _decision_de_fallo(codigo)
 
     if crudo.startswith("```"):
         crudo = crudo.strip("`").removeprefix("json").strip()
@@ -528,7 +582,7 @@ def decidir(e: EntradaWatchlist, contexto_cuenta: str | None = None) -> Decision
         v = _cargar_json_del_modelo(crudo)
     except json.JSONDecodeError:
         log.warning("%s: la IA no devolvió JSON válido: %r", e.ticker, crudo)
-        return _DECISION_FALLBACK_ERROR
+        return _decision_de_fallo("respuesta")
 
     try:
         entrar = bool(v["entrar"])
@@ -536,7 +590,7 @@ def decidir(e: EntradaWatchlist, contexto_cuenta: str | None = None) -> Decision
         razonamiento = str(v["razonamiento"])
     except (KeyError, TypeError, ValueError):
         log.warning("%s: la IA devolvió un JSON con forma inesperada: %r", e.ticker, v)
-        return _DECISION_FALLBACK_ERROR
+        return _decision_de_fallo("respuesta")
 
     # Cinturón y tirantes sobre el propio LLM (mismo principio que
     # `telegram_bot/idea_evaluator.py`): la regla dura del prompt se

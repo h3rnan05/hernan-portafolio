@@ -432,6 +432,50 @@ def test_persist_fallido_de_ayer_no_cuenta_hoy(tmp_path):
     assert ctx["persist_fallidos"] == [] and "Persist fallido" not in bd.render(ctx)
 
 
+def test_ia_sin_credito_se_ve_en_rojo_sin_pisar_el_persist(tmp_path):
+    # Rechequeo fresco: el bot corrió. El saldo de la IA es otra alerta,
+    # en el ejecutor, y convive con un persist fallido si los dos pasan.
+    eventos(tmp_path,
+            {"ts": "2026-09-18T14:50:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:51:00Z", "tipo": "persist_fallido",
+             "motivo": "git persist failed", "intentos": 5},
+            {"ts": "2026-09-18T14:52:00Z", "tipo": "ia_fallo_tecnico",
+             "codigo": "credito", "motivo": "saldo <Anthropic>", "consecutivos": 1},
+            {"ts": "2026-09-18T14:57:00Z", "tipo": "ia_fallo_tecnico",
+             "codigo": "credito", "motivo": "saldo <Anthropic>", "consecutivos": 2})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert [f["codigo"] for f in ctx["ia_fallos"]] == ["credito", "credito"]
+    assert len(ctx["persist_fallidos"]) == 1
+    ejecutor = _etapas(ctx)["Ejecutor"]
+    assert ejecutor["estado"] == "alerta"
+    assert "2 fallos de IA, último 14:57" in ejecutor["detalle"]
+    assert _etapas(ctx)["Rechequeo"]["estado"] == "alerta"
+    html = bd.render(ctx)
+    assert '<span class="pildora mal">IA sin crédito ×2 · último 14:57 (saldo &lt;Anthropic&gt;)</span>' in html
+    assert "saldo <Anthropic>" not in html
+    assert "Persist fallido ×1" in html
+
+
+def test_ia_fallo_tecnico_sin_credito_usa_la_otra_pildora(tmp_path):
+    eventos(tmp_path,
+            {"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:56:00Z", "tipo": "ia_fallo_tecnico",
+             "codigo": "api", "motivo": "consulta a la IA falló", "consecutivos": 3})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    html = bd.render(ctx)
+    assert "IA fallo técnico ×1" in html
+    assert "IA sin crédito" not in html
+    assert _etapas(ctx)["Ejecutor"]["estado"] == "alerta"
+    assert _etapas(ctx)["Rechequeo"]["estado"] == "ok"
+
+
+def test_ia_fallo_de_ayer_no_cuenta_hoy(tmp_path):
+    eventos(tmp_path, {"ts": "2026-09-17T14:40:00Z", "tipo": "ia_fallo_tecnico",
+                       "codigo": "credito", "motivo": "saldo Anthropic insuficiente"})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert ctx["ia_fallos"] == [] and "IA sin crédito" not in bd.render(ctx)
+
+
 def test_rechequeo_viejo_no_oculta_un_bloqueo_real(tmp_path):
     # Un bloqueo registrado es un hecho: sigue en alerta y con su conteo.
     eventos(tmp_path,
