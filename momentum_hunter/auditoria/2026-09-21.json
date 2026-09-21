@@ -29360,6 +29360,357 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-21T20:42:16+00:00",
+      "candidatos_evaluados": 5,
+      "candidatos": [
+        {
+          "ticker": "ZIM",
+          "nombre": "ZIM Integrated Shipping Services Ltd.",
+          "precio_actual": 30.46,
+          "factores_intradia": {
+            "precio_actual": 30.46,
+            "vwap": 30.275069040205338,
+            "ema9": 30.446228809825655,
+            "rvol_actual": 1.9818828026331967,
+            "aceleracion_volumen": 1.4613475177304964,
+            "gap_pct": -0.0003322335134584355,
+            "maximo_dia": 30.4950008392334,
+            "maximo_premarket": 30.25,
+            "rango_apertura_max": 30.100000381469727,
+            "rango_apertura_min": 30.010000228881836,
+            "velas_desde_ruptura": 5,
+            "macd": 0.03246074700059154,
+            "macd_signal": 0.026718768060041975
+          },
+          "meta": {
+            "float_acciones": 115096851.0,
+            "short_pct_float": 0.024500001,
+            "market_cap": 3671028736.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "ZIM Stock Trades at $30, Below Hapag-Lloyd’s $35 Buyout Offer. Its Payout Ratio Just Turned Negative.",
+            "fuente": "TIKR",
+            "fecha": "2026-09-21T10:28:39Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 613.6116909666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 71.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 96.13475177304964,
+                "extension": 100.0,
+                "distancia_maximo_dia": 98.85224337530207,
+                "frescura_patron": 50.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 79.1,
+            "score_ajustado": 59.1,
+            "riesgo_definido": true,
+            "accionable": true
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "RARE",
+          "nombre": "Ultragenyx Pharmaceutical Inc.",
+          "precio_actual": 14.649999618530273,
+          "factores_intradia": {
+            "precio_actual": 14.649999618530273,
+            "vwap": 14.679742462916158,
+            "ema9": 14.685516134320354,
+            "rvol_actual": 1.5552386526433488,
+            "aceleracion_volumen": 1.3414875775186241,
+            "gap_pct": 0.006202629301738211,
+            "maximo_dia": 15.010000228881836,
+            "maximo_premarket": 14.85,
+            "rango_apertura_max": 14.793700218200684,
+            "rango_apertura_min": 14.319999694824219,
+            "velas_desde_ruptura": null,
+            "macd": 0.0032046355305013208,
+            "macd_signal": 0.013157747571139047
+          },
+          "meta": {
+            "float_acciones": 80416024.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": 1444326912.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "RARE Stock Up 13% on FDA Approval of Sanfilippo Syndrome Gene Therapy",
+            "fuente": "Zacks",
+            "fecha": "2026-09-18T14:49:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": [
+              "Stocktwits"
+            ]
+          },
+          "minutos_desde_catalizador": 4673.261741166667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 69.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 84.1487577518624,
+                "extension": 100.0,
+                "distancia_maximo_dia": 76.01594904316788,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "KBH",
+          "nombre": "KB Home",
+          "precio_actual": 47.86,
+          "factores_intradia": {
+            "precio_actual": 47.86,
+            "vwap": 48.00469767903273,
+            "ema9": 47.98983544345937,
+            "rvol_actual": 8.240446448370168,
+            "aceleracion_volumen": 6.239570129512263,
+            "gap_pct": 0.009550101297539512,
+            "maximo_dia": 48.415000915527344,
+            "maximo_premarket": null,
+            "rango_apertura_max": 47.63999938964844,
+            "rango_apertura_min": 47.41999816894531,
+            "velas_desde_ruptura": 226,
+            "macd": -0.10260788527089204,
+            "macd_signal": -0.06307678131344707
+          },
+          "meta": {
+            "float_acciones": 58453921.0,
+            "short_pct_float": 0.2056,
+            "market_cap": 2934283520.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Earnings To Watch: KB Home (KBH) Reports Q3 Results Tomorrow",
+            "fuente": "StockStory",
+            "fecha": "2026-09-21T03:09:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1053.228446,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 63.9,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 226 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.53659186135943,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 226 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 62.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "WHR",
+          "nombre": "Whirlpool Corporation",
+          "precio_actual": 32.64,
+          "factores_intradia": {
+            "precio_actual": 32.64,
+            "vwap": 32.62887239902941,
+            "ema9": 32.7083602651094,
+            "rvol_actual": 8.489971917662213,
+            "aceleracion_volumen": 5.4028483448806774,
+            "gap_pct": 0.015952462928855896,
+            "maximo_dia": 33.345001220703125,
+            "maximo_premarket": 32.4,
+            "rango_apertura_max": 32.52000045776367,
+            "rango_apertura_min": 31.899999618530273,
+            "velas_desde_ruptura": 209,
+            "macd": -0.10150667658003698,
+            "macd_signal": -0.09611992628192792
+          },
+          "meta": {
+            "float_acciones": 61180488.0,
+            "short_pct_float": 0.0001,
+            "market_cap": 2128107648.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Whirlpool (WHR) Is Down 9.2% After Mixed Q2 Results and Higher Full-Year EPS Guidance - What's Changed",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-19T15:11:26Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3210.828488766667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 62.9,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 209 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 78.85736407574618,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 209 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 59.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "CAVA",
+          "nombre": "CAVA Group, Inc.",
+          "precio_actual": 52.0,
+          "factores_intradia": {
+            "precio_actual": 52.0,
+            "vwap": 51.74861737182615,
+            "ema9": 51.93482354659974,
+            "rvol_actual": 10.16164320162406,
+            "aceleracion_volumen": 7.510069887751563,
+            "gap_pct": 0.00464759258914528,
+            "maximo_dia": 52.45,
+            "maximo_premarket": 52.45,
+            "rango_apertura_max": 52.39189910888672,
+            "rango_apertura_min": 51.650001525878906,
+            "velas_desde_ruptura": 1,
+            "macd": 0.017509132402430794,
+            "macd_signal": 0.01896610794318846
+          },
+          "meta": {
+            "float_acciones": 107912574.0,
+            "short_pct_float": 0.1193,
+            "market_cap": 6073922560.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "CAVA Unveils $100 Million Stock Buyback Program",
+            "fuente": "Benzinga",
+            "fecha": "2026-09-18T13:06:19Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4775.9451985666665,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 91.42040038131549,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [],
+            "score_base": 55.7,
+            "score_ajustado": 55.7,
+            "riesgo_definido": true,
+            "accionable": true
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        }
+      ]
     }
   ]
 }
