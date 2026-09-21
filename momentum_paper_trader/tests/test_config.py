@@ -24,10 +24,11 @@ def test_minimo_acciones_debe_ser_al_menos_uno():
         PaperTraderConfig(minimo_acciones=0).validar()
 
 
-def test_por_defecto_solo_se_opera_small_cap():
-    # La tesis es small caps. Si alguien cambia este default, que sea a
-    # propósito y que un test lo obligue a decirlo.
-    assert PaperTraderConfig().bandas_operables == ("small",)
+def test_por_defecto_se_operan_las_dos_bandas():
+    # Decisión del dueño (2026-09-21): operar small y large. Si alguien
+    # cambia este default, que sea a propósito y que un test lo obligue
+    # a decirlo.
+    assert PaperTraderConfig().bandas_operables == ("small", "large")
 
 
 def test_bandas_operables_vacio_es_invalido():
