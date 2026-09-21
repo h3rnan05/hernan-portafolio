@@ -29,6 +29,7 @@ from datetime import datetime, time, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from dashboard import gha as dg
 from dashboard import velas as dv
 
 ALPACA_PAPER = "https://paper-api.alpaca.markets"  # fijo: el panel nunca habla con la cuenta real
@@ -71,6 +72,12 @@ def cargar_config() -> dict:
         "velas_ttl_seg": _env_float("DASH_VELAS_TTL_SEG", 120.0),
         "velas_max_tickers": int(_env_float("DASH_VELAS_MAX_TICKERS", 6.0) or 6),
         "velas_pausa_seg": _env_float("DASH_VELAS_PAUSA_SEG", 900.0),
+        # Última corrida exitosa del hunter en GitHub Actions (dashboard/gha.py):
+        # API pública, sin token, con caché en la misma carpeta que las velas.
+        # Sin repo configurado el panel no pregunta y el Hunter queda "Sin datos".
+        "gha_repo": os.environ.get("DASH_GHA_REPO", "h3rnan05/hernan-portafolio").strip(),
+        "gha_workflow": os.environ.get("DASH_GHA_WORKFLOW", "momentum_hunter.yml").strip(),
+        "gha_ttl_seg": _env_float("DASH_GHA_TTL_SEG", 300.0),
     }
 
 
@@ -394,7 +401,7 @@ def filtrar_watchlist(items: list[dict], desde: datetime) -> list[dict]:
     return sorted(visibles, key=lambda w: (not activo(w), -(w.get("actualizado") or minimo).timestamp()))
 
 
-def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None) -> dict:
+def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) -> dict:
     desde = inicio_dia_ny(ahora)
     en_sesion = sesion_abierta(ahora)
     problemas = []
@@ -470,12 +477,36 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None) -> dict:
     motivo_sin_datos = ("no hay log de eventos" if not hay_eventos
                         else "no hay un rechequeo reciente")
 
+    # El Hunter se juzga por su última corrida exitosa en GitHub Actions, no
+    # por la watchlist: una corrida con 0 candidatos no cambia la watchlist
+    # ni commitea nada, y aun así corrió. Sin respuesta de Actions y sin
+    # copia en caché no hay dato, aunque la watchlist sea fresca.
+    cache_dir = cache_velas_segura(cfg.get("cache_velas"), problemas)
+    if gha is None:
+        def gha():
+            if not cfg.get("gha_repo"):
+                return {"corrida": None, "obtenido": None, "origen": None,
+                        "error": "GitHub Actions no configurado (DASH_GHA_REPO)"}
+            return dg.obtener(cfg["gha_repo"], cfg.get("gha_workflow", "momentum_hunter.yml"),
+                              ahora, cache_dir, cfg.get("gha_ttl_seg", 300.0))
+    hunter_gha = gha()
+    corrida = hunter_gha.get("corrida")
+    hunter_momento = parse_ts(corrida["terminada"]) if corrida else None
+    if corrida is None and hunter_gha.get("error") and hunter_gha["error"] not in problemas:
+        problemas.append(hunter_gha["error"])
+    if corrida:
+        origen = {"cache": " · caché", "cache vencida": " · caché vencida"}.get(hunter_gha.get("origen"), "")
+        detalle_hunter = (f"corrida OK {_cuando(hunter_momento, cfg['tz'], ahora)} (#{corrida['numero']}){origen}"
+                          f" · watchlist {_cuando(wl_momento, cfg['tz'], ahora)}")
+    else:
+        detalle_hunter = f"{hunter_gha.get('error') or 'sin corrida'} · watchlist {_cuando(wl_momento, cfg['tz'], ahora)}"
+
     etapas = [
         {
             "nombre": "Hunter", "donde": "GitHub Actions",
             "rol": "Busca candidatos. Determinista, sin IA ni bróker.",
-            "estado": _estado_frescura(_edad_min(ahora, wl_momento), cfg["hunter_max_min"], en_sesion),
-            "detalle": f"watchlist {_cuando(wl_momento, cfg['tz'], ahora)}",
+            "estado": _estado_frescura(_edad_min(ahora, hunter_momento), cfg["hunter_max_min"], en_sesion),
+            "detalle": detalle_hunter,
         },
         {
             "nombre": "Rechequeo", "donde": "VPS",
@@ -524,8 +555,6 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None) -> dict:
     lista_posiciones = posiciones if isinstance(posiciones, list) else []
     todas_ordenes = _unir_ordenes(lista_ordenes or [], abiertas if isinstance(abiertas, list) else [])
     if velas is None:
-        cache_dir = cache_velas_segura(cfg.get("cache_velas"), problemas)
-
         def velas(ticker):
             return dv.obtener(ticker, ahora, cache_dir, cfg.get("velas_ttl_seg", 120.0),
                               pausa_seg=cfg.get("velas_pausa_seg", 900.0))
@@ -547,6 +576,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None) -> dict:
         "desajuste_equity": _desajuste_equity(equity_mes, equity, last_equity),
         "n_pos": n_pos, "n_ord": n_ord, "n_rech": n_rech,
         "watch": watch, "wl_momento": wl_momento,
+        "hunter_gha": hunter_gha, "hunter_momento": hunter_momento,
         "lat": lat, "lat_mediana": statistics.median(valores) if valores else None,
         "lat_p90": percentil(valores, 90),
         "lat_fuera": sum(1 for v in valores if v > presupuesto) if valores else None,
