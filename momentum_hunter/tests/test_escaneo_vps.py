@@ -98,6 +98,32 @@ def test_overlay_de_una_encarnacion_anterior_no_pisa_la_entrada_nueva(monkeypatc
     assert watchlist.aplicar_overlay([canon])[0].estado == watchlist.ESTADO_EXPIRED
 
 
+def test_archived_del_paper_si_llega_al_canonico_aunque_sea_posterior(monkeypatch, tmp_path):
+    """El caso BNS del 21/9: TRIGGERED en el canónico a las 17:05, la IA la
+    rechazó y el paper la archivó en el overlay a las 18:25. ARCHIVED es el
+    sucesor del disparo, no una decisión rival: tiene que materializarse
+    aunque sea la más nueva de las dos."""
+    _activar_vps(monkeypatch, tmp_path)
+    canon = tmp_path / "watchlist.json"
+    disparada = watchlist.desde_candidato_diario(_candidato_diario("BNS"), AHORA)
+    watchlist.marcar_triggered(disparada, "m", "d", "ev", AHORA + timedelta(hours=1))
+    watchlist.guardar([disparada], canon)
+    archivada = watchlist.desde_candidato_diario(_candidato_diario("BNS"), AHORA)
+    watchlist.marcar_triggered(archivada, "m", "d", "ev", AHORA + timedelta(hours=1))
+    assert watchlist.marcar_archivada(archivada, "rechazo_ia", AHORA + timedelta(hours=2, minutes=20))
+    watchlist.guardar_vps_state([archivada], ahora=AHORA + timedelta(hours=2, minutes=20))
+    assert watchlist.materializar_overlay(canon) == 1
+    final = watchlist.cargar(canon)[0]
+    assert final.estado == watchlist.ESTADO_ARCHIVED
+    assert final.transiciones[-1].estado == watchlist.ESTADO_ARCHIVED
+    # Solo desde TRIGGERED: un ARCHIVED del overlay sobre un canónico que ya
+    # decidió otra cosa antes (EXPIRED) sigue las reglas de siempre.
+    expirada = watchlist.desde_candidato_diario(_candidato_diario("BNS"), AHORA)
+    watchlist.expirar_vencidas([expirada], minutos_maximos=1, ahora=AHORA + timedelta(minutes=30))
+    overlay = watchlist._entrada_a_overlay(archivada, (AHORA + timedelta(hours=2, minutes=20)).isoformat(timespec="seconds"))
+    assert watchlist._fusionar_overlay(expirada, overlay).estado == watchlist.ESTADO_EXPIRED
+
+
 def test_materializar_vuelca_el_overlay_al_canonico(monkeypatch, tmp_path):
     _activar_vps(monkeypatch, tmp_path)
     canon = tmp_path / "watchlist.json"
