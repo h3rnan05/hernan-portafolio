@@ -2499,9 +2499,9 @@
     {
       "ticker": "BNS",
       "nombre": "The Bank of Nova Scotia",
-      "estado": "triggered",
+      "estado": "archived",
       "creado_en": "2026-09-21T16:29:23+00:00",
-      "actualizado_en": "2026-09-21T17:05:01+00:00",
+      "actualizado_en": "2026-09-21T18:45:26+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -2526,6 +2526,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": 7000.0
+        },
+        {
+          "estado": "archived",
+          "timestamp": "2026-09-21T18:45:26+00:00",
+          "motivo": "Desenlace paper terminal (rechazo_ia). Causa raíz C: no había transición post-revisión. Revisión 2026-09-21T18:25:33+00:00.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
         }
       ],
       "catalizador_tipo": "earnings",
@@ -3481,11 +3493,11 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 6.269999980926514,
-      "ultimo_stop": 6.151785663196018,
-      "ultimo_objetivo": 6.506428616387504,
-      "ultima_zona_entrada_baja": 6.2724813169877125,
-      "ultimos_niveles_ts": "2026-09-21T18:45:22+00:00",
+      "ultima_entrada": 6.255000114440918,
+      "ultimo_stop": 6.136785796710423,
+      "ultimo_objetivo": 6.4914287499019085,
+      "ultima_zona_entrada_baja": 6.267568428920102,
+      "ultimos_niveles_ts": "2026-09-21T18:50:03+00:00",
       "stop_tesis": 6.237832742249323,
       "clima_mercado": "favorable"
     }
