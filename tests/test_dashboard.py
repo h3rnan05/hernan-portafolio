@@ -1,5 +1,6 @@
 import json
-from datetime import date, datetime, timezone
+import pytest
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -107,6 +108,21 @@ def test_watchlist_en_varios_formatos(tmp_path):
     assert items[0]["catalizador"] == "fda, merger"
 
 
+def gha_ok(momento, numero=218, origen="github", error=None):
+    """Actions falso: una corrida exitosa terminada en `momento`."""
+    def gha():
+        return {"corrida": {"numero": numero, "terminada": momento.isoformat(), "evento": "schedule",
+                            "url": f"https://github.com/x/y/actions/runs/{numero}"},
+                "obtenido": AHORA, "origen": origen, "error": error}
+    return gha
+
+
+def gha_caido(error="GitHub Actions no respondió (prueba)"):
+    def gha():
+        return {"corrida": None, "obtenido": None, "origen": None, "error": error}
+    return gha
+
+
 def _hunter(ctx):
     return next(e for e in ctx["etapas"] if e["nombre"] == "Hunter")
 
@@ -130,7 +146,11 @@ def test_hunter_usa_la_entrada_mas_reciente(tmp_path, monkeypatch):
     ]}))
     _, generado, _ = bd.leer_watchlist(tmp_path / "watchlist.json")
     assert generado == datetime(2026, 9, 18, 14, 40, tzinfo=timezone.utc)
-    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))["estado"] == "ok"
+    # La watchlist es fresca, pero el estado del Hunter ya no sale de ahí:
+    # sin respuesta de Actions no hay dato; con una corrida OK reciente, OK.
+    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido()))["estado"] == "sin-datos"
+    reciente = datetime(2026, 9, 18, 14, 50, tzinfo=timezone.utc)
+    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_ok(reciente)))["estado"] == "ok"
 
 
 def test_hunter_usa_el_ultimo_commit_si_el_json_no_trae_hora(tmp_path, monkeypatch):
@@ -139,8 +159,9 @@ def test_hunter_usa_el_ultimo_commit_si_el_json_no_trae_hora(tmp_path, monkeypat
     (tmp_path / "watchlist.json").write_text(json.dumps({"entradas": [{"ticker": "AAA"}]}))
     _, generado, _ = bd.leer_watchlist(tmp_path / "watchlist.json")
     assert generado == datetime(2026, 9, 18, 12, 0, tzinfo=timezone.utc)
-    # 3 h de antigüedad en plena sesión: "Revisar", no "OK".
-    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))["estado"] == "alerta"
+    # Última corrida OK hace 3 h en plena sesión: "Revisar", no "OK".
+    vieja = datetime(2026, 9, 18, 12, 0, tzinfo=timezone.utc)
+    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_ok(vieja)))["estado"] == "alerta"
 
 
 def test_marca_de_nivel_superior_manda(tmp_path, monkeypatch):
@@ -408,9 +429,9 @@ def test_hunter_y_generada_muestran_el_dia_de_una_watchlist_vieja(tmp_path):
     (tmp_path / "watchlist.json").write_text(json.dumps({
         "generado": "2026-09-17T22:33:00+00:00",
         "entradas": [_entrada("AAA", "watching", creado_en="2026-09-16T14:00:00+00:00")]}))
-    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido())
     hunter = next(e for e in ctx["etapas"] if e["nombre"] == "Hunter")
-    assert hunter["detalle"] == "watchlist del jue 22:33"
+    assert hunter["detalle"] == "GitHub Actions no respondió (prueba) · watchlist del jue 22:33"
     html = bd.render(ctx)
     assert "generada jue 22:33" in html
     assert "mié 14:00" in html   # columna Detectado de la tabla
@@ -419,9 +440,157 @@ def test_hunter_y_generada_muestran_el_dia_de_una_watchlist_vieja(tmp_path):
 def test_hunter_de_hoy_sigue_sin_dia(tmp_path):
     (tmp_path / "watchlist.json").write_text(json.dumps({
         "generado": "2026-09-18T14:40:00+00:00", "entradas": []}))
-    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
+                       gha=gha_ok(datetime(2026, 9, 18, 14, 40, tzinfo=timezone.utc)))
     hunter = next(e for e in ctx["etapas"] if e["nombre"] == "Hunter")
-    assert hunter["detalle"] == "watchlist de las 14:40"
+    assert hunter["detalle"] == "corrida OK de las 14:40 (#218) · watchlist de las 14:40"
+
+
+# ───────────────────────── Hunter: última corrida en GitHub Actions ─────────────────────────
+
+from dashboard import gha as dg  # noqa: E402
+
+
+def test_hunter_corrio_bien_sin_cambiar_la_watchlist_es_ok(tmp_path):
+    # El caso real (#218, 0 candidatos): watchlist vieja, corrida fresca.
+    (tmp_path / "watchlist.json").write_text(json.dumps({
+        "generado": "2026-09-17T22:33:00+00:00", "entradas": []}))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
+                       gha=gha_ok(datetime(2026, 9, 18, 14, 52, tzinfo=timezone.utc)))
+    hunter = _hunter(ctx)
+    assert hunter["estado"] == "ok"
+    assert hunter["detalle"] == "corrida OK de las 14:52 (#218) · watchlist del jue 22:33"
+    assert ctx["hunter_momento"] == datetime(2026, 9, 18, 14, 52, tzinfo=timezone.utc)
+    assert "GitHub Actions" not in " ".join(ctx["problemas"])
+
+
+def test_detalle_del_hunter_muestra_dia_y_hora_en_dash_tz(tmp_path):
+    # Caso real: watchlist del vie 18 sep 22:33 UTC y corrida #218 del lun 21
+    # sep 13:46 UTC, panel en Monterrey (UTC-6) el lunes a las 07:55.
+    (tmp_path / "watchlist.json").write_text(json.dumps({
+        "generado": "2026-09-18T22:33:00+00:00", "entradas": []}))
+    lunes = datetime(2026, 9, 21, 13, 55, tzinfo=timezone.utc)
+    ctx = bd.construir(lunes, cfg(tmp_path, tz=ZoneInfo("America/Monterrey")), get=sin_alpaca,
+                       gha=gha_ok(datetime(2026, 9, 21, 13, 46, 8, tzinfo=timezone.utc)))
+    assert _hunter(ctx)["detalle"] == "corrida OK de las 07:46 (#218) · watchlist del vie 16:33"
+    assert "generada vie 16:33" in bd.render(ctx)
+
+
+def test_actions_caido_sin_cache_es_sin_datos_y_queda_en_problemas(tmp_path):
+    (tmp_path / "watchlist.json").write_text(json.dumps({
+        "generado": "2026-09-18T14:55:00+00:00", "entradas": []}))   # fresca, y aun así no basta
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido())
+    assert _hunter(ctx)["estado"] == "sin-datos" and ctx["hunter_momento"] is None
+    assert "GitHub Actions no respondió (prueba)" in ctx["problemas"]
+    assert "Sin datos" in bd.render(ctx)
+
+
+def test_copia_vieja_de_actions_se_marca_como_cache_vencida(tmp_path):
+    momento = datetime(2026, 9, 18, 14, 50, tzinfo=timezone.utc)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
+                       gha=gha_ok(momento, origen="cache vencida", error="GitHub Actions no respondió (Timeout)"))
+    assert _hunter(ctx)["estado"] == "ok"
+    assert "corrida OK de las 14:50 (#218) · caché vencida" in _hunter(ctx)["detalle"]
+
+
+def test_sin_repo_configurado_no_se_pregunta_a_github(tmp_path, monkeypatch):
+    def explota(*a, **k):
+        raise AssertionError("no debía haber petición")
+    monkeypatch.setattr(dg.requests, "get", explota)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)   # cfg de prueba: sin gha_repo
+    assert _hunter(ctx)["estado"] == "sin-datos"
+    assert any("no configurado" in p for p in ctx["problemas"])
+
+
+def _cuerpo_runs(*runs):
+    return {"total_count": len(runs), "workflow_runs": list(runs)}
+
+
+def _run(numero, updated_at, conclusion="success", event="schedule"):
+    return {"run_number": numero, "updated_at": updated_at, "conclusion": conclusion,
+            "event": event, "html_url": f"https://github.com/x/y/actions/runs/{numero}"}
+
+
+def test_parsear_corrida_toma_la_exitosa_y_exige_los_campos():
+    cuerpo = _cuerpo_runs(_run(219, "2026-09-18T15:00:00Z", conclusion="failure"),
+                          _run(218, "2026-09-18T14:52:00Z"))
+    assert dg.parsear_corrida(cuerpo) == {"numero": 218, "terminada": "2026-09-18T14:52:00Z",
+                                          "evento": "schedule", "url": "https://github.com/x/y/actions/runs/218"}
+    assert dg.parsear_corrida(_cuerpo_runs()) is None
+    assert dg.parsear_corrida(_cuerpo_runs({"conclusion": "success", "updated_at": "2026-09-18T14:52:00Z"})) is None
+    assert dg.parsear_corrida("basura") is None and dg.parsear_corrida({"workflow_runs": "x"}) is None
+
+
+def test_fuente_github_es_un_get_publico_sin_token_y_una_sola_vez(monkeypatch):
+    llamadas = []
+
+    def get(url, params=None, headers=None, timeout=None):
+        llamadas.append((url, params, headers, timeout))
+        return _Respuesta(200, _cuerpo_runs(_run(218, "2026-09-18T14:52:00Z")))
+    monkeypatch.setattr(dg.requests, "get", get)
+    corrida = dg.fuente_github("h3rnan05/hernan-portafolio", "momentum_hunter.yml")
+    assert corrida["numero"] == 218
+    assert len(llamadas) == 1
+    url, params, headers, timeout = llamadas[0]
+    assert url == "https://api.github.com/repos/h3rnan05/hernan-portafolio/actions/workflows/momentum_hunter.yml/runs"
+    assert params == {"status": "success", "per_page": 1, "exclude_pull_requests": "true"}
+    assert "Authorization" not in headers and timeout is not None
+
+
+def test_fuente_github_403_o_429_es_limite(monkeypatch):
+    for codigo in (403, 429):
+        monkeypatch.setattr(dg.requests, "get", lambda *a, **k: _Respuesta(codigo, {}))
+        with pytest.raises(dg.LimiteDePeticiones):
+            dg.fuente_github("x/y", "w.yml")
+
+
+def test_obtener_cache_vigente_no_pregunta(tmp_path):
+    corrida = {"numero": 218, "terminada": "2026-09-18T14:52:00Z", "evento": "schedule", "url": "u"}
+    (tmp_path / dg.ARCHIVO).write_text(json.dumps({"obtenido": (AHORA - timedelta(seconds=60)).isoformat(),
+                                                    "corrida": corrida}))
+    def explota(*a):
+        raise AssertionError("no debía preguntar")
+    res = dg.obtener("x/y", "w.yml", AHORA, tmp_path, ttl_seg=300, fuente=explota)
+    assert res["corrida"] == corrida and res["origen"] == "cache" and res["error"] is None
+
+
+def test_obtener_api_caida_sirve_la_copia_vencida_con_el_error(tmp_path):
+    corrida = {"numero": 218, "terminada": "2026-09-18T14:52:00Z", "evento": "schedule", "url": "u"}
+    (tmp_path / dg.ARCHIVO).write_text(json.dumps({"obtenido": (AHORA - timedelta(seconds=900)).isoformat(),
+                                                    "corrida": corrida}))
+    def caida(*a):
+        raise ConnectionError("sin red")
+    res = dg.obtener("x/y", "w.yml", AHORA, tmp_path, ttl_seg=300, fuente=caida)
+    assert res["corrida"] == corrida and res["origen"] == "cache vencida"
+    assert res["error"] == "GitHub Actions no respondió (ConnectionError)"
+    # Sin copia: nada, con el error.
+    res = dg.obtener("x/y", "w.yml", AHORA, tmp_path / "vacia", ttl_seg=300, fuente=caida)
+    assert res["corrida"] is None and res["origen"] is None and "no respondió" in res["error"]
+
+
+def test_obtener_limite_pausa_y_no_vuelve_a_preguntar(tmp_path):
+    llamadas = []
+
+    def limitada(*a):
+        llamadas.append(1)
+        raise dg.LimiteDePeticiones("403")
+    res = dg.obtener("x/y", "w.yml", AHORA, tmp_path, ttl_seg=300, fuente=limitada, pausa_seg=900)
+    assert res["corrida"] is None and "limitó" in res["error"] and "15:15 UTC" in res["error"]
+    assert dg.pausa_hasta(tmp_path) == AHORA + timedelta(seconds=900)
+    # Dentro de la pausa no se pregunta, aunque la fuente esté viva.
+    res = dg.obtener("x/y", "w.yml", AHORA + timedelta(seconds=120), tmp_path, ttl_seg=300, fuente=limitada)
+    assert len(llamadas) == 1 and "limitó" in res["error"]
+
+
+def test_obtener_respuesta_valida_se_cachea(tmp_path):
+    corrida = {"numero": 218, "terminada": "2026-09-18T14:52:00Z", "evento": "schedule", "url": "u"}
+    res = dg.obtener("x/y", "w.yml", AHORA, tmp_path, ttl_seg=300, fuente=lambda r, w: corrida)
+    assert res["origen"] == "github" and res["corrida"] == corrida
+    guardado = json.loads((tmp_path / dg.ARCHIVO).read_text())
+    assert guardado["corrida"] == corrida and guardado["obtenido"] == AHORA.isoformat()
+    # Una respuesta sin corrida no pisa la copia buena.
+    res = dg.obtener("x/y", "w.yml", AHORA + timedelta(seconds=600), tmp_path, ttl_seg=300, fuente=lambda r, w: None)
+    assert res["corrida"] == corrida and res["origen"] == "cache vencida" and "ninguna corrida" in res["error"]
 
 
 # ───────────────────────── curva de equity ─────────────────────────

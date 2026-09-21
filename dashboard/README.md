@@ -45,6 +45,9 @@ log_event("bloqueo_riesgo", ticker=t, limite="perdida_diaria", motivo=m) # cuand
 | `DASH_VELAS_TTL_SEG` | cuánto vale una copia de velas antes de volver a pedir | `120` |
 | `DASH_VELAS_MAX_TICKERS` | tope de tickers graficados por corrida | `6` |
 | `DASH_VELAS_PAUSA_SEG` | cuánto deja de pedir a Yahoo tras un 429 (todos los tickers) | `900` |
+| `DASH_GHA_REPO` | repo público cuyo Actions se consulta para la última corrida OK del hunter (vacío = no preguntar) | `h3rnan05/hernan-portafolio` |
+| `DASH_GHA_WORKFLOW` | archivo del workflow del hunter | `momentum_hunter.yml` |
+| `DASH_GHA_TTL_SEG` | cuánto vale la respuesta de Actions antes de volver a preguntar | `300` |
 
 La tabla de watchlist muestra las entradas activas (`watching`, `triggered`) y las que cambiaron
 de estado hoy. El estado sale del overlay del VPS cuando existe, porque el JSON de GitHub
@@ -95,3 +98,15 @@ ssh -N -L 8787:127.0.0.1:8787 ubuntu@momentum-paper
 
 Luego abre http://localhost:8787. El servidor escucha solo en 127.0.0.1, así que no
 hace falta abrir ningún puerto en Oracle Cloud.
+
+## Estado del Hunter: última corrida en GitHub Actions
+
+El estado "Hunter" no sale de la hora de la watchlist sino de la última corrida
+**exitosa** de `momentum_hunter.yml` según la API pública de GitHub Actions
+(`dashboard/gha.py`). Una corrida con 0 candidatos no cambia la watchlist ni
+commitea nada, y antes el panel la daba por no ocurrida. La petición es un GET
+sin token (el repo es público), se cachea `DASH_GHA_TTL_SEG` segundos en
+`DASH_CACHE_VELAS` para no agotar el límite anónimo de 60 por hora, y ante un
+403/429 el panel deja de preguntar 15 min y muestra la copia vieja marcada
+"caché vencida". Si Actions no responde y no hay copia, el Hunter queda
+"Sin datos" aunque la watchlist sea fresca: no se inventa una hora.
