@@ -248,3 +248,31 @@ def test_reporte_sin_alarmas_lo_dice(tmp_path):
         "condiciones": {}, "errores": {}, "score_maximo": 99})
     texto = reporte_semanal.construir("2026-08-24", "2026-08-28", tmp_path)
     assert "Sin señales de alarma" in texto
+
+
+# ------------------------- inicio_ts / slot (2026-09-15) -------------------------
+
+def test_como_dict_lleva_inicio_y_slot_y_por_defecto_son_none():
+    # `timestamp` es el fin; sin inicio y slot hubo que reconstruir la
+    # cobertura del universo desde los logs de GHA. Ausente = None: una
+    # corrida vieja no se inventa un slot.
+    d = _metricas().como_dict()
+    assert d["inicio_ts"] is None
+    assert d["slot"] is None
+    assert d["n_slots"] is None
+    d = _metricas(inicio_ts="2026-09-15T13:00:12+00:00", slot=2, n_slots=8).como_dict()
+    assert d["inicio_ts"] == "2026-09-15T13:00:12+00:00"
+    assert (d["slot"], d["n_slots"]) == (2, 8)
+
+
+def test_registrar_corrida_persiste_inicio_y_slot(tmp_path):
+    ahora = datetime(2026, 9, 15, 13, 9, 40, tzinfo=UTC)
+    telemetria.registrar_corrida(
+        _metricas(inicio_ts="2026-09-15T13:00:12+00:00", slot=2, n_slots=8),
+        tmp_path, ahora, fuente="vps")
+    path = tmp_path / "2026-09-15" / "vps" / "events.jsonl"
+    linea = json.loads(path.read_text().splitlines()[0])
+    assert linea["inicio_ts"] == "2026-09-15T13:00:12+00:00"
+    assert linea["slot"] == 2
+    assert linea["n_slots"] == 8
+    assert linea["timestamp"].startswith("2026-09-15T13:09:40")

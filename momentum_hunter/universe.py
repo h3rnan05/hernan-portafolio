@@ -269,11 +269,10 @@ def ventana_rotativa(
     contador persistido: dos corridas del mismo tramo de 30 minutos miran
     lo mismo (idempotente ante reintentos), y no hay estado nuevo que
     committear ni que se pueda corromper."""
-    if limite <= 0 or limite >= len(simbolos):
+    ranura = slot_rotativo(len(simbolos), limite, ahora)
+    if ranura is None:
         return simbolos
-    ahora = ahora or datetime.now(UTC)
-    n_ventanas = math.ceil(len(simbolos) / limite)
-    slot = int(ahora.timestamp() // (MINUTOS_POR_CORRIDA * 60)) % n_ventanas
+    slot, _ = ranura
     inicio = slot * limite
     # `wrap` al final: la última ventana se completa con el principio de
     # la lista en vez de quedar corta, para que toda corrida evalúe el
@@ -282,6 +281,26 @@ def ventana_rotativa(
     if len(ventana) < limite:
         ventana += simbolos[: limite - len(ventana)]
     return ventana
+
+
+def slot_rotativo(
+    n_simbolos: int, limite: int, ahora: datetime | None = None,
+) -> tuple[int, int] | None:
+    """`(slot, n_ventanas)` que `ventana_rotativa` va a usar en `ahora`,
+    o None si no hay rotación (límite que cubre el universo entero).
+
+    Separado para poder REGISTRARLO en la telemetría (2026-09-15): la
+    semana del 7 al 14/9 hubo que reconstruir qué slots se habían
+    visitado a partir de los logs de GitHub Actions y una suposición
+    de 17 s entre el arranque del job y este cálculo. Con el slot en el
+    JSONL, "qué parte del universo se miró y cuándo" es un dato, no una
+    deducción. Solo informa; no cambia qué se escanea."""
+    if limite <= 0 or limite >= n_simbolos:
+        return None
+    ahora = ahora or datetime.now(UTC)
+    n_ventanas = math.ceil(n_simbolos / limite)
+    slot = int(ahora.timestamp() // (MINUTOS_POR_CORRIDA * 60)) % n_ventanas
+    return slot, n_ventanas
 
 
 def desde_archivo(path: str) -> list[str]:
