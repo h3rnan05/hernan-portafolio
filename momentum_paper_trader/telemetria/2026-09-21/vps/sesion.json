@@ -1775,41 +1775,74 @@
         "total": 0
       },
       "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-21T18:25:33+00:00",
+      "triggered_nuevos": 1,
+      "revisiones": 1,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": [
+          84.5
+        ]
+      },
+      "latencias_ms": {
+        "descubrimiento": [
+          127000.0
+        ],
+        "alerta": [
+          128000.0
+        ],
+        "e2e": [
+          4953000.0
+        ]
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 1,
+        "total": 1
+      },
+      "fuente": "vps"
     }
   ],
   "sesion": {
-    "triggered_nuevos": 19,
-    "revisiones": 0,
+    "triggered_nuevos": 20,
+    "revisiones": 1,
     "ordenes_colocadas": 0,
-    "paper_step_success_zero_orders": 71,
+    "paper_step_success_zero_orders": 72,
     "muestras_latencia": {
-      "descubrimiento": 0,
-      "alerta": 0,
-      "e2e": 0
+      "descubrimiento": 1,
+      "alerta": 1,
+      "e2e": 1
     },
     "latencia_p50_ms": {
-      "descubrimiento": null,
-      "alerta": null,
-      "e2e": null
+      "descubrimiento": 127000.0,
+      "alerta": 128000.0,
+      "e2e": 4953000.0
     },
     "latencia_p95_ms": {
-      "descubrimiento": null,
-      "alerta": null,
-      "e2e": null
+      "descubrimiento": 127000.0,
+      "alerta": 128000.0,
+      "e2e": 4953000.0
     },
     "sobre_presupuesto": {
       "descubrimiento": 0,
       "alerta": 0,
-      "e2e": 0
+      "e2e": 1
     },
     "presupuesto_velas": 8,
     "presupuesto_ms": 480000,
     "version_medicion": 2,
     "latencia_total_velas": {
-      "muestras": 0,
-      "p50": null,
-      "p95": null,
-      "sobre_presupuesto": 0
+      "muestras": 1,
+      "p50": 84.5,
+      "p95": 84.5,
+      "sobre_presupuesto": 1
     }
   }
 }
