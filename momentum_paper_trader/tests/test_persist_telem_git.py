@@ -12,6 +12,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 PERSIST = ROOT / "scripts" / "git_persist_rebase_push.sh"
 VPS = ROOT / "scripts" / "run_watchlist_paper.sh"
+# El wrapper que de verdad corre en el VPS (instalado en /opt/momentum/bin/);
+# `scripts/` es código muerto allá (infra/systemd/README.md). Todo lo que
+# el VPS tiene que hacer se exige en los DOS.
+VPS_INSTALADO = ROOT / "infra" / "systemd" / "bin" / "run_watchlist_paper.sh"
+WRAPPERS_VPS = (VPS, VPS_INSTALADO)
 GATTR = ROOT / ".gitattributes"
 HUNTER_WF = ROOT / ".github" / "workflows" / "momentum_hunter.yml"
 WATCHLIST_WF = ROOT / ".github" / "workflows" / "momentum_hunter_watchlist.yml"
@@ -117,26 +122,30 @@ def test_vps_deja_rastro_cuando_el_persist_falla():
     """Un persist que falla no puede ser silencioso: evento para el
     panel (se pinta en rojo) y Telegram, en los dos caminos en que el
     estado se queda sin subir (git agotó reintentos, o no se consiguió
-    el flock). Nunca tumba la unidad ni fuerza el push."""
-    texto = VPS.read_text(encoding="utf-8")
-    assert "persist_fallido()" in texto
-    assert 'dashboard.events persist_fallido' in texto
-    assert "notify_telegram.sh" in texto
-    # Los dos caminos de fallo llaman al registro.
-    assert 'persist_fallido "git persist failed"' in texto
-    assert 'persist_fallido "flock timeout"' in texto
-    # El registro nunca puede hacer fallar al bot: todo con `|| true` o
-    # devolviendo 0, y sin `set -e` activo alrededor de la llamada a Telegram.
-    assert "return 0\n}" in texto
-    assert "git push --force" not in texto
+    el flock). Nunca tumba la unidad ni fuerza el push. Se exige en el
+    wrapper del árbol Y en el instalado: #150 solo tocó el primero y en
+    el VPS no cambió nada."""
+    for wrapper in WRAPPERS_VPS:
+        texto = wrapper.read_text(encoding="utf-8")
+        assert "persist_fallido()" in texto, wrapper
+        assert 'dashboard.events persist_fallido' in texto, wrapper
+        assert "notify_telegram.sh" in texto, wrapper
+        # Los dos caminos de fallo llaman al registro.
+        assert 'persist_fallido "git persist failed"' in texto, wrapper
+        assert 'persist_fallido "flock timeout"' in texto, wrapper
+        # El registro nunca puede hacer fallar al bot: todo con `|| true` o
+        # devolviendo 0, y sin `set -e` activo alrededor de la llamada a Telegram.
+        assert "return 0\n}" in texto, wrapper
+        assert "git push --force" not in texto, wrapper
 
 
 def test_vps_no_repite_el_telegram_de_persist_fallido_cada_corrida():
     """El script corre cada ~5 min: si git sigue caído, un Telegram por
     corrida es spam. Se marca el día del último aviso y no se repite."""
-    texto = VPS.read_text(encoding="utf-8")
-    assert "persist_fallido.avisado" in texto
-    assert 'date -u +%F' in texto
+    for wrapper in WRAPPERS_VPS:
+        texto = wrapper.read_text(encoding="utf-8")
+        assert "persist_fallido.avisado" in texto, wrapper
+        assert 'date -u +%F' in texto, wrapper
 
 
 def test_cli_de_eventos_escribe_el_evento_y_nunca_falla(tmp_path, monkeypatch):
