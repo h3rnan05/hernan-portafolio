@@ -603,6 +603,10 @@ def _append_transiciones(e: EntradaWatchlist, overlay: dict) -> None:
 def _entrada_a_overlay(e: EntradaWatchlist, overlay_ts: str) -> dict:
     d = {campo: getattr(e, campo) for campo in CAMPOS_OVERLAY}
     d["overlay_ts"] = overlay_ts
+    # Identidad de la ENCARNACIÓN: el overlay se indexa por ticker, pero un
+    # ticker vuelve a la watchlist con otro creado_en (BCS el 18/9 y otra
+    # vez el 21/9). Sin esto, el overlay viejo se aplicaba a la entrada nueva.
+    d["creado_en"] = e.creado_en
     d["transiciones_append"] = [_transicion_a_overlay(t) for t in e.transiciones]
     return d
 
@@ -763,6 +767,31 @@ def _aplicar_campos_overlay(
         setattr(e, campo, valor)
 
 
+def _overlay_es_de_esta_entrada(canon: EntradaWatchlist, overlay: dict) -> bool:
+    """¿El overlay habla de ESTA encarnación del ticker?
+
+    Bug real (2026-09-21, 16:29 UTC): el escaneo del VPS disparó BCS
+    (TRIGGERED, creado_en 16:29) y un minuto después el rechequeo le aplicó
+    el overlay de BCS del 18/9 (EXPIRED): misma clave "BCS", otra entrada.
+    El TRIGGERED se convirtió en EXPIRED con niveles de tres días antes y
+    el paper nunca lo vio. Regla: con `creado_en` en el overlay, tiene que
+    coincidir; sin él (overlays escritos antes de hoy), un overlay cuyo
+    reloj más nuevo es ANTERIOR a la creación de la entrada no puede ser de
+    ella. Sin ningún reloj no se descarta (comportamiento anterior)."""
+    ce = overlay.get("creado_en")
+    if isinstance(ce, str) and ce:
+        return ce == canon.creado_en
+    creado = _parse_ts(canon.creado_en)
+    relojes = []
+    for key in ("actualizado_en", "overlay_ts", "ultimos_niveles_ts"):
+        t = _parse_ts(overlay.get(key) if isinstance(overlay.get(key), str) else None)
+        if t is not None:
+            relojes.append(t)
+    if creado is None or not relojes:
+        return True
+    return max(relojes) >= creado
+
+
 def _overlay_decidio_antes(canon: EntradaWatchlist, overlay: dict) -> bool:
     """Los dos lados llegaron a un estado terminal distinto (p. ej. el
     rechequeo disparó TRIGGERED y el escaneo, que arrancó antes con datos
@@ -816,7 +845,7 @@ def aplicar_overlay(
         overlay = entries.get(e.ticker)
         if overlay is None:
             overlay = entries.get(e.ticker.upper())
-        if not isinstance(overlay, dict):
+        if not isinstance(overlay, dict) or not _overlay_es_de_esta_entrada(e, overlay):
             resultado.append(e)
             continue
         resultado.append(_fusionar_overlay(e, overlay))

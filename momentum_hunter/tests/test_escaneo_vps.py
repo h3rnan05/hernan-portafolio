@@ -69,6 +69,35 @@ def test_dos_terminales_distintos_gana_la_decision_anterior():
     assert watchlist._fusionar_overlay(canon3, overlay).estado == watchlist.ESTADO_MISSED
 
 
+def test_overlay_de_una_encarnacion_anterior_no_pisa_la_entrada_nueva(monkeypatch, tmp_path):
+    """El caso BCS del 21/9: expiró el 18/9 (overlay), el escaneo la volvió a
+    disparar el 21/9 con otro creado_en, y el rechequeo le aplicó el overlay
+    viejo. La entrada nueva tiene que quedar como está."""
+    _activar_vps(monkeypatch, tmp_path)
+    vieja = watchlist.desde_candidato_diario(_candidato_diario("BCS"), AHORA - timedelta(days=3))
+    watchlist.expirar_vencidas([vieja], minutos_maximos=1, ahora=AHORA - timedelta(days=3, hours=-6))
+    watchlist.guardar_vps_state([vieja], ahora=AHORA - timedelta(days=3, hours=-6))
+    nueva = watchlist.desde_candidato_diario(_candidato_diario("BCS"), AHORA)
+    watchlist.marcar_triggered(nueva, "m", "d", "ev", AHORA)
+    fusionadas = watchlist.aplicar_overlay([nueva])
+    assert fusionadas[0].estado == watchlist.ESTADO_TRIGGERED
+    assert fusionadas[0].creado_en == nueva.creado_en
+    # Y con un overlay SIN creado_en (formato de antes de hoy) la regla del
+    # reloj lo descarta igual: su reloj más nuevo es anterior a la creación.
+    import json as _json
+    state = Path(os.environ["MOMENTUM_WATCHLIST_STATE"])
+    crudo = _json.loads(state.read_text())
+    crudo["entries"]["BCS"].pop("creado_en")
+    state.write_text(_json.dumps(crudo))
+    assert watchlist.aplicar_overlay([nueva])[0].estado == watchlist.ESTADO_TRIGGERED
+    # El overlay de la MISMA encarnación sí se aplica (el rechequeo la expiró después).
+    misma = watchlist.desde_candidato_diario(_candidato_diario("BCS"), AHORA)
+    watchlist.expirar_vencidas([misma], minutos_maximos=1, ahora=AHORA + timedelta(hours=3))
+    watchlist.guardar_vps_state([misma], ahora=AHORA + timedelta(hours=3))
+    canon = watchlist.desde_candidato_diario(_candidato_diario("BCS"), AHORA)
+    assert watchlist.aplicar_overlay([canon])[0].estado == watchlist.ESTADO_EXPIRED
+
+
 def test_materializar_vuelca_el_overlay_al_canonico(monkeypatch, tmp_path):
     _activar_vps(monkeypatch, tmp_path)
     canon = tmp_path / "watchlist.json"
