@@ -26,9 +26,18 @@ log_event("deteccion", ticker=t)                                         # prime
 log_event("decision", ticker=t, entra=False, motivo=respuesta_llm)       # cada respuesta del LLM
 log_event("orden", ticker=t, lado="buy", estado="enviada", velas=n)      # "velas" es opcional
 log_event("bloqueo_riesgo", ticker=t, limite="perdida_diaria", motivo=m) # cuando un límite corta
+log_event("persist_fallido", motivo="git persist failed", intentos=5)   # el VPS no pudo subir su estado a main
 ```
 
 `log_event` nunca lanza excepciones: si no puede escribir, el bot sigue igual.
+
+Desde bash existe la misma entrada como CLI (siempre sale con 0):
+`python -m dashboard.events persist_fallido motivo="git persist failed" intentos=5`.
+`scripts/run_watchlist_paper.sh` la usa cuando el push a `main` agota los
+reintentos o no consigue el `flock`; el panel pinta el evento en rojo (píldora
+en la cabecera y etapa Rechequeo en "Revisar") y el script manda un Telegram,
+como mucho uno por día, si `MOMENTUM_TELEGRAM_BOT_TOKEN`/`_CHAT_ID` (o
+`TELEGRAM_*`) están en `paper.env`.
 
 ## 2. Variables
 

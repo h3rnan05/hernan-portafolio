@@ -454,6 +454,15 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None) -> dict:
     rechequeos = [e for e in eventos if e.get("tipo") == "rechequeo"]
     decisiones = [e for e in eventos if e.get("tipo") == "decision"]
     bloqueos = [e for e in eventos if e.get("tipo") == "bloqueo_riesgo"]
+    # El VPS registra `persist_fallido` cuando no consigue subir su estado
+    # (revisiones, archivo, telemetría paper) a main. Mientras eso pase,
+    # GitHub y el panel de GHA miran datos viejos: se pinta en rojo.
+    persist_fallidos = [
+        {"hora": _hora(e["_ts"], cfg["tz"], ahora=ahora),
+         "motivo": str(e.get("motivo") or "sin motivo registrado"),
+         "intentos": e.get("intentos")}
+        for e in eventos if e.get("tipo") == "persist_fallido"
+    ]
 
     ult_rechequeo = rechequeos[-1]["_ts"] if rechequeos else None
     ult_decision = decisiones[-1]["_ts"] if decisiones else None
@@ -480,8 +489,12 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None) -> dict:
         {
             "nombre": "Rechequeo", "donde": "VPS",
             "rol": "Revisa la watchlist con --solo-watchlist.",
-            "estado": estado_rechequeo,
-            "detalle": f"última corrida {_hora(ult_rechequeo, cfg['tz'], ahora=ahora)}",
+            # Un persist fallido es alerta aunque la corrida sea fresca: el
+            # bot corrió, pero su estado no llegó a main.
+            "estado": "alerta" if persist_fallidos else estado_rechequeo,
+            "detalle": (f"última corrida {_hora(ult_rechequeo, cfg['tz'], ahora=ahora)}"
+                        + (f" · {len(persist_fallidos)} persist fallidos, último {persist_fallidos[-1]['hora']}"
+                           if persist_fallidos else "")),
         },
         {
             "nombre": "Ejecutor", "donde": "VPS",
@@ -554,6 +567,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None) -> dict:
         "stream": stream, "dudas": dudas,
         "equity_dia": equity_dia, "equity_mes": equity_mes,
         "bloqueos": sorted(por_limite.items(), key=lambda kv: -kv[1]),
+        "persist_fallidos": persist_fallidos,
         "hay_eventos": hay_eventos,
         "conteos_validos": conteos_validos, "motivo_sin_datos": motivo_sin_datos,
         "ult_bloqueo": bloqueos[-1] if bloqueos else None,
@@ -1160,6 +1174,11 @@ def render(ctx: dict) -> str:
 
     sesion = '<span class="pildora ok">Sesión US abierta</span>' if ctx["en_sesion"] else '<span class="pildora">Sesión US cerrada</span>'
     alpaca = "" if ctx["alpaca_ok"] else '<span class="pildora mal">Alpaca sin conexión</span>'
+    persist = ""
+    if ctx["persist_fallidos"]:
+        ultimo = ctx["persist_fallidos"][-1]
+        persist = (f'<span class="pildora mal">Persist fallido ×{len(ctx["persist_fallidos"])} · '
+                   f'último {esc(ultimo["hora"])} ({esc(ultimo["motivo"])})</span>')
 
     return f"""<!doctype html>
 <html lang="es">
@@ -1179,7 +1198,7 @@ def render(ctx: dict) -> str:
     <div><h1>MOMENTUM</h1><div class="sub">hernan-portafolio · hunter → watchlist.json → ejecutor</div></div>
   </div>
   <div class="pildoras">
-    <span class="pildora paper">PAPER · ALPACA</span>{sesion}{alpaca}
+    <span class="pildora paper">PAPER · ALPACA</span>{sesion}{alpaca}{persist}
     <span class="pildora">Actualizado {_hora(ctx['ahora'], tz, segundos=True)} {esc(etiqueta_tz)}</span>
     <span class="pildora">Solo lectura</span>
   </div>
