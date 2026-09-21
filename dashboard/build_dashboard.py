@@ -408,8 +408,8 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
     # Curva de equity: dos vistas del mismo endpoint (solo GET). Un error
     # de Alpaca va a "problemas"; un historial vacío o relleno con ceros
     # es "Sin datos" en el gráfico, nunca una línea en cero.
-    equity_dia = _historial_equity(get, {"period": "1D", "timeframe": "5Min"}, problemas)
-    equity_mes = _historial_equity(get, {"period": "1M", "timeframe": "1D"}, problemas)
+    equity_dia = _historial_equity(get, {"period": "1D", "timeframe": "5Min"}, problemas, ahora)
+    equity_mes = _historial_equity(get, {"period": "1M", "timeframe": "1D"}, problemas, ahora)
 
     equity = num(cuenta.get("equity")) if isinstance(cuenta, dict) else None
     last_equity = num(cuenta.get("last_equity")) if isinstance(cuenta, dict) else None
@@ -519,7 +519,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
 RUTA_HISTORIAL = "/v2/account/portfolio/history"
 
 
-def serie_equity(datos) -> tuple[list[tuple[datetime, float]], float | None]:
+def serie_equity(datos, ahora: datetime | None = None) -> tuple[list[tuple[datetime, float]], float | None]:
     """(puntos [(momento, equity)], equity inicial) a partir de la respuesta
     de `GET /v2/account/portfolio/history`.
 
@@ -527,8 +527,10 @@ def serie_equity(datos) -> tuple[list[tuple[datetime, float]], float | None]:
     negativo también: Alpaca rellena con 0 los tramos donde la cuenta no
     tenía valor (antes de fondearla, fuera de sesión), y una cuenta paper
     de verdad nunca vale 0. Dibujar esos ceros sería inventar una caída a
-    cero que no ocurrió. `base_value` es la equity al inicio del periodo,
-    tal cual la manda Alpaca; si no viene, no se inventa."""
+    cero que no ocurrió. Un punto posterior a `ahora` tampoco se dibuja:
+    una equity "futura" no puede ser un dato medido. `base_value` es la
+    equity al inicio del periodo, tal cual la manda Alpaca; si no viene,
+    no se inventa."""
     if not isinstance(datos, dict):
         return [], None
     marcas, valores = datos.get("timestamp"), datos.get("equity")
@@ -539,20 +541,36 @@ def serie_equity(datos) -> tuple[list[tuple[datetime, float]], float | None]:
         momento, equity = parse_ts(marca), num(valor)
         if momento is None or equity is None or equity <= 0:
             continue
+        if ahora is not None and momento > ahora:
+            continue
         puntos.append((momento, equity))
     puntos.sort(key=lambda p: p[0])
     base = num(datos.get("base_value"))
     return puntos, (base if base is not None and base > 0 else None)
 
 
-def _historial_equity(get, params: dict, problemas: list) -> dict:
+def _historial_equity(get, params: dict, problemas: list, ahora: datetime) -> dict:
+    """`sesion` es la fecha (de Nueva York, que es la del mercado) del
+    último punto real, y `es_hoy` si esa fecha es la de `ahora`. Hace
+    falta porque `period=1D` NO significa "hoy": Alpaca devuelve el
+    último día de mercado, y antes de la apertura ese día es el anterior
+    (una madrugada de lunes trae la sesión completa del viernes). El
+    panel tiene que decir de qué día son los puntos, no suponerlo."""
     datos, err = get(RUTA_HISTORIAL, params)
     if err:
         if err not in problemas:
             problemas.append(err)
-        return {"puntos": [], "base": None, "error": err}
-    puntos, base = serie_equity(datos)
-    return {"puntos": puntos, "base": base, "error": None}
+        return {"puntos": [], "base": None, "error": err, "sesion": None, "es_hoy": False}
+    puntos, base = serie_equity(datos, ahora)
+    sesion = puntos[-1][0].astimezone(NY).date() if puntos else None
+    return {"puntos": puntos, "base": base, "error": None, "sesion": sesion,
+            "es_hoy": sesion is not None and sesion == ahora.astimezone(NY).date()}
+
+
+def _fecha_corta(fecha) -> str:
+    """"vie 18 sep": el día con nombre para que una sesión vieja nunca se
+    lea como la de hoy."""
+    return f"{DIAS_ES[fecha.weekday()]} {fecha.day} {MESES_ES[fecha.month - 1]}"
 
 
 def _etiqueta_x(momento: datetime, tz, modo: str) -> str:
@@ -836,9 +854,21 @@ def render(ctx: dict) -> str:
         riesgo = ('<p class="vacio">Ningún límite ha bloqueado operaciones hoy.</p>' if ctx["conteos_validos"]
                   else f'<p class="vacio">Sin datos: {esc(ctx["motivo_sin_datos"])}.</p>')
 
+    # El título dice de qué sesión son los puntos. Antes de la apertura
+    # Alpaca manda la sesión anterior completa: eso no es "hoy" y se avisa.
+    dia = ctx["equity_dia"]
+    if dia["puntos"] and not dia["es_hoy"]:
+        titulo_dia = "Equity de la última sesión"
+        sub_dia = f"{_fecha_corta(dia['sesion'])} · velas de 5 min"
+        nota_dia = (f'<div class="nota">Sin sesión hoy todavía: Alpaca devuelve la última sesión '
+                    f'que tiene, la del {esc(_fecha_corta(dia["sesion"]))}.</div>')
+    else:
+        titulo_dia = "Equity de hoy"
+        sub_dia = f"{_fecha_corta(dia['sesion'])} · velas de 5 min" if dia["puntos"] else "velas de 5 min"
+        nota_dia = ""
     equity_html = (
-        f'<div class="panel"><div class="titulo"><h2>Equity de hoy</h2><span class="mono">velas de 5 min</span></div>'
-        f'{_grafico_equity(ctx["equity_dia"], tz, "dia")}{_resumen_equity(ctx["equity_dia"])}</div>'
+        f'<div class="panel"><div class="titulo"><h2>{titulo_dia}</h2><span class="mono">{esc(sub_dia)}</span></div>'
+        f'{_grafico_equity(dia, tz, "dia")}{_resumen_equity(dia)}{nota_dia}</div>'
         f'<div class="panel"><div class="titulo"><h2>Equity del último mes</h2><span class="mono">cierre diario</span></div>'
         f'{_grafico_equity(ctx["equity_mes"], tz, "mes")}{_resumen_equity(ctx["equity_mes"])}</div>')
 
