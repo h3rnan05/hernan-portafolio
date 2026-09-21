@@ -405,6 +405,12 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
             problemas.append(e)
     alpaca_ok = not (err_c or err_p or err_o)
 
+    # Curva de equity: dos vistas del mismo endpoint (solo GET). Un error
+    # de Alpaca va a "problemas"; un historial vacío o relleno con ceros
+    # es "Sin datos" en el gráfico, nunca una línea en cero.
+    equity_dia = _historial_equity(get, {"period": "1D", "timeframe": "5Min"}, problemas)
+    equity_mes = _historial_equity(get, {"period": "1M", "timeframe": "1D"}, problemas)
+
     equity = num(cuenta.get("equity")) if isinstance(cuenta, dict) else None
     last_equity = num(cuenta.get("last_equity")) if isinstance(cuenta, dict) else None
     pnl = equity - last_equity if equity is not None and last_equity is not None else None
@@ -500,11 +506,132 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
         "lat_fuera": sum(1 for v in valores if v > presupuesto) if valores else None,
         "presupuesto": presupuesto,
         "stream": stream, "dudas": dudas,
+        "equity_dia": equity_dia, "equity_mes": equity_mes,
         "bloqueos": sorted(por_limite.items(), key=lambda kv: -kv[1]),
         "hay_eventos": hay_eventos,
         "conteos_validos": conteos_validos, "motivo_sin_datos": motivo_sin_datos,
         "ult_bloqueo": bloqueos[-1] if bloqueos else None,
     }
+
+
+# ───────────────────────── curva de equity ─────────────────────────
+
+RUTA_HISTORIAL = "/v2/account/portfolio/history"
+
+
+def serie_equity(datos) -> tuple[list[tuple[datetime, float]], float | None]:
+    """(puntos [(momento, equity)], equity inicial) a partir de la respuesta
+    de `GET /v2/account/portfolio/history`.
+
+    Un punto sin marca de tiempo o sin equity se salta. Un equity en 0 o
+    negativo también: Alpaca rellena con 0 los tramos donde la cuenta no
+    tenía valor (antes de fondearla, fuera de sesión), y una cuenta paper
+    de verdad nunca vale 0. Dibujar esos ceros sería inventar una caída a
+    cero que no ocurrió. `base_value` es la equity al inicio del periodo,
+    tal cual la manda Alpaca; si no viene, no se inventa."""
+    if not isinstance(datos, dict):
+        return [], None
+    marcas, valores = datos.get("timestamp"), datos.get("equity")
+    if not isinstance(marcas, list) or not isinstance(valores, list):
+        return [], None
+    puntos = []
+    for marca, valor in zip(marcas, valores):
+        momento, equity = parse_ts(marca), num(valor)
+        if momento is None or equity is None or equity <= 0:
+            continue
+        puntos.append((momento, equity))
+    puntos.sort(key=lambda p: p[0])
+    base = num(datos.get("base_value"))
+    return puntos, (base if base is not None and base > 0 else None)
+
+
+def _historial_equity(get, params: dict, problemas: list) -> dict:
+    datos, err = get(RUTA_HISTORIAL, params)
+    if err:
+        if err not in problemas:
+            problemas.append(err)
+        return {"puntos": [], "base": None, "error": err}
+    puntos, base = serie_equity(datos)
+    return {"puntos": puntos, "base": base, "error": None}
+
+
+def _etiqueta_x(momento: datetime, tz, modo: str) -> str:
+    local = momento.astimezone(tz)
+    if modo == "dia":
+        return local.strftime("%H:%M")
+    return f"{local.day} {MESES_ES[local.month - 1]}"
+
+
+def _grafico_equity(hist: dict, tz, modo: str) -> str:
+    """Línea de equity en SVG, sin librerías. `modo` es "dia" (velas de 5
+    min) o "mes" (cierre diario) y solo cambia las etiquetas del eje X.
+
+    Sin puntos: "Sin datos" en el área del gráfico y ninguna línea. Con
+    puntos: la línea va de min a max REALES (una serie plana se dibuja
+    plana, con un margen fijo para que no quede pegada al borde), y la
+    equity inicial se marca con una línea punteada."""
+    ancho, alto, x0, x1, y0, y1 = 480, 230, 62, 470, 196, 14
+    etiqueta = {"dia": "Equity de hoy, velas de 5 minutos", "mes": "Equity del último mes, cierre diario"}[modo]
+    partes = [f'<svg viewBox="0 0 {ancho} {alto}" role="img" aria-label="{esc(etiqueta)}">',
+              f'<line x1="{x0}" y1="{y1}" x2="{x0}" y2="{y0}" stroke="#bdb9ad"/>',
+              f'<line x1="{x0}" y1="{y0}" x2="{x1}" y2="{y0}" stroke="#bdb9ad"/>']
+    puntos, base = hist["puntos"], hist["base"]
+    if not puntos:
+        motivo = "Alpaca no respondió" if hist.get("error") else "sin historial de equity"
+        partes.append(f'<text x="{(x0+x1)/2}" y="110" text-anchor="middle" class="eje">Sin datos</text>')
+        partes.append(f'<text x="{(x0+x1)/2}" y="128" text-anchor="middle" class="eje">{esc(motivo)}</text>')
+        partes.append("</svg>")
+        return "".join(partes)
+
+    valores = [v for _, v in puntos]
+    candidatos = valores + ([base] if base is not None else [])
+    minimo, maximo = min(candidatos), max(candidatos)
+    if maximo - minimo < 1e-9:
+        # Serie plana de verdad: margen del 0,5 % (mínimo $1) a cada lado
+        # para que la línea se vea, sin cambiar su forma.
+        margen = max(1.0, minimo * 0.005)
+    else:
+        margen = (maximo - minimo) * 0.08
+    lo, hi = minimo - margen, maximo + margen
+    t_ini, t_fin = puntos[0][0].timestamp(), puntos[-1][0].timestamp()
+
+    def y(v: float) -> float:
+        return y0 - (v - lo) / (hi - lo) * (y0 - y1)
+
+    def x(t: float) -> float:
+        # Un solo punto (o todos en el mismo instante): al centro.
+        if t_fin - t_ini < 1:
+            return (x0 + x1) / 2
+        return x0 + (t - t_ini) / (t_fin - t_ini) * (x1 - x0)
+
+    for valor in (minimo, maximo):
+        partes.append(f'<text x="{x0-6}" y="{y(valor)+4:.1f}" text-anchor="end" class="eje">{esc(fmt_dinero(valor))}</text>')
+    if base is not None:
+        yb = y(base)
+        partes.append(f'<line x1="{x0}" y1="{yb:.1f}" x2="{x1}" y2="{yb:.1f}" stroke="#5c5b55" stroke-width="1" stroke-dasharray="5 4"/>')
+        partes.append(f'<text x="{x1}" y="{yb-6:.1f}" text-anchor="end" class="eje">inicial {esc(fmt_dinero(base))}</text>')
+    coords = " ".join(f"{x(t.timestamp()):.1f},{y(v):.1f}" for t, v in puntos)
+    partes.append(f'<polyline points="{coords}" fill="none" stroke="#2451b8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>')
+    if len(puntos) == 1:
+        partes.append(f'<circle cx="{x(t_ini):.1f}" cy="{y(valores[0]):.1f}" r="3" fill="#2451b8"/>')
+    partes.append(f'<text x="{x0}" y="{alto-6}" class="eje">{esc(_etiqueta_x(puntos[0][0], tz, modo))}</text>')
+    if len(puntos) > 1:
+        partes.append(f'<text x="{x1}" y="{alto-6}" text-anchor="end" class="eje">{esc(_etiqueta_x(puntos[-1][0], tz, modo))}</text>')
+    partes.append("</svg>")
+    return "".join(partes)
+
+
+def _resumen_equity(hist: dict) -> str:
+    """Inicial / último / variación bajo cada gráfico. Solo con datos
+    reales: sin base o sin puntos, "—"."""
+    puntos, base = hist["puntos"], hist["base"]
+    ultimo = puntos[-1][1] if puntos else None
+    variacion = ultimo - base if ultimo is not None and base is not None else None
+    clase = "" if variacion is None else ("pos" if variacion >= 0 else "neg")
+    pct = "" if variacion is None or not base else f" ({variacion / base * 100:+.2f}%)"
+    return (f'<div class="stats"><div><span class="mono">Inicial</span><b>{esc(fmt_dinero(base))}</b></div>'
+            f'<div><span class="mono">Último</span><b>{esc(fmt_dinero(ultimo))}</b></div>'
+            f'<div><span class="mono">Variación</span><b class="{clase}">{esc(fmt_dinero(variacion, signo=True) + pct)}</b></div></div>')
 
 
 # ───────────────────────── render ─────────────────────────
@@ -611,6 +738,7 @@ h1{margin:0;font-size:28px;letter-spacing:.04em}
 .fila{display:grid;gap:12px}
 .c4{grid-template-columns:repeat(4,minmax(0,1fr))}.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
 .c3{grid-template-columns:repeat(3,minmax(0,1fr))}.c2{grid-template-columns:1.55fr 1fr}
+.c2i{grid-template-columns:repeat(2,minmax(0,1fr))}
 .panel{background:var(--papel);border:1px solid var(--linea);border-radius:6px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
 .panel.oscuro{background:var(--tinta);color:#e9e7df;border-color:var(--tinta)}
 .titulo{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
@@ -638,6 +766,7 @@ svg{width:100%;height:auto}.eje{font-family:var(--mono);font-size:10px;fill:var(
 .nota{margin-top:auto;padding:10px 12px;background:#fbeceb;border-radius:4px;font-family:var(--mono);font-size:12px;color:#8f1d17}
 .scroll{overflow-x:auto}
 @media (max-width:1100px){.c5{grid-template-columns:repeat(3,minmax(0,1fr))}.c4{grid-template-columns:repeat(2,minmax(0,1fr))}.c2,.c3{grid-template-columns:1fr}}
+@media (max-width:900px){.c2i{grid-template-columns:1fr}}
 @media (max-width:640px){main{padding:20px 16px}.c4,.c5{grid-template-columns:1fr 1fr}.kpi .valor{font-size:22px}}
 """
 
@@ -707,6 +836,12 @@ def render(ctx: dict) -> str:
         riesgo = ('<p class="vacio">Ningún límite ha bloqueado operaciones hoy.</p>' if ctx["conteos_validos"]
                   else f'<p class="vacio">Sin datos: {esc(ctx["motivo_sin_datos"])}.</p>')
 
+    equity_html = (
+        f'<div class="panel"><div class="titulo"><h2>Equity de hoy</h2><span class="mono">velas de 5 min</span></div>'
+        f'{_grafico_equity(ctx["equity_dia"], tz, "dia")}{_resumen_equity(ctx["equity_dia"])}</div>'
+        f'<div class="panel"><div class="titulo"><h2>Equity del último mes</h2><span class="mono">cierre diario</span></div>'
+        f'{_grafico_equity(ctx["equity_mes"], tz, "mes")}{_resumen_equity(ctx["equity_mes"])}</div>')
+
     sesion = '<span class="pildora ok">Sesión US abierta</span>' if ctx["en_sesion"] else '<span class="pildora">Sesión US cerrada</span>'
     alpaca = "" if ctx["alpaca_ok"] else '<span class="pildora mal">Alpaca sin conexión</span>'
 
@@ -736,6 +871,7 @@ def render(ctx: dict) -> str:
 {problemas}
 <section class="fila c4" aria-label="Etapas del sistema">{etapas}</section>
 <section class="fila c5" aria-label="Cifras clave">{kpis_html}</section>
+<section class="fila c2i" aria-label="Curva de equity">{equity_html}</section>
 <section class="fila c2">
   <div class="panel"><div class="titulo"><h2>Watchlist actual</h2><span class="mono">generada {_hora(ctx['wl_momento'], tz, ahora=ctx['ahora'])}</span></div>{watch}</div>
   <div class="panel"><div class="titulo"><h2>Latencia</h2><span class="mono">ruptura → orden, velas de 1 min</span></div>
