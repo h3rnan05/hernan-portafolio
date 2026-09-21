@@ -99,6 +99,8 @@ def test_decidir_entra_false_explicito(monkeypatch):
 
     assert d.entrar is False
     assert d.confianza == 3
+    assert d.fallo_tecnico is False
+    assert d.codigo_fallo is None
 
 
 def test_decidir_cinturon_y_tirantes_confianza_insuficiente(monkeypatch):
@@ -111,7 +113,10 @@ def test_decidir_cinturon_y_tirantes_confianza_insuficiente(monkeypatch):
 
     d = ia_decision.decidir(e)
 
+    # La compuerta de confianza no es un fallo técnico: la IA sí decidió.
     assert d.entrar is False
+    assert d.fallo_tecnico is False
+    assert d.codigo_fallo is None
 
 
 def test_decidir_acepta_fraccion_valida(monkeypatch):
@@ -360,6 +365,8 @@ def test_dos_respuestas_vacias_fallan_cerrado_sin_reintentar_en_bucle(monkeypatc
 
     assert cliente.messages.llamadas == 2   # exactamente dos, no un bucle
     assert d.entrar is False                 # fail-closed intacto
+    assert d.fallo_tecnico is True
+    assert d.codigo_fallo == "respuesta"
 
 
 def test_se_usa_el_presupuesto_grande_en_la_llamada(monkeypatch):
@@ -493,5 +500,65 @@ def test_decidir_opera_con_la_respuesta_casi_valida(monkeypatch):
 
     assert d.entrar is True
     assert d.fallo_tecnico is False
+    assert d.codigo_fallo is None
     assert d.confianza == 7
     assert d.fraccion == 0.5
+
+
+class _ErrorSaldo(Exception):
+    """Forma del SDK: status 400 y la frase de saldo. El str trae una URL
+    con una clave falsa a propósito: no puede colarse en la decisión."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "Error code: 400 - credit balance is too low "
+            "https://api.anthropic.com/v1/messages?key=sk-ant-SECRETO")
+        self.status_code = 400
+        self.body = {
+            "error": {
+                "type": "invalid_request_error",
+                "message": "Your credit balance is too low to access the Anthropic API.",
+            }
+        }
+
+
+class _Error400Ajeno(Exception):
+    def __init__(self) -> None:
+        super().__init__("Error code: 400 - invalid model")
+        self.status_code = 400
+        self.body = {"error": {"message": "invalid model"}}
+
+
+def test_saldo_anthropic_es_fallo_tecnico_de_credito(monkeypatch):
+    # 2026-09-21: HTTP 400 "credit balance too low". Fail-closed, sin
+    # copiar el cuerpo (puede traer la URL de la petición).
+    _parchear_anthropic(monkeypatch, excepcion=_ErrorSaldo())
+    d = ia_decision.decidir(_entrada_triggered())
+    assert d.entrar is False
+    assert d.fallo_tecnico is True
+    assert d.codigo_fallo == "credito"
+    assert "sk-ant" not in d.razonamiento
+    assert "credit balance" not in d.razonamiento.lower()
+
+
+def test_http_400_que_no_es_saldo_no_se_etiqueta_como_credito(monkeypatch):
+    _parchear_anthropic(monkeypatch, excepcion=_Error400Ajeno())
+    d = ia_decision.decidir(_entrada_triggered())
+    assert d.entrar is False and d.fallo_tecnico is True
+    assert d.codigo_fallo == "api"
+
+
+def test_clasificar_saldo_exige_la_frase_y_no_un_5xx():
+    assert ia_decision.clasificar_excepcion_api(_ErrorSaldo()) == "credito"
+    assert ia_decision.clasificar_excepcion_api(_Error400Ajeno()) == "api"
+    cinco = _ErrorSaldo()
+    cinco.status_code = 500
+    assert ia_decision.clasificar_excepcion_api(cinco) == "api"
+    assert ia_decision.clasificar_excepcion_api(RuntimeError("timeout de red")) == "api"
+
+
+def test_decidir_sin_api_key_marca_sin_clave(monkeypatch):
+    monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+    d = ia_decision.decidir(_entrada_triggered())
+    assert d.entrar is False and d.fallo_tecnico is True
+    assert d.codigo_fallo == "sin_clave"

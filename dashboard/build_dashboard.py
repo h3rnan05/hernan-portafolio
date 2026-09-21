@@ -475,6 +475,16 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
          "intentos": e.get("intentos")}
         for e in eventos if e.get("tipo") == "persist_fallido"
     ]
+    # La IA no pudo decidir (saldo, clave, API, veredicto ilegible) y el
+    # ejecutor dejó la señal TRIGGERED. No es un persist fallido: el git
+    # puede estar sano y aun así nadie se entera de que no se opera.
+    ia_fallos = [
+        {"hora": _hora(e["_ts"], cfg["tz"], ahora=ahora),
+         "codigo": str(e.get("codigo") or "api"),
+         "motivo": str(e.get("motivo") or "fallo técnico de la IA"),
+         "consecutivos": e.get("consecutivos")}
+        for e in eventos if e.get("tipo") == "ia_fallo_tecnico"
+    ]
 
     ult_rechequeo = rechequeos[-1]["_ts"] if rechequeos else None
     ult_decision = decisiones[-1]["_ts"] if decisiones else None
@@ -544,12 +554,18 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
             "rol": "Consulta al LLM y decide si entra.",
             # Mismo criterio que Riesgo: con log y rechequeo reciente, 0
             # decisiones es un dato ("OK", "0 decisiones"). "Sin datos" solo
-            # si falta el log o no hay un rechequeo reciente.
-            "estado": "ok" if conteos_validos else "sin-datos",
+            # si falta el log o no hay un rechequeo reciente. Un fallo
+            # sostenido de la IA es alerta aunque el rechequeo sea fresco:
+            # el bot corrió y no pudo decidir.
+            "estado": "alerta" if ia_fallos else ("ok" if conteos_validos else "sin-datos"),
             # Un conteo > 0 es real aunque el rechequeo esté viejo; un 0 no.
-            "detalle": (f"{len(decisiones)} decisiones hoy · última {_hora(ult_decision, cfg['tz'], ahora=ahora)}"
-                        if hay_eventos and (decisiones or conteos_validos)
-                        else "— decisiones hoy · última —"),
+            "detalle": (
+                (f"{len(decisiones)} decisiones hoy · última {_hora(ult_decision, cfg['tz'], ahora=ahora)}"
+                 if hay_eventos and (decisiones or conteos_validos)
+                 else "— decisiones hoy · última —")
+                + (f" · {len(ia_fallos)} fallos de IA, último {ia_fallos[-1]['hora']}"
+                   if ia_fallos else "")
+            ),
         },
         {
             "nombre": "Riesgo", "donde": "Código",
@@ -611,6 +627,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         "equity_dia": equity_dia, "equity_mes": equity_mes,
         "bloqueos": sorted(por_limite.items(), key=lambda kv: -kv[1]),
         "persist_fallidos": persist_fallidos,
+        "ia_fallos": ia_fallos,
         "hay_eventos": hay_eventos,
         "conteos_validos": conteos_validos, "motivo_sin_datos": motivo_sin_datos,
         "ult_bloqueo": bloqueos[-1] if bloqueos else None,
@@ -1256,6 +1273,16 @@ def render(ctx: dict) -> str:
         ultimo = ctx["persist_fallidos"][-1]
         persist = (f'<span class="pildora mal">Persist fallido ×{len(ctx["persist_fallidos"])} · '
                    f'último {esc(ultimo["hora"])} ({esc(ultimo["motivo"])})</span>')
+    ia = ""
+    if ctx.get("ia_fallos"):
+        ultimo = ctx["ia_fallos"][-1]
+        # El saldo es el caso que se fue en silencio el 2026-09-21. Si
+        # hoy hubo al menos uno, la píldora lo dice; si no, es el fallo
+        # técnico genérico. El motivo viene de fuera y se escapa.
+        hay_credito = any(f.get("codigo") == "credito" for f in ctx["ia_fallos"])
+        etiqueta = "IA sin crédito" if hay_credito else "IA fallo técnico"
+        ia = (f'<span class="pildora mal">{etiqueta} ×{len(ctx["ia_fallos"])} · '
+              f'último {esc(ultimo["hora"])} ({esc(ultimo["motivo"])})</span>')
 
     return f"""<!doctype html>
 <html lang="es">
@@ -1275,7 +1302,7 @@ def render(ctx: dict) -> str:
     <div><h1>MOMENTUM</h1><div class="sub">hernan-portafolio · hunter → watchlist.json → ejecutor</div></div>
   </div>
   <div class="pildoras">
-    <span class="pildora paper">PAPER · ALPACA</span>{sesion}{alpaca}{persist}
+    <span class="pildora paper">PAPER · ALPACA</span>{sesion}{alpaca}{persist}{ia}
     <span class="pildora">Actualizado {_hora(ctx['ahora'], tz, segundos=True)} {esc(etiqueta_tz)}</span>
     <span class="pildora">Solo lectura</span>
   </div>

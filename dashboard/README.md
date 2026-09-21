@@ -27,6 +27,8 @@ log_event("decision", ticker=t, entra=False, motivo=respuesta_llm)       # cada 
 log_event("orden", ticker=t, lado="buy", estado="enviada", velas=n)      # "velas" es opcional
 log_event("bloqueo_riesgo", ticker=t, limite="perdida_diaria", motivo=m) # cuando un límite corta
 log_event("persist_fallido", motivo="git persist failed", intentos=5)   # el VPS no pudo subir su estado a main
+log_event("ia_fallo_tecnico", codigo="credito", consecutivos=1,
+          motivo="saldo Anthropic insuficiente")                      # la IA no pudo decidir; la señal sigue TRIGGERED
 ```
 
 `log_event` nunca lanza excepciones: si no puede escribir, el bot sigue igual.
@@ -38,6 +40,13 @@ reintentos o no consigue el `flock`; el panel pinta el evento en rojo (píldora
 en la cabecera y etapa Rechequeo en "Revisar") y el script manda un Telegram,
 como mucho uno por día, si `MOMENTUM_TELEGRAM_BOT_TOKEN`/`_CHAT_ID` (o
 `TELEGRAM_*`) están en `paper.env`.
+
+`ia_fallo_tecnico` lo escribe el ejecutor (`momentum_paper_trader/aviso_fallo_ia.py`),
+no el script de persist. Es el otro silencio: Anthropic rechaza por saldo
+(HTTP 400) o la consulta falla varias corridas seguidas, la señal queda
+TRIGGERED y no se coloca orden. Píldora roja propia (no pisa la de persist)
+y Telegram aparte, también como mucho uno por día por clase. Sin
+`MOMENTUM_AVISOS_DIR` la marca vive en `/var/lib/momentum/ia_fallo_tecnico.json`.
 
 ## 2. Variables
 

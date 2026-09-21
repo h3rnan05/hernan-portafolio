@@ -12,6 +12,8 @@ Tipos que el panel entiende:
                     velas=... + medida="ruptura_a_orden" (latencia completa; None si no se midió)
     bloqueo_riesgo  ticker=..., limite=..., motivo=...
     persist_fallido motivo=..., intentos=...            (el VPS no pudo subir su estado a main)
+    ia_fallo_tecnico codigo=credito|api|..., motivo=... (la IA no pudo decidir;
+                    la señal sigue TRIGGERED. Distinto de persist_fallido.)
 
 Desde bash (scripts/run_watchlist_paper.sh) se usa la CLI:
     python -m dashboard.events persist_fallido motivo="git persist failed" intentos=5
