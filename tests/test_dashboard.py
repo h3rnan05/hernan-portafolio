@@ -1,5 +1,6 @@
 import json
 from datetime import date, datetime, timezone
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from dashboard import build_dashboard as bd
@@ -612,3 +613,335 @@ def test_equity_pide_las_dos_vistas_solo_con_get(tmp_path):
 def test_equity_error_de_alpaca_queda_en_problemas_una_vez(tmp_path):
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     assert ctx["problemas"].count("sin conexión (prueba)") == 1
+
+
+# ───────────────────────── velas del ticker en operación ─────────────────────────
+
+from dashboard import velas as dv  # noqa: E402
+
+
+def _velas(n=5, inicio=datetime(2026, 9, 18, 14, 30, tzinfo=timezone.utc), base=5.0):
+    from datetime import timedelta
+    ts = [(inicio + timedelta(minutes=i)).isoformat(timespec="seconds") for i in range(n)]
+    opens = [base + 0.01 * i for i in range(n)]
+    closes = [o + (0.02 if i % 2 == 0 else -0.01) for i, o in enumerate(opens)]
+    return {"timestamps": ts, "open": opens, "close": closes,
+            "high": [max(o, c) + 0.01 for o, c in zip(opens, closes)],
+            "low": [min(o, c) - 0.01 for o, c in zip(opens, closes)],
+            "volume": [1000.0] * n}
+
+
+def velas_ok(ticker):
+    return {"velas": _velas(), "obtenido": AHORA, "origen": "fuente", "error": None}
+
+
+def velas_caidas(ticker):
+    return {"velas": None, "obtenido": None, "origen": None, "error": "la fuente de velas falló (Timeout)"}
+
+
+def _posicion(ticker="AAA", precio="5.10"):
+    return {"symbol": ticker, "avg_entry_price": precio, "qty": "58", "side": "long"}
+
+
+def _compra(ticker="AAA", precio="5.12", hora="2026-09-18T14:32:10Z", stop="4.90", stop_estado="new"):
+    legs = [] if stop is None else [{"id": "leg-stop", "symbol": ticker, "side": "sell", "type": "stop",
+                                    "status": stop_estado, "stop_price": stop,
+                                    "submitted_at": "2026-09-18T14:32:00Z"}]
+    return {"id": "ord-1", "symbol": ticker, "side": "buy", "type": "limit", "status": "filled",
+            "filled_avg_price": precio, "filled_at": hora, "submitted_at": "2026-09-18T14:31:50Z",
+            "legs": legs}
+
+
+def _watchlist_con_ruptura(tmp_path, ticker="AAA", ruptura=5.05):
+    (tmp_path / "watchlist.json").write_text(json.dumps({"entradas": [
+        _entrada(ticker, "triggered", ultima_zona_entrada_baja=ruptura)]}))
+
+
+def _svg_velas(html, ticker):
+    import re
+    m = re.search(rf'<h2>{ticker}</h2>.*?(<svg viewBox="0 0 480 230" role="img" aria-label="Velas[^"]*">.*?</svg>)', html, re.S)
+    return m.group(1) if m else None
+
+
+def test_sin_posiciones_ni_ordenes_lo_dice(tmp_path):
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=alpaca_falso({"equity": "5000"}), velas=velas_ok)
+    assert ctx["operaciones"] == []
+    assert "Sin posiciones abiertas ni órdenes hoy." in bd.render(ctx)
+
+
+def test_alpaca_caido_operaciones_es_sin_datos_no_vacio(tmp_path):
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, velas=velas_ok))
+    assert "Sin datos: Alpaca no respondió posiciones u órdenes." in html
+    assert "Sin posiciones abiertas" not in html
+
+
+def test_fuente_de_velas_caida_muestra_sin_datos_y_ninguna_vela(tmp_path):
+    _watchlist_con_ruptura(tmp_path)
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": [_compra()]})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_caidas)
+    assert [op["ticker"] for op in ctx["operaciones"]] == ["AAA"]
+    html = bd.render(ctx)
+    svg = _svg_velas(html, "AAA")
+    assert "Sin datos" in svg and "Timeout" in svg
+    assert 'class="vela"' not in svg and "marca-" not in svg
+    # Las marcas siguen en el pie, porque salen de Alpaca y la watchlist, no de Yahoo.
+    assert "$5.05" in html and "$5.12" in html and "$4.90" in html
+
+
+def test_velas_reales_se_grafican_con_las_tres_marcas_y_la_hora_del_fill(tmp_path):
+    _watchlist_con_ruptura(tmp_path)
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": [_compra()]})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)
+    m = ctx["operaciones"][0]["marcas"]
+    assert m == {"ruptura": 5.05, "entrada_precio": 5.12,
+                 "entrada_hora": datetime(2026, 9, 18, 14, 32, 10, tzinfo=timezone.utc), "stop": 4.90}
+    html = bd.render(ctx)
+    svg = _svg_velas(html, "AAA")
+    assert svg.count('class="vela"') == 5
+    for marca in ("marca-ruptura", "marca-stop", "marca-entrada", "marca-entrada-hora"):
+        assert marca in svg, marca
+    assert "ruptura $5.05" in svg and "stop $4.90" in svg and "entrada $5.12" in svg
+    assert "5 velas · Yahoo 15:00" in html
+    assert "$5.12 a las 14:32" in html
+
+
+def test_marcas_que_faltan_no_se_dibujan_y_dicen_sin_dato(tmp_path):
+    # Posición abierta ayer: no hay compra de hoy ni entrada en la watchlist.
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": []})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)
+    m = ctx["operaciones"][0]["marcas"]
+    assert m["ruptura"] is None and m["stop"] is None and m["entrada_hora"] is None
+    assert m["entrada_precio"] == 5.10   # precio medio real de la posición, sin hora
+    html = bd.render(ctx)
+    svg = _svg_velas(html, "AAA")
+    assert "marca-ruptura" not in svg and "marca-stop" not in svg and "marca-entrada-hora" not in svg
+    assert "marca-entrada" in svg
+    assert html.count("<b>sin dato</b>") == 2 and "$5.10 (hora sin dato)" in html
+    assert 'class="vela"' in svg
+
+
+def test_stop_cancelado_no_cuenta_como_stop(tmp_path):
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()],
+                                             "/v2/orders": [_compra(stop_estado="canceled")]})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)
+    assert ctx["operaciones"][0]["marcas"]["stop"] is None
+
+
+def test_stop_de_una_orden_abierta_de_otro_dia_si_cuenta(tmp_path):
+    # La compra fue ayer (no está en las órdenes de hoy) pero el stop sigue abierto.
+    abierta = {"id": "stop-viejo", "symbol": "AAA", "side": "sell", "type": "stop", "status": "new",
+               "stop_price": "4.80", "submitted_at": "2026-09-17T15:00:00Z"}
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": []})
+    llamadas = []
+
+    def get_con_abiertas(ruta, params=None):
+        llamadas.append((ruta, params))
+        if ruta == "/v2/orders" and params and params.get("status") == "open":
+            return [abierta], None
+        return get(ruta, params)
+
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get_con_abiertas, velas=velas_ok)
+    assert ctx["operaciones"][0]["marcas"]["stop"] == 4.80
+    assert any(p.get("nested") == "true" and p.get("status") == "all" for r, p in llamadas if r == "/v2/orders")
+
+
+def test_marca_fuera_de_rango_se_anota_en_el_borde_sin_aplastar_las_velas(tmp_path):
+    _watchlist_con_ruptura(tmp_path, ruptura=50.0)   # lejísimos de velas de $5
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": []})
+    svg = _svg_velas(bd.render(bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)), "AAA")
+    assert "marca-ruptura-fuera" in svg and "fuera del gráfico" in svg
+    assert '<line class="marca-ruptura"' not in svg
+
+
+def test_tope_de_tickers_por_corrida(tmp_path):
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion("AAA"), _posicion("BBB")], "/v2/orders": []})
+    pedidos = []
+
+    def velas_contando(ticker):
+        pedidos.append(ticker)
+        return velas_ok(ticker)
+
+    ctx = bd.construir(AHORA, cfg(tmp_path, velas_max_tickers=1), get=get, velas=velas_contando)
+    assert pedidos == ["AAA"] and ctx["operaciones_omitidas"] == ["BBB"]
+    assert "Sin graficar por el tope" in bd.render(ctx)
+
+
+def test_tickers_en_operacion_posiciones_primero_sin_duplicados():
+    assert bd.tickers_en_operacion([_posicion("BBB")], [_compra("AAA"), _compra("BBB")]) == ["BBB", "AAA"]
+
+
+# ───────────────────────── caché de velas ─────────────────────────
+
+def test_cache_vigente_no_toca_la_fuente(tmp_path):
+    from datetime import timedelta
+    llamadas = []
+
+    def fuente(ticker):
+        llamadas.append(ticker)
+        return _velas()
+
+    r1 = dv.obtener("AAA", AHORA, tmp_path / "cache", 120, fuente=fuente)
+    r2 = dv.obtener("AAA", AHORA + timedelta(seconds=60), tmp_path / "cache", 120, fuente=fuente)
+    assert llamadas == ["AAA"]
+    assert r1["origen"] == "fuente" and r2["origen"] == "cache"
+    assert r2["velas"] == r1["velas"] and r2["obtenido"] == AHORA
+    r3 = dv.obtener("AAA", AHORA + timedelta(seconds=121), tmp_path / "cache", 120, fuente=fuente)
+    assert llamadas == ["AAA", "AAA"] and r3["origen"] == "fuente"
+
+
+def test_fuente_caida_sirve_la_cache_vencida_con_el_error(tmp_path):
+    from datetime import timedelta
+    dv.obtener("AAA", AHORA, tmp_path / "cache", 120, fuente=lambda t: _velas())
+
+    def rota(ticker):
+        raise TimeoutError("yahoo")
+
+    r = dv.obtener("AAA", AHORA + timedelta(seconds=300), tmp_path / "cache", 120, fuente=rota)
+    assert r["origen"] == "cache vencida" and r["obtenido"] == AHORA
+    assert r["velas"]["close"] == _velas()["close"]
+    assert "TimeoutError" in r["error"]
+
+
+def test_fuente_caida_sin_cache_es_sin_datos(tmp_path):
+    r = dv.obtener("AAA", AHORA, tmp_path / "cache", 120, fuente=lambda t: None)
+    assert r["velas"] is None and r["origen"] is None and "no devolvió" in r["error"]
+    assert not list((tmp_path / "cache").glob("*")) if (tmp_path / "cache").exists() else True
+
+
+def test_respuesta_invalida_no_se_cachea(tmp_path):
+    r = dv.obtener("AAA", AHORA, tmp_path / "cache", 120,
+                   fuente=lambda t: {"timestamps": ["x"], "open": [1], "close": [], "high": [], "low": [], "volume": []})
+    assert r["velas"] is None
+    assert not (tmp_path / "cache" / "velas_AAA.json").exists()
+
+
+class _Respuesta:
+    def __init__(self, status, cuerpo=None):
+        self.status_code, self._cuerpo = status, cuerpo
+
+    def json(self):
+        return self._cuerpo
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise dv.requests.HTTPError(f"HTTP {self.status_code}")
+
+
+def _chart_yahoo(epochs, precios, volumenes=None):
+    n = len(epochs)
+    vol = volumenes or [100.0] * n
+    return {"chart": {"result": [{"timestamp": epochs, "indicators": {"quote": [{
+        "open": precios, "close": precios, "high": [p + 0.01 for p in precios],
+        "low": [p - 0.01 for p in precios], "volume": vol}]}}]}}
+
+
+def _epoch(*hms, dia=18):
+    return int(datetime(2026, 9, dia, *hms, tzinfo=timezone.utc).timestamp())
+
+
+def test_fuente_por_defecto_hace_la_misma_peticion_y_el_mismo_parseo_que_el_hunter(monkeypatch):
+    from momentum_hunter import config as hcfg
+    from momentum_hunter.data import provider
+    llamadas = []
+    # Ayer + 6 velas de hoy + una vela en formación con volumen 0 explícito.
+    epochs = [_epoch(15, 0, dia=17)] + [_epoch(14, 30 + i) for i in range(7)]
+    precios = [1.0] + [5.0 + 0.01 * i for i in range(7)]
+    cuerpo = _chart_yahoo(epochs, precios, [100.0] * 7 + [0.0])
+
+    def get(url, params=None, headers=None, timeout=None):
+        llamadas.append((url, params, headers))
+        return _Respuesta(200, cuerpo)
+
+    monkeypatch.setattr(dv.requests, "get", get)
+    velas = dv.fuente_hunter("AAA")
+    prov = provider.YahooProvider()
+    assert llamadas == [(prov.CHART.format(t="AAA"),
+                         prov.params_intradia(hcfg.CONFIG.intervalo_intradia, hcfg.CONFIG.periodo_intradia),
+                         prov.HEADERS)]
+    # Mismo resultado que el hunter: parseo idéntico (descarta la vela en
+    # formación) y recorte a hoy.
+    esperado = provider.parsear_chart_intradia("AAA", cuerpo)
+    assert velas["close"] == esperado.close[1:] == [5.0 + 0.01 * i for i in range(6)]
+    assert velas["timestamps"][0] == "2026-09-18T14:30:00+00:00"
+
+
+def test_fuente_429_lanza_limite_con_una_sola_peticion_sin_reintentos(monkeypatch):
+    import pytest
+    llamadas = []
+    monkeypatch.setattr(dv.requests, "get", lambda *a, **k: (llamadas.append(1), _Respuesta(429))[1])
+    with pytest.raises(dv.LimiteDePeticiones):
+        dv.fuente_hunter("AAA")
+    assert len(llamadas) == 1
+
+
+def test_fuente_con_pocas_velas_es_none_como_en_el_hunter(monkeypatch):
+    epochs = [_epoch(14, 30 + i) for i in range(3)]
+    monkeypatch.setattr(dv.requests, "get", lambda *a, **k: _Respuesta(200, _chart_yahoo(epochs, [5.0] * 3)))
+    assert dv.fuente_hunter("AAA") is None
+
+
+def test_429_pausa_a_todos_los_tickers_y_sirve_la_copia_vieja_marcada(tmp_path):
+    from datetime import timedelta
+    cache = tmp_path / "cache"
+    dv.obtener("AAA", AHORA, cache, 120, fuente=lambda t: _velas())   # copia buena de AAA
+    llamadas = []
+
+    def limitada(ticker):
+        llamadas.append(ticker)
+        raise dv.LimiteDePeticiones("429")
+
+    t1 = AHORA + timedelta(seconds=200)   # TTL vencido: toca pedir
+    r = dv.obtener("AAA", t1, cache, 120, fuente=limitada, pausa_seg=900)
+    assert llamadas == ["AAA"]
+    assert r["origen"] == "cache vencida" and r["velas"]["close"] == _velas()["close"]
+    assert "429" in r["error"] and "15:18" in r["error"]   # 15:03:20 + 900 s
+    assert dv.pausa_hasta(cache) == t1 + timedelta(seconds=900)
+    # Otro ticker, sin copia, dentro de la pausa: NO se pide y es "Sin datos".
+    r2 = dv.obtener("BBB", t1 + timedelta(seconds=60), cache, 120, fuente=limitada)
+    assert llamadas == ["AAA"] and r2["velas"] is None and "429" in r2["error"]
+    # AAA dentro de la pausa: tampoco se pide, sigue la copia vieja.
+    r3 = dv.obtener("AAA", t1 + timedelta(seconds=120), cache, 120, fuente=limitada)
+    assert llamadas == ["AAA"] and r3["origen"] == "cache vencida"
+    # Pasada la pausa, se vuelve a pedir.
+    r4 = dv.obtener("BBB", t1 + timedelta(seconds=901), cache, 120, fuente=lambda t: _velas())
+    assert r4["origen"] == "fuente"
+
+
+def test_pausa_por_429_se_ve_en_el_panel(tmp_path):
+    from datetime import timedelta
+    cache = tmp_path / "cache"
+    dv.obtener("AAA", AHORA - timedelta(seconds=600), cache, 120, fuente=lambda t: _velas())
+
+    def limitada(ticker):
+        raise dv.LimiteDePeticiones("429")
+
+    def velas(ticker):
+        return dv.obtener(ticker, AHORA, cache, 120, fuente=limitada, pausa_seg=900)
+
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": []})
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas))
+    assert "5 velas · caché vencida 14:50" in html
+    assert "Yahoo limitó peticiones (429)" in html
+    assert 'class="vela"' in html   # la copia vieja sí se dibuja
+
+
+def test_cache_por_defecto_nunca_dentro_del_repo(monkeypatch):
+    monkeypatch.delenv("DASH_CACHE_VELAS", raising=False)
+    ruta = bd.cargar_config()["cache_velas"]
+    assert not ruta.resolve().is_relative_to(bd.REPO)
+
+
+def test_cache_configurada_dentro_del_repo_se_ignora_con_aviso():
+    problemas = []
+    ruta = bd.cache_velas_segura(bd.REPO / "dashboard_cache", problemas)
+    assert ruta == bd.CACHE_VELAS_DEFECTO
+    assert any("dentro del repo" in p for p in problemas)
+    problemas = []
+    assert bd.cache_velas_segura(Path("/var/lib/momentum/dashboard_cache"), problemas) == Path("/var/lib/momentum/dashboard_cache")
+    assert problemas == []
+
+
+def test_unidad_del_panel_fija_la_cache_fuera_del_repo():
+    texto = (bd.REPO / "deploy" / "momentum-dashboard.service").read_text(encoding="utf-8")
+    assert "Environment=DASH_CACHE_VELAS=/var/lib/momentum/dashboard_cache" in texto
+    assert "DASH_CACHE_VELAS=/opt/hernan-portafolio" not in texto

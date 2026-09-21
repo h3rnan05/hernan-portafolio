@@ -5,6 +5,7 @@ Fuentes:
   - watchlist.json            salida del hunter
   - logs/events.jsonl         eventos escritos con dashboard.events.log_event
   - API de Alpaca PAPER       solo peticiones GET, endpoint fijo
+  - velas de 1 min            misma fuente que el hunter, con caché (dashboard/velas.py)
 
 Regla del panel: un dato que falta se muestra como "—", nunca como 0.
 
@@ -20,6 +21,7 @@ import re
 import statistics
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -27,7 +29,14 @@ from datetime import datetime, time, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from dashboard import velas as dv
+
 ALPACA_PAPER = "https://paper-api.alpaca.markets"  # fijo: el panel nunca habla con la cuenta real
+REPO = Path(__file__).resolve().parents[1]
+# Sin DASH_CACHE_VELAS la caché va al directorio temporal del sistema,
+# NUNCA al árbol del repo: un archivo suelto dentro de /opt/hernan-portafolio
+# rompe el `git pull --rebase` del wrapper (medido 2026-09-18).
+CACHE_VELAS_DEFECTO = Path(tempfile.gettempdir()) / "momentum-dashboard-cache"
 NY = ZoneInfo("America/New_York")
 
 
@@ -56,6 +65,12 @@ def cargar_config() -> dict:
         "hunter_max_min": _env_float("DASH_HUNTER_MAX_MIN", 45.0),
         "rechequeo_max_min": _env_float("DASH_RECHEQUEO_MAX_MIN", 12.0),
         "tz": ZoneInfo(os.environ.get("DASH_TZ", "UTC")),
+        # Velas de los tickers en operación: caché fuera de git (en el VPS,
+        # junto al HTML) y tope de tickers por corrida para no saturar a Yahoo.
+        "cache_velas": Path(os.environ.get("DASH_CACHE_VELAS") or CACHE_VELAS_DEFECTO),
+        "velas_ttl_seg": _env_float("DASH_VELAS_TTL_SEG", 120.0),
+        "velas_max_tickers": int(_env_float("DASH_VELAS_MAX_TICKERS", 6.0) or 6),
+        "velas_pausa_seg": _env_float("DASH_VELAS_PAUSA_SEG", 900.0),
     }
 
 
@@ -291,6 +306,10 @@ def leer_watchlist(ruta: Path, ruta_estado: Path | None = None):
             "detectado": parse_ts(_primero(x, "detectado", "detected_at", "creado_en", "timestamp", "added_at", "ts")),
             "estado": estado,
             "actualizado": parse_ts(actualizado),
+            # Nivel de ruptura que calculó el hunter ("la entrada que se
+            # esperaba"). Ausente = None: el panel dice "sin dato".
+            "ruptura": num(x.get("ultima_zona_entrada_baja")),
+            "creado_en": parse_ts(x.get("creado_en")),
         })
     if generado is None:
         candidatos = [t for t in (mas_reciente, fecha_ultimo_commit(ruta)) if t is not None]
@@ -375,7 +394,7 @@ def filtrar_watchlist(items: list[dict], desde: datetime) -> list[dict]:
     return sorted(visibles, key=lambda w: (not activo(w), -(w.get("actualizado") or minimo).timestamp()))
 
 
-def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
+def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None) -> dict:
     desde = inicio_dia_ny(ahora)
     en_sesion = sesion_abierta(ahora)
     problemas = []
@@ -389,18 +408,21 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
     if malas:
         problemas.append(f"{malas} líneas del log de eventos no se pudieron leer.")
 
-    watch, wl_momento, err = leer_watchlist(cfg["watchlist"], cfg.get("watchlist_estado"))
+    watch_todas, wl_momento, err = leer_watchlist(cfg["watchlist"], cfg.get("watchlist_estado"))
     if err:
         problemas.append(err)
-    watch = filtrar_watchlist(watch, desde)
+    watch = filtrar_watchlist(watch_todas, desde)
 
     cuenta, err_c = get("/v2/account")
     posiciones, err_p = get("/v2/positions")
     ordenes, err_o = get("/v2/orders", {
-        "status": "all", "limit": 500, "direction": "desc",
+        "status": "all", "limit": 500, "direction": "desc", "nested": "true",
         "after": desde.astimezone(timezone.utc).isoformat(),
     })
-    for e in (err_c, err_p, err_o):
+    # Órdenes abiertas sin filtro de fecha: el stop de una posición abierta
+    # ayer no aparece entre las órdenes de hoy. Solo GET.
+    abiertas, err_a = get("/v2/orders", {"status": "open", "limit": 500, "nested": "true"})
+    for e in (err_c, err_p, err_o, err_a):
         if e and e not in problemas:
             problemas.append(e)
     alpaca_ok = not (err_c or err_p or err_o)
@@ -499,8 +521,27 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
         for d in reversed(decisiones) if d.get("entra") is False
     ][:6]
 
+    lista_posiciones = posiciones if isinstance(posiciones, list) else []
+    todas_ordenes = _unir_ordenes(lista_ordenes or [], abiertas if isinstance(abiertas, list) else [])
+    if velas is None:
+        cache_dir = cache_velas_segura(cfg.get("cache_velas"), problemas)
+
+        def velas(ticker):
+            return dv.obtener(ticker, ahora, cache_dir, cfg.get("velas_ttl_seg", 120.0),
+                              pausa_seg=cfg.get("velas_pausa_seg", 900.0))
+    tickers_op = tickers_en_operacion(lista_posiciones, lista_ordenes or [])
+    tope = int(cfg.get("velas_max_tickers", 6))
+    operaciones = [{
+        "ticker": t,
+        "velas": velas(t),
+        "marcas": marcas_de(t, lista_posiciones, todas_ordenes, watch_todas),
+    } for t in tickers_op[:tope]]
+    omitidos = tickers_op[tope:]
+
     return {
         "ahora": ahora, "tz": cfg["tz"], "en_sesion": en_sesion, "alpaca_ok": alpaca_ok,
+        "operaciones": operaciones, "operaciones_omitidas": omitidos,
+        "hay_alpaca_operaciones": err_p is None and err_o is None,
         "problemas": problemas, "etapas": etapas,
         "equity": equity, "pnl": pnl, "pnl_pct": pnl_pct, "cuenta_numero": cuenta_numero,
         "desajuste_equity": _desajuste_equity(equity_mes, equity, last_equity),
@@ -678,6 +719,203 @@ def _resumen_equity(hist: dict) -> str:
             f'<div><span class="mono">Variación</span><b class="{clase}">{esc(fmt_dinero(variacion, signo=True) + pct)}</b></div></div>')
 
 
+# ───────────────────────── velas del ticker en operación ─────────────────────────
+
+ESTADOS_ORDEN_MUERTA = ("canceled", "expired", "rejected", "replaced")
+TIPOS_STOP = ("stop", "stop_limit", "trailing_stop")
+
+
+def _unir_ordenes(*listas: list) -> list[dict]:
+    vistas, out = set(), []
+    for lista in listas:
+        for o in lista:
+            if not isinstance(o, dict):
+                continue
+            clave = o.get("id") or id(o)
+            if clave in vistas:
+                continue
+            vistas.add(clave)
+            out.append(o)
+    return out
+
+
+def cache_velas_segura(ruta: Path | None, problemas: list) -> Path:
+    """La caché de velas jamás dentro del repo. Si la configuración apunta
+    adentro (por error o por una ruta relativa con el cwd en el árbol), se
+    usa el temporal del sistema y se avisa."""
+    ruta = Path(ruta) if ruta else CACHE_VELAS_DEFECTO
+    try:
+        dentro = ruta.resolve().is_relative_to(REPO)
+    except (OSError, RuntimeError):
+        dentro = False
+    if dentro:
+        problemas.append(f"DASH_CACHE_VELAS apunta dentro del repo ({ruta}); "
+                         f"la caché de velas se guarda en {CACHE_VELAS_DEFECTO}.")
+        return CACHE_VELAS_DEFECTO
+    return ruta
+
+
+def tickers_en_operacion(posiciones: list, ordenes_hoy: list) -> list[str]:
+    """Posiciones abiertas primero, luego tickers con orden hoy. Sin duplicados."""
+    out: list[str] = []
+    for fuente in (posiciones, ordenes_hoy):
+        for x in fuente:
+            simbolo = x.get("symbol") if isinstance(x, dict) else None
+            if simbolo and simbolo not in out:
+                out.append(str(simbolo))
+    return out
+
+
+def _entrada_watchlist(ticker: str, watch: list[dict]) -> dict | None:
+    """La entrada de la watchlist que corresponde a la operación: la más
+    reciente del ticker, con preferencia por triggered y luego watching."""
+    prioridad = {"triggered": 0, "watching": 1}
+    candidatas = [w for w in watch if w.get("ticker") == ticker]
+    if not candidatas:
+        return None
+    minimo = datetime.min.replace(tzinfo=timezone.utc)
+    return sorted(candidatas, key=lambda w: (
+        prioridad.get(str(w.get("estado") or "").lower(), 2),
+        -(w.get("creado_en") or minimo).timestamp()))[0]
+
+
+def marcas_de(ticker: str, posiciones: list, ordenes: list, watch: list[dict]) -> dict:
+    """Niveles a dibujar. Cada uno sale de UNA fuente concreta y si falta es
+    None, nunca un cálculo:
+      ruptura       -> `ultima_zona_entrada_baja` de la entrada de la watchlist
+      entrada       -> `filled_avg_price` / `filled_at` de la compra llenada
+                       (fill real); si no hay compra de hoy, el precio medio de
+                       la posición (`avg_entry_price`), sin hora
+      stop          -> `stop_price` de la pata/orden de venta tipo stop que
+                       no esté cancelada, la más reciente"""
+    w = _entrada_watchlist(ticker, watch)
+    ruptura = w.get("ruptura") if w else None
+
+    compras = [o for o in ordenes if o.get("symbol") == ticker and o.get("side") == "buy"
+               and num(o.get("filled_avg_price")) is not None and parse_ts(o.get("filled_at"))]
+    compras.sort(key=lambda o: parse_ts(o.get("filled_at")))
+    entrada_precio = entrada_hora = None
+    if compras:
+        entrada_precio = num(compras[-1].get("filled_avg_price"))
+        entrada_hora = parse_ts(compras[-1].get("filled_at"))
+    else:
+        pos = next((p for p in posiciones if p.get("symbol") == ticker), None)
+        if pos is not None:
+            entrada_precio = num(pos.get("avg_entry_price"))
+
+    stops = []
+    for o in ordenes:
+        for candidata in [o, *(o.get("legs") or [])]:
+            if not isinstance(candidata, dict) or candidata.get("symbol", ticker) != ticker:
+                continue
+            if candidata.get("side") != "sell" or candidata.get("type") not in TIPOS_STOP:
+                continue
+            if candidata.get("status") in ESTADOS_ORDEN_MUERTA:
+                continue
+            precio = num(candidata.get("stop_price"))
+            if precio is not None:
+                stops.append((parse_ts(candidata.get("submitted_at")) or datetime.min.replace(tzinfo=timezone.utc), precio))
+    stop = sorted(stops)[-1][1] if stops else None
+    return {"ruptura": ruptura, "entrada_precio": entrada_precio, "entrada_hora": entrada_hora, "stop": stop}
+
+
+def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime) -> str:
+    """Velas de 1 min en SVG, sin librerías. Las marcas que faltan no se
+    dibujan (el pie del panel dice "sin dato"). Una marca fuera del rango
+    de precios de las velas se anota en el borde en vez de aplastar las
+    velas para que quepa."""
+    ancho, alto, x0, x1, y0, y1 = 480, 230, 56, 470, 196, 14
+    partes = [f'<svg viewBox="0 0 {ancho} {alto}" role="img" aria-label="Velas de 1 minuto de hoy">',
+              f'<line x1="{x0}" y1="{y1}" x2="{x0}" y2="{y0}" stroke="#bdb9ad"/>',
+              f'<line x1="{x0}" y1="{y0}" x2="{x1}" y2="{y0}" stroke="#bdb9ad"/>']
+    velas = res.get("velas")
+    if not velas:
+        partes.append(f'<text x="{(x0+x1)/2}" y="110" text-anchor="middle" class="eje">Sin datos</text>')
+        partes.append(f'<text x="{(x0+x1)/2}" y="128" text-anchor="middle" class="eje">{esc(res.get("error") or "sin velas")}</text>')
+        partes.append("</svg>")
+        return "".join(partes)
+
+    n = len(velas["close"])
+    marcas_ts = [parse_ts(t) for t in velas["timestamps"]]
+    minimo, maximo = min(velas["low"]), max(velas["high"])
+    rango = maximo - minimo
+    if rango < 1e-9:
+        rango = max(0.01, minimo * 0.002)
+    # Una marca a menos de un rango completo de distancia entra al eje; más
+    # lejos, se anota en el borde.
+    dentro = [v for v in (marcas["ruptura"], marcas["entrada_precio"], marcas["stop"])
+              if v is not None and minimo - rango <= v <= maximo + rango]
+    lo = min([minimo, *dentro]) - rango * 0.08
+    hi = max([maximo, *dentro]) + rango * 0.08
+
+    def y(v: float) -> float:
+        return y0 - (v - lo) / (hi - lo) * (y0 - y1)
+
+    paso = (x1 - x0) / n
+    cuerpo = max(1.0, min(6.0, paso * 0.7))
+
+    def x(i: int) -> float:
+        return x0 + paso * (i + 0.5)
+
+    for valor in (minimo, maximo):
+        partes.append(f'<text x="{x0-6}" y="{y(valor)+4:.1f}" text-anchor="end" class="eje">{esc(fmt_dinero(valor))}</text>')
+    for i in range(n):
+        o, c, h, lw = velas["open"][i], velas["close"][i], velas["high"][i], velas["low"][i]
+        color = "#1f7a4d" if c >= o else "#b3261e"
+        partes.append(f'<line x1="{x(i):.1f}" y1="{y(h):.1f}" x2="{x(i):.1f}" y2="{y(lw):.1f}" stroke="{color}" stroke-width="1"/>')
+        top, base = max(o, c), min(o, c)
+        partes.append(f'<rect class="vela" x="{x(i)-cuerpo/2:.1f}" y="{y(top):.1f}" width="{cuerpo:.1f}" '
+                      f'height="{max(1.0, y(base)-y(top)):.1f}" fill="{color}"/>')
+
+    def marca_horizontal(valor, nombre, color, dash):
+        if valor is None:
+            return
+        if lo <= valor <= hi:
+            yv = y(valor)
+            partes.append(f'<line class="marca-{nombre}" x1="{x0}" y1="{yv:.1f}" x2="{x1}" y2="{yv:.1f}" stroke="{color}" stroke-width="1.2" stroke-dasharray="{dash}"/>')
+            partes.append(f'<text x="{x1}" y="{yv-4:.1f}" text-anchor="end" class="eje" style="fill:{color}">{esc(nombre)} {esc(fmt_dinero(valor))}</text>')
+        else:
+            yv = y1 + 10 if valor > hi else y0 - 6
+            partes.append(f'<text class="eje marca-{nombre}-fuera" x="{x1}" y="{yv:.1f}" text-anchor="end" style="fill:{color}">{esc(nombre)} {esc(fmt_dinero(valor))} (fuera del gráfico)</text>')
+
+    marca_horizontal(marcas["ruptura"], "ruptura", "#2451b8", "6 4")
+    marca_horizontal(marcas["stop"], "stop", "#b3261e", "3 3")
+    marca_horizontal(marcas["entrada_precio"], "entrada", "#5c5b55", "1 3")
+    hora = marcas["entrada_hora"]
+    if hora is not None and marcas_ts and marcas_ts[0] is not None:
+        # Vela más cercana al fill real (sin interpolar entre velas).
+        idx = min(range(n), key=lambda i: abs((marcas_ts[i] - hora).total_seconds()) if marcas_ts[i] else float("inf"))
+        if marcas_ts[idx] is not None and abs((marcas_ts[idx] - hora).total_seconds()) <= 120:
+            partes.append(f'<line class="marca-entrada-hora" x1="{x(idx):.1f}" y1="{y1}" x2="{x(idx):.1f}" y2="{y0}" stroke="#5c5b55" stroke-width="1" stroke-dasharray="2 3"/>')
+            if marcas["entrada_precio"] is not None and lo <= marcas["entrada_precio"] <= hi:
+                partes.append(f'<circle cx="{x(idx):.1f}" cy="{y(marcas["entrada_precio"]):.1f}" r="3.5" fill="#16171a"/>')
+    if marcas_ts[0] is not None:
+        partes.append(f'<text x="{x0}" y="{alto-6}" class="eje">{esc(_hora(marcas_ts[0], tz, ahora=ahora))}</text>')
+    if n > 1 and marcas_ts[-1] is not None:
+        partes.append(f'<text x="{x1}" y="{alto-6}" text-anchor="end" class="eje">{esc(_hora(marcas_ts[-1], tz, ahora=ahora))}</text>')
+    partes.append("</svg>")
+    return "".join(partes)
+
+
+def _pie_marcas(marcas: dict, tz, ahora: datetime) -> str:
+    def dinero(v):
+        return fmt_dinero(v) if v is not None else "sin dato"
+    entrada = dinero(marcas["entrada_precio"])
+    if marcas["entrada_precio"] is not None:
+        entrada += f" a las {_hora(marcas['entrada_hora'], tz, ahora=ahora)}" if marcas["entrada_hora"] else " (hora sin dato)"
+    return (f'<div class="stats"><div><span class="mono">Ruptura</span><b>{esc(dinero(marcas["ruptura"]))}</b></div>'
+            f'<div><span class="mono">Entrada</span><b>{esc(entrada)}</b></div>'
+            f'<div><span class="mono">Stop</span><b>{esc(dinero(marcas["stop"]))}</b></div></div>')
+
+
+def _subtitulo_velas(res: dict, tz, ahora: datetime) -> str:
+    velas = res.get("velas")
+    if not velas:
+        return "sin velas"
+    origen = {"fuente": "Yahoo", "cache": "caché", "cache vencida": "caché vencida"}.get(res.get("origen"), "—")
+    return f"{len(velas['close'])} velas · {origen} {_hora(res.get('obtenido'), tz, ahora=ahora)}"
+
+
 # ───────────────────────── render ─────────────────────────
 
 def esc(v) -> str:
@@ -809,6 +1047,8 @@ td.tk{color:var(--tinta);font-weight:700}
 svg{width:100%;height:auto}.eje{font-family:var(--mono);font-size:10px;fill:var(--gris)}.eje.rojo{fill:var(--rojo)}
 .nota{margin-top:auto;padding:10px 12px;background:#fbeceb;border-radius:4px;font-family:var(--mono);font-size:12px;color:#8f1d17}
 .scroll{overflow-x:auto}
+.operaciones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.operaciones{grid-template-columns:1fr}}
 @media (max-width:1100px){.c5{grid-template-columns:repeat(3,minmax(0,1fr))}.c4{grid-template-columns:repeat(2,minmax(0,1fr))}.c2,.c3{grid-template-columns:1fr}}
 @media (max-width:900px){.c2i{grid-template-columns:1fr}}
 @media (max-width:640px){main{padding:20px 16px}.c4,.c5{grid-template-columns:1fr 1fr}.kpi .valor{font-size:22px}}
@@ -901,6 +1141,23 @@ def render(ctx: dict) -> str:
         + (f'<div class="nota">{esc(ctx["desajuste_equity"])}</div>' if ctx["desajuste_equity"] else "")
         + '</div>')
 
+    if ctx["operaciones"]:
+        tarjetas = "".join(
+            f'<div class="panel"><div class="titulo"><h2>{esc(op["ticker"])}</h2>'
+            f'<span class="mono">{esc(_subtitulo_velas(op["velas"], tz, ctx["ahora"]))}</span></div>'
+            f'{_grafico_velas(op["velas"], op["marcas"], tz, ctx["ahora"])}'
+            + (f'<div class="nota">{esc(op["velas"]["error"])}</div>' if op["velas"].get("error") and op["velas"].get("velas") else "")
+            + f'{_pie_marcas(op["marcas"], tz, ctx["ahora"])}</div>'
+            for op in ctx["operaciones"])
+        if ctx["operaciones_omitidas"]:
+            tarjetas += (f'<p class="vacio">Sin graficar por el tope de tickers por corrida: '
+                         f'{esc(", ".join(ctx["operaciones_omitidas"]))}.</p>')
+        operaciones = f'<div class="operaciones">{tarjetas}</div>'
+    elif ctx["hay_alpaca_operaciones"]:
+        operaciones = '<p class="vacio">Sin posiciones abiertas ni órdenes hoy.</p>'
+    else:
+        operaciones = '<p class="vacio">Sin datos: Alpaca no respondió posiciones u órdenes.</p>'
+
     sesion = '<span class="pildora ok">Sesión US abierta</span>' if ctx["en_sesion"] else '<span class="pildora">Sesión US cerrada</span>'
     alpaca = "" if ctx["alpaca_ok"] else '<span class="pildora mal">Alpaca sin conexión</span>'
 
@@ -931,6 +1188,10 @@ def render(ctx: dict) -> str:
 <section class="fila c4" aria-label="Etapas del sistema">{etapas}</section>
 <section class="fila c5" aria-label="Cifras clave">{kpis_html}</section>
 <section class="fila c2i" aria-label="Curva de equity">{equity_html}</section>
+<section class="panel" aria-label="Velas del ticker en operación">
+  <div class="titulo"><h2>Velas del ticker en operación</h2><span class="mono">1 min · misma fuente que el hunter · ruptura, entrada (fill), stop</span></div>
+  {operaciones}
+</section>
 <section class="fila c2">
   <div class="panel"><div class="titulo"><h2>Watchlist actual</h2><span class="mono">generada {_hora(ctx['wl_momento'], tz, ahora=ctx['ahora'])}</span></div>{watch}</div>
   <div class="panel"><div class="titulo"><h2>Latencia</h2><span class="mono">ruptura → orden, velas de 1 min</span></div>

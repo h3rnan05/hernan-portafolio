@@ -77,6 +77,52 @@ def _epoch_a_iso(epoch: int) -> str:
     return datetime.fromtimestamp(int(epoch), tz=UTC).isoformat(timespec="seconds")
 
 
+def parsear_chart_intradia(ticker: str, cuerpo: dict) -> BarraIntradia | None:
+    """Velas intradía a partir del JSON crudo del chart de Yahoo. Lanza si
+    el cuerpo no tiene la forma esperada (quien llama decide qué hacer).
+    Extraído de `_intradia_una` sin cambiar una regla: es LA definición
+    de qué vela cuenta y cuál no, y el panel la reutiliza para mostrar
+    exactamente lo que vio el hunter."""
+    res = cuerpo["chart"]["result"][0]
+    ts = res["timestamp"]
+    q = res["indicators"]["quote"][0]
+    marcas, o, c, h, lo, vol = [], [], [], [], [], []
+    for i, epoch in enumerate(ts):
+        op, cl, hi, low, v = (
+            q["open"][i], q["close"][i], q["high"][i], q["low"][i], q["volume"][i]
+        )
+        # Mismo bug real que en `_barras_una` (ver ese comentario) -- la
+        # vela en formación de la sesión actual llega con `volume=None`
+        # seguido, y `float(v or 0)` lo convertía en CERO real. Esto
+        # dejaba `rvol_actual` (usa SOLO la última vela) en 0.0 de forma
+        # sistemática, para todo ticker, todos los días -- la pregunta
+        # "¿está entrando dinero ahora?" del evaluador nunca podía pasar.
+        if None in (op, cl, hi, low, v):
+            continue
+        marcas.append(_epoch_a_iso(epoch))
+        o.append(float(op))
+        c.append(float(cl))
+        h.append(float(hi))
+        lo.append(float(low))
+        vol.append(float(v))
+    # Corrección 2026-08-21 ("por qué no ha metido ningún trade"): el fix
+    # de arriba (None -> se descarta) no bastaba -- confirmado contra la
+    # respuesta cruda de Yahoo, la vela en curso casi siempre llega con
+    # volumen 0 EXPLÍCITO (no None): el minuto todavía no acumuló ningún
+    # trade en el instante exacto de la consulta. `rvol_actual` (usa solo
+    # la última vela) seguía en 0.0 siempre, para todo ticker -- ver
+    # `_velas_finales_en_formacion`.
+    recortar = _velas_finales_en_formacion(vol)
+    if recortar:
+        marcas, o, c, h, lo, vol = (
+            marcas[:-recortar], o[:-recortar], c[:-recortar], h[:-recortar],
+            lo[:-recortar], vol[:-recortar],
+        )
+    if c:
+        return BarraIntradia(ticker, marcas, o, c, h, lo, vol)
+    return None
+
+
 def _velas_finales_en_formacion(vol: list[float]) -> int:
     """Cuántas velas al FINAL de la lista tienen volumen exactamente 0.0
     -- bug real (2026-08-21, "por qué no ha metido ningún trade"): la
@@ -210,59 +256,24 @@ class YahooProvider(DataProvider):
         log.info("barras intradía obtenidas: %d/%d tickers", len(out), len(tickers))
         return out
 
+    def params_intradia(self, intervalo: str, periodo: str) -> dict[str, str]:
+        """Parámetros exactos de la consulta intradía. Expuestos para que
+        quien necesite pedir LO MISMO que el hunter (el panel, ver
+        `dashboard/velas.py`) no tenga que copiarlos."""
+        # includePrePost=true: sin esto, Yahoo solo devuelve la sesión
+        # regular -- y el pre-market high es un nivel clave para Gap and
+        # Go / Opening Range Breakout.
+        return {"interval": intervalo, "range": periodo, "includePrePost": "true"}
+
     def _intradia_una(self, ticker: str, intervalo: str, periodo: str) -> BarraIntradia | None:
         for intento in range(self.reintentos):
             try:
                 r = requests.get(
                     self.CHART.format(t=ticker),
-                    # includePrePost=true: sin esto, Yahoo solo devuelve la
-                    # sesión regular -- y el pre-market high es un nivel
-                    # clave para Gap and Go / Opening Range Breakout.
-                    params={"interval": intervalo, "range": periodo, "includePrePost": "true"},
+                    params=self.params_intradia(intervalo, periodo),
                     headers=self.HEADERS, timeout=15,
                 )
-                res = r.json()["chart"]["result"][0]
-                ts = res["timestamp"]
-                q = res["indicators"]["quote"][0]
-                marcas, o, c, h, lo, vol = [], [], [], [], [], []
-                for i, epoch in enumerate(ts):
-                    op, cl, hi, low, v = (
-                        q["open"][i], q["close"][i], q["high"][i], q["low"][i], q["volume"][i]
-                    )
-                    # Mismo bug real que en `_barras_una` (ver ese
-                    # comentario) -- la vela en formación de la sesión
-                    # actual llega con `volume=None` seguido, y
-                    # `float(v or 0)` lo convertía en CERO real. Esto
-                    # dejaba `rvol_actual` (usa SOLO la última vela) en
-                    # 0.0 de forma sistemática, para todo ticker, todos
-                    # los días -- la pregunta "¿está entrando dinero
-                    # ahora?" del evaluador nunca podía pasar, nunca.
-                    if None in (op, cl, hi, low, v):
-                        continue
-                    marcas.append(_epoch_a_iso(epoch))
-                    o.append(float(op))
-                    c.append(float(cl))
-                    h.append(float(hi))
-                    lo.append(float(low))
-                    vol.append(float(v))
-                # Corrección 2026-08-21 ("por qué no ha metido ningún
-                # trade"): el fix de arriba (None -> se descarta) no
-                # bastaba -- confirmado contra la respuesta cruda de
-                # Yahoo, la vela en curso casi siempre llega con volumen
-                # 0 EXPLÍCITO (no None): el minuto todavía no acumuló
-                # ningún trade en el instante exacto de la consulta.
-                # `rvol_actual` (usa solo la última vela) seguía en 0.0
-                # siempre, para todo ticker -- ver `_velas_finales_en_
-                # formacion`.
-                recortar = _velas_finales_en_formacion(vol)
-                if recortar:
-                    marcas, o, c, h, lo, vol = (
-                        marcas[:-recortar], o[:-recortar], c[:-recortar], h[:-recortar],
-                        lo[:-recortar], vol[:-recortar],
-                    )
-                if c:
-                    return BarraIntradia(ticker, marcas, o, c, h, lo, vol)
-                return None
+                return parsear_chart_intradia(ticker, r.json())
             except Exception as e:
                 if intento == self.reintentos - 1:
                     log.debug("barras intradía %s falló: %s", ticker, e)
