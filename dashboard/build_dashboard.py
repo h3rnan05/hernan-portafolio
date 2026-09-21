@@ -413,6 +413,10 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
 
     equity = num(cuenta.get("equity")) if isinstance(cuenta, dict) else None
     last_equity = num(cuenta.get("last_equity")) if isinstance(cuenta, dict) else None
+    # Número de cuenta paper (no es una credencial: es el identificador que
+    # Alpaca muestra en su propio panel). Se enseña para poder comprobar a
+    # simple vista que el panel mira LA MISMA cuenta que el ejecutor.
+    cuenta_numero = str(cuenta.get("account_number")).strip() if isinstance(cuenta, dict) and cuenta.get("account_number") else None
     pnl = equity - last_equity if equity is not None and last_equity is not None else None
     pnl_pct = pnl / last_equity * 100 if pnl is not None and last_equity else None
 
@@ -498,7 +502,8 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get) -> dict:
     return {
         "ahora": ahora, "tz": cfg["tz"], "en_sesion": en_sesion, "alpaca_ok": alpaca_ok,
         "problemas": problemas, "etapas": etapas,
-        "equity": equity, "pnl": pnl, "pnl_pct": pnl_pct,
+        "equity": equity, "pnl": pnl, "pnl_pct": pnl_pct, "cuenta_numero": cuenta_numero,
+        "desajuste_equity": _desajuste_equity(equity_mes, equity, last_equity),
         "n_pos": n_pos, "n_ord": n_ord, "n_rech": n_rech,
         "watch": watch, "wl_momento": wl_momento,
         "lat": lat, "lat_mediana": statistics.median(valores) if valores else None,
@@ -578,6 +583,27 @@ def _etiqueta_x(momento: datetime, tz, modo: str) -> str:
     if modo == "dia":
         return local.strftime("%H:%M")
     return f"{local.day} {MESES_ES[local.month - 1]}"
+
+
+def _desajuste_equity(hist: dict, equity: float | None, last_equity: float | None) -> str | None:
+    """Aviso cuando el historial y la cuenta no cuentan la misma historia.
+
+    El último punto del historial diario es, por construcción, o el valor de
+    hoy (≈ `equity`) o el cierre anterior (= `last_equity`). Si no se parece
+    a ninguno de los dos (0,5 % de tolerancia por el desfase de segundos
+    entre las dos consultas), algo está mal: lo más probable es que las
+    credenciales del panel apunten a otra cuenta paper que las del
+    ejecutor. No se corrige ni se oculta nada: se avisa con los dos números
+    para que la persona lo compruebe."""
+    if not hist.get("puntos"):
+        return None
+    ultimo = hist["puntos"][-1][1]
+    referencias = [r for r in (equity, last_equity) if r is not None and r > 0]
+    if not referencias or any(abs(ultimo - r) / r <= 0.005 for r in referencias):
+        return None
+    return (f"El historial no cuadra con la cuenta: último cierre del historial {fmt_dinero(ultimo)} "
+            f"vs equity {fmt_dinero(equity)} / cierre anterior {fmt_dinero(last_equity)}. "
+            "Confirmar que el panel y el ejecutor usan la misma cuenta paper.")
 
 
 def _grafico_equity(hist: dict, tz, modo: str) -> str:
@@ -811,7 +837,8 @@ def render(ctx: dict) -> str:
     ordenes_sub = "—" if ctx["n_rech"] is None else f"{ctx['n_rech']} rechazadas"
     lat_sub = "sin órdenes hoy" if ctx["lat_mediana"] is None else f"mediana del día · presupuesto {fmt_num(ctx['presupuesto'])}"
     kpis = [
-        ("Equity paper", fmt_dinero(ctx["equity"]), "", "cuenta de práctica Alpaca"),
+        ("Equity paper", fmt_dinero(ctx["equity"]),
+         "", f"cuenta paper {ctx['cuenta_numero']}" if ctx["cuenta_numero"] else "cuenta de práctica Alpaca"),
         ("P&L del día", fmt_dinero(ctx["pnl"], signo=True), signo, f"vs cierre anterior{pct}"),
         ("Posiciones", fmt_num(ctx["n_pos"]), "", "abiertas ahora"),
         ("Órdenes hoy", fmt_num(ctx["n_ord"]), "", ordenes_sub),
@@ -870,7 +897,9 @@ def render(ctx: dict) -> str:
         f'<div class="panel"><div class="titulo"><h2>{titulo_dia}</h2><span class="mono">{esc(sub_dia)}</span></div>'
         f'{_grafico_equity(dia, tz, "dia")}{_resumen_equity(dia)}{nota_dia}</div>'
         f'<div class="panel"><div class="titulo"><h2>Equity del último mes</h2><span class="mono">cierre diario</span></div>'
-        f'{_grafico_equity(ctx["equity_mes"], tz, "mes")}{_resumen_equity(ctx["equity_mes"])}</div>')
+        f'{_grafico_equity(ctx["equity_mes"], tz, "mes")}{_resumen_equity(ctx["equity_mes"])}'
+        + (f'<div class="nota">{esc(ctx["desajuste_equity"])}</div>' if ctx["desajuste_equity"] else "")
+        + '</div>')
 
     sesion = '<span class="pildora ok">Sesión US abierta</span>' if ctx["en_sesion"] else '<span class="pildora">Sesión US cerrada</span>'
     alpaca = "" if ctx["alpaca_ok"] else '<span class="pildora mal">Alpaca sin conexión</span>'

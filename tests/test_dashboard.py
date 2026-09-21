@@ -547,6 +547,53 @@ def test_equity_sin_puntos_no_inventa_sesion(tmp_path):
     html = bd.render(ctx)
     assert "<h2>Equity de hoy</h2>" in html and "Sin sesión hoy todavía" not in html
 
+def test_numero_de_cuenta_paper_se_muestra_para_poder_compararlo(tmp_path):
+    get = alpaca_falso({"equity": "4993.57", "account_number": "PA3AEXOQN3ID"})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get)
+    assert ctx["cuenta_numero"] == "PA3AEXOQN3ID"
+    assert "cuenta paper PA3AEXOQN3ID" in bd.render(ctx)
+
+
+def test_sin_numero_de_cuenta_no_se_inventa(tmp_path):
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=alpaca_falso({"equity": "4993.57"}))
+    assert ctx["cuenta_numero"] is None
+    assert "cuenta de práctica Alpaca" in bd.render(ctx) and "cuenta paper " not in bd.render(ctx)
+
+
+def _mes(equity):
+    inicio = datetime(2026, 8, 20, 21, 0, tzinfo=timezone.utc)
+    return _historial(equity, timestamps=[int(inicio.timestamp()) + 86400 * i for i in range(len(equity))], base=equity[0])
+
+
+def test_historial_que_no_cuadra_con_la_cuenta_se_avisa_con_los_dos_numeros(tmp_path):
+    # Historial plano en $1.000 y cuenta en $4.993,57: no puede ser la misma
+    # cuenta (o el historial está roto). Se avisa, no se corrige.
+    get = alpaca_falso({"equity": "4993.57", "last_equity": "4993.57"}, **{HIST: _mes([1000, 1000, 1000])})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get)
+    assert ctx["desajuste_equity"] is not None
+    html = bd.render(ctx)
+    assert "El historial no cuadra con la cuenta" in html
+    assert "$1,000.00" in ctx["desajuste_equity"] and "$4,993.57" in ctx["desajuste_equity"]
+    assert "misma cuenta paper" in html
+
+
+def test_historial_que_cuadra_con_el_cierre_anterior_no_avisa(tmp_path):
+    # Último cierre diario = last_equity de la cuenta (hoy ya se movió): coherente.
+    get = alpaca_falso({"equity": "5030", "last_equity": "4993.57"}, **{HIST: _mes([5000, 4993.62, 4993.57])})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get)
+    assert ctx["desajuste_equity"] is None and "no cuadra" not in bd.render(ctx)
+
+
+def test_historial_que_cuadra_con_la_equity_actual_no_avisa(tmp_path):
+    get = alpaca_falso({"equity": "5030", "last_equity": "4993.57"}, **{HIST: _mes([5000, 4993.57, 5030.10])})
+    assert bd.construir(AHORA, cfg(tmp_path), get=get)["desajuste_equity"] is None
+
+
+def test_desajuste_no_se_evalua_sin_cuenta_o_sin_historial(tmp_path):
+    assert bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)["desajuste_equity"] is None
+    get = alpaca_falso({}, **{HIST: _mes([1000, 1000])})   # cuenta sin equity legible
+    assert bd.construir(AHORA, cfg(tmp_path), get=get)["desajuste_equity"] is None
+
 
 def test_equity_pide_las_dos_vistas_solo_con_get(tmp_path):
     llamadas = []
