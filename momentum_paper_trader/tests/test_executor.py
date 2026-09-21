@@ -17,6 +17,9 @@ from momentum_paper_trader.config import PaperTraderConfig
 
 AHORA = datetime(2026, 8, 11, 14, 0, 0, tzinfo=UTC)
 CFG = PaperTraderConfig()
+# La compuerta de banda se prueba con la configuración restringida de
+# forma explícita: el default opera las dos bandas desde el 2026-09-21.
+CFG_SOLO_SMALL = PaperTraderConfig(bandas_operables=("small",))
 
 _DECISION_ENTRA = ia_decision.DecisionIA(
     entrar=True, confianza=9, razonamiento="catalizador sólido, asimetría clara")
@@ -234,14 +237,14 @@ def _large_triggered(ticker="LLY", **kw) -> watchlist.EntradaWatchlist:
 
 
 def test_large_cap_con_si_de_la_ia_se_registra_pero_no_se_opera(monkeypatch, tmp_path):
-    # El caso que motiva la compuerta: la IA aprueba una large-cap. Hoy
-    # eso colocaría orden. Con bandas_operables=("small",) no -- pero el
-    # "sí" queda registrado, que es lo que se quiere medir.
+    # El caso que motiva la compuerta: la IA aprueba una large-cap. Con
+    # bandas_operables=("small",) no se coloca orden -- pero el "sí"
+    # queda registrado, que es lo que se quiere medir.
     e = _large_triggered()
     _, rev_path, enviados, _ = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA)
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+    nuevas = executor.ejecutar(client, CFG_SOLO_SMALL, dry_run=False, ahora=AHORA)
 
     assert nuevas == []
     assert client.ordenes_colocadas == []
@@ -261,7 +264,7 @@ def test_large_cap_con_no_de_la_ia_tampoco_es_rechazo_ia(monkeypatch, tmp_path):
     e = _large_triggered()
     _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_NO_ENTRA)
 
-    executor.ejecutar(_FakeAlpacaClient(cash=10_000.0), CFG, dry_run=False, ahora=AHORA)
+    executor.ejecutar(_FakeAlpacaClient(cash=10_000.0), CFG_SOLO_SMALL, dry_run=False, ahora=AHORA)
 
     r = estado.cargar(rev_path)[0]
     assert r.entro is False
@@ -275,7 +278,7 @@ def test_small_cap_sigue_operando_igual_que_antes(monkeypatch, tmp_path):
     _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA)
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+    nuevas = executor.ejecutar(client, CFG_SOLO_SMALL, dry_run=False, ahora=AHORA)
 
     assert len(nuevas) == 1 and nuevas[0].entro is True
     assert len(client.ordenes_colocadas) == 1
@@ -288,7 +291,7 @@ def test_rechazo_genuino_de_small_cap_sigue_sin_motivo(monkeypatch, tmp_path):
     e = _entrada_triggered(ticker="NTLA")
     _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_NO_ENTRA)
 
-    executor.ejecutar(_FakeAlpacaClient(cash=10_000.0), CFG, dry_run=False, ahora=AHORA)
+    executor.ejecutar(_FakeAlpacaClient(cash=10_000.0), CFG_SOLO_SMALL, dry_run=False, ahora=AHORA)
 
     r = estado.cargar(rev_path)[0]
     assert r.entro is False
@@ -303,16 +306,17 @@ def test_large_cap_bloqueada_no_se_vuelve_a_preguntar(monkeypatch, tmp_path):
     _, _, _, contextos = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA)
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
-    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+    executor.ejecutar(client, CFG_SOLO_SMALL, dry_run=False, ahora=AHORA)
+    executor.ejecutar(client, CFG_SOLO_SMALL, dry_run=False, ahora=AHORA)
 
     assert len(contextos) == 1
     assert client.ordenes_colocadas == []
 
 
 def test_el_revert_es_por_config_sin_deploy(monkeypatch, tmp_path):
-    # ("small", "large") = comportamiento anterior: la large-cap aprobada
-    # sí se opera. Es el camino de vuelta si la compuerta resulta mala.
+    # ("small", "large") -- el default desde el 2026-09-21 -- se prueba
+    # explícito: la large-cap aprobada sí se opera. Es el camino de vuelta
+    # si alguien vuelve a restringir la banda y resulta mala idea.
     e = _large_triggered()
     _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA)
     client = _FakeAlpacaClient(cash=10_000.0)

@@ -59,14 +59,13 @@ igual si este módulo se desinstala.
    veredicto crudo de la IA (`ia_entraria`), separado de si se operó
    (`entro`).
 4b. **Compuerta de banda** (`PaperTraderConfig.bandas_operables`, default
-   `("small",)`): la tesis es momentum en small caps. Las large-caps
-   siguen entrando al embudo del hunter y a la revisión de la IA -- para
-   tener muestra de decisiones -- pero una señal fuera de las bandas
+   `("small", "large")` desde el 2026-09-21; entre el 14 y el 21 de
+   septiembre fue solo `("small",)`): una señal fuera de las bandas
    operables se registra con la decisión de la IA y **no coloca orden**,
    diga lo que diga la IA. Se archiva con desenlace `fuera_de_banda`, no
    `rechazo_ia`: son cosas distintas y mezclarlas contaminaría la
    muestra. Es determinista (la IA no lo ve ni lo puede levantar) y se
-   revierte sin deploy con `("small", "large")`.
+   vuelve a solo small caps sin deploy con `("small",)`.
 
    Limitación honesta: la muestra de decisiones sobre large-caps que esto
    conserva NO mide la tesis. El prompt de `ia_decision.py` le dice a la

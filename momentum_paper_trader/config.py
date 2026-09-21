@@ -124,17 +124,22 @@ class PaperTraderConfig:
     # Derivarlo de la cuenta en vez de hardcodear "nada por encima de
     # $150" hace que el filtro se ajuste solo cuando el capital cambie.
     minimo_acciones_para_operar: int = 4
-    # Bandas de universo en las que este ejecutor PUEDE abrir posición
-    # (2026-09-14). La tesis es momentum en small caps; large-cap sigue
-    # entrando al embudo del hunter y a la revisión de la IA (para tener
-    # muestra de decisiones), pero una señal fuera de estas bandas se
-    # registra con la decisión de la IA y NO coloca orden. Es un
-    # guardarraíl determinista (regla 4 del CLAUDE.md): la IA nunca lo
-    # ve ni lo puede levantar.
+    # Bandas de universo en las que este ejecutor PUEDE abrir posición.
+    # Una señal fuera de estas bandas se registra con la decisión de la
+    # IA y NO coloca orden. Es un guardarraíl determinista (regla 4 del
+    # CLAUDE.md): la IA nunca lo ve ni lo puede levantar.
     #
-    # Revert sin deploy: ("small", "large") vuelve al comportamiento
-    # anterior. Nombres de banda = los de `momentum_hunter.telemetria`.
-    bandas_operables: tuple[str, ...] = ("small",)
+    # 2026-09-14: se restringió a ("small",) porque la tesis era momentum
+    # en small caps. 2026-09-21: el dueño pidió operar las dos bandas.
+    # Con una sola operación de historial y un embudo que hoy produce
+    # casi solo señales large-cap (BNS, BCS, AZN...), restringir la banda
+    # dejaba al ejecutor sin operar nada; la muestra de decisiones vale
+    # más que la pureza de la tesis. Los topes de tamaño (concentración
+    # 15 %, mínimo 4 acciones) siguen mandando igual para las dos.
+    #
+    # Volver a solo small caps sin deploy: ("small",). Nombres de banda =
+    # los de `momentum_hunter.telemetria`.
+    bandas_operables: tuple[str, ...] = ("small", "large")
 
     def validar(self) -> None:
         if not self.bandas_operables:
