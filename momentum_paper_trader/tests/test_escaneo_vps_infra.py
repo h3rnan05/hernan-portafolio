@@ -138,6 +138,16 @@ def test_respaldo_decide_con_gracia_y_silencio(tmp_path):
     assert r.decidir(dia.replace(hour=15), dia.replace(hour=14, minute=40))[0] is False
     # Forzado a mano: siempre, incluso en la gracia.
     assert r.decidir(dia.replace(hour=13, minute=5), dia.replace(hour=13, minute=4), forzar=True)[0] is True
+    # Caso real del 21/9: el cron de las 20:30 llegó a las 22:31 y el VPS
+    # llevaba callado desde las 20:45 porque su ventana ya había cerrado.
+    # Eso no es una caída: después de las 21:00 UTC GitHub no respalda.
+    ok, razon = r.decidir(dia.replace(hour=22, minute=31), dia.replace(hour=20, minute=45))
+    assert not ok and "cerró" in razon
+    assert r.decidir(dia.replace(hour=21, minute=0), None)[0] is False
+    # Justo antes del cierre la regla del silencio sigue mandando.
+    assert r.decidir(dia.replace(hour=20, minute=59), dia.replace(hour=20, minute=30))[0] is True
+    # Forzado a mano también fuera de la ventana.
+    assert r.decidir(dia.replace(hour=22, minute=31), None, forzar=True)[0] is True
 
 
 def test_ultimo_latido_lee_las_dos_telemetrias_del_vps_de_hoy(tmp_path, monkeypatch):

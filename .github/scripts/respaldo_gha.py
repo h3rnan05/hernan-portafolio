@@ -5,8 +5,14 @@ workflows de GitHub conservan su cron, pero solo actúan si el VPS está
 callado. Regla (decisión del dueño):
 
   respaldo = han pasado >= 20 min desde el inicio de la ventana del timer
-             (13:00 UTC) Y el VPS lleva > 20 min sin commitear telemetría
-             de hoy.
+             (13:00 UTC) Y todavía no cerró la ventana del VPS (21:00 UTC)
+             Y el VPS lleva > 20 min sin commitear telemetría de hoy.
+
+El cierre existe por un caso real (21/9): el cron de GitHub de las 20:30
+llegó con dos horas de retraso, a las 22:31, y el VPS -- cuyo último
+timer es el escaneo de las 20:31 -- llevaba callado desde las 20:45 como
+corresponde. Sin cierre, ese silencio normal se leía como caída y GitHub
+escaneaba con el mercado cerrado.
 
 La "voz" del VPS es la telemetría que él mismo commitea cada 5 min:
 `momentum_paper_trader/telemetria/<hoy>/vps/events.jsonl` (el rechequeo) y
@@ -27,6 +33,9 @@ from datetime import UTC, datetime, time, timedelta
 from pathlib import Path
 
 INICIO_VENTANA_UTC = time(13, 0)
+# Último timer del VPS: escaneo de las 20:31 UTC, que tarda 11-14 min. A
+# partir de las 21:00 el silencio del VPS es lo esperado, no una caída.
+FIN_VENTANA_UTC = time(21, 0)
 GRACIA = timedelta(minutes=20)
 SILENCIO = timedelta(minutes=20)
 RUTAS = (
@@ -73,6 +82,9 @@ def decidir(ahora: datetime, latido: datetime | None, forzar: bool = False) -> t
     apertura = datetime.combine(ahora_utc.date(), INICIO_VENTANA_UTC, tzinfo=UTC)
     if ahora_utc < apertura + GRACIA:
         return False, f"faltan {int((apertura + GRACIA - ahora_utc).total_seconds() // 60)} min de gracia desde las 13:00 UTC"
+    cierre = datetime.combine(ahora_utc.date(), FIN_VENTANA_UTC, tzinfo=UTC)
+    if ahora_utc >= cierre:
+        return False, f"la ventana del VPS cerró a las {FIN_VENTANA_UTC:%H:%M} UTC; su silencio es normal"
     if latido is None:
         return True, "el VPS no dejó telemetría hoy"
     silencio = ahora_utc - latido

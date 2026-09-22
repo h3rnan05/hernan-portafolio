@@ -133,8 +133,9 @@ es el dueño** de `watchlist.json`, `auditoria/`, `alertas_enviadas.json` y la
 telemetría del hunter: los commitea él, después de volcar el overlay del
 rechequeo al canónico (`python -m momentum_hunter.run --materializar-overlay`).
 GitHub conserva sus dos workflows solo como **respaldo**: actúan si el VPS lleva
-más de 20 min sin commitear telemetría de hoy y ya pasaron 20 min desde las
-13:00 UTC (`.github/scripts/respaldo_gha.py`), y cada Telegram de ese modo
+más de 20 min sin commitear telemetría de hoy, ya pasaron 20 min desde las
+13:00 UTC y todavía no son las 21:00 UTC, cuando la ventana del VPS ya cerró y
+su silencio es normal (`.github/scripts/respaldo_gha.py`), y cada Telegram de ese modo
 sale con `[RESPALDO GITHUB]`. El paso de paper en GitHub está apagado salvo
 `MOMENTUM_PAPER_GHA=on` (variable de repo): `revisiones.json` tiene un solo
 escritor, el VPS.
