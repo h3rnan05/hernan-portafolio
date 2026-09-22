@@ -62,6 +62,8 @@ class _FakeAlpacaClient:
     def info_cuenta(self) -> dict:
         if self._cuenta_rota:
             raise RuntimeError("Alpaca caído")
+        if getattr(self, "cuenta_sin_montos", False):
+            return {"account_number": "PA3", "status": "ACTIVE"}   # sin cash ni equity
         return {"cash": str(self._cash), "equity": str(self._equity)}
 
     def reloj_mercado(self) -> dict:
@@ -1047,3 +1049,48 @@ def test_un_fallo_del_aviso_no_afecta_la_orden(monkeypatch, tmp_path):
     client = _FakeAlpacaClient(cash=10_000.0)
     nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
     assert len(nuevas) == 1 and len(client.ordenes_colocadas) == 1
+
+
+# ------------------------- revisión de riesgo 2026-09-22: cierre cercano y cuenta sin montos -------------------------
+
+def test_no_se_abren_entradas_en_los_ultimos_30_min(monkeypatch, tmp_path):
+    """19:45 UTC en verano = 15:45 ET: faltan 15 min. El cierre diario la
+    liquidaría a las 19:50; entrar solo pagaría el spread."""
+    e = _entrada_triggered()
+    _, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=20_000.0)
+    tarde = AHORA.replace(hour=19, minute=45)
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=tarde) == []
+    assert client.ordenes_colocadas == [] and contextos == [] and enviados == []
+    assert estado.cargar(rev_path) == []          # la señal no se quema
+    # Con 35 min por delante sí se opera (niveles frescos de hace 5 min).
+    casi = AHORA.replace(hour=19, minute=25)
+    e2 = _entrada_triggered(ahora=casi.replace(minute=20))
+    (tmp_path / "b").mkdir()
+    _, _, _, contextos2 = _parchear(monkeypatch, tmp_path / "b", [e2])
+    client2 = _FakeAlpacaClient(cash=20_000.0)
+    assert len(executor.ejecutar(client2, CFG, dry_run=False, ahora=casi)) == 1
+    assert len(contextos2) == 1
+
+
+def test_el_minimo_para_entrar_debe_superar_la_ventana_de_cierre():
+    import pytest
+    with pytest.raises(ValueError):
+        PaperTraderConfig(minutos_minimos_para_entrar=10, minutos_antes_del_cierre=10).validar()
+    PaperTraderConfig(minutos_minimos_para_entrar=11, minutos_antes_del_cierre=10).validar()
+
+
+def test_cuenta_sin_cash_o_equity_es_cuenta_ilegible_no_cero(monkeypatch, tmp_path):
+    """Regla 6: un monto ausente no es $0. Antes se bloqueaba como
+    'concentración' y escondía que el dato faltó."""
+    e = _entrada_triggered()
+    _, rev_path, _, contextos = _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=20_000.0)
+    client.cuenta_sin_montos = True
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert client.ordenes_colocadas == [] and contextos == []
+    assert estado.cargar(rev_path) == []          # se reintenta en la próxima corrida
+    assert executor._numero("12.5") == 12.5 and executor._numero(None) is None
+    assert executor._numero("") is None and executor._numero("nan") is None and executor._numero(True) is None

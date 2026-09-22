@@ -77,6 +77,16 @@ class PaperTraderConfig:
     # una posición hasta mañana es una apuesta distinta (huecos de
     # apertura, noticias nocturnas) que nada en este sistema analiza.
     cerrar_antes_del_cierre: bool = True
+    # No abrir entradas nuevas en los últimos minutos de la sesión
+    # (2026-09-22, revisión de riesgo). Sin esto, una señal a las 19:49
+    # colocaba la orden y el cierre diario la liquidaba a las 19:50,
+    # pagando el spread para nada. El hunter ya evita DISPARAR con poca
+    # sesión por delante (`momentum_hunter.config.minutos_minimos_de_sesion`),
+    # pero una señal disparada antes puede llegar al ejecutor después; este
+    # tope es la segunda guardia, en el lado que coloca. Tiene que ser
+    # mayor que `minutos_antes_del_cierre` (si no, se abriría dentro de la
+    # ventana de liquidación).
+    minutos_minimos_para_entrar: float = 30.0
     # 10 min antes de las 20:00 UTC = 19:50 UTC (15:50 ET en verano).
     # El re-chequeo corre cada 5 min, así que siempre cae al menos una
     # corrida dentro de la ventana.
@@ -176,6 +186,8 @@ class PaperTraderConfig:
             raise ValueError("minutos_maximos_niveles debe ser > 0")
         if self.minutos_maximos_entrada_sin_llenar <= 0:
             raise ValueError("minutos_maximos_entrada_sin_llenar debe ser > 0")
+        if self.minutos_minimos_para_entrar <= self.minutos_antes_del_cierre:
+            raise ValueError("minutos_minimos_para_entrar debe ser mayor que minutos_antes_del_cierre")
         if not 0 < self.minutos_antes_del_cierre < 390:
             # 390 min = la sesión regular completa (6,5 h): más que eso
             # significaría "cerrar antes de abrir".
