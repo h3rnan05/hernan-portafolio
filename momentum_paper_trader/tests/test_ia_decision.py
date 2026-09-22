@@ -136,7 +136,12 @@ def test_fraccion_fuera_de_rango_o_basura_vuelve_a_tamano_completo(monkeypatch):
     assert ia_decision._parsear_fraccion({"fraccion": 2.0}) == 1.0
     assert ia_decision._parsear_fraccion({"fraccion": 0.0}) == 1.0
     assert ia_decision._parsear_fraccion({"fraccion": -0.5}) == 1.0
-    assert ia_decision._parsear_fraccion({"fraccion": 0.1}) == 1.0   # < mínimo 0.25
+    # < mínimo pero positiva: la IA quiso ir chica y recibe el mínimo
+    # expresable, nunca el tamaño completo (2026-09-22).
+    assert ia_decision._parsear_fraccion({"fraccion": 0.1}) == 0.25
+    assert ia_decision._parsear_fraccion({"fraccion": 0.249}) == 0.25
+    assert ia_decision._parsear_fraccion({"fraccion": 0.25}) == 0.25
+    assert ia_decision._parsear_fraccion({"fraccion": 1.0}) == 1.0
     assert ia_decision._parsear_fraccion({"fraccion": "mucho"}) == 1.0
     assert ia_decision._parsear_fraccion({}) == 1.0
     assert ia_decision._parsear_fraccion({"fraccion": 0.25}) == 0.25

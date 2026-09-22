@@ -94,7 +94,20 @@ igual si este módulo se desinstala.
    colocar** -- aceptar el bracket no es un trade completado. El aviso
    sale después, cuando Alpaca confirma el fill o el cierre (ver abajo).
 
-## Telegram: veredicto por señal + trades completados (`notify.py`)
+## Revisión de riesgo del 2026-09-22 (dos huecos cerrados)
+
+1. **Entrada sin llenar → se cancela a los 15 min** (`config.minutos_maximos_entrada_sin_llenar`,
+   `seguimiento.entrada_vencida`). El bracket entra como límite del día al precio de la
+   señal; si el precio se escapa, la orden quedaba viva hasta las 20:00 ocupando un lugar
+   en `maximo_posiciones_abiertas` y pudiendo llenarse horas después con el momentum ya
+   muerto. Ahora `seguimiento` la cancela en Alpaca, la persiste como `no_ejecutada` y
+   avisa `CANCELADA` (cierra la historia que abrió `COLOCADA`). Solo si de verdad se
+   canceló: si Alpaca no responde, la orden sigue viva y se reintenta. Una entrada
+   parcialmente llena no se toca (limitación anotada).
+2. **Fracción de la IA por debajo del mínimo → se recorta a 0,25, no salta a 1,0**
+   (`ia_decision._parsear_fraccion`). Antes "quiero ir muy chico" terminaba en tamaño
+   completo. Cero, negativo, mayor a 1 o basura siguen siendo 1,0: la IA nunca aumenta.
+
 
 Ajuste del 2026-09-22 (pedido del dueño: "me llegan avisos de compras
 confirmadas pero no hay nada"): la alerta del hunter ahora dice
