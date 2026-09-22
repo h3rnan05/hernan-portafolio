@@ -3516,9 +3516,9 @@
     {
       "ticker": "AZN",
       "nombre": "AstraZeneca PLC",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-21T19:41:35+00:00",
-      "actualizado_en": "2026-09-21T19:41:35+00:00",
+      "actualizado_en": "2026-09-22T13:00:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3526,6 +3526,18 @@
           "motivo": "Catalizador confirmado -- en observación.",
           "deteccion_ts": "2026-09-21T19:41:34+00:00",
           "evaluacion_ts": "2026-09-21T19:41:35+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-22T13:00:05+00:00",
+          "motivo": "El catalizador ya salió de la ventana de vigencia.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
           "mensaje_generado_ts": null,
           "telegram_enviado_ts": null,
           "latencia_desde_deteccion_ms": null,
@@ -3565,9 +3577,9 @@
     {
       "ticker": "MDT",
       "nombre": "Medtronic plc",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-21T19:41:35+00:00",
-      "actualizado_en": "2026-09-21T19:41:35+00:00",
+      "actualizado_en": "2026-09-22T13:00:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3575,6 +3587,18 @@
           "motivo": "Catalizador confirmado -- en observación.",
           "deteccion_ts": "2026-09-21T19:41:34+00:00",
           "evaluacion_ts": "2026-09-21T19:41:35+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-22T13:00:05+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
           "mensaje_generado_ts": null,
           "telegram_enviado_ts": null,
           "latencia_desde_deteccion_ms": null,
@@ -3614,9 +3638,9 @@
     {
       "ticker": "ACN",
       "nombre": "Accenture plc",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-21T19:41:35+00:00",
-      "actualizado_en": "2026-09-21T19:41:35+00:00",
+      "actualizado_en": "2026-09-22T13:00:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3624,6 +3648,18 @@
           "motivo": "Catalizador confirmado -- en observación.",
           "deteccion_ts": "2026-09-21T19:41:34+00:00",
           "evaluacion_ts": "2026-09-21T19:41:35+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-22T13:00:05+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
           "mensaje_generado_ts": null,
           "telegram_enviado_ts": null,
           "latencia_desde_deteccion_ms": null,
@@ -3727,9 +3763,9 @@
     {
       "ticker": "NEM",
       "nombre": "Newmont Corporation",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-21T19:41:35+00:00",
-      "actualizado_en": "2026-09-21T19:41:35+00:00",
+      "actualizado_en": "2026-09-22T13:00:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3737,6 +3773,18 @@
           "motivo": "Catalizador confirmado -- en observación.",
           "deteccion_ts": "2026-09-21T19:41:34+00:00",
           "evaluacion_ts": "2026-09-21T19:41:35+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-22T13:00:05+00:00",
+          "motivo": "El catalizador ya salió de la ventana de vigencia.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
           "mensaje_generado_ts": null,
           "telegram_enviado_ts": null,
           "latencia_desde_deteccion_ms": null,
@@ -3776,9 +3824,9 @@
     {
       "ticker": "BCS",
       "nombre": "Barclays PLC",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-21T19:41:35+00:00",
-      "actualizado_en": "2026-09-21T19:41:35+00:00",
+      "actualizado_en": "2026-09-22T13:00:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3786,6 +3834,18 @@
           "motivo": "Catalizador confirmado -- en observación.",
           "deteccion_ts": "2026-09-21T19:41:34+00:00",
           "evaluacion_ts": "2026-09-21T19:41:35+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-22T13:00:05+00:00",
+          "motivo": "El catalizador ya salió de la ventana de vigencia.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
           "mensaje_generado_ts": null,
           "telegram_enviado_ts": null,
           "latencia_desde_deteccion_ms": null,
@@ -3825,9 +3885,9 @@
     {
       "ticker": "COP",
       "nombre": "ConocoPhillips",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-21T19:41:35+00:00",
-      "actualizado_en": "2026-09-21T19:41:35+00:00",
+      "actualizado_en": "2026-09-22T13:00:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3835,6 +3895,18 @@
           "motivo": "Catalizador confirmado -- en observación.",
           "deteccion_ts": "2026-09-21T19:41:34+00:00",
           "evaluacion_ts": "2026-09-21T19:41:35+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-22T13:00:05+00:00",
+          "motivo": "El catalizador ya salió de la ventana de vigencia.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
           "mensaje_generado_ts": null,
           "telegram_enviado_ts": null,
           "latencia_desde_deteccion_ms": null,
@@ -3874,9 +3946,9 @@
     {
       "ticker": "VEEV",
       "nombre": "Veeva Systems Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-21T20:15:20+00:00",
-      "actualizado_en": "2026-09-21T20:15:20+00:00",
+      "actualizado_en": "2026-09-22T13:00:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3884,6 +3956,18 @@
           "motivo": "Catalizador confirmado -- en observación.",
           "deteccion_ts": "2026-09-21T20:15:19+00:00",
           "evaluacion_ts": "2026-09-21T20:15:20+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-22T13:00:05+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
           "mensaje_generado_ts": null,
           "telegram_enviado_ts": null,
           "latencia_desde_deteccion_ms": null,
@@ -3923,9 +4007,9 @@
     {
       "ticker": "ZIM",
       "nombre": "ZIM Integrated Shipping Services Ltd.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-21T20:42:16+00:00",
-      "actualizado_en": "2026-09-21T20:42:16+00:00",
+      "actualizado_en": "2026-09-22T13:00:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -3933,6 +4017,18 @@
           "motivo": "Catalizador confirmado -- en observación.",
           "deteccion_ts": "2026-09-21T20:42:15+00:00",
           "evaluacion_ts": "2026-09-21T20:42:16+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-22T13:00:05+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
           "mensaje_generado_ts": null,
           "telegram_enviado_ts": null,
           "latencia_desde_deteccion_ms": null,
