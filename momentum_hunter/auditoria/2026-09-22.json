@@ -781,6 +781,779 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-22T13:45:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.7249999046325684,
+          "factores_intradia": {
+            "precio_actual": 2.7249999046325684,
+            "vwap": 2.7096871349958374,
+            "ema9": 2.720347437222202,
+            "rvol_actual": 2.015401063046526,
+            "aceleracion_volumen": 0.7264942414614773,
+            "gap_pct": -0.03636360168457031,
+            "maximo_dia": 2.75,
+            "maximo_premarket": 2.68,
+            "rango_apertura_max": 2.7149999141693115,
+            "rango_apertura_min": 2.6449999809265137,
+            "velas_desde_ruptura": 7,
+            "macd": 0.020332616609957554,
+            "macd_signal": 0.017807538630524672
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 316.38960549999996,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": true,
+            "early": {
+              "score": 51.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 22.649424146147734,
+                "extension": 100.0,
+                "distancia_maximo_dia": 90.90905623002487,
+                "frescura_patron": 16.666666666666668,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 65.8,
+            "score_ajustado": 30.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "SFIX",
+          "nombre": "Stitch Fix, Inc.",
+          "precio_actual": 2.9800000190734863,
+          "factores_intradia": {
+            "precio_actual": 2.9800000190734863,
+            "vwap": 2.949270163234855,
+            "ema9": 2.9736473732480624,
+            "rvol_actual": 0.300178617638334,
+            "aceleracion_volumen": 0.43655912139044756,
+            "gap_pct": 0.014084577986089954,
+            "maximo_dia": 3.0199999809265137,
+            "maximo_premarket": 2.935,
+            "rango_apertura_max": 2.924999952316284,
+            "rango_apertura_min": 2.880000114440918,
+            "velas_desde_ruptura": 4,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 103276950.0,
+            "short_pct_float": 0.1408,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Earnings To Watch: Stitch Fix (SFIX) Reports Q2 Results Tomorrow",
+            "fuente": "StockStory",
+            "fecha": "2026-09-22T03:09:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 636.1062912666667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 53.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 86.75497943521316,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 55.0,
+            "score_ajustado": 20.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T13:46:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.7300000190734863,
+          "factores_intradia": {
+            "precio_actual": 2.7300000190734863,
+            "vwap": 2.711427527022596,
+            "ema9": 2.722277953592459,
+            "rvol_actual": 3.1720252514130514,
+            "aceleracion_volumen": 4.167008315606265,
+            "gap_pct": -0.03636360168457031,
+            "maximo_dia": 2.75,
+            "maximo_premarket": 2.68,
+            "rango_apertura_max": 2.7149999141693115,
+            "rango_apertura_min": 2.6449999809265137,
+            "velas_desde_ruptura": 8,
+            "macd": 0.020035195040112086,
+            "macd_signal": 0.018253069912442157
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 317.39085274999996,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": true,
+            "early": {
+              "score": 64.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 92.72727966308591,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 65.8,
+            "score_ajustado": 50.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "SFIX",
+          "nombre": "Stitch Fix, Inc.",
+          "precio_actual": 2.9800000190734863,
+          "factores_intradia": {
+            "precio_actual": 2.9800000190734863,
+            "vwap": 2.949270163234855,
+            "ema9": 2.9736473732480624,
+            "rvol_actual": 0.300178617638334,
+            "aceleracion_volumen": 0.43655912139044756,
+            "gap_pct": 0.014084577986089954,
+            "maximo_dia": 3.0199999809265137,
+            "maximo_premarket": 2.935,
+            "rango_apertura_max": 2.924999952316284,
+            "rango_apertura_min": 2.880000114440918,
+            "velas_desde_ruptura": 4,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 103276950.0,
+            "short_pct_float": 0.1408,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Earnings To Watch: Stitch Fix (SFIX) Reports Q2 Results Tomorrow",
+            "fuente": "StockStory",
+            "fecha": "2026-09-22T03:09:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 637.1075378166666,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 53.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 86.75497943521316,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 55.0,
+            "score_ajustado": 20.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T13:47:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.734999895095825,
+          "factores_intradia": {
+            "precio_actual": 2.734999895095825,
+            "vwap": 2.712101630182831,
+            "ema9": 2.7247263293991297,
+            "rvol_actual": 1.6715933799349496,
+            "aceleracion_volumen": 6.624345415340383,
+            "gap_pct": -0.03636360168457031,
+            "maximo_dia": 2.75,
+            "maximo_premarket": 2.68,
+            "rango_apertura_max": 2.7149999141693115,
+            "rango_apertura_min": 2.6449999809265137,
+            "velas_desde_ruptura": 8,
+            "macd": 0.020011094898111814,
+            "macd_signal": 0.01846698270098131
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 318.3886791833333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 64.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 94.5454163984819,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 65.8,
+            "score_ajustado": 30.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "SFIX",
+          "nombre": "Stitch Fix, Inc.",
+          "precio_actual": 2.9639999866485596,
+          "factores_intradia": {
+            "precio_actual": 2.9639999866485596,
+            "vwap": 2.949485670039196,
+            "ema9": 2.971717895928162,
+            "rvol_actual": 0.1686240977793426,
+            "aceleracion_volumen": 0.2471725163277226,
+            "gap_pct": 0.014084577986089954,
+            "maximo_dia": 3.0199999809265137,
+            "maximo_premarket": 2.935,
+            "rango_apertura_max": 2.924999952316284,
+            "rango_apertura_min": 2.880000114440918,
+            "velas_desde_ruptura": null,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 103276950.0,
+            "short_pct_float": 0.1408,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Earnings To Watch: Stitch Fix (SFIX) Reports Q2 Results Tomorrow",
+            "fuente": "StockStory",
+            "fecha": "2026-09-22T03:09:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 638.1053645666667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 50.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.45695541998855,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 55.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T13:48:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.734999895095825,
+          "factores_intradia": {
+            "precio_actual": 2.734999895095825,
+            "vwap": 2.7122704089484566,
+            "ema9": 2.7267810425384686,
+            "rvol_actual": 0.12540480481294292,
+            "aceleracion_volumen": 1.5847142027401004,
+            "gap_pct": -0.03636360168457031,
+            "maximo_dia": 2.75,
+            "maximo_premarket": 2.68,
+            "rango_apertura_max": 2.7149999141693115,
+            "rango_apertura_min": 2.6449999809265137,
+            "velas_desde_ruptura": 2,
+            "macd": 0.0197458974541469,
+            "macd_signal": 0.01872276565161443
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 319.39010951666666,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 94.5454163984819,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 65.8,
+            "score_ajustado": 30.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "SFIX",
+          "nombre": "Stitch Fix, Inc.",
+          "precio_actual": 2.9600000381469727,
+          "factores_intradia": {
+            "precio_actual": 2.9600000381469727,
+            "vwap": 2.9498671138905106,
+            "ema9": 2.968139458887188,
+            "rvol_actual": 0.4011016062526925,
+            "aceleracion_volumen": 0.3756147259938478,
+            "gap_pct": 0.014084577986089954,
+            "maximo_dia": 3.0199999809265137,
+            "maximo_premarket": 2.935,
+            "rango_apertura_max": 2.924999952316284,
+            "rango_apertura_min": 2.880000114440918,
+            "velas_desde_ruptura": null,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 103276950.0,
+            "short_pct_float": 0.1408,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Earnings To Watch: Stitch Fix (SFIX) Reports Q2 Results Tomorrow",
+            "fuente": "StockStory",
+            "fecha": "2026-09-22T03:09:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 639.1067950666667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 50.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 80.1324691528198,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 55.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T13:49:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.734999895095825,
+          "factores_intradia": {
+            "precio_actual": 2.734999895095825,
+            "vwap": 2.712263455535535,
+            "ema9": 2.7268887942082287,
+            "rvol_actual": 0.12540480481294292,
+            "aceleracion_volumen": 1.5847142027401004,
+            "gap_pct": -0.03636360168457031,
+            "maximo_dia": 2.75,
+            "maximo_premarket": 2.68,
+            "rango_apertura_max": 2.7149999141693115,
+            "rango_apertura_min": 2.6449999809265137,
+            "velas_desde_ruptura": 2,
+            "macd": 0.019650828196660974,
+            "macd_signal": 0.018723725154052438
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 320.38972043333337,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 94.5454163984819,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 65.8,
+            "score_ajustado": 30.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "SFIX",
+          "nombre": "Stitch Fix, Inc.",
+          "precio_actual": 2.9600000381469727,
+          "factores_intradia": {
+            "precio_actual": 2.9600000381469727,
+            "vwap": 2.9498671138905106,
+            "ema9": 2.968139458887188,
+            "rvol_actual": 0.4011016062526925,
+            "aceleracion_volumen": 0.3756147259938478,
+            "gap_pct": 0.014084577986089954,
+            "maximo_dia": 3.0199999809265137,
+            "maximo_premarket": 2.935,
+            "rango_apertura_max": 2.924999952316284,
+            "rango_apertura_min": 2.880000114440918,
+            "velas_desde_ruptura": null,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 103276950.0,
+            "short_pct_float": 0.1408,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Earnings To Watch: Stitch Fix (SFIX) Reports Q2 Results Tomorrow",
+            "fuente": "StockStory",
+            "fecha": "2026-09-22T03:09:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 640.1064059166667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 50.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 80.1324691528198,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 55.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
