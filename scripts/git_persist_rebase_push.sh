@@ -38,16 +38,31 @@ _backoff_secs() {
 
 git_persist_rebase_push() {
   local intento=1
+  local script_dir
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   while [ "$intento" -le "$MAX_INTENTOS" ]; do
-    if git pull --rebase "$REMOTE" "$BRANCH"; then
+    # El pull vive en el helper: aparta la telemetría sucia, rebasea,
+    # y si no hay commits locales cae a ff-only. Un pop fallido (rc 3)
+    # no se reintenta: otro stash anidaría el estado.
+    local rc_pull=0
+    bash "$script_dir/git_pull_con_estado_local.sh" || rc_pull=$?
+    if [ "$rc_pull" -eq 0 ] || [ "$rc_pull" -eq 3 ]; then
       if git push "$REMOTE" "HEAD:$BRANCH"; then
+        if [ "$rc_pull" -eq 3 ]; then
+          echo "WARN: push ok, pero el estado apartado no volvió al árbol (queda en git stash list)"
+          return 1
+        fi
         echo "INFO: persist ok (intento ${intento})"
         return 0
       fi
       echo "WARN: git push failed (intento ${intento}/${MAX_INTENTOS})"
     else
-      echo "WARN: git pull --rebase failed (intento ${intento}/${MAX_INTENTOS})"
+      echo "WARN: git pull falló (intento ${intento}/${MAX_INTENTOS}, rc=${rc_pull})"
       git rebase --abort >/dev/null 2>&1 || true
+    fi
+    if [ "$rc_pull" -eq 3 ]; then
+      echo "ERROR: no se reintenta: un pop fallido y otro stash anidarían el estado"
+      return 1
     fi
     if [ "$intento" -eq "$MAX_INTENTOS" ]; then
       break

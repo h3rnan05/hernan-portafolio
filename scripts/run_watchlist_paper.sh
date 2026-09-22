@@ -53,8 +53,16 @@ persist_fallido() {
   return 0
 }
 
-# Best-effort sync (never abort run)
-git pull --rebase origin main >/dev/null 2>&1 || git pull --rebase >/dev/null 2>&1 || echo "WARN: git pull --rebase failed (continuing)"
+# El pull iba ANTES del git add. Con la telemetría sucia (el vigía la
+# reescribe cada 60 s) `git pull --rebase` se niega y main no entra
+# (medido 2026-09-22). El helper aparta esos paths, trae main y los
+# devuelve. Mismo flock que el commit: dos git a la vez rompen el índice.
+LOCK="${MOMENTUM_GIT_LOCK:-/tmp/momentum-paper-git.lock}"
+(
+  flock -w 180 9 || { echo "WARN: git flock timeout en el pull (continuing)"; exit 0; }
+  bash "$ROOT/scripts/git_pull_con_estado_local.sh" \
+    || echo "WARN: git pull con estado local falló (continuing)"
+) 9>"$LOCK"
 
 hunter_rc=0
 paper_rc=0
