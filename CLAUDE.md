@@ -94,9 +94,11 @@ calculan desde el ancla intradía MÁS CERCANA (`max(anclas) * 0.995`). Pero el
 sistema exige que la señal sea "temprana", o sea que el precio acabe de cruzar
 sus anclas — con lo cual el ancla está pegada al precio y el stop sale pegado
 también. Las dos reglas se pelean. En NTLA: stop de 10 centavos sobre una acción
-que se mueve 73 al día. El ATR solo se usa como respaldo, nunca como piso
-mínimo. Diagnosticado, no arreglado: el arreglo aleja el objetivo de 2R y el
-usuario todavía no decidió.
+que se mueve 73 al día; en LCID (22/9), 2 centavos sobre un ATR de 28.
+Corregido el 22/9 (decisión delegada por el usuario): la distancia al stop
+nunca baja de 0,25 × ATR diario (`report.FRACCION_ATR_MINIMA_STOP`) y el
+objetivo sigue siendo 2R, así que se aleja en la misma proporción. Es una
+decisión de diseño, no una calibración; sin ATR no hay piso.
 
 ### Cuidado al calibrar
 

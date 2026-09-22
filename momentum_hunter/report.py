@@ -258,11 +258,31 @@ def _nivel_invalidacion(candidato: CandidatoIntradia) -> float | None:
     return f.vwap
 
 
+# Piso del stop como fracción del ATR diario (2026-09-22, decisión
+# delegada por el dueño; era el "problema B" del CLAUDE.md). El stop se
+# cuelga del ancla intradía MÁS CERCANA, pero el sistema exige que la
+# señal sea "temprana" -- que el precio acabe de cruzar sus anclas -- así
+# que el ancla queda pegada al precio y el stop también: NTLA salió con
+# 10 centavos de stop en una acción que se mueve 73 al día (24 minutos y
+# fuera); LCID con 2 centavos sobre un ATR de 28. Dos reglas correctas
+# por separado se peleaban. La corrección: la distancia al stop nunca
+# es menor que esta fracción del ATR diario, y el objetivo sigue siendo
+# 2R (se aleja en la misma proporción). 0.25 es una decisión de diseño,
+# no una calibración (la muestra sigue siendo mínima): con 0.5 el
+# objetivo quedaría a un ATR entero, que rara vez se recorre en lo que
+# queda de sesión; con menos de 0.2 el piso no separa el stop del ruido
+# de unas pocas velas. Sin ATR no hay piso: no se inventa el dato.
+FRACCION_ATR_MINIMA_STOP = 0.25
+
+
 def niveles_entrada_salida(factores: FactoresIntradia, atr_diario: float | None) -> dict[str, float | None]:
     """Stop por debajo del ancla intradía más cercana (VWAP/EMA9) --
-    nunca un porcentaje fijo inventado. Si ninguna de las dos está
-    disponible, cae al ATR diario de la etapa 1 como margen aproximado.
-    Objetivo = 2R, la misma referencia de riesgo/recompensa que ya usa
+    nunca un porcentaje fijo inventado -- con un piso de
+    `FRACCION_ATR_MINIMA_STOP` × ATR diario para que la regla de "señal
+    temprana" no deje el stop dentro del ruido (ver el comentario de la
+    constante). Si ninguna ancla está disponible, cae al ATR diario de la
+    etapa 1 como margen aproximado. Objetivo = 2R, la misma referencia de
+    riesgo/recompensa que ya usa
     `early_opportunity._score_riesgo_recompensa`. Pública porque
     `run.py` necesita estos mismos niveles ANTES de construir la
     `Oportunidad` final -- para pasárselos a `evaluator.evaluar` (la
@@ -273,6 +293,9 @@ def niveles_entrada_salida(factores: FactoresIntradia, atr_diario: float | None)
     anclas = [a for a in (factores.vwap, factores.ema9) if a is not None and a < precio]
     if anclas:
         stop = max(anclas) * 0.995
+        # El piso solo puede ALEJAR el stop; nunca lo acerca al precio.
+        if atr_diario is not None and atr_diario > 0:
+            stop = min(stop, precio - atr_diario * FRACCION_ATR_MINIMA_STOP)
     elif atr_diario is not None:
         stop = precio - atr_diario * 0.5
     else:

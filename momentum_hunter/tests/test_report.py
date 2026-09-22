@@ -65,6 +65,35 @@ def test_niveles_cae_a_atr_diario_sin_anclas():
     assert niveles["stop"] == 9.5
 
 
+def test_niveles_piso_del_stop_aleja_un_ancla_pegada_al_precio():
+    """Problema B (2026-09-22): señal "temprana" = ancla pegada al precio
+    = stop dentro del ruido. El caso NTLA a escala: ancla a 2 centavos,
+    ATR de 73. El piso manda y el objetivo sigue siendo 2R del stop
+    nuevo, no del viejo."""
+    f = FactoresIntradia(precio_actual=12.88, vwap=12.60, ema9=12.86)
+    niveles = niveles_entrada_salida(f, atr_diario=0.73)
+    piso = 12.88 - 0.73 * 0.25
+    assert niveles["stop"] == piso
+    assert niveles["stop"] < 12.86 * 0.995
+    assert niveles["objetivo"] == 12.88 + (12.88 - piso) * 2.0
+
+
+def test_niveles_piso_del_stop_no_acerca_un_ancla_ya_lejana():
+    """El piso solo puede ALEJAR el stop. Con el ancla a 5 % del precio y
+    un ATR chico, el stop sigue colgando del ancla, como siempre."""
+    f = FactoresIntradia(precio_actual=10.0, vwap=9.5, ema9=9.5)
+    niveles = niveles_entrada_salida(f, atr_diario=0.4)
+    assert niveles["stop"] == 9.5 * 0.995
+
+
+def test_niveles_sin_atr_no_inventa_piso():
+    """Regla 6: sin ATR no hay piso -- el stop queda como antes, no se
+    fabrica una distancia mínima con un dato que falta."""
+    f = FactoresIntradia(precio_actual=10.0, vwap=9.5, ema9=9.98)
+    assert niveles_entrada_salida(f, atr_diario=None)["stop"] == 9.98 * 0.995
+    assert niveles_entrada_salida(f, atr_diario=0.0)["stop"] == 9.98 * 0.995
+
+
 def test_niveles_none_sin_precio():
     niveles = niveles_entrada_salida(FactoresIntradia(), atr_diario=None)
     assert niveles == {"entrada": None, "stop": None, "objetivo": None}
