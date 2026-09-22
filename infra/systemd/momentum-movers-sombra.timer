@@ -1,0 +1,13 @@
+[Unit]
+Description=Timer de "movers" en sombra (cada 5 min, Lun-Vie 13-20 UTC). NO se instala solo.
+Requires=momentum-movers-sombra.service
+
+[Timer]
+# :02, :07, ... para no arrancar encima del rechequeo (:00/:05) ni del
+# escaneo (:01/:31). Persistent=false: una corrida atrasada no sirve.
+OnCalendar=Mon..Fri *-*-* 13..20:2/5:00 UTC
+Persistent=false
+Unit=momentum-movers-sombra.service
+
+[Install]
+WantedBy=timers.target

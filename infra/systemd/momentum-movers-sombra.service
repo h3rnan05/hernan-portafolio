@@ -1,0 +1,19 @@
+[Unit]
+Description=Momentum "movers" en sombra (solo telemetría, PAPER ONLY oneshot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+EnvironmentFile=/etc/momentum/paper.env
+ExecStart=/opt/momentum/bin/run_movers_sombra.sh
+Nice=15
+# 40 tickers × (intradía + diarias + noticias) con pausa de 0,15 s: ~2 min.
+TimeoutStartSec=240
+
+[Install]
+WantedBy=multi-user.target

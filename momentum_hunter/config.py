@@ -141,6 +141,23 @@ class MomentumConfig:
     fuentes_minimas_rumor: int = 2            # un rumor solo cuenta si aparece en >=N fuentes
     dias_ventana_catalizador: int = 3         # noticia debe ser de los últimos N días
 
+    # --- Descubrimiento "movers" EN SOMBRA (2026-09-21, ver movers.py) ---
+    # Apagado por omisión: no escribe watchlist ni manda avisos, solo deja
+    # telemetría. En el VPS se enciende con MOMENTUM_MOVERS_SOMBRA=1.
+    # TODOS los umbrales de abajo son puntos de partida razonados, no
+    # evidencia: la sombra existe para producir la evidencia que permita
+    # calibrarlos (n = corridas medidas, no n = 1).
+    movers_sombra: bool = False
+    movers_precio_min: float = 0.75          # bajo esto el spread y los halts dominan
+    movers_precio_max: float = 20.0          # techo de la tesis small cap (mismo espíritu que precio_maximo)
+    movers_market_cap_max: float = 2e9       # < 2B: small cap; una large cap no se mueve 5 % por una noticia
+    movers_volumen_dia_min: float = 300_000  # sin 300k acciones hoy no hay liquidez para entrar y salir
+    movers_cambio_pct_min: float = 5.0       # "ya se está moviendo": +5 % en el día
+    movers_top: int = 40                     # top por % de cambio; más de 40 no caben en 5 min con Yahoo
+    movers_rvol_min: float = 3.0             # RVOL ajustado a la hora: 3x lo normal = entra dinero
+    movers_rvol_clase_b: float = 5.0         # sin catalizador conocido, solo con volumen extremo (clase B)
+    movers_volumen_dolares_min: float = 2e6  # $2M negociados hoy: por debajo no hay con quién operar
+
     # --- Etapa 2: datos intradía (solo sobre los mejores candidatos) ---
     intervalo_intradia: str = "1m"
     periodo_intradia: str = "5d"               # margen para tener el cierre de ayer disponible

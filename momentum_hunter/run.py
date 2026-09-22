@@ -1246,10 +1246,22 @@ def main() -> None:
     ap.add_argument("--solo-watchlist", action="store_true",
                     help="no escanea el universo -- solo re-chequea la watchlist activa "
                          "(pensado para un workflow separado, cada ~5 minutos, ver watchlist.py)")
+    ap.add_argument("--movers-sombra", action="store_true",
+                    help="descubrimiento 'movers' EN SOMBRA (ver movers.py): solo telemetría, no toca la "
+                         "watchlist ni el escaneo. Apagado salvo config.movers_sombra o MOMENTUM_MOVERS_SOMBRA=1")
     ap.add_argument("--materializar-overlay", action="store_true",
                     help="no escanea ni re-chequea: vuelca canónico+overlay del VPS a watchlist.json "
                          "para que el VPS lo commitee como dueño (ver watchlist.materializar_overlay)")
     args = ap.parse_args()
+
+    if args.movers_sombra:
+        encendido = CONFIG.movers_sombra or os.getenv("MOMENTUM_MOVERS_SOMBRA", "").strip().lower() in {"1", "true", "yes", "on"}
+        if not encendido:
+            log.info("movers en sombra: apagado (config.movers_sombra=False y sin MOMENTUM_MOVERS_SOMBRA=1); no se hace nada")
+            return
+        from momentum_hunter import movers
+        movers.correr_sombra(CONFIG)
+        return
 
     if args.materializar_overlay:
         n = watchlist.materializar_overlay()
