@@ -244,7 +244,8 @@ def test_no_cambia_umbrales_ni_endpoint_paper():
     assert PAPER_CFG.maximo_pct_efectivo_por_posicion == 0.15
     assert HUNTER_CFG.minutos_maximos_en_watching == 120
     assert HUNTER_CFG.riesgo_recompensa_minimo == 1.5
-    assert HUNTER_CFG.verificaciones_tarde_para_missed == 2
+    # 5 desde el re-escalado del 2026-09-22 (rechequeo cada 60 s); antes 2.
+    assert HUNTER_CFG.verificaciones_tarde_para_missed == 5
     fuente_ia = inspect.getsource(ia_decision)
     assert "confianza < 7" in fuente_ia
     assert alpaca_client._BASE_URL == "https://paper-api.alpaca.markets/v2"

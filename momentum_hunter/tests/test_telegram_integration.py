@@ -206,9 +206,11 @@ def test_3_watching_a_missed_manda_mensaje_no_perseguir(monkeypatch, tmp_path):
             ticker, accionable=False, temprano=False, patron="gap_and_go",
             motivo_tarde="Ya se movió más de un 12% desde la ruptura."))
 
-    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA)
-    run_mod.revisar_watchlist(
-        CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=5))
+    # `verificaciones_tarde_para_missed` chequeos seguidos "tarde" (5 desde
+    # el re-escalado del 2026-09-22 al rechequeo de 60 s).
+    for i in range(CFG.verificaciones_tarde_para_missed):
+        run_mod.revisar_watchlist(
+            CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=i))
 
     assert watchlist.cargar(path)[0].estado == watchlist.ESTADO_MISSED
     mensajes_missed = [m for m in enviados if "OPORTUNIDAD PERDIDA" in m]
@@ -413,12 +415,16 @@ def test_11_missed_se_confirma_en_el_state_engine_aunque_telegram_falle(monkeypa
         lambda ticker, *a, **kw: _candidato_intradia(
             ticker, accionable=False, temprano=False, patron="gap_and_go"))
 
-    # Primer chequeo: sube tarde_consecutivas a 1 -- todavía no manda nada.
-    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA)
-    # Segundo chequeo: confirma MISSED -- acá SÍ intenta mandar, y falla.
+    # Los primeros N-1 chequeos solo suben tarde_consecutivas -- todavía
+    # no mandan nada (N = verificaciones_tarde_para_missed).
+    n = CFG.verificaciones_tarde_para_missed
+    for i in range(n - 1):
+        run_mod.revisar_watchlist(
+            CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=i))
+    # El chequeo N confirma MISSED -- acá SÍ intenta mandar, y falla.
     try:
         run_mod.revisar_watchlist(
-            CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=5))
+            CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=n - 1))
     except RuntimeError:
         pass   # el envío falló, pero el estado ya se persistió ANTES (ver docstring)
 
