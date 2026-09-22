@@ -5852,27 +5852,166 @@
         "total": 0
       },
       "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-22T16:45:22+00:00",
+      "triggered_nuevos": 1,
+      "revisiones": 1,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [
+          69000.0
+        ],
+        "alerta": [
+          70000.0
+        ],
+        "e2e": [
+          82000.0
+        ]
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-22T16:46:25+00:00",
+      "triggered_nuevos": 1,
+      "revisiones": 1,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": [
+          1.4
+        ]
+      },
+      "latencias_ms": {
+        "descubrimiento": [
+          69000.0
+        ],
+        "alerta": [
+          69000.0
+        ],
+        "e2e": [
+          85000.0
+        ]
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-22T16:47:09+00:00",
+      "triggered_nuevos": 0,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-22T16:48:09+00:00",
+      "triggered_nuevos": 0,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-22T16:49:09+00:00",
+      "triggered_nuevos": 0,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "fuente": "vps"
     }
   ],
   "sesion": {
-    "triggered_nuevos": 42,
-    "revisiones": 4,
+    "triggered_nuevos": 44,
+    "revisiones": 6,
     "ordenes_colocadas": 0,
-    "paper_step_success_zero_orders": 233,
+    "paper_step_success_zero_orders": 238,
     "muestras_latencia": {
-      "descubrimiento": 4,
-      "alerta": 4,
-      "e2e": 4
+      "descubrimiento": 6,
+      "alerta": 6,
+      "e2e": 6
     },
     "latencia_p50_ms": {
-      "descubrimiento": 127500.0,
-      "alerta": 128500.0,
-      "e2e": 600000.0
+      "descubrimiento": 98000.0,
+      "alerta": 99000.0,
+      "e2e": 117000.0
     },
     "latencia_p95_ms": {
       "descubrimiento": 128000.0,
       "alerta": 129000.0,
-      "e2e": 1449650.0
+      "e2e": 1402750.0
     },
     "sobre_presupuesto": {
       "descubrimiento": 0,
@@ -5883,9 +6022,9 @@
     "presupuesto_ms": 480000,
     "version_medicion": 2,
     "latencia_total_velas": {
-      "muestras": 3,
-      "p50": 5.5,
-      "p95": 16.3,
+      "muestras": 4,
+      "p50": 5.0,
+      "p95": 15.7,
       "sobre_presupuesto": 1
     }
   }
