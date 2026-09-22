@@ -21,7 +21,9 @@ Alpaca.
 | `momentum-watchlist.service` | `/etc/systemd/system/` | oneshot: `--solo-watchlist` + paper trader + persist |
 | `momentum-watchlist.service.d/10-restart-notify.conf` | `/etc/systemd/system/momentum-watchlist.service.d/` | `OnFailure` apagado (anti-spam, decisión del 2026-09-11) |
 | `momentum-watchlist.service.d/20-ownership-wrapper.conf` | ídem | reemplaza el `ExecStart` por el wrapper de abajo |
-| `momentum-watchlist.timer` | `/etc/systemd/system/` | cada 5 min, Lun–Vie 13–20 UTC |
+| `momentum-watchlist.timer` | `/etc/systemd/system/` | cada 5 min, Lun–Vie 13–20 UTC. **Apagado desde el 2026-09-22**: lo reemplaza el vigía (abajo); queda instalado como vuelta atrás |
+| `momentum-vigia.service` | `/etc/systemd/system/` | **proceso permanente** (2026-09-22): rechequeo + paper cada 60 s en sesión, git cada 5 min. `Conflicts=momentum-watchlist.timer` |
+| `bin/run_vigia.sh` | `/opt/momentum/bin/` | wrapper del vigía (mismo entorno que el del rechequeo); el bucle es `momentum_paper_trader/vigia.py` |
 | `momentum-watchlist-state-backup.service` | `/etc/systemd/system/` | oneshot: copia diaria del overlay (`scripts/backup_watchlist_vps_state.sh`, 02:15 America/Monterrey) |
 | `momentum-watchlist-state-backup.timer` | `/etc/systemd/system/` | `*-*-* 02:15:00`; **no** se habilita junto al rechequeo |
 | `momentum-watchlist-watchdog.service` | `/etc/systemd/system/` | avisa por Telegram si el oneshot lleva >1200 s sin terminar OK dentro de sesión; ejecuta `scripts/watchdog_timer_miss.sh` **desde el árbol** (ver "Watchdog") |
@@ -190,3 +192,51 @@ Apagar: `sudo systemctl disable --now momentum-movers-sombra.timer` (y quitar la
 variable, aunque sin ella el wrapper ya es no-op). No bloquea al escaneo ni al
 rechequeo: por decisión del dueño nada los espera; la convivencia con Yahoo la
 resuelve el archivo de pausa del bot.
+
+## Vigía (2026-09-22): rechequeo + paper cada 60 s, sin timer
+
+Pedido del dueño: "que corra todo el tiempo sin pararse cada 5 minutos; al
+tiro". `momentum-vigia.service` es un proceso permanente
+(`momentum_paper_trader/vigia.py`) que en sesión (Lun–Vie 13:00–20:00 UTC)
+corre a los :05 de cada minuto `momentum_hunter.run --solo-watchlist` y
+`momentum_paper_trader.run`, y cada 5 ticks (y al cerrar la ventana) llama
+al wrapper del rechequeo en modo `MOMENTUM_WRAPPER_SOLO_PERSISTIR=1` para
+subir el estado a main. La orden ya no espera al commit. Fuera de sesión
+duerme. Un paso que falla o se cuelga se registra y el siguiente tick
+reintenta; nunca se compensa nada.
+
+El paso paper corre bajo un candado corto (`/tmp/momentum-paper-exec.lock`)
+compartido con el paso paper del escaneo: a 60 s, dos ejecutores podrían
+revisar la misma señal en el mismo instante. El escaneo en sí sigue sin
+candado (#152).
+
+Datos: Yahoo a 60 s hasta el viernes 2026-09-25 (decisión del dueño); si no
+alcanza, feed de Alpaca en tiempo real. Con ~10 tickers vigilados son ~12
+peticiones por minuto; un 429 activa la pausa del bot 15 min y los ticks
+salen vacíos hasta que pase. Limitación anotada: la telemetría paper
+escribe una línea por tick (~400/día) y se commitea; si pesa, se agrega.
+
+Instalar (desde `/opt/hernan-portafolio` con `main` al día):
+
+```bash
+sudo install -m 755 infra/systemd/bin/run_vigia.sh infra/systemd/bin/run_watchlist_paper.sh infra/systemd/bin/run_scan_paper.sh /opt/momentum/bin/
+sudo cp infra/systemd/momentum-vigia.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl disable --now momentum-watchlist.timer
+sudo systemctl enable --now momentum-vigia.service
+sudo journalctl -u momentum-vigia.service -f
+```
+
+Vuelta atrás (un comando cada uno):
+
+```bash
+sudo systemctl disable --now momentum-vigia.service
+sudo systemctl enable --now momentum-watchlist.timer
+```
+
+El watchdog (`momentum-watchlist-watchdog.timer`) omite el chequeo de
+silencio mientras `momentum-watchlist.timer` está apagado, así que no
+avisa por el vigía. Lo que sí lo vigila: `Restart=always` de systemd ante
+una caída, el panel (Rechequeo pasa a "Revisar" sin evento en 12 min) y el
+respaldo de GitHub (actúa si el VPS lleva >20 min sin commitear en sesión).
+Marca de vida fuera de git: `/var/lib/momentum/vigia_latido.json`.

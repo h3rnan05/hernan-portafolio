@@ -82,8 +82,12 @@ en verde.
 entrando, riesgo definido, a tiempo) coinciden durante minutos. GitHub Actions
 no respeta los horarios: pide cada 5 min y corre cada 30-90, con días en que no
 corre. Ejemplos medidos, todas oportunidades reales rechazadas con razón: GAP
-362 velas tarde, S 118, RPC 91. La solución probable es un servidor propio; es
-decisión del usuario y está pendiente.
+362 velas tarde, S 118, RPC 91. Resuelto en dos pasos: desde el 21/9 el
+escaneo (cada 30 min) y el rechequeo corren en un VPS propio (GitHub queda
+solo de respaldo), y desde el 22/9 el rechequeo + paper corre cada 60 s en un
+proceso permanente (`momentum_paper_trader/vigia.py`, `momentum-vigia.service`).
+Datos: Yahoo a 60 s a prueba hasta el 25/9; si no alcanza, feed de Alpaca en
+tiempo real (decisión del usuario).
 
 **B. El stop sale más apretado que el ruido de la acción.** Los niveles se
 calculan desde el ancla intradía MÁS CERCANA (`max(anclas) * 0.995`). Pero el

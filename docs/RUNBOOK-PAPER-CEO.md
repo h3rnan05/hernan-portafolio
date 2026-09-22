@@ -101,7 +101,7 @@ UI: https://github.com/h3rnan05/hernan-portafolio/actions
 |---|---|---|
 | hunter | `*/30 13-20 * * 1-5` | **solo respaldo** (VPS callado >20 min, `.github/scripts/respaldo_gha.py`); el escaneo real es `momentum-scan.timer` en el VPS (:01/:31) |
 | **schedule-heartbeat** | `7,22,37,52 13-20 * * 1-5` | diagnóstico de drop del cron GHA; **no** es el hunter. Ver `docs/schedule-heartbeat.md` |
-| watchlist (+ paper) | `*/5 13-20 * * 1-5` | **solo respaldo**; paper apagado salvo `MOMENTUM_PAPER_GHA=on`. Grupo `…-watchlist` |
+| watchlist (+ paper) | `*/5 13-20 * * 1-5` | **solo respaldo**; paper apagado salvo `MOMENTUM_PAPER_GHA=on`. Grupo `…-watchlist`. En el VPS, desde el 2026-09-22 el rechequeo + paper corre cada 60 s en `momentum-vigia.service` (proceso permanente; `momentum-watchlist.timer` apagado, queda como vuelta atrás) |
 | **puente cadencia paper** | `0 13-19 * * 1-5` + loop interno ~5 min | temporal hasta VPS; mismo grupo que watchlist |
 | outcomes hunter | `30 21 * * 1-5` | ≈ 15:30 MT |
 | Daily ingestion + predictions | `0 22 * * 1-5` | **16:00 MT = OLS/backend, NO resumen paper** |

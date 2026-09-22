@@ -60,6 +60,12 @@ git pull --rebase origin main >/dev/null 2>&1 || git pull --rebase >/dev/null 2>
 
 hunter_rc=0
 paper_rc=0
+# Modo solo-persistir (vigía, 2026-09-22): el proceso permanente ya corrió
+# rechequeo y paper cada 60 s; acá solo toca subir el estado a main
+# (backup + pull + materializar + commit + push, con su aviso si falla).
+if [ "${MOMENTUM_WRAPPER_SOLO_PERSISTIR:-0}" = "1" ]; then
+  echo "INFO: modo solo-persistir (vigía): sin rechequeo ni paper en este wrapper"
+else
 set +e
 "$PY" -m momentum_hunter.run --solo-watchlist
 hunter_rc=$?
@@ -70,6 +76,7 @@ fi
 "$PY" -m momentum_paper_trader.run
 paper_rc=$?
 set -e
+fi
 
 git config user.name "momentum-opportunity-hunter" || true
 git config user.email "momentum-opportunity-hunter@users.noreply.github.com" || true

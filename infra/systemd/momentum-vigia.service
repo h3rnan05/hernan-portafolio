@@ -1,0 +1,25 @@
+[Unit]
+Description=Momentum vigía: rechequeo + paper cada 60 s en sesión (PAPER ONLY, proceso permanente)
+After=network-online.target
+Wants=network-online.target
+# Nunca junto al timer de 5 min: los dos ejecutarían la misma señal.
+Conflicts=momentum-watchlist.timer
+
+[Service]
+Type=simple
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+EnvironmentFile=/etc/momentum/paper.env
+ExecStart=/opt/momentum/bin/run_vigia.sh
+Restart=always
+RestartSec=15
+Nice=5
+# SIGTERM al vigía, que termina el paso en curso (una orden a medio
+# colocar no se interrumpe), persiste y sale. Después, SIGKILL al resto.
+KillMode=mixed
+TimeoutStopSec=420
+
+[Install]
+WantedBy=multi-user.target
