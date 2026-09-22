@@ -209,7 +209,22 @@ class MomentumConfig:
     # en N chequeos SEGUIDOS antes de comprometerse a MISSED (terminal),
     # para no apagar la vigilancia continua por un solo dato ruidoso
     # (ver `EntradaWatchlist.tarde_consecutivas`).
-    verificaciones_tarde_para_missed: int = 2
+    #
+    # Re-escalado 2026-09-22 (decisión delegada por el dueño). El 2 se
+    # eligió cuando el rechequeo corría cada 5 minutos: dos lecturas
+    # seguidas eran ~10 minutos de "tarde" sostenido. Desde que el
+    # rechequeo corre en un proceso permanente cada 60 s (22/9), con 2
+    # el mismo umbral pasó a ser 2 minutos: `velas_desde_ruptura`
+    # es una lectura ruidosa (el 22/9 VGZ leyó 4, 5, 8, 2 y 14 velas en
+    # doce minutos; SFIX 2, 18 y luego 2) y dos lecturas seguidas
+    # bastaron para matar por el día candidatas que un minuto después
+    # volvían a leerse "tempranas". 5 chequeos a 60 s recuperan el
+    # espíritu original (unos 5 minutos sostenidos) sin volver a los 10:
+    # no es una calibración nueva, es la misma regla con el reloj nuevo.
+    # Mantenerla WATCHING no tiene costo: disparar sigue exigiendo una
+    # lectura "temprana" en ese mismo instante, y el TTL de 120 min
+    # sigue cerrando las que nunca confirman.
+    verificaciones_tarde_para_missed: int = 5
 
     # --- Aprendizaje / tracking ---
     horizontes_seguimiento: tuple[int, ...] = (1, 3, 5, 10)  # días hábiles de seguimiento

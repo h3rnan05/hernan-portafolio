@@ -225,11 +225,20 @@ def test_marca_missed_solo_tras_verificaciones_seguidas(monkeypatch, tmp_path):
             ticker, accionable=False, temprano=False, patron="gap_and_go",
             motivo_tarde="Ya se movió más de un 12% desde la ruptura."))
 
-    # CFG.verificaciones_tarde_para_missed == 2 -- hacen falta dos
-    # chequeos SEGUIDOS con veredicto "tarde".
-    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA)
+    # Hacen falta `verificaciones_tarde_para_missed` chequeos SEGUIDOS con
+    # veredicto "tarde" (5 desde el re-escalado del 2026-09-22 al
+    # rechequeo de 60 s del vigía). Con uno menos sigue WATCHING.
+    n = CFG.verificaciones_tarde_para_missed
+    assert n == 5
+    for i in range(n - 1):
+        run_mod.revisar_watchlist(
+            CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=i))
+    r = watchlist.cargar(path)[0]
+    assert r.estado == watchlist.ESTADO_WATCHING
+    assert r.tarde_consecutivas == n - 1
+
     run_mod.revisar_watchlist(
-        CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=5))
+        CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA + timedelta(minutes=n - 1))
 
     r = watchlist.cargar(path)[0]
     assert r.estado == watchlist.ESTADO_MISSED
