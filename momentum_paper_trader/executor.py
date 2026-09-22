@@ -288,10 +288,13 @@ def _revision_instrumentada(
     order_id: str | None = None, cantidad: int | None = None,
     precio_entrada: float | None = None, stop: float | None = None,
     objetivo: float | None = None, motivo_no_operada: str | None = None,
+    ia_consultada: bool = True,
 ) -> estado.RevisionIA:
     """Arma la revisión y le pone la cinta de tiempos. Un solo sitio
-    para no olvidar un hop en alguno de los tres desenlaces (rechazo
-    de la IA, fracción que no llega a 1 acción, orden colocada)."""
+    para no olvidar un hop en alguno de los desenlaces (rechazo de la
+    IA, fracción que no llega a 1 acción, orden colocada, o un motivo
+    determinista registrado SIN consultar a la IA: `ia_consultada=False`
+    deja `ia_entraria=None`, porque no hubo veredicto que copiar)."""
     registro = estado.RevisionIA(
         ticker=e.ticker, creado_en=e.creado_en, entro=entro,
         confianza=decision.confianza,
@@ -304,7 +307,7 @@ def _revision_instrumentada(
         es_large_cap=getattr(e, "es_large_cap", None),
         # Veredicto crudo de la IA, en TODOS los desenlaces -- así el campo
         # es uniforme y no hay que adivinar por qué falta.
-        ia_entraria=decision.entrar,
+        ia_entraria=decision.entrar if ia_consultada else None,
         motivo_no_operada=motivo_no_operada,
     )
     telemetria.instrumentar_revision(
@@ -486,6 +489,41 @@ def ejecutar(
         # de gastar una llamada a la IA en algo que no se podría operar.
         techo = _techo_de_acciones(cuenta, cfg, e.ultima_entrada)
         if techo < cfg.minimo_acciones_para_operar:
+            # (2026-09-22) Dos casos distintos con el mismo síntoma. Si el
+            # precio de UNA acción ya supera el tope de concentración
+            # (`maximo_pct_efectivo_por_posicion` × equity), es
+            # estructural para el día: GS a $949 con $5.000 se bloqueó 38
+            # veces seguidas hasta morir por niveles rancios, con el panel
+            # lleno de "bloqueos de riesgo" que no decían nada nuevo. Se
+            # registra UNA vez sin consultar a la IA (no hubo veredicto:
+            # `ia_entraria=None`), se avisa una vez, y la señal se archiva
+            # con su propio desenlace (`precio_fuera_de_alcance`). Si en
+            # cambio lo que falta es EFECTIVO (el resto ya está
+            # desplegado), es transitorio -- una posición puede cerrarse
+            # y liberar cash -- así que se sigue reintentando cada corrida
+            # sin quemar la señal, como antes.
+            tope_por_posicion = cuenta.equity * cfg.maximo_pct_efectivo_por_posicion
+            if e.ultima_entrada > tope_por_posicion:
+                razon = (
+                    f"A ${e.ultima_entrada:,.2f} no cabe ni una acción entera en el tope de "
+                    f"concentración de la cuenta ({cfg.maximo_pct_efectivo_por_posicion:.0%} del "
+                    f"equity = ${tope_por_posicion:,.2f}). No se consultó a la IA: con esta cuenta "
+                    f"la señal no se puede operar hoy.")
+                log.info("%s: %s", e.ticker, razon)
+                _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="concentracion",
+                        motivo="precio fuera de alcance", techo=techo,
+                        tope_por_posicion=round(tope_por_posicion, 2))
+                sin_ia = ia_decision.DecisionIA(entrar=False, confianza=0, razonamiento=razon)
+                registro = _revision_instrumentada(
+                    e, sin_ia, executor_leido_ts=executor_leido_ts, ia_decision_ts=None,
+                    entro=False, motivo_no_operada=estado.MOTIVO_PRECIO_FUERA_DE_ALCANCE,
+                    ia_consultada=False)
+                revisiones_previas.append(registro)
+                estado.guardar(revisiones_previas)
+                _avisar(dry_run, notify.formatear_no_entra(
+                    ticker=e.ticker, motivo="no cabe ni 1 acción en el tope de concentración",
+                    razonamiento=razon))
+                continue
             log.info(
                 "%s: a $%.2f la cuenta solo da para %d acción(es) (mínimo %d) -- "
                 "esta señal no se puede dimensionar, se omite",

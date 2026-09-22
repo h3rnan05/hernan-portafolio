@@ -68,12 +68,26 @@ igual si este módulo se desinstala.
    vuelve a solo small caps sin deploy con `("small",)`.
 
    Limitación honesta: la muestra de decisiones sobre large-caps que esto
-   conserva NO mide la tesis. El prompt de `ia_decision.py` le dice a la
-   IA que es large-cap y le pide evaluarlo como debilidad estructural,
-   así que esas decisiones miden que sigue instrucciones, no si acierta.
-   Para medir la tesis harían falta un prompt neutral respecto a banda y
-   un seguimiento de desenlace para señales no operadas -- ninguna de
-   las dos existe hoy y las dos son decisiones aparte.
+   conserva NO mide la tesis. Hasta el 2026-09-22 el prompt de
+   `ia_decision.py` le pedía a la IA evaluar large-cap como debilidad
+   estructural, así que esas decisiones medían que sigue instrucciones,
+   no si acierta; desde #166 el prompt es neutral respecto a banda. Lo
+   que sigue faltando es un seguimiento de desenlace para señales no
+   operadas, que es una decisión aparte.
+4c. **Precio fuera de alcance** (2026-09-22): si el precio de UNA acción
+   supera el tope de concentración (`maximo_pct_efectivo_por_posicion`
+   × equity; con $5.000 y 15 %, todo lo que cueste más de ~$750), la
+   señal no se puede operar hoy con esta cuenta, y eso no va a cambiar
+   antes del cierre. Antes se bloqueaba cada minuto hasta morir por
+   niveles rancios (GS a $949: 38 bloqueos seguidos en el panel). Ahora
+   se registra UNA revisión sin consultar a la IA (`ia_entraria=None`:
+   no hubo veredicto y no se inventa; `confianza=0` es el relleno del
+   campo obligatorio, no una opinión), se manda UN aviso NO ENTRA con la
+   razón, y se archiva con desenlace `precio_fuera_de_alcance`. Si lo que
+   falta es efectivo libre (el resto ya está desplegado), sigue siendo un
+   bloqueo transitorio que se reintenta cada corrida, como siempre. Es
+   una regla sobre la CUENTA, no sobre el precio: la misma señal con
+   $100.000 se opera.
 5. Si la IA aprueba, calcula el tamaño de la posición por **riesgo fijo
    en dólares** (`PaperTraderConfig.riesgo_dolares_por_operacion`,
    default $100): `acciones = riesgo ÷ (entrada − stop)`, redondeado

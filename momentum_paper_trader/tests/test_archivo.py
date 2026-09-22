@@ -138,6 +138,21 @@ def test_fuera_de_banda_gana_aunque_la_ia_haya_dicho_que_no(tmp_path):
     assert archivo.desenlace_paper(r) == "fuera_de_banda"
 
 
+def test_precio_fuera_de_alcance_se_archiva_sin_veredicto_de_ia(tmp_path):
+    # (2026-09-22) GS a $949 con $5.000: no cabe ni una acción en el 15 %.
+    # Se registró sin consultar a la IA (ia_entraria=None) y es terminal
+    # con su propio desenlace -- ni rechazo_ia ni fuera_de_banda.
+    e = _triggered("GS")
+    r = _revision("GS", e.creado_en, entro=False)
+    r.ia_entraria = None
+    r.motivo_no_operada = estado.MOTIVO_PRECIO_FUERA_DE_ALCANCE
+    escritos = _archivar([e], [r], tmp_path)
+
+    assert e.estado == watchlist.ESTADO_ARCHIVED
+    assert escritos[0]["desenlace_paper"] == "precio_fuera_de_alcance"
+    assert escritos[0]["revision_entro"] is False
+
+
 def test_rechazo_ia_sin_motivo_sigue_siendo_rechazo_ia(tmp_path):
     e = _triggered("NTLA")
     r = _revision("NTLA", e.creado_en, entro=False)
