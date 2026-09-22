@@ -299,9 +299,18 @@ def test_este_cambio_no_toca_keywords_ancla_ni_umbrales():
     assert CONFIG.fuentes_minimas_rumor == 2
     assert CONFIG.score_minimo_alerta == 55.0
     assert ANCLA_TABLAS_VERSION == "v1"
+    # Candado de la lista viva. El parche 2026-09-22 solo agrega las
+    # frases de ALKS (phase 1b / phase 1 / proof-of-concept) y LFMD
+    # (partnership / collaboration). Ancla, ventana y riesgo paper no se mueven.
     assert CATALYST_KEYWORDS["fda"] == (
         "fda approval", "fda clearance", "fda grants", "breakthrough therapy",
         "phase 3 results", "phase 2 results", "clinical trial results", "fda approves",
+        "phase 1b", "phase 1", "proof-of-concept", "proof of concept",
+    )
+    assert CATALYST_KEYWORDS["nuevo_cliente"] == (
+        "signs agreement with", "partnership with", "strategic partnership",
+        "new customer", "expands partnership",
+        "partnership", "collaboration",
     )
     assert "strategy" not in {
         alias for aliases in

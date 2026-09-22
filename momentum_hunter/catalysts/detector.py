@@ -46,6 +46,16 @@ CATALYST_KEYWORDS: dict[str, tuple[str, ...]] = {
     "fda": (
         "fda approval", "fda clearance", "fda grants", "breakthrough therapy",
         "phase 3 results", "phase 2 results", "clinical trial results", "fda approves",
+        # ALKS 2026-09-21 salió sin_keyword con "Phase 1b Results": esa frase
+        # no contiene "phase 2 results" ni "phase 3 results", y "phase 1
+        # results" tampoco (la "b" corta el substring). "phase 1" cubre
+        # "phase 1b" por substring; "phase 1b" queda escrito para auditar
+        # el hueco sin inferirlo. "proof of concept" es la misma frase sin
+        # guiones. Limitación honesta: "phase 1" también entra en "phase 10"
+        # y en "inicia phase 1" (phase 2/3 solo entran como results). No se
+        # agrega "phase i": es substring de "phase ii" y "phase iii", y el
+        # titular del 22-sep ("Phase I ADHD Study") sigue sin matchear.
+        "phase 1b", "phase 1", "proof-of-concept", "proof of concept",
     ),
     "adquisicion": (
         "to acquire", "acquisition of", "merger agreement", "to be acquired",
@@ -65,6 +75,14 @@ CATALYST_KEYWORDS: dict[str, tuple[str, ...]] = {
     "nuevo_cliente": (
         "signs agreement with", "partnership with", "strategic partnership",
         "new customer", "expands partnership",
+        # LFMD 2026-09-21 salió sin_keyword con "Secures AT&T Partnership":
+        # el nombre queda entre "secures" y "partnership", y el matcher es
+        # substring contiguo, así que "partnership with" / "strategic
+        # partnership" / "signs agreement with" no están. "collaboration"
+        # cubre "strategic collaboration" por el mismo motivo. Limitación:
+        # cualquier titular con esas palabras cuenta, no solo el anuncio
+        # de un acuerdo. No entra "teams up" ni el resto de #121.
+        "partnership", "collaboration",
     ),
     "patente": (
         "patent granted", "patent issued", "awarded patent", "uspto",
