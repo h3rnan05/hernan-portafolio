@@ -78720,6 +78720,594 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-22T20:00:09+00:00",
+      "candidatos_evaluados": 8,
+      "candidatos": [
+        {
+          "ticker": "PYPL",
+          "nombre": "PayPal Holdings, Inc.",
+          "precio_actual": 52.8849983215332,
+          "factores_intradia": {
+            "precio_actual": 52.8849983215332,
+            "vwap": 53.547433990440574,
+            "ema9": 52.89407481507289,
+            "rvol_actual": 1.278975872940765,
+            "aceleracion_volumen": 1.3668914574130862,
+            "gap_pct": 0.011022459954921036,
+            "maximo_dia": 55.119998931884766,
+            "maximo_premarket": 53.29,
+            "rango_apertura_max": 53.33000183105469,
+            "rango_apertura_min": 52.60499954223633,
+            "velas_desde_ruptura": null,
+            "macd": -0.021708447281824306,
+            "macd_signal": -0.013902397432408412
+          },
+          "meta": {
+            "float_acciones": 853510423.0,
+            "short_pct_float": 0.0437,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "PayPal Joins Meta’s Muse Checkout Ecosystem — Partnership Extends AI Shopping Across Its Merchant Network",
+            "fuente": "Stocktwits",
+            "fecha": "2026-09-22T16:22:20Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 217.8181541666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 68.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 86.68914574130861,
+                "extension": 100.0,
+                "distancia_maximo_dia": 59.45209264039553,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "XYZ",
+          "nombre": "Block, Inc.",
+          "precio_actual": 77.62000274658203,
+          "factores_intradia": {
+            "precio_actual": 77.62000274658203,
+            "vwap": 77.81457448554005,
+            "ema9": 77.6688450986167,
+            "rvol_actual": 1.8343672906689885,
+            "aceleracion_volumen": 1.4132652244231294,
+            "gap_pct": 0.01681424075238302,
+            "maximo_dia": 79.81999969482422,
+            "maximo_premarket": 78.71,
+            "rango_apertura_max": 79.81999969482422,
+            "rango_apertura_min": 78.9800033569336,
+            "velas_desde_ruptura": null,
+            "macd": 0.0017537502625799561,
+            "macd_signal": 0.027913488523338827
+          },
+          "meta": {
+            "float_acciones": 535933172.0,
+            "short_pct_float": 0.0276,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "XYZ's Square Deepens Ideal Nutrition Partnership as Franchise Expands",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T16:57:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1623.1515388500002,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 71.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 91.32652244231295,
+                "extension": 100.0,
+                "distancia_maximo_dia": 72.43802359492058,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "GM",
+          "nombre": "General Motors Company",
+          "precio_actual": 83.45999908447266,
+          "factores_intradia": {
+            "precio_actual": 83.45999908447266,
+            "vwap": 83.74013172681126,
+            "ema9": 83.67205904303549,
+            "rvol_actual": 2.913321443427028,
+            "aceleracion_volumen": 2.2828574130105896,
+            "gap_pct": 0.010600278696442145,
+            "maximo_dia": 85.19999694824219,
+            "maximo_premarket": 84.6698,
+            "rango_apertura_max": 85.19999694824219,
+            "rango_apertura_min": 84.66000366210938,
+            "velas_desde_ruptura": null,
+            "macd": -0.0019972049077239262,
+            "macd_signal": 0.03654839001711882
+          },
+          "meta": {
+            "float_acciones": 874819186.0,
+            "short_pct_float": 0.0248,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "General Motors Boosts Defense Prospects With Lockheed Partnership",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T16:03:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1677.1515895999999,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 74.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 79.57748913035101,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "JPM",
+          "nombre": "JPMorgan Chase & Co.",
+          "precio_actual": 340.2699890136719,
+          "factores_intradia": {
+            "precio_actual": 340.2699890136719,
+            "vwap": 340.9404851390776,
+            "ema9": 340.20814754097,
+            "rvol_actual": 1.8395365051960555,
+            "aceleracion_volumen": 1.6569788688492875,
+            "gap_pct": -8.521654234269551e-05,
+            "maximo_dia": 353.22,
+            "maximo_premarket": 353.22,
+            "rango_apertura_max": 352.1025085449219,
+            "rango_apertura_min": 349.6600036621094,
+            "velas_desde_ruptura": 2,
+            "macd": -0.1036736722500109,
+            "macd_signal": -0.10910729254412405
+          },
+          "meta": {
+            "float_acciones": 2643991481.0,
+            "short_pct_float": 0.01,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "JPMorgan Chase Falls 3% Despite New $20B QIA Partnership; Goldman Sachs Eases, Bank of America Slips",
+            "fuente": "24/7 Wall St.",
+            "fecha": "2026-09-22T16:52:38Z",
+            "confirmado": true,
+            "fuentes_adicionales": [
+              "Zacks"
+            ]
+          },
+          "minutos_desde_catalizador": 187.51831431666668,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 76.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 63.33726576544885,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 60.2,
+            "score_ajustado": 40.2,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "ACN",
+          "nombre": "Accenture plc",
+          "precio_actual": 183.6300048828125,
+          "factores_intradia": {
+            "precio_actual": 183.6300048828125,
+            "vwap": 184.20098135238513,
+            "ema9": 184.17447971204257,
+            "rvol_actual": 2.593876292896774,
+            "aceleracion_volumen": 1.9035409355193547,
+            "gap_pct": 0.01724234165246204,
+            "maximo_dia": 190.24000549316406,
+            "maximo_premarket": 189.96,
+            "rango_apertura_max": 190.24000549316406,
+            "rango_apertura_min": 187.27999877929688,
+            "velas_desde_ruptura": null,
+            "macd": -0.25810046166677125,
+            "macd_signal": -0.07452313406387427
+          },
+          "meta": {
+            "float_acciones": 610969121.0,
+            "short_pct_float": 0.0464,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Accenture Up on Partnership with Anthropic; Novo Nordisk Falls on Turnaround | Stock Movers",
+            "fuente": "Bloomberg",
+            "fecha": "2026-09-21T14:52:09Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1748.0017021833335,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 72.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 65.25441327014114,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "CMCSA",
+          "nombre": "Comcast Corporation",
+          "precio_actual": 22.385000228881836,
+          "factores_intradia": {
+            "precio_actual": 22.385000228881836,
+            "vwap": 22.638441043574417,
+            "ema9": 22.410600161334834,
+            "rvol_actual": 0.7844887177868638,
+            "aceleracion_volumen": 0.7937348171794881,
+            "gap_pct": 0.005886210247456349,
+            "maximo_dia": 28.14,
+            "maximo_premarket": 28.14,
+            "rango_apertura_max": 23.1299991607666,
+            "rango_apertura_min": 22.920000076293945,
+            "velas_desde_ruptura": null,
+            "macd": -0.017951329443281594,
+            "macd_signal": -0.007878435639476575
+          },
+          "meta": {
+            "float_acciones": 3511198457.0,
+            "short_pct_float": 0.026400002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Fastly (FSLY) Lands Comcast Partnership, Is The Stock Still Below Fair Value?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-19T05:11:49Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 5208.3350969,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 48.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 29.373481717948813,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "T",
+          "nombre": "AT&T Inc.",
+          "precio_actual": 25.145000457763672,
+          "factores_intradia": {
+            "precio_actual": 25.145000457763672,
+            "vwap": 25.221064593719795,
+            "ema9": 25.12653031699786,
+            "rvol_actual": 2.047812866050617,
+            "aceleracion_volumen": 1.4737053392211963,
+            "gap_pct": 0.0035328813048166184,
+            "maximo_dia": 27.72,
+            "maximo_premarket": 27.72,
+            "rango_apertura_max": 25.59000015258789,
+            "rango_apertura_min": 25.389999389648438,
+            "velas_desde_ruptura": 0,
+            "macd": 0.01540947523530889,
+            "macd_signal": 0.015221442018481987
+          },
+          "meta": {
+            "float_acciones": 6837790069.0,
+            "short_pct_float": 0.0183,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "LifeMD (LFMD) Secures AT&T Partnership. Can Free Memberships Produce Paying Patients?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-20T18:43:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2957.118485016667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 70.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 97.37053392211962,
+                "extension": 100.0,
+                "distancia_maximo_dia": 7.106798620623134,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 58.8,
+            "score_ajustado": 38.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "BAC",
+          "nombre": "Bank of America Corporation",
+          "precio_actual": 56.21500015258789,
+          "factores_intradia": {
+            "precio_actual": 56.21500015258789,
+            "vwap": 56.689060288221434,
+            "ema9": 56.31204168476234,
+            "rvol_actual": 1.73000955547364,
+            "aceleracion_volumen": 1.3816806848275838,
+            "gap_pct": 0.002156101824751191,
+            "maximo_dia": 58.2,
+            "maximo_premarket": 58.2,
+            "rango_apertura_max": 58.1150016784668,
+            "rango_apertura_min": 57.869998931884766,
+            "velas_desde_ruptura": null,
+            "macd": -0.058305078863789106,
+            "macd_signal": -0.028399775419064625
+          },
+          "meta": {
+            "float_acciones": 6965127009.0,
+            "short_pct_float": 0.0,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "JPMorgan Chase Falls 3% Despite New $20B QIA Partnership; Goldman Sachs Eases, Bank of America Slips",
+            "fuente": "24/7 Wall St.",
+            "fecha": "2026-09-22T16:52:38Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 187.51854715,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 69.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 88.16806848275837,
+                "extension": 100.0,
+                "distancia_maximo_dia": 65.893473412163,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
