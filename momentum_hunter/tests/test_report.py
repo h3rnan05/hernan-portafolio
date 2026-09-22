@@ -336,7 +336,8 @@ def test_formatear_entrada_incluye_zona_stop_objetivo_rr():
     c = _candidato()
     o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, cfg=CONFIG)
     texto = formatear_entrada(o)
-    assert "🚨 ENTRADA CONFIRMADA" in texto
+    assert "🔔 SEÑAL DISPARADA · pendiente de revisión" in texto
+    assert "ENTRADA CONFIRMADA" not in texto   # no promete una compra que no existe
     assert "ENTRADA" in texto
     assert f"${o.zona_entrada_baja:,.2f}" in texto
     assert "🛑 STOP" in texto

@@ -137,9 +137,9 @@ def _parchear(monkeypatch, tmp_path, entradas_watchlist, revisiones_previas=None
     monkeypatch.setattr(ia_decision, "decidir", _fake_decidir)
 
     enviados: list[str] = []
-    # Red de seguridad anti-spam: colocar no debe avisar. Se parchea
-    # notify.enviar (el único sender del paper trader) por si alguien
-    # reintroduce un aviso de "orden aceptada".
+    # Se parchea notify.enviar (el único sender del paper trader) para
+    # contar exactamente qué avisos salen: desde el 2026-09-22 cada señal
+    # recibe UN veredicto (NO ENTRA o COLOCADA) y nada más.
     monkeypatch.setattr("momentum_paper_trader.notify.enviar", lambda texto: enviados.append(texto))
     return wl_path, rev_path, enviados, contextos
 
@@ -156,9 +156,10 @@ def test_coloca_orden_para_triggered_nueva_cuando_la_ia_aprueba(monkeypatch, tmp
 
     assert len(nuevas) == 1
     assert client.ordenes_colocadas == [("RKLB", 65, 78.42, 76.90, 82.50)]
-    # Anti-spam: aceptar la orden no es un trade completado -- el aviso
-    # sale cuando Alpaca confirma el fill, no acá.
-    assert enviados == []
+    # Veredicto (2026-09-22): UN aviso COLOCADA al aceptar la orden; el
+    # fill sigue llegando aparte desde `seguimiento`.
+    assert len(enviados) == 1 and "COLOCADA" in enviados[0] and "RKLB" in enviados[0]
+    assert "65 acc" in enviados[0] and "$78.42" in enviados[0] and "LLENADA" not in enviados[0]
 
     persistidas = estado.cargar(rev_path)
     assert len(persistidas) == 1
@@ -187,7 +188,11 @@ def test_no_coloca_orden_cuando_la_ia_rechaza(monkeypatch, tmp_path):
 
     assert nuevas == []
     assert client.ordenes_colocadas == []   # nunca se llamó a Alpaca
-    assert enviados == []   # sin orden, sin mensaje de confirmación
+    # Veredicto (2026-09-22): el "no" de la IA se avisa UNA vez, con
+    # confianza y motivo -- antes era silencio y el usuario se quedaba
+    # con la alerta del hunter y nada más.
+    assert len(enviados) == 1 and "NO ENTRA" in enviados[0] and "RKLB" in enviados[0]
+    assert "/10" in enviados[0]
 
     # Pero SÍ queda registrada la revisión -- para no volver a preguntar.
     persistidas = estado.cargar(rev_path)
@@ -248,7 +253,7 @@ def test_large_cap_con_si_de_la_ia_se_registra_pero_no_se_opera(monkeypatch, tmp
 
     assert nuevas == []
     assert client.ordenes_colocadas == []
-    assert enviados == []
+    assert len(enviados) == 1 and "NO ENTRA" in enviados[0] and "banda large" in enviados[0]
     r = estado.cargar(rev_path)[0]
     assert r.entro is False
     assert r.order_id is None
@@ -471,8 +476,9 @@ def test_fraccion_que_no_alcanza_para_una_accion_no_opera_pero_queda_registrada(
     assert len(persistidas) == 1 and persistidas[0].entro is False
 
 
-def test_colocar_orden_no_manda_telegram(monkeypatch, tmp_path):
-    """Aceptar el bracket no es fill ni cierre: silencio."""
+def test_colocar_orden_avisa_colocada_pero_nunca_llenada(monkeypatch, tmp_path):
+    """Aceptar el bracket no es fill: el aviso dice COLOCADA y lo aclara;
+    LLENADA solo la manda `seguimiento` cuando Alpaca confirma."""
     e = _entrada_triggered()
     *_, enviados, _ = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA_MITAD)
     client = _FakeAlpacaClient(cash=10_000.0)
@@ -480,7 +486,8 @@ def test_colocar_orden_no_manda_telegram(monkeypatch, tmp_path):
     nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert len(nuevas) == 1
-    assert enviados == []
+    assert len(enviados) == 1 and "COLOCADA" in enviados[0] and "LLENADA" not in enviados[0]
+    assert "fill se avisa aparte" in enviados[0]
 
 
 # ------------------------- comportamientos previos que no deben romperse -------------------------
@@ -553,7 +560,7 @@ def test_multiples_triggered_simultaneas_generan_ordenes_independientes(monkeypa
     nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert {n.ticker for n in nuevas} == {"MEJOR", "SEGUNDA"}
-    assert enviados == []   # dos órdenes aceptadas, cero avisos
+    assert len(enviados) == 2 and all("COLOCADA" in m for m in enviados)   # un aviso por orden
     assert len(estado.cargar(rev_path)) == 2
 
 
@@ -1022,3 +1029,21 @@ def test_dry_run_no_cierra_la_telemetria_como_paso_real(monkeypatch, tmp_path):
     assert metricas.revisiones == 0
     assert metricas.paper_step_success_zero_orders == 0
     assert estado.cargar(rev_path) == []
+
+
+def test_dry_run_no_manda_veredictos(monkeypatch, tmp_path):
+    e = _entrada_triggered()
+    *_, enviados, _ = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_NO_ENTRA)
+    executor.ejecutar(_FakeAlpacaClient(cash=10_000.0), CFG, dry_run=True, ahora=AHORA)
+    assert enviados == []
+
+
+def test_un_fallo_del_aviso_no_afecta_la_orden(monkeypatch, tmp_path):
+    e = _entrada_triggered()
+    _parchear(monkeypatch, tmp_path, [e])
+    def explota(texto):
+        raise RuntimeError("telegram caído")
+    monkeypatch.setattr("momentum_paper_trader.notify.enviar", explota)
+    client = _FakeAlpacaClient(cash=10_000.0)
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+    assert len(nuevas) == 1 and len(client.ordenes_colocadas) == 1

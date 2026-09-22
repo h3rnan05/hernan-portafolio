@@ -346,7 +346,7 @@ def test_8b_triggered_siempre_se_manda_antes_que_mensajes_de_menor_prioridad(mon
         CFG, _FakeProviderIntradia({"INVALIDA", "ZDISPARA"}), dry_run=False, ahora=AHORA)
 
     assert len(enviados) == 2
-    assert "ENTRADA CONFIRMADA" in enviados[0] and "ZDISPARA" in enviados[0]   # TRIGGERED primero
+    assert "SEÑAL DISPARADA" in enviados[0] and "ZDISPARA" in enviados[0]   # TRIGGERED primero
     assert "INVALIDADA" in enviados[1]   # menor prioridad, segundo
     assert watchlist.cargar(path)   # no lanzó, y persistió normalmente
 
@@ -369,7 +369,7 @@ def test_9_multiples_oportunidades_simultaneas_cada_una_su_mensaje_correcto(monk
     recargadas = {r.ticker: r for r in watchlist.cargar(path)}
     assert recargadas["MEJOR"].estado == watchlist.ESTADO_TRIGGERED
     assert recargadas["SEGUNDA"].estado == watchlist.ESTADO_WATCHING
-    assert any("ENTRADA CONFIRMADA" in m and "MEJOR" in m for m in enviados)
+    assert any("SEÑAL DISPARADA" in m and "MEJOR" in m for m in enviados)
     assert not any("SEGUNDA" in m for m in enviados)   # sigue WATCHING sin transición -- sin mensaje nuevo
 
 
@@ -391,7 +391,7 @@ def test_10_una_se_dispara_mientras_otra_se_invalida_en_la_misma_corrida(monkeyp
     recargadas = {r.ticker: r for r in watchlist.cargar(path)}
     assert recargadas["DISPARA"].estado == watchlist.ESTADO_TRIGGERED
     assert recargadas["INVALIDA"].estado == watchlist.ESTADO_INVALIDATED
-    assert any("ENTRADA CONFIRMADA" in m and "DISPARA" in m for m in enviados)
+    assert any("SEÑAL DISPARADA" in m and "DISPARA" in m for m in enviados)
     assert any("INVALIDADA" in m and "INVALIDA" in m for m in enviados)
     assert len(enviados) == 2   # exactamente un mensaje por transición, nada de más
 
