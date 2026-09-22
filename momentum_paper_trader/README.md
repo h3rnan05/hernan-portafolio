@@ -94,7 +94,18 @@ igual si este módulo se desinstala.
    colocar** -- aceptar el bracket no es un trade completado. El aviso
    sale después, cuando Alpaca confirma el fill o el cierre (ver abajo).
 
-## Telegram: solo trades completados (`notify.py`)
+## Telegram: veredicto por señal + trades completados (`notify.py`)
+
+Ajuste del 2026-09-22 (pedido del dueño: "me llegan avisos de compras
+confirmadas pero no hay nada"): la alerta del hunter ahora dice
+"🔔 SEÑAL DISPARADA · pendiente de revisión", y el ejecutor manda **un**
+veredicto por señal: `NO ENTRA` (confianza y motivo en una línea, o el
+motivo del sistema: banda no operable, fracción insuficiente) o
+`COLOCADA` (cantidad, límite, stop y objetivo; aceptada no es llenada, el
+fill llega aparte). Los bloqueos previos a la IA (concentración, niveles
+rancios, etc.) siguen sin Telegram: se reintentan cada tick y se ven en el
+panel. Un fallo del aviso nunca afecta la orden ni la revisión.
+
 
 Política anti-spam (2026-09-11): Telegram no es el log del cron. Un
 solo chat (el mismo de `momentum_hunter`). Mensajes cortos en español,

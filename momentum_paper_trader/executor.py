@@ -36,7 +36,7 @@ from datetime import UTC, datetime
 
 from momentum_hunter import watchlist
 
-from momentum_paper_trader import aviso_fallo_ia, estado, ia_decision, telemetria
+from momentum_paper_trader import aviso_fallo_ia, estado, ia_decision, notify, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig, banda_de
 
@@ -50,6 +50,17 @@ try:
 except Exception:  # pragma: no cover - sin panel instalado
     def log_event(tipo: str, **campos) -> None:
         return None
+
+
+def _avisar(dry_run: bool, texto: str) -> None:
+    """Telegram del veredicto (2026-09-22). Best-effort: un fallo del aviso
+    jamás afecta una orden ni una revisión. Dry-run no manda nada."""
+    if dry_run:
+        return
+    try:
+        notify.enviar(texto)
+    except Exception:
+        log.warning("no se pudo mandar el aviso de Telegram (se sigue igual)")
 
 
 def _evento(dry_run: bool, tipo: str, **campos) -> None:
@@ -506,6 +517,9 @@ def ejecutar(
                 motivo_no_operada=estado.MOTIVO_FUERA_DE_BANDA)
             revisiones_previas.append(registro)
             estado.guardar(revisiones_previas)
+            _avisar(dry_run, notify.formatear_no_entra(
+                ticker=e.ticker, confianza=decision.confianza, razonamiento=decision.razonamiento,
+                motivo=f"banda {banda} no operable (IA {'entraría' if decision.entrar else 'no entra'}, {decision.confianza}/10)"))
             if metricas is not None:
                 metricas.anotar_revision(
                     registro, e.signal_latency_ms, getattr(e, "velas_desde_ruptura", None))
@@ -520,6 +534,8 @@ def ejecutar(
                 ia_decision_ts=ia_decision_ts, entro=False)
             revisiones_previas.append(registro)
             estado.guardar(revisiones_previas)
+            _avisar(dry_run, notify.formatear_no_entra(
+                ticker=e.ticker, confianza=decision.confianza, razonamiento=decision.razonamiento))
             if metricas is not None:
                 metricas.anotar_revision(
                     registro, e.signal_latency_ms, getattr(e, "velas_desde_ruptura", None))
@@ -557,6 +573,9 @@ def ejecutar(
             )
             revisiones_previas.append(registro)
             estado.guardar(revisiones_previas)
+            _avisar(dry_run, notify.formatear_no_entra(
+                ticker=e.ticker, confianza=decision.confianza, razonamiento=decision.razonamiento,
+                motivo=f"IA entra ({decision.confianza}/10) pero la fracción pedida no alcanza para 1 acción"))
             if metricas is not None:
                 metricas.anotar_revision(
                     registro, e.signal_latency_ms, getattr(e, "velas_desde_ruptura", None))
@@ -588,9 +607,12 @@ def ejecutar(
         nuevas.append(registro)
         estado.guardar(revisiones_previas)
         cuenta.registrar_orden(e.ticker, cantidad * e.ultima_entrada)
-        # Sin Telegram acá: aceptar la orden no es un trade completado.
-        # El aviso sale en `seguimiento` cuando Alpaca confirma el fill
-        # (o el cierre). Mandarlo ahora era spam de "ENVIADA" sin P&L.
+        # Telegram al colocar (2026-09-22, pedido del dueño): es el
+        # veredicto que cierra la alerta "SEÑAL DISPARADA". Aceptada no es
+        # llenada: el fill sigue llegando aparte desde `seguimiento`.
+        _avisar(dry_run, notify.formatear_colocada(
+            ticker=e.ticker, cantidad=orden.cantidad, entrada=orden.precio_entrada,
+            stop=orden.stop, objetivo=orden.objetivo, confianza=decision.confianza))
         log.info("%s: orden paper colocada (%s)", e.ticker, orden.order_id)
         _evento(dry_run, "orden", ticker=e.ticker, lado="buy", estado="enviada",
                 cantidad=orden.cantidad, order_id=orden.order_id,

@@ -429,7 +429,12 @@ def formatear_entrada(o: Oportunidad) -> str:
     al chat. La decisión de fondo (accionable, no perseguir, riesgo
     definido) sigue siendo exactamente la misma de `evaluator.py`; esto
     solo cambia CÓMO se presenta."""
-    lineas = ["🚨 ENTRADA CONFIRMADA", "", f"{o.urgencia_emoji} {o.ticker}", f"💵 ${o.entrada:,.2f}"]
+    # 2026-09-22 (pedido del dueño): "ENTRADA CONFIRMADA" prometía una
+    # compra que todavía no existe. Esta alerta sale en el instante en que
+    # la señal dispara; la decisión de operarla la toma otra etapa
+    # después, y esa etapa manda su propio veredicto. El encabezado tiene
+    # que decir exactamente eso.
+    lineas = ["🔔 SEÑAL DISPARADA · pendiente de revisión", "", f"{o.urgencia_emoji} {o.ticker}", f"💵 ${o.entrada:,.2f}"]
 
     if o.zona_entrada_baja is not None and o.zona_entrada_alta is not None:
         lineas += ["", "ENTRADA", f"${o.zona_entrada_baja:,.2f}–${o.zona_entrada_alta:,.2f}"]

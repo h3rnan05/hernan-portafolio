@@ -1,18 +1,25 @@
-"""Alertas de Telegram del paper trader -- SOLO trades completados.
+"""Alertas de Telegram del paper trader.
 
 Política anti-spam (dueño, 2026-09-11): Telegram no es el log del cron.
-No se avisa un escaneo, una señal TRIGGERED, un rechazo de la IA, una
-orden aceptada-pero-sin-llenar, ni el START/OK de cada ciclo de 5 min.
-Tampoco se manda un mensaje silencioso (`disable_notification`) para
-taparle el pico a esos eventos -- si no es un trade completado, no se
-manda nada.
+No se avisa un escaneo, un bloqueo de riesgo por tick, ni el START/OK de
+cada ciclo. Tampoco se manda un mensaje silencioso (`disable_notification`)
+para taparle el pico a esos eventos.
+
+Ajuste del dueño (2026-09-22): "me llegan avisos de compras confirmadas
+pero no hay nada". La alerta del hunter sale al disparar la señal; el "no"
+de la IA era silencioso y el usuario se quedaba sin saber qué pasó. Ahora
+cada señal disparada recibe exactamente UN veredicto (4 y 5 abajo), y una
+orden colocada se avisa al colocarse (6): el fill sigue llegando aparte.
 
 Sí se avisa, y en un solo chat (el mismo de momentum_hunter):
 
-  1. LLENADA  -- la compra se ejecutó (precio real de fill)
-  2. CERRADA  -- salió por objetivo, stop o liquidación de fin de día
-  3. ERROR    -- fallo duro que impide operar, o posición llena sin
-                 salidas vivas (raro, texto mínimo)
+  1. LLENADA    -- la compra se ejecutó (precio real de fill)
+  2. CERRADA    -- salió por objetivo, stop o liquidación de fin de día
+  3. ERROR      -- fallo duro que impide operar, o posición llena sin
+                   salidas vivas (raro, texto mínimo)
+  4. NO ENTRA   -- la IA rechazó la señal (confianza y motivo en una línea),
+                   o la señal no es operable (banda / fracción insuficiente)
+  5. COLOCADA   -- la IA aprobó y la orden bracket está en Alpaca paper
 
 El prefijo 🧪 [PAPER] es innegociable: estos avisos nunca deben
 parecerse a una alerta live. HTML escapado; un campo ausente se omite,
@@ -36,6 +43,8 @@ PREFIJO = "🧪 [PAPER]"
 ESTADO_LLENADA = "LLENADA"
 ESTADO_CERRADA = "CERRADA"
 ESTADO_ERROR = "ERROR"
+ESTADO_NO_ENTRA = "NO ENTRA"
+ESTADO_COLOCADA = "COLOCADA"
 
 # Sub-etiqueta de un cierre (no es un evento extra: viaja en el mismo
 # mensaje CERRADA). Español corto, sin jerga de broker.
@@ -258,3 +267,40 @@ def formatear_error(
         escapar(tipo),
         escapar(detalle) if detalle else "No se operó. Se reintenta solo.",
     ))
+
+
+def formatear_no_entra(
+    *,
+    ticker: str,
+    confianza: int | None = None,
+    razonamiento: str | None = None,
+    motivo: str | None = None,
+) -> str:
+    """El veredicto que cierra la alerta del hunter: la señal disparó y NO
+    se opera. `motivo` distingue el "no" de la IA de un "no cabe" del
+    sistema (fuera de banda, fracción insuficiente)."""
+    conf = f"IA: no entra ({int(confianza)}/10)" if isinstance(confianza, int) and confianza >= 0 else "IA: no entra"
+    return _armar(ESTADO_NO_ENTRA, [
+        _linea_ticker(ticker, motivo or conf),
+        _razon_corta(razonamiento) and escapar(_razon_corta(razonamiento)),
+    ])
+
+
+def formatear_colocada(
+    *,
+    ticker: str,
+    cantidad: float | int | None,
+    entrada: float | None,
+    stop: float | None,
+    objetivo: float | None,
+    confianza: int | None = None,
+) -> str:
+    """La IA aprobó y la orden bracket quedó aceptada en Alpaca paper.
+    Aceptada no es llenada: el fill llega aparte (LLENADA)."""
+    conf = f"IA: entra ({int(confianza)}/10)" if isinstance(confianza, int) else None
+    return _armar(ESTADO_COLOCADA, [
+        _linea_ticker(ticker, conf),
+        " · ".join(x for x in (_cantidad(cantidad), f"límite {_precio(entrada)}" if entrada else None) if x) or None,
+        " · ".join(x for x in (f"stop {_precio(stop)}" if stop else None, f"objetivo {_precio(objetivo)}" if objetivo else None) if x) or None,
+        "Aceptada; el fill se avisa aparte.",
+    ])

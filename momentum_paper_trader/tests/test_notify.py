@@ -190,3 +190,25 @@ def test_avisar_falla_solo_manda_el_tipo(monkeypatch):
     assert "RuntimeError" in enviados[0]
     assert "user:pass" not in enviados[0]
     assert "alpaca.markets" not in enviados[0]
+
+
+# ───────────── veredictos (2026-09-22) ─────────────
+
+def test_no_entra_lleva_ticker_confianza_y_motivo_corto():
+    m = notify.formatear_no_entra(ticker="VEEV", confianza=6, razonamiento="El catalizador es <débil> & viejo. " * 20)
+    assert m.startswith("🧪 [PAPER] <b>NO ENTRA</b>")
+    assert "<b>VEEV</b> · IA: no entra (6/10)" in m
+    assert "&lt;débil&gt; &amp;" in m          # HTML escapado
+    assert len(m) < 400                         # razonamiento recortado, no un muro
+
+
+def test_no_entra_con_motivo_del_sistema():
+    m = notify.formatear_no_entra(ticker="AZN", confianza=6, razonamiento="x", motivo="banda large no operable (IA no entra, 6/10)")
+    assert "banda large no operable" in m
+
+
+def test_colocada_dice_niveles_y_que_no_es_fill():
+    m = notify.formatear_colocada(ticker="ACN", cantidad=4, entrada=183.05, stop=182.07, objetivo=184.98, confianza=8)
+    assert "<b>COLOCADA</b>" in m and "<b>ACN</b> · IA: entra (8/10)" in m
+    assert "4 acc · límite $183.05" in m and "stop $182.07 · objetivo $184.98" in m
+    assert "fill se avisa aparte" in m and "LLENADA" not in m
