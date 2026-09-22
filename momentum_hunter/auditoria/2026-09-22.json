@@ -64717,6 +64717,543 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-22T18:40:07+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "DBX",
+          "nombre": "Dropbox, Inc.",
+          "precio_actual": 34.209999084472656,
+          "factores_intradia": {
+            "precio_actual": 34.209999084472656,
+            "vwap": 33.90000145460255,
+            "ema9": 34.1578944519551,
+            "rvol_actual": 0.7731794330950613,
+            "aceleracion_volumen": 0.7217314487632508,
+            "gap_pct": 0.01221539758792946,
+            "maximo_dia": 37.3,
+            "maximo_premarket": 37.3,
+            "rango_apertura_max": 36.564998626708984,
+            "rango_apertura_min": 35.76499938964844,
+            "velas_desde_ruptura": 6,
+            "macd": 0.17808301292765805,
+            "macd_signal": 0.1394145103054844
+          },
+          "meta": {
+            "float_acciones": 128606437.0,
+            "short_pct_float": 0.3098,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Productivity Software Stocks Q2 Results: Benchmarking Dropbox (NASDAQ:DBX)",
+            "fuente": "StockStory",
+            "fecha": "2026-09-21T22:30:25Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1209.7012650833335,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 46.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 22.17314487632508,
+                "extension": 100.0,
+                "distancia_maximo_dia": 17.158152398730753,
+                "frescura_patron": 33.333333333333336,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 63.2,
+            "score_ajustado": 43.2,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "LFMD",
+          "nombre": "LifeMD, Inc.",
+          "precio_actual": 3.2950000762939453,
+          "factores_intradia": {
+            "precio_actual": 3.2950000762939453,
+            "vwap": 3.3038258762143835,
+            "ema9": 3.2992736600299164,
+            "rvol_actual": 0.3333333333333333,
+            "aceleracion_volumen": 0.8322392414296134,
+            "gap_pct": 0.009287916784092121,
+            "maximo_dia": 3.3550000190734863,
+            "maximo_premarket": 3.2797,
+            "rango_apertura_max": 3.303100109100342,
+            "rango_apertura_min": 3.2304999828338623,
+            "velas_desde_ruptura": null,
+            "macd": 7.795427335244298e-05,
+            "macd_signal": 0.0017582689041508069
+          },
+          "meta": {
+            "float_acciones": 39655793.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "LifeMD (LFMD) Secures AT&T Partnership. Can Free Memberships Produce Paying Patients?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-20T18:43:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2877.0846214999997,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 58.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 33.22392414296134,
+                "extension": 100.0,
+                "distancia_maximo_dia": 82.11626156827545,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 53.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T18:41:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "DBX",
+          "nombre": "Dropbox, Inc.",
+          "precio_actual": 34.209999084472656,
+          "factores_intradia": {
+            "precio_actual": 34.209999084472656,
+            "vwap": 33.90000145460255,
+            "ema9": 34.1578944519551,
+            "rvol_actual": 0.7731794330950613,
+            "aceleracion_volumen": 0.7217314487632508,
+            "gap_pct": 0.01221539758792946,
+            "maximo_dia": 37.3,
+            "maximo_premarket": 37.3,
+            "rango_apertura_max": 36.564998626708984,
+            "rango_apertura_min": 35.76499938964844,
+            "velas_desde_ruptura": 6,
+            "macd": 0.17808301292765805,
+            "macd_signal": 0.1394145103054844
+          },
+          "meta": {
+            "float_acciones": 128606437.0,
+            "short_pct_float": 0.3098,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Productivity Software Stocks Q2 Results: Benchmarking Dropbox (NASDAQ:DBX)",
+            "fuente": "StockStory",
+            "fecha": "2026-09-21T22:30:25Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1210.6993926,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 46.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 22.17314487632508,
+                "extension": 100.0,
+                "distancia_maximo_dia": 17.158152398730753,
+                "frescura_patron": 33.333333333333336,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 63.2,
+            "score_ajustado": 43.2,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "LFMD",
+          "nombre": "LifeMD, Inc.",
+          "precio_actual": 3.2950000762939453,
+          "factores_intradia": {
+            "precio_actual": 3.2950000762939453,
+            "vwap": 3.3038159414994057,
+            "ema9": 3.2984189432827224,
+            "rvol_actual": 0.18901053501342696,
+            "aceleracion_volumen": 0.919022154316272,
+            "gap_pct": 0.009287916784092121,
+            "maximo_dia": 3.3550000190734863,
+            "maximo_premarket": 3.2797,
+            "rango_apertura_max": 3.303100109100342,
+            "rango_apertura_min": 3.2304999828338623,
+            "velas_desde_ruptura": null,
+            "macd": -0.0003284372982057526,
+            "macd_signal": 0.001340927663679495
+          },
+          "meta": {
+            "float_acciones": 39655793.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "LifeMD (LFMD) Secures AT&T Partnership. Can Free Memberships Produce Paying Patients?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-20T18:43:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2878.0827495999997,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 60.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 41.9022154316272,
+                "extension": 100.0,
+                "distancia_maximo_dia": 82.11626156827545,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 53.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T18:42:07+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "LFMD",
+          "nombre": "LifeMD, Inc.",
+          "precio_actual": 3.2950000762939453,
+          "factores_intradia": {
+            "precio_actual": 3.2950000762939453,
+            "vwap": 3.3037688273996855,
+            "ema9": 3.2977351698849673,
+            "rvol_actual": 1.6257211985855202,
+            "aceleracion_volumen": 0.6259419958894724,
+            "gap_pct": 0.009287916784092121,
+            "maximo_dia": 3.3550000190734863,
+            "maximo_premarket": 3.2797,
+            "rango_apertura_max": 3.303100109100342,
+            "rango_apertura_min": 3.2304999828338623,
+            "velas_desde_ruptura": null,
+            "macd": -0.0006430923779365827,
+            "macd_signal": 0.0009441236553562795
+          },
+          "meta": {
+            "float_acciones": 39655793.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "LifeMD (LFMD) Secures AT&T Partnership. Can Free Memberships Produce Paying Patients?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-20T18:43:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2879.0781803,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 53.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 12.594199588947241,
+                "extension": 100.0,
+                "distancia_maximo_dia": 82.11626156827545,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 53.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T18:43:06+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "LFMD",
+          "nombre": "LifeMD, Inc.",
+          "precio_actual": 3.2950000762939453,
+          "factores_intradia": {
+            "precio_actual": 3.2950000762939453,
+            "vwap": 3.3037389132423582,
+            "ema9": 3.2971881511667633,
+            "rvol_actual": 0.8379511756776995,
+            "aceleracion_volumen": 0.7081507449605609,
+            "gap_pct": 0.009287916784092121,
+            "maximo_dia": 3.3550000190734863,
+            "maximo_premarket": 3.2797,
+            "rango_apertura_max": 3.303100109100342,
+            "rango_apertura_min": 3.2304999828338623,
+            "velas_desde_ruptura": null,
+            "macd": -0.0008822883249859359,
+            "macd_signal": 0.0005788412592878365
+          },
+          "meta": {
+            "float_acciones": 39655793.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "LifeMD (LFMD) Secures AT&T Partnership. Can Free Memberships Produce Paying Patients?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-20T18:43:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2880.0732902500004,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 55.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 20.815074496056084,
+                "extension": 100.0,
+                "distancia_maximo_dia": 82.11626156827545,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 53.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T18:44:06+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "LFMD",
+          "nombre": "LifeMD, Inc.",
+          "precio_actual": 3.2950000762939453,
+          "factores_intradia": {
+            "precio_actual": 3.2950000762939453,
+            "vwap": 3.3037094003266985,
+            "ema9": 3.296400444212549,
+            "rvol_actual": 0.4771505376344086,
+            "aceleracion_volumen": 0.7840204304998176,
+            "gap_pct": 0.009287916784092121,
+            "maximo_dia": 3.3550000190734863,
+            "maximo_premarket": 3.2797,
+            "rango_apertura_max": 3.303100109100342,
+            "rango_apertura_min": 3.2304999828338623,
+            "velas_desde_ruptura": null,
+            "macd": -0.0011865115097160484,
+            "macd_signal": -3.638597427075478e-05
+          },
+          "meta": {
+            "float_acciones": 39655793.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "LifeMD (LFMD) Secures AT&T Partnership. Can Free Memberships Produce Paying Patients?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-20T18:43:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2881.074986066667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 57.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 28.402043049981764,
+                "extension": 100.0,
+                "distancia_maximo_dia": 82.11626156827545,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 53.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
