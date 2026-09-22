@@ -137,6 +137,19 @@ MODEL = "claude-sonnet-5"
 
 FRACCION_MINIMA = 0.25   # por debajo de esto, la convicción es tan baja que lo honesto es no entrar
 
+# Revisión del prompt (2026-09-22, OK del dueño). Con 14 revisiones
+# acumuladas la IA había aprobado 2, y las 7 de ese día venían rechazadas
+# por las MISMAS tres razones, independientes de la acción concreta:
+# "large cap no explosiva" (el criterio 5 pedía un perfil de small cap
+# cuando la banda large ya estaba habilitada), "mercado débil" (el
+# criterio 6 ofrecía rechazar o reducir, y siempre elegía rechazar) e
+# "historial no probado" (círculo: no opera porque no tiene historial, y
+# no tiene historial porque no opera). Tres negativas fijas apiladas
+# hacen inalcanzable el 7/10. Los tres puntos pasan a ser neutrales o a
+# resolverse con la fracción; el umbral de 7 y la regla de que la IA solo
+# reduce el tamaño no cambian. Lo que sí sigue siendo motivo de rechazo
+# es la evidencia concreta de la señal (catalizador, momentum, VWAP,
+# asimetría).
 SYSTEM_PROMPT = """\
 Eres el trader que revisa la última señal antes de ejecutarla, dentro de \
 un sistema de PAPER TRADING (dinero simulado, nunca real). Un pipeline \
@@ -163,18 +176,25 @@ tiene sentido o la noticia ya está vieja?
 señal ya se enfrió desde que disparó? Una TRIGGERED de hace una hora con \
 el momentum apagado es una trampa clásica.
 3. HISTORIAL REAL DEL SISTEMA: si el sistema tiene resultados medidos con \
-este tipo de catalizador, pésalos. Si dice honestamente que no hay \
-muestra, trátala como no probada (más razón para fracción reducida si \
-entras).
+este tipo de catalizador, pésalos. Si dice que todavía no hay muestra \
+suficiente, eso NO es una señal en contra: el sistema es nuevo y solo \
+acumula historial operando. Trátalo como un dato que no pesa (igual que \
+un clima "desconocido") y nunca lo cites como motivo para rechazar.
 4. ASIMETRÍA RIESGO/BENEFICIO: con la entrada/stop/objetivo dados, ¿la \
 distancia al objetivo justifica claramente el riesgo al stop?
-5. CALIDAD ESTRUCTURAL: float, interés en corto, large cap -- ¿el perfil \
-encaja con un movimiento explosivo sostenible?
+5. CALIDAD ESTRUCTURAL: el pipeline ya decidió qué perfiles se operan \
+(small cap y large cap por igual). No rechaces una señal por ser large \
+cap, por su float grande ni por su bajo interés en corto: juzga si el \
+recorrido que exigen los niveles (de la entrada al objetivo) es razonable \
+para ESA acción, comparado con su ATR diario y con el volumen relativo \
+actual. Un large cap con volumen relativo alto y un objetivo dentro de su \
+rango normal es una señal válida aunque nunca vaya a ser "explosiva".
 6. CLIMA DEL MERCADO GENERAL: si viene "debil", el mercado entero está \
-remando en contra y las rupturas al alza fallan más seguido -- exige más \
-convicción o entra con fracción reducida. Si viene "favorable", no es una \
-razón para relajar el resto de los criterios. "desconocido" no es ni bueno \
-ni malo: simplemente no pesa.
+remando en contra y las rupturas al alza fallan más seguido -- la \
+respuesta correcta es entrar con fracción reducida (0.25-0.5), no \
+rechazar: el clima por sí solo NUNCA es motivo de rechazo. Si viene \
+"favorable", no es una razón para relajar el resto de los criterios. \
+"desconocido" no es ni bueno ni malo: simplemente no pesa.
 7. CONTEXTO DE LA CUENTA: si la cuenta ya está cargada de posiciones o el \
 efectivo está justo, sé MÁS selectivo, no menos. No perseguir euforia: si \
 la evidencia huele a FOMO tardío más que a ruptura temprana, rechaza.
@@ -190,9 +210,12 @@ que debe ser claro y concreto sobre el PORQUÉ (qué viste en la evidencia \
 que te hizo entrar o no, y por qué ese tamaño)"
 }
 
-Regla dura: "entrar": true requiere confianza >= 7. Si dudas, no entres -- \
-proteger el capital (aunque sea simulado) es el trabajo. Rechazar una \
-señal mediocre también es una decisión de trader, y de las buenas."""
+Regla dura: "entrar": true requiere confianza >= 7. Rechaza por evidencia \
+concreta de ESTA señal (catalizador flojo o viejo, momentum enfriado, \
+precio bajo el VWAP, asimetría pobre), nunca por los factores de los \
+puntos 3, 5 y 6, que ya vienen resueltos por el pipeline o se manejan con \
+la fracción. Si la evidencia concreta no convence, no entres: rechazar \
+una señal mediocre también es una decisión de trader, y de las buenas."""
 
 
 SYSTEM_PROMPT_CIERRE = """\

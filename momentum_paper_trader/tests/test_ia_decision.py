@@ -567,3 +567,18 @@ def test_decidir_sin_api_key_marca_sin_clave(monkeypatch):
     d = ia_decision.decidir(_entrada_triggered())
     assert d.entrar is False and d.fallo_tecnico is True
     assert d.codigo_fallo == "sin_clave"
+
+
+def test_prompt_de_entrada_no_apila_negativas_fijas():
+    """Revisión 2026-09-22: las tres razones que rechazaban TODAS las
+    señales (large cap "no explosiva", clima débil, historial ausente)
+    dejan de ser motivo de rechazo. Si alguien las reintroduce en el
+    prompt, esta prueba lo dice antes de que vuelva a pasar un día entero
+    con 0 órdenes. El umbral de 7 se queda, en el prompt y en el código."""
+    p = ia_decision.SYSTEM_PROMPT
+    assert "explosivo sostenible" not in p
+    assert "trátala como no probada" not in p
+    assert "nunca lo cites como motivo para rechazar" in p
+    assert "el clima por sí solo NUNCA es motivo de rechazo" in p
+    assert "No rechaces una señal por ser large cap" in p
+    assert "confianza >= 7" in p
