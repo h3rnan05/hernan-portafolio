@@ -11,12 +11,14 @@ from datetime import UTC, date, datetime, timedelta
 import pytest
 
 from momentum_hunter.catalysts.detector import (
+    CATALYST_KEYWORDS,
     Titular,
     YahooNewsProvider,
     clasificar_titular,
     detectar_catalizador,
     minutos_desde_catalizador,
 )
+from momentum_hunter.catalysts.keyword_rechazos import explicar_rechazos_keyword
 from momentum_hunter.config import CONFIG
 from momentum_hunter.models import Catalizador
 
@@ -38,6 +40,75 @@ def test_clasificar_titular_sin_match_devuelve_none():
 def test_clasificar_titular_prioriza_fda_sobre_earnings_si_ambos_matchean():
     texto = "Company beats estimates and receives FDA approval for new drug"
     assert clasificar_titular(texto) == "fda"
+
+
+# --- Parche 2026-09-22: ALKS phase 1b / PoC y LFMD partnership. ---
+# No reabre #121 (buybacks, upbeat qN). El matcher sigue siendo substring.
+
+
+def test_alks_phase_1b_y_proof_of_concept_son_fda_no_sin_keyword():
+    # Titular real muestreado el 2026-09-21. "Phase 1b Results" no contiene
+    # "phase 2 results" ni "phase 3 results".
+    texto = (
+        "Alkermes Shares Rise 6.5% After Positive Phase 1b Results "
+        "for ADHD Drug ALKS 7290"
+    )
+    assert clasificar_titular(texto) == "fda"
+    titulares = [Titular(texto, "Reuters", "2026-09-21")]
+    c = detectar_catalizador(titulares, CONFIG, hoy=date(2026, 9, 21))
+    assert c is not None and c.tipo == "fda"
+    assert explicar_rechazos_keyword("ALKS", titulares, CONFIG, hoy=date(2026, 9, 21)) == []
+    assert clasificar_titular(
+        "Alkermes announces positive proof-of-concept data for ADHD candidate"
+    ) == "fda"
+    assert clasificar_titular(
+        "Alkermes announces positive proof of concept data for ADHD candidate"
+    ) == "fda"
+    assert clasificar_titular("Company posts positive Phase 1 results in ADHD") == "fda"
+
+
+def test_lfmd_secures_partnership_y_collaboration_son_nuevo_cliente():
+    # Titular real muestreado el 2026-09-21. "Secures AT&T Partnership"
+    # no contiene "partnership with" ni "strategic partnership".
+    texto = (
+        "LifeMD (LFMD) Secures AT&T Partnership. "
+        "Can Free Memberships Produce Paying Patients?"
+    )
+    assert clasificar_titular(texto) == "nuevo_cliente"
+    titulares = [Titular(texto, "Reuters", "2026-09-21")]
+    c = detectar_catalizador(titulares, CONFIG, hoy=date(2026, 9, 21))
+    assert c is not None and c.tipo == "nuevo_cliente"
+    assert explicar_rechazos_keyword("LFMD", titulares, CONFIG, hoy=date(2026, 9, 21)) == []
+    assert clasificar_titular(
+        "LifeMD announces strategic collaboration with AT&T on virtual care"
+    ) == "nuevo_cliente"
+    # Las frases viejas siguen clasificando igual.
+    assert clasificar_titular("Company signs agreement with a hospital system") == "nuevo_cliente"
+    assert clasificar_titular("Company announces strategic partnership") == "nuevo_cliente"
+
+
+def test_parche_alks_lfmd_no_reabre_121_ni_otras_frases():
+    # Lo que este parche no mete, a propósito.
+    assert clasificar_titular("Salesforce Announces $10 Billion Buybacks") is None
+    assert clasificar_titular("Oracle Reports Upbeat Q1") is None
+    assert clasificar_titular("Boeing Beats Stock Market") is None
+    assert clasificar_titular("AT&T Teams Up With LifeMD for Virtual Health Care") is None
+    assert clasificar_titular("Company opens new office downtown") is None
+    # "phase i" es substring de "phase ii"/"phase iii"; el titular del
+    # 22-sep sigue sin keyword. No es el hueco de "Phase 1b".
+    assert clasificar_titular(
+        "Alkermes Posts Positive Data From Phase I ADHD Study on ALKS 7290"
+    ) is None
+    todas = {kw for frases in CATALYST_KEYWORDS.values() for kw in frases}
+    for prohibida in (
+        "buybacks", "upbeat q1", "q1 earnings", "beats", "teams up", "phase i",
+    ):
+        assert prohibida not in todas
+    for frase in (
+        "phase 1b", "phase 1", "proof-of-concept", "proof of concept",
+        "partnership", "collaboration",
+    ):
+        assert frase in todas
 
 
 def test_detectar_catalizador_confirma_con_un_solo_titular_no_rumor():
