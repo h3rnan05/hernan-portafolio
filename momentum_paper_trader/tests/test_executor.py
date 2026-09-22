@@ -708,8 +708,7 @@ def test_una_accion_cara_se_descarta_en_una_cuenta_chica(monkeypatch, tmp_path):
     # El caso LLY exacto del 2026-08-24. Antes: el tope dejaba 1 acción,
     # la IA pedía la mitad, 1 x 0,5 = 0, y no se operaba pese a un "sí".
     # Ahora se descarta ANTES de preguntarle a la IA: con $5.000 y un
-    # tope del 15% ($750), a $1.245 no cabe ni una acción, mucho menos
-    # las 4 que hacen falta para que la fracción sea expresable.
+    # tope del 15% ($750), a $1.245 no cabe ni una acción entera.
     e = _entrada_triggered(entrada=1245.05, stop=1237.63, objetivo=1259.88)
     *_, contextos = _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=5000.0)
@@ -719,10 +718,36 @@ def test_una_accion_cara_se_descarta_en_una_cuenta_chica(monkeypatch, tmp_path):
     assert contextos == [], "no se gasta una llamada a la IA en algo que no se puede dimensionar"
 
 
+def test_una_accion_de_190_si_se_consulta_y_se_opera_con_lo_que_cabe(monkeypatch, tmp_path):
+    """El caso LOW del 2026-09-22: $193,70 con $5.000 y tope del 15 % dan
+    para 3 acciones. Con el mínimo viejo (4) se bloqueaba cada minuto sin
+    preguntar a la IA; con el orden de operaciones vigente (fracción sobre
+    el tamaño por riesgo, tope después) 3 acciones son expresables: la IA
+    pide 25 % de 49 = 12 y el tope deja 3. Se opera con 3."""
+    cuarto = ia_decision.DecisionIA(entrar=True, confianza=7, razonamiento="poco, pero sí", fraccion=0.25)
+    e = _entrada_triggered(entrada=193.70, stop=191.69, objetivo=197.73)
+    _, rev_path, _, contextos = _parchear(monkeypatch, tmp_path, [e], decision=cuarto)
+    client = _FakeAlpacaClient(cash=4993.57)
+
+    nuevas = executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
+
+    assert len(contextos) == 1, "ahora sí se consulta a la IA"
+    assert len(nuevas) == 1 and nuevas[0].entro is True
+    assert [o[1] for o in client.ordenes_colocadas] == [3]
+    assert estado.cargar(rev_path)[0].entro is True
+    # Con el mínimo viejo el mismo caso se descarta antes de la IA.
+    cfg_viejo = PaperTraderConfig(minimo_acciones_para_operar=4)
+    e2 = _entrada_triggered(entrada=193.70, stop=191.69, objetivo=197.73)
+    (tmp_path / "viejo").mkdir()
+    _, _, _, contextos2 = _parchear(monkeypatch, tmp_path / "viejo", [e2], decision=cuarto)
+    assert executor.ejecutar(_FakeAlpacaClient(cash=4993.57), cfg_viejo, dry_run=False, ahora=AHORA) == []
+    assert contextos2 == []
+
+
 def test_la_misma_accion_cara_si_se_opera_en_una_cuenta_grande():
     # El filtro es sobre la CUENTA, no sobre el precio: el mismo ticker
     # que $5.000 no puede dimensionar, $100.000 sí (15% = $15.000 -> 12
-    # acciones, por encima del mínimo de 4).
+    # acciones).
     cuenta = executor._EstadoCuenta(efectivo=100_000.0, equity=100_000.0,
                                     tickers_comprometidos=set())
     assert executor._techo_de_acciones(cuenta, CFG, 1245.05) == 12
