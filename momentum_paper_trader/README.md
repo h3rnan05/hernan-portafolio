@@ -297,6 +297,26 @@ Guardarraíles, todos verificables en el código (no solo en el prompt):
   -- evita tanto gastar llamadas de más como darle al modelo múltiples
   tiradas de dado sobre la misma señal hasta que diga que sí por azar.
 
+**Revisión del prompt (2026-09-22, OK del dueño).** Con 14 revisiones
+acumuladas la IA había aprobado 2. Las 7 de ese día (todas large cap,
+única banda que llegó a disparar) venían rechazadas con confianza 4-6 por
+las mismas tres razones, ninguna sobre la acción concreta: "large cap, no
+explosiva" (el criterio estructural seguía pidiendo perfil de small cap
+después de habilitar la banda large), "mercado débil" (el clima ofrecía
+rechazar o reducir la fracción, y el modelo siempre rechazaba) e
+"historial no probado" (un círculo: no opera porque no tiene historial y
+no tiene historial porque no opera). Tres negativas fijas apiladas hacían
+inalcanzable el 7/10. El prompt ahora dice explícitamente que el historial
+ausente no pesa, que el clima débil se resuelve con fracción reducida y
+nunca solo con rechazo, y que el perfil (large cap, float, corto) ya lo
+decidió el pipeline: la IA juzga el recorrido contra el ATR y el volumen
+relativo de esa acción. No cambia el umbral de 7, ni la re-validación en
+código, ni la regla de que la IA solo reduce el tamaño. Lo que sí sigue
+siendo motivo de rechazo es la evidencia concreta de la señal:
+catalizador flojo o viejo, momentum enfriado, precio bajo el VWAP,
+asimetría pobre. Limitación anotada: es una corrección de diseño, no una
+calibración con datos; la muestra sigue siendo mínima.
+
 ## Uso
 
 ```bash
