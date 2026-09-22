@@ -51779,6 +51779,453 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-22T17:40:07+00:00",
+      "candidatos_evaluados": 4,
+      "candidatos": [
+        {
+          "ticker": "ACN",
+          "nombre": "Accenture plc",
+          "precio_actual": 184.1199951171875,
+          "factores_intradia": {
+            "precio_actual": 184.1199951171875,
+            "vwap": 184.07575937174846,
+            "ema9": 184.04374906690404,
+            "rvol_actual": 0.5370803708037081,
+            "aceleracion_volumen": 0.7932667784012243,
+            "gap_pct": 0.01724234165246204,
+            "maximo_dia": 190.24000549316406,
+            "maximo_premarket": 189.96,
+            "rango_apertura_max": 190.24000549316406,
+            "rango_apertura_min": 187.27999877929688,
+            "velas_desde_ruptura": 1,
+            "macd": 0.10712282109452076,
+            "macd_signal": 0.0956470628901802
+          },
+          "meta": {
+            "float_acciones": 610969121.0,
+            "short_pct_float": 0.0464,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Accenture Up on Partnership with Anthropic; Novo Nordisk Falls on Turnaround | Stock Movers",
+            "fuente": "Bloomberg",
+            "fecha": "2026-09-21T14:52:09Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1607.9799437166666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 62.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 29.32667784012243,
+                "extension": 100.0,
+                "distancia_maximo_dia": 67.83005572297208,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "SHOP",
+          "nombre": "Shopify Inc.",
+          "precio_actual": 147.84500122070312,
+          "factores_intradia": {
+            "precio_actual": 147.84500122070312,
+            "vwap": 148.15059106416717,
+            "ema9": 148.1684413225826,
+            "rvol_actual": 0.7589449098688457,
+            "aceleracion_volumen": 1.1660597414623768,
+            "gap_pct": 0.04626544717327324,
+            "maximo_dia": 150.17999267578125,
+            "maximo_premarket": 148.65,
+            "rango_apertura_max": 148.92999267578125,
+            "rango_apertura_min": 144.25,
+            "velas_desde_ruptura": null,
+            "macd": -0.16934480655942252,
+            "macd_signal": -0.06424523241282193
+          },
+          "meta": {
+            "float_acciones": 1205804094.0,
+            "short_pct_float": 0.0153,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Shopify Stock Rallies on Checkout Partnership With Meta’s New Muse AI Agent",
+            "fuente": "Investopedia",
+            "fecha": "2026-09-22T14:55:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 164.93000781666666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 68.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 9.1333285959596,
+                "aceleracion_volumen": 66.60597414623768,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.45204708380116,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "DBX",
+          "nombre": "Dropbox, Inc.",
+          "precio_actual": 33.3650016784668,
+          "factores_intradia": {
+            "precio_actual": 33.3650016784668,
+            "vwap": 33.99267048344204,
+            "ema9": 33.35495532564636,
+            "rvol_actual": 0.923694400738654,
+            "aceleracion_volumen": 1.284689038681662,
+            "gap_pct": 0.01221539758792946,
+            "maximo_dia": 37.3,
+            "maximo_premarket": 37.3,
+            "rango_apertura_max": 36.564998626708984,
+            "rango_apertura_min": 35.76499938964844,
+            "velas_desde_ruptura": 2,
+            "macd": -0.026180649486484242,
+            "macd_signal": -0.033239739128622874
+          },
+          "meta": {
+            "float_acciones": 128606437.0,
+            "short_pct_float": 0.3098,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Productivity Software Stocks Q2 Results: Benchmarking Dropbox (NASDAQ:DBX)",
+            "fuente": "StockStory",
+            "fecha": "2026-09-21T22:30:25Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1149.7133776,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 65.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 78.46890386816621,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LCID",
+          "nombre": "Lucid Group, Inc.",
+          "precio_actual": 4.257900238037109,
+          "factores_intradia": {
+            "precio_actual": 4.257900238037109,
+            "vwap": 4.275312694664766,
+            "ema9": 4.250521072767387,
+            "rvol_actual": 0.1641360537422271,
+            "aceleracion_volumen": 0.645873129576568,
+            "gap_pct": 0.01040464237652563,
+            "maximo_dia": 4.39,
+            "maximo_premarket": 4.39,
+            "rango_apertura_max": 4.389999866485596,
+            "rango_apertura_min": 4.304999828338623,
+            "velas_desde_ruptura": 2,
+            "macd": 0.008610453192844147,
+            "macd_signal": 0.007012156195611085
+          },
+          "meta": {
+            "float_acciones": 156635014.0,
+            "short_pct_float": 0.45810002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lucid Just Struck a Partnership With Bolt on Mobility. What This Means for LCID Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-21T16:26:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1513.3301052,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 59.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 14.587312957656792,
+                "extension": 100.0,
+                "distancia_maximo_dia": 69.90893804945553,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T17:40:38+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.809999942779541,
+          "factores_intradia": {
+            "precio_actual": 2.809999942779541,
+            "vwap": 2.767482467453479,
+            "ema9": 2.816210125730421,
+            "rvol_actual": 1.5055664702030125,
+            "aceleracion_volumen": 1.238900157764255,
+            "gap_pct": -0.03284668388907341,
+            "maximo_dia": 2.8299999237060547,
+            "maximo_premarket": 2.68,
+            "rango_apertura_max": 2.7149999141693115,
+            "rango_apertura_min": 2.6449999809265137,
+            "velas_desde_ruptura": null,
+            "macd": -0.0007507618943245475,
+            "macd_signal": 0.0013034534637596893
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": "AMEX"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 551.9155656500001,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 69.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 73.89001577642551,
+                "extension": 100.0,
+                "distancia_maximo_dia": 92.9328687400378,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 74.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "SFIX",
+          "nombre": "Stitch Fix, Inc.",
+          "precio_actual": 2.9149999618530273,
+          "factores_intradia": {
+            "precio_actual": 2.9149999618530273,
+            "vwap": 2.9212366290972924,
+            "ema9": 2.915112275926286,
+            "rvol_actual": 0.4956167333128268,
+            "aceleracion_volumen": 1.351209080440862,
+            "gap_pct": 0.010526389758675215,
+            "maximo_dia": 3.0350000858306885,
+            "maximo_premarket": 2.935,
+            "rango_apertura_max": 2.924999952316284,
+            "rango_apertura_min": 2.880000114440918,
+            "velas_desde_ruptura": null,
+            "macd": 0.004117694351052581,
+            "macd_signal": 0.005235405921815801
+          },
+          "meta": {
+            "float_acciones": 103276950.0,
+            "short_pct_float": 0.1408,
+            "market_cap": 388936352.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Earnings To Watch: Stitch Fix (SFIX) Reports Q2 Results Tomorrow",
+            "fuente": "StockStory",
+            "fecha": "2026-09-22T03:09:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 871.6322595666667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 68.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 85.1209080440862,
+                "extension": 100.0,
+                "distancia_maximo_dia": 60.46124527709307,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 56.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        }
+      ]
     }
   ]
 }
