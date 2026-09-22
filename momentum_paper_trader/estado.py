@@ -83,13 +83,22 @@ class RevisionIA:
     # una large-cap quedaría archivado como `rechazo_ia`, contaminando
     # justo la muestra que se quiere medir.
     ia_entraria: bool | None = None
-    motivo_no_operada: str | None = None   # MOTIVO_FUERA_DE_BANDA | None
+    motivo_no_operada: str | None = None   # uno de MOTIVOS_NO_OPERADA | None
 
 
-# Única razón determinista, hoy, por la que una revisión con veredicto de
-# la IA no coloca orden. Es también el `desenlace_paper` con el que se
-# archiva (ver `archivo.desenlace_paper`).
+# Razones deterministas por las que una revisión no coloca orden. Cada
+# una es también el `desenlace_paper` con el que se archiva (ver
+# `archivo.desenlace_paper`), separado de `rechazo_ia`.
 MOTIVO_FUERA_DE_BANDA = "fuera_de_banda"
+# (2026-09-22) Ni una acción entera cabe en el tope de concentración de
+# la cuenta (`maximo_pct_efectivo_por_posicion` × equity < precio). Es
+# estructural para el día -- el equity no va a triplicarse antes del
+# cierre -- así que se registra UNA vez sin consultar a la IA
+# (`ia_entraria=None`: no hubo veredicto y no se inventa), en vez de
+# bloquear cada minuto hasta que la señal muera por niveles rancios (GS
+# a $949 con $5.000: 38 bloqueos seguidos el 22/9).
+MOTIVO_PRECIO_FUERA_DE_ALCANCE = "precio_fuera_de_alcance"
+MOTIVOS_NO_OPERADA = frozenset({MOTIVO_FUERA_DE_BANDA, MOTIVO_PRECIO_FUERA_DE_ALCANCE})
 
 
 # `resultado` que ya no puede cambiar -- `seguimiento.revisar` no vuelve a

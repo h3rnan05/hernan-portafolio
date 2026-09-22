@@ -719,12 +719,44 @@ def test_una_accion_cara_se_descarta_en_una_cuenta_chica(monkeypatch, tmp_path):
     # Ahora se descarta ANTES de preguntarle a la IA: con $5.000 y un
     # tope del 15% ($750), a $1.245 no cabe ni una acción entera.
     e = _entrada_triggered(entrada=1245.05, stop=1237.63, objetivo=1259.88)
-    *_, contextos = _parchear(monkeypatch, tmp_path, [e])
+    _, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=5000.0)
 
     assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
     assert client.ordenes_colocadas == []
     assert contextos == [], "no se gasta una llamada a la IA en algo que no se puede dimensionar"
+
+    # (2026-09-22) Es estructural para el día (el precio de UNA acción
+    # supera el 15 % del equity), así que se registra UNA vez, sin
+    # veredicto de IA inventado, y se avisa UNA vez -- no se bloquea cada
+    # minuto (GS: 38 bloqueos seguidos).
+    persistidas = estado.cargar(rev_path)
+    assert len(persistidas) == 1
+    r = persistidas[0]
+    assert r.entro is False and r.ia_entraria is None
+    assert r.motivo_no_operada == estado.MOTIVO_PRECIO_FUERA_DE_ALCANCE
+    assert "no cabe ni una acción" in r.razonamiento
+    assert len(enviados) == 1 and "NO ENTRA" in enviados[0] and "RKLB" in enviados[0]
+    assert "/10" not in enviados[0], "sin IA no hay confianza que mostrar"
+
+    # Segunda corrida: ya está revisada, ni bloqueo nuevo ni aviso nuevo.
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert len(estado.cargar(rev_path)) == 1 and len(enviados) == 1 and contextos == []
+
+
+def test_falta_de_efectivo_transitoria_no_quema_la_senal(monkeypatch, tmp_path):
+    """La otra mitad del mismo síntoma: el precio SÍ cabe en el tope de
+    concentración ($78 contra 15 % de $20.000), pero el efectivo libre
+    ($50) no alcanza ni para una acción porque el resto está desplegado.
+    Eso puede cambiar en la corrida siguiente (una posición se cierra y
+    libera cash), así que se bloquea sin registrar revisión, sin aviso,
+    y se vuelve a intentar -- como antes del 2026-09-22."""
+    e = _entrada_triggered()
+    _, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=50.0, equity=20_000.0)
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert contextos == [] and enviados == [] and estado.cargar(rev_path) == []
 
 
 def test_una_accion_de_190_si_se_consulta_y_se_opera_con_lo_que_cabe(monkeypatch, tmp_path):

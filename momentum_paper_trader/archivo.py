@@ -79,12 +79,14 @@ def desenlace_paper(r: estado.RevisionIA) -> str | None:
     todavía no cerró. None no se inventa: una orden viva no es un
     archivo.
 
-    `fuera_de_banda` va ANTES de `rechazo_ia`: las dos tienen
-    `entro=False`, pero una es "la IA dijo que no" y la otra "nunca fue
-    operable, dijera lo que dijera la IA". Archivarlas igual borraría la
-    distinción que `estado.ia_entraria` existe para conservar."""
-    if r.motivo_no_operada == estado.MOTIVO_FUERA_DE_BANDA:
-        return estado.MOTIVO_FUERA_DE_BANDA
+    Los motivos deterministas (`estado.MOTIVOS_NO_OPERADA`: fuera de
+    banda, precio fuera de alcance) van ANTES de `rechazo_ia`: todos
+    tienen `entro=False`, pero uno es "la IA dijo que no" y los otros
+    "nunca fue operable, dijera lo que dijera la IA (o sin preguntarle)".
+    Archivarlos igual borraría la distinción que `estado.ia_entraria`
+    existe para conservar."""
+    if r.motivo_no_operada in estado.MOTIVOS_NO_OPERADA:
+        return r.motivo_no_operada
     if not r.entro:
         return "rechazo_ia"
     if r.resultado in estado.RESULTADOS_TERMINALES:
