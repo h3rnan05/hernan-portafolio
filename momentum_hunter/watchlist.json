@@ -4301,11 +4301,11 @@
       "signal_latency_ms": 68000.0,
       "velas_desde_ruptura": 1,
       "watchlist_escrito_ts": "2026-09-22T17:00:08+00:00",
-      "ultima_entrada": 950.60498046875,
-      "ultimo_stop": 942.5240713032383,
-      "ultimo_objetivo": 966.7667987997734,
-      "ultima_zona_entrada_baja": 951.2289142460666,
-      "ultimos_niveles_ts": "2026-09-22T19:04:05+00:00",
+      "ultima_entrada": 950.760009765625,
+      "ultimo_stop": 942.5550452227865,
+      "ultimo_objetivo": 967.169938851302,
+      "ultima_zona_entrada_baja": 951.0229126727979,
+      "ultimos_niveles_ts": "2026-09-22T19:09:05+00:00",
       "stop_tesis": 941.1735619608663,
       "clima_mercado": "debil"
     },
@@ -5262,9 +5262,9 @@
     {
       "ticker": "LFMD",
       "nombre": "LifeMD, Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-22T18:09:38+00:00",
-      "actualizado_en": "2026-09-22T18:09:38+00:00",
+      "actualizado_en": "2026-09-22T19:08:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -5277,6 +5277,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-22T19:08:05+00:00",
+          "motivo": "El precio ($3.29) cayó por debajo del stop de la idea ($3.29) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-09-22T19:08:06+00:00",
+          "evaluacion_ts": "2026-09-22T19:08:06+00:00",
+          "mensaje_generado_ts": "2026-09-22T19:08:06+00:00",
+          "telegram_enviado_ts": "2026-09-22T19:08:07+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -5300,13 +5312,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 3.2950000762939453,
-      "ultimo_stop": 3.277199553260073,
-      "ultimo_objetivo": 3.3306011223616903,
-      "ultima_zona_entrada_baja": 3.293667892723691,
-      "ultimos_niveles_ts": "2026-09-22T19:04:05+00:00",
+      "ultima_entrada": 3.2850000858306885,
+      "ultimo_stop": 3.201964386871883,
+      "ultimo_objetivo": 3.4510714837483,
+      "ultima_zona_entrada_baja": 3.2915179819027776,
+      "ultimos_niveles_ts": "2026-09-22T19:08:05+00:00",
       "stop_tesis": 3.287414280289615,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     }
   ]
 }
