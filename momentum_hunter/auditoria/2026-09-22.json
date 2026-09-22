@@ -55444,6 +55444,1116 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-22T17:55:07+00:00",
+      "candidatos_evaluados": 3,
+      "candidatos": [
+        {
+          "ticker": "SHOP",
+          "nombre": "Shopify Inc.",
+          "precio_actual": 148.4250030517578,
+          "factores_intradia": {
+            "precio_actual": 148.4250030517578,
+            "vwap": 148.1447523540834,
+            "ema9": 148.06054276717794,
+            "rvol_actual": 1.025241056075919,
+            "aceleracion_volumen": 1.4328128661823296,
+            "gap_pct": 0.04626544717327324,
+            "maximo_dia": 150.17999267578125,
+            "maximo_premarket": 148.65,
+            "rango_apertura_max": 148.92999267578125,
+            "rango_apertura_min": 144.25,
+            "velas_desde_ruptura": 2,
+            "macd": -0.060299290991764565,
+            "macd_signal": -0.14247670294129605
+          },
+          "meta": {
+            "float_acciones": 1205804094.0,
+            "short_pct_float": 0.0153,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Shopify Stock Rallies on Checkout Partnership With Meta’s New Muse AI Agent",
+            "fuente": "Investopedia",
+            "fecha": "2026-09-22T14:55:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 179.9227964,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 77.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.046790060606054576,
+                "aceleracion_volumen": 93.28128661823297,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.314091692545,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 47.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "DBX",
+          "nombre": "Dropbox, Inc.",
+          "precio_actual": 33.31999969482422,
+          "factores_intradia": {
+            "precio_actual": 33.31999969482422,
+            "vwap": 33.92963258017563,
+            "ema9": 33.257827517248344,
+            "rvol_actual": 1.3785117161364322,
+            "aceleracion_volumen": 1.163482879872316,
+            "gap_pct": 0.01221539758792946,
+            "maximo_dia": 37.3,
+            "maximo_premarket": 37.3,
+            "rango_apertura_max": 36.564998626708984,
+            "rango_apertura_min": 35.76499938964844,
+            "velas_desde_ruptura": 0,
+            "macd": -0.040871717681760344,
+            "macd_signal": -0.039686151115693825
+          },
+          "meta": {
+            "float_acciones": 128606437.0,
+            "short_pct_float": 0.3098,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Productivity Software Stocks Q2 Results: Benchmarking Dropbox (NASDAQ:DBX)",
+            "fuente": "StockStory",
+            "fecha": "2026-09-21T22:30:25Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1164.7061682666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 63.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 66.3482879872316,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LCID",
+          "nombre": "Lucid Group, Inc.",
+          "precio_actual": 4.300000190734863,
+          "factores_intradia": {
+            "precio_actual": 4.300000190734863,
+            "vwap": 4.2747396138080385,
+            "ema9": 4.269843322944408,
+            "rvol_actual": 2.4903383339774443,
+            "aceleracion_volumen": 1.5956171054634,
+            "gap_pct": 0.01040464237652563,
+            "maximo_dia": 4.39,
+            "maximo_premarket": 4.39,
+            "rango_apertura_max": 4.389999866485596,
+            "rango_apertura_min": 4.304999828338623,
+            "velas_desde_ruptura": 2,
+            "macd": 0.010062633690066214,
+            "macd_signal": 0.007181417915453259
+          },
+          "meta": {
+            "float_acciones": 156635014.0,
+            "short_pct_float": 0.45810002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lucid Just Struck a Partnership With Bolt on Mobility. What This Means for LCID Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-21T16:26:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1528.3228966833333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 77.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 79.49890449541309,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 59.1,
+            "score_ajustado": 39.1,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T17:56:07+00:00",
+      "candidatos_evaluados": 3,
+      "candidatos": [
+        {
+          "ticker": "SHOP",
+          "nombre": "Shopify Inc.",
+          "precio_actual": 148.39999389648438,
+          "factores_intradia": {
+            "precio_actual": 148.39999389648438,
+            "vwap": 148.1450241329027,
+            "ema9": 148.12843299303924,
+            "rvol_actual": 0.7485961849881175,
+            "aceleracion_volumen": 0.7251956576622065,
+            "gap_pct": 0.04626544717327324,
+            "maximo_dia": 150.17999267578125,
+            "maximo_premarket": 148.65,
+            "rango_apertura_max": 148.92999267578125,
+            "rango_apertura_min": 144.25,
+            "velas_desde_ruptura": 1,
+            "macd": -0.026799634459649724,
+            "macd_signal": -0.1193412892449668
+          },
+          "meta": {
+            "float_acciones": 1205804094.0,
+            "short_pct_float": 0.0153,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Shopify Stock Rallies on Checkout Partnership With Meta’s New Muse AI Agent",
+            "fuente": "Investopedia",
+            "fecha": "2026-09-22T14:55:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 180.92440846666665,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 63.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 22.51956576622065,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.1475638160426,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 47.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "DBX",
+          "nombre": "Dropbox, Inc.",
+          "precio_actual": 33.34000015258789,
+          "factores_intradia": {
+            "precio_actual": 33.34000015258789,
+            "vwap": 33.926322639838,
+            "ema9": 33.27426204431626,
+            "rvol_actual": 0.7894532438362903,
+            "aceleracion_volumen": 0.8009987314499729,
+            "gap_pct": 0.01221539758792946,
+            "maximo_dia": 37.3,
+            "maximo_premarket": 37.3,
+            "rango_apertura_max": 36.564998626708984,
+            "rango_apertura_min": 35.76499938964844,
+            "velas_desde_ruptura": 1,
+            "macd": -0.03203082831018378,
+            "macd_signal": -0.03815508655459182
+          },
+          "meta": {
+            "float_acciones": 128606437.0,
+            "short_pct_float": 0.3098,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Productivity Software Stocks Q2 Results: Benchmarking Dropbox (NASDAQ:DBX)",
+            "fuente": "StockStory",
+            "fecha": "2026-09-21T22:30:25Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1165.7077793166668,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 56.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 30.09987314499729,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LCID",
+          "nombre": "Lucid Group, Inc.",
+          "precio_actual": 4.292200088500977,
+          "factores_intradia": {
+            "precio_actual": 4.292200088500977,
+            "vwap": 4.274824023203762,
+            "ema9": 4.274314676055722,
+            "rvol_actual": 0.628037014157342,
+            "aceleracion_volumen": 1.2621205140019454,
+            "gap_pct": 0.01040464237652563,
+            "maximo_dia": 4.39,
+            "maximo_premarket": 4.39,
+            "rango_apertura_max": 4.389999866485596,
+            "rango_apertura_min": 4.304999828338623,
+            "velas_desde_ruptura": 2,
+            "macd": 0.011377369481829547,
+            "macd_signal": 0.008020608228728517
+          },
+          "meta": {
+            "float_acciones": 156635014.0,
+            "short_pct_float": 0.45810002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lucid Just Struck a Partnership With Bolt on Mobility. What This Means for LCID Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-21T16:26:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1529.32450745,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 73.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 76.21205140019454,
+                "extension": 100.0,
+                "distancia_maximo_dia": 77.72211583165756,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 59.1,
+            "score_ajustado": 39.1,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T17:57:07+00:00",
+      "candidatos_evaluados": 3,
+      "candidatos": [
+        {
+          "ticker": "SHOP",
+          "nombre": "Shopify Inc.",
+          "precio_actual": 148.535400390625,
+          "factores_intradia": {
+            "precio_actual": 148.535400390625,
+            "vwap": 148.145800433964,
+            "ema9": 148.20982647255641,
+            "rvol_actual": 1.4355398839352351,
+            "aceleracion_volumen": 1.0689338572845128,
+            "gap_pct": 0.04626544717327324,
+            "maximo_dia": 150.17999267578125,
+            "maximo_premarket": 148.65,
+            "rango_apertura_max": 148.92999267578125,
+            "rango_apertura_min": 144.25,
+            "velas_desde_ruptura": 2,
+            "macd": 0.010553601779974997,
+            "macd_signal": -0.09336231103997845
+          },
+          "meta": {
+            "float_acciones": 1205804094.0,
+            "short_pct_float": 0.0153,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Shopify Stock Rallies on Checkout Partnership With Meta’s New Muse AI Agent",
+            "fuente": "Investopedia",
+            "fecha": "2026-09-22T14:55:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 181.92403951666665,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 70.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 56.893385728451285,
+                "extension": 100.0,
+                "distancia_maximo_dia": 89.0491918673434,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 47.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "DBX",
+          "nombre": "Dropbox, Inc.",
+          "precio_actual": 33.38999938964844,
+          "factores_intradia": {
+            "precio_actual": 33.38999938964844,
+            "vwap": 33.92216250753807,
+            "ema9": 33.297409513382696,
+            "rvol_actual": 1.1318769806223699,
+            "aceleracion_volumen": 1.0504880511612251,
+            "gap_pct": 0.01221539758792946,
+            "maximo_dia": 37.3,
+            "maximo_premarket": 37.3,
+            "rango_apertura_max": 36.564998626708984,
+            "rango_apertura_min": 35.76499938964844,
+            "velas_desde_ruptura": 2,
+            "macd": -0.020750638771374952,
+            "macd_signal": -0.03467419699794845
+          },
+          "meta": {
+            "float_acciones": 128606437.0,
+            "short_pct_float": 0.3098,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Productivity Software Stocks Q2 Results: Benchmarking Dropbox (NASDAQ:DBX)",
+            "fuente": "StockStory",
+            "fecha": "2026-09-21T22:30:25Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1166.7074103333332,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 61.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 55.04880511612251,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LCID",
+          "nombre": "Lucid Group, Inc.",
+          "precio_actual": 4.304999828338623,
+          "factores_intradia": {
+            "precio_actual": 4.304999828338623,
+            "vwap": 4.2750143528142415,
+            "ema9": 4.280451706512302,
+            "rvol_actual": 1.2662587143914945,
+            "aceleracion_volumen": 1.6887673285874858,
+            "gap_pct": 0.01040464237652563,
+            "maximo_dia": 4.39,
+            "maximo_premarket": 4.39,
+            "rango_apertura_max": 4.389999866485596,
+            "rango_apertura_min": 4.304999828338623,
+            "velas_desde_ruptura": 2,
+            "macd": 0.013298838371464505,
+            "macd_signal": 0.009076254257275715
+          },
+          "meta": {
+            "float_acciones": 156635014.0,
+            "short_pct_float": 0.45810002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lucid Just Struck a Partnership With Bolt on Mobility. What This Means for LCID Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-21T16:26:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1530.3241390166665,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": "micro_pullback",
+            "temprano": true,
+            "early": {
+              "score": 78.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 80.63777410902584,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 59.1,
+            "score_ajustado": 39.1,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T17:58:07+00:00",
+      "candidatos_evaluados": 3,
+      "candidatos": [
+        {
+          "ticker": "SHOP",
+          "nombre": "Shopify Inc.",
+          "precio_actual": 148.47999572753906,
+          "factores_intradia": {
+            "precio_actual": 148.47999572753906,
+            "vwap": 148.14616220398838,
+            "ema9": 148.26386032355293,
+            "rvol_actual": 0.5463834724019454,
+            "aceleracion_volumen": 0.7789636172192066,
+            "gap_pct": 0.04626544717327324,
+            "maximo_dia": 150.17999267578125,
+            "maximo_premarket": 148.65,
+            "rango_apertura_max": 148.92999267578125,
+            "rango_apertura_min": 144.25,
+            "velas_desde_ruptura": 3,
+            "macd": 0.035278943638587634,
+            "macd_signal": -0.06763406010426523
+          },
+          "meta": {
+            "float_acciones": 1205804094.0,
+            "short_pct_float": 0.0153,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Shopify Stock Rallies on Checkout Partnership With Meta’s New Muse AI Agent",
+            "fuente": "Investopedia",
+            "fecha": "2026-09-22T14:55:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 182.92452963333332,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 61.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 27.89636172192066,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.68027013483571,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 47.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "DBX",
+          "nombre": "Dropbox, Inc.",
+          "precio_actual": 33.48500061035156,
+          "factores_intradia": {
+            "precio_actual": 33.48500061035156,
+            "vwap": 33.91931672734897,
+            "ema9": 33.33492773277647,
+            "rvol_actual": 0.9101873336741784,
+            "aceleracion_volumen": 0.9326538704733733,
+            "gap_pct": 0.01221539758792946,
+            "maximo_dia": 37.3,
+            "maximo_premarket": 37.3,
+            "rango_apertura_max": 36.564998626708984,
+            "rango_apertura_min": 35.76499938964844,
+            "velas_desde_ruptura": 2,
+            "macd": -0.004097963962415463,
+            "macd_signal": -0.028558950390841855
+          },
+          "meta": {
+            "float_acciones": 128606437.0,
+            "short_pct_float": 0.3098,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Productivity Software Stocks Q2 Results: Benchmarking Dropbox (NASDAQ:DBX)",
+            "fuente": "StockStory",
+            "fecha": "2026-09-21T22:30:25Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1167.7079016999999,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 58.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 43.265387047337335,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LCID",
+          "nombre": "Lucid Group, Inc.",
+          "precio_actual": 4.304999828338623,
+          "factores_intradia": {
+            "precio_actual": 4.304999828338623,
+            "vwap": 4.275074756276403,
+            "ema9": 4.285361330877567,
+            "rvol_actual": 0.30393284626146433,
+            "aceleracion_volumen": 0.6271268884480391,
+            "gap_pct": 0.01040464237652563,
+            "maximo_dia": 4.39,
+            "maximo_premarket": 4.39,
+            "rango_apertura_max": 4.389999866485596,
+            "rango_apertura_min": 4.304999828338623,
+            "velas_desde_ruptura": 3,
+            "macd": 0.01465270900156046,
+            "macd_signal": 0.010191545206132665
+          },
+          "meta": {
+            "float_acciones": 156635014.0,
+            "short_pct_float": 0.45810002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lucid Just Struck a Partnership With Bolt on Mobility. What This Means for LCID Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-21T16:26:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1531.3246307,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 58.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 12.712688844803907,
+                "extension": 100.0,
+                "distancia_maximo_dia": 80.63777410902584,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 59.1,
+            "score_ajustado": 39.1,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T17:59:07+00:00",
+      "candidatos_evaluados": 3,
+      "candidatos": [
+        {
+          "ticker": "SHOP",
+          "nombre": "Shopify Inc.",
+          "precio_actual": 148.5800018310547,
+          "factores_intradia": {
+            "precio_actual": 148.5800018310547,
+            "vwap": 148.14653169410053,
+            "ema9": 148.3270886250533,
+            "rvol_actual": 0.6486403515858525,
+            "aceleracion_volumen": 1.0284305192921381,
+            "gap_pct": 0.04626544717327324,
+            "maximo_dia": 150.17999267578125,
+            "maximo_premarket": 148.65,
+            "rango_apertura_max": 148.92999267578125,
+            "rango_apertura_min": 144.25,
+            "velas_desde_ruptura": 4,
+            "macd": 0.062226305846536434,
+            "macd_signal": -0.0416619869141049
+          },
+          "meta": {
+            "float_acciones": 1205804094.0,
+            "short_pct_float": 0.0153,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Shopify Stock Rallies on Checkout Partnership With Meta’s New Muse AI Agent",
+            "fuente": "Investopedia",
+            "fecha": "2026-09-22T14:55:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 183.92858538333334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 64.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 52.843051929213814,
+                "extension": 100.0,
+                "distancia_maximo_dia": 89.34617843416248,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 47.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "DBX",
+          "nombre": "Dropbox, Inc.",
+          "precio_actual": 33.51499938964844,
+          "factores_intradia": {
+            "precio_actual": 33.51499938964844,
+            "vwap": 33.91716500119058,
+            "ema9": 33.37094206415087,
+            "rvol_actual": 0.8249760886688421,
+            "aceleracion_volumen": 1.0821141277023631,
+            "gap_pct": 0.01221539758792946,
+            "maximo_dia": 37.3,
+            "maximo_premarket": 37.3,
+            "rango_apertura_max": 36.564998626708984,
+            "rango_apertura_min": 35.76499938964844,
+            "velas_desde_ruptura": 2,
+            "macd": 0.011388768939660565,
+            "macd_signal": -0.020569406524741374
+          },
+          "meta": {
+            "float_acciones": 128606437.0,
+            "short_pct_float": 0.3098,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "earnings",
+            "titular": "Productivity Software Stocks Q2 Results: Benchmarking Dropbox (NASDAQ:DBX)",
+            "fuente": "StockStory",
+            "fecha": "2026-09-21T22:30:25Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1168.7119575333334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 61.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 58.211412770236315,
+                "extension": 100.0,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LCID",
+          "nombre": "Lucid Group, Inc.",
+          "precio_actual": 4.309999942779541,
+          "factores_intradia": {
+            "precio_actual": 4.309999942779541,
+            "vwap": 4.275236112150122,
+            "ema9": 4.290289053257962,
+            "rvol_actual": 0.9081387148960882,
+            "aceleracion_volumen": 0.7331866304303736,
+            "gap_pct": 0.01040464237652563,
+            "maximo_dia": 4.39,
+            "maximo_premarket": 4.39,
+            "rango_apertura_max": 4.389999866485596,
+            "rango_apertura_min": 4.304999828338623,
+            "velas_desde_ruptura": 4,
+            "macd": 0.01594532094348633,
+            "macd_signal": 0.011342300353603398
+          },
+          "meta": {
+            "float_acciones": 156635014.0,
+            "short_pct_float": 0.45810002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lucid Just Struck a Partnership With Bolt on Mobility. What This Means for LCID Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-21T16:26:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1532.3286867333334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 57.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 23.318663043037358,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.7767523415811,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 59.1,
+            "score_ajustado": 39.1,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        }
+      ]
     }
   ]
 }
