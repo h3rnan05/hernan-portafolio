@@ -107,6 +107,15 @@ igual si este módulo se desinstala.
 2. **Fracción de la IA por debajo del mínimo → se recorta a 0,25, no salta a 1,0**
    (`ia_decision._parsear_fraccion`). Antes "quiero ir muy chico" terminaba en tamaño
    completo. Cero, negativo, mayor a 1 o basura siguen siendo 1,0: la IA nunca aumenta.
+## Revisión de riesgo del 2026-09-22 (parte B)
+
+3. **Sin entradas nuevas en los últimos 30 min** (`config.minutos_minimos_para_entrar`,
+   bloqueo `cierre_cercano`). Una señal a las 19:49 colocaba la orden y el cierre diario la
+   liquidaba a las 19:50. El hunter ya evita disparar con poca sesión; esta es la segunda
+   guardia, del lado que coloca. La señal no se quema (mañana ya no vale por niveles rancios).
+4. **`cash` o `equity` ausentes = cuenta ilegible, no $0** (`executor._leer_cuenta`). Antes
+   `float(v or 0)` los convertía en cero: dirección segura, pero el bloqueo salía como
+   "concentración" y escondía que faltó el dato (regla 6).
 
 
 Ajuste del 2026-09-22 (pedido del dueño: "me llegan avisos de compras

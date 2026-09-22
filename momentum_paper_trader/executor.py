@@ -34,7 +34,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
-from momentum_hunter import watchlist
+from momentum_hunter import sesion, watchlist
 
 from momentum_paper_trader import aviso_fallo_ia, estado, ia_decision, notify, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
@@ -327,11 +327,28 @@ def _leer_cuenta(client: AlpacaPaperClient) -> _EstadoCuenta | None:
         return None
     comprometidos = {p.get("symbol") for p in posiciones} | {o.get("symbol") for o in abiertas}
     comprometidos.discard(None)
-    return _EstadoCuenta(
-        efectivo=float(cuenta.get("cash") or 0.0),
-        equity=float(cuenta.get("equity") or 0.0),
-        tickers_comprometidos=comprometidos,
-    )
+    # `cash`/`equity` ausentes o ilegibles NO son cero (regla 6, 2026-09-22).
+    # Antes `float(v or 0.0)` los convertía en $0: la dirección era segura
+    # (con $0 no cabe nada) pero el bloqueo salía como "concentración" y
+    # escondía que el dato faltó. Ahora es "cuenta ilegible", explícito.
+    efectivo = _numero(cuenta.get("cash"))
+    equity = _numero(cuenta.get("equity"))
+    if efectivo is None or equity is None:
+        log.warning("la cuenta paper vino sin cash o equity legibles -- no se opera (fail-closed)")
+        return None
+    return _EstadoCuenta(efectivo=efectivo, equity=equity, tickers_comprometidos=comprometidos)
+
+
+def _numero(v) -> float | None:
+    """Alpaca manda los montos como strings. None si falta o no es un
+    número: nunca se inventa un cero."""
+    if v is None or isinstance(v, bool):
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return None if f != f else f
 
 
 def ejecutar(
@@ -385,6 +402,20 @@ def ejecutar(
         if cerrado is not None:
             log.info("no se colocan órdenes en esta corrida: %s", cerrado)
             _evento(dry_run, "bloqueo_riesgo", ticker=None, limite="mercado_cerrado", motivo=cerrado)
+            if metricas is not None:
+                metricas.cerrar_corrida()
+            return nuevas
+        # Queda sesión suficiente? (2026-09-22, revisión de riesgo). Una
+        # entrada en los últimos minutos solo alcanza a pagar el spread
+        # antes de que el cierre diario la liquide. No se registra
+        # revisión: la señal sigue viva, pero hoy ya no se opera.
+        faltan = sesion.minutos_hasta_el_cierre(ahora)
+        if faltan < cfg.minutos_minimos_para_entrar:
+            motivo = (f"faltan {max(faltan, 0):.0f} min para el cierre "
+                      f"(mínimo {cfg.minutos_minimos_para_entrar:.0f}) -- no se abren entradas nuevas")
+            log.info("no se colocan órdenes en esta corrida: %s", motivo)
+            _evento(dry_run, "bloqueo_riesgo", ticker=None, limite="cierre_cercano", motivo=motivo,
+                    minutos=round(faltan, 1), minimo=cfg.minutos_minimos_para_entrar)
             if metricas is not None:
                 metricas.cerrar_corrida()
             return nuevas
