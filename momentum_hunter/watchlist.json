@@ -4251,9 +4251,9 @@
     {
       "ticker": "GS",
       "nombre": "The Goldman Sachs Group, Inc.",
-      "estado": "triggered",
+      "estado": "archived",
       "creado_en": "2026-09-22T15:41:57+00:00",
-      "actualizado_en": "2026-09-22T17:00:05+00:00",
+      "actualizado_en": "2026-09-22T19:18:08+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -4278,6 +4278,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": 3000.0
+        },
+        {
+          "estado": "archived",
+          "timestamp": "2026-09-22T19:18:08+00:00",
+          "motivo": "Desenlace paper terminal (precio_fuera_de_alcance). Causa raíz C: no había transición post-revisión. Revisión 2026-09-22T19:18:07+00:00.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -4301,11 +4313,11 @@
       "signal_latency_ms": 68000.0,
       "velas_desde_ruptura": 1,
       "watchlist_escrito_ts": "2026-09-22T17:00:08+00:00",
-      "ultima_entrada": 950.6400146484375,
-      "ultimo_stop": 943.5804639543805,
-      "ultimo_objetivo": 964.7591160365514,
-      "ultima_zona_entrada_baja": 950.5857395229657,
-      "ultimos_niveles_ts": "2026-09-22T19:14:05+00:00",
+      "ultima_entrada": 951.510009765625,
+      "ultimo_stop": 944.450459071568,
+      "ultimo_objetivo": 965.6291111537389,
+      "ultima_zona_entrada_baja": 950.9039592658378,
+      "ultimos_niveles_ts": "2026-09-22T19:18:05+00:00",
       "stop_tesis": 941.1735619608663,
       "clima_mercado": "debil"
     },
