@@ -537,16 +537,21 @@ def construir_paquete_evidencia(e: EntradaWatchlist, contexto_cuenta: str | None
 
 
 def _parsear_fraccion(v: dict) -> float:
-    """SOLO puede reducir el tamaño: fuera de [FRACCION_MINIMA, 1.0] o no
-    numérico -> 1.0 (el riesgo configurado en `config.py` sigue siendo el
-    techo absoluto; un valor raro del modelo nunca puede aumentarlo)."""
+    """SOLO puede reducir el tamaño. Mayor a 1 (querer "apalancar"), cero,
+    negativo o no numérico -> 1.0: el riesgo configurado en `config.py`
+    sigue siendo el techo absoluto y un valor raro nunca lo aumenta.
+
+    Entre 0 y FRACCION_MINIMA (2026-09-22, revisión de riesgo): antes
+    también volvía a 1.0, o sea que "quiero ir muy chico" terminaba en
+    tamaño COMPLETO -- la intención de reducir se invertía. Ahora se
+    recorta al mínimo expresable: la IA pidió poco y recibe poco."""
     try:
         f = float(v.get("fraccion", 1.0))
     except (TypeError, ValueError):
         return 1.0
-    if not (FRACCION_MINIMA <= f <= 1.0):
+    if f != f or f <= 0 or f > 1.0:   # NaN, cero, negativo, "apalancar"
         return 1.0
-    return f
+    return max(FRACCION_MINIMA, f)
 
 
 def decidir(e: EntradaWatchlist, contexto_cuenta: str | None = None) -> DecisionIA:

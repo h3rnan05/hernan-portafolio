@@ -118,7 +118,7 @@ def main() -> None:
         # esta corrida no traiga ninguna señal nueva. Solo con
         # credenciales reales -- en dry-run no hay órdenes que seguir.
         if not args.dry_run:
-            cambiadas = seguimiento.revisar(client)
+            cambiadas = seguimiento.revisar(client, CONFIG)
             if cambiadas:
                 log.info("%d trade(s) cambiaron de estado", len(cambiadas))
 

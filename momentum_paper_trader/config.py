@@ -59,6 +59,16 @@ class PaperTraderConfig:
     # el siguiente re-chequeo recalcula los niveles y la orden se coloca
     # ahí, con precios de verdad.
     minutos_maximos_niveles: float = 15.0
+    # Cuánto se deja viva una orden de ENTRADA que no se llenó (2026-09-22,
+    # revisión de riesgo). El bracket entra como límite "del día" al precio
+    # de la señal: si el precio se escapa, la orden se quedaba abierta
+    # hasta las 20:00, ocupando un lugar en `maximo_posiciones_abiertas`
+    # y, peor, pudiendo llenarse horas después cuando el precio volviera a
+    # bajar al límite con el momentum ya muerto -- comprar a un precio que
+    # ya no existe, por la puerta de atrás que `minutos_maximos_niveles`
+    # no ve (esa regla mira ANTES de colocar). Mismo tope que los niveles:
+    # si en 15 min no se llenó, la señal ya no es la que se evaluó.
+    minutos_maximos_entrada_sin_llenar: float = 15.0
     # Liquidar todo antes del cierre en vez de dejar posiciones abiertas
     # de un día para otro (ver `cierre.py`). Las patas de salida del
     # bracket son órdenes "del día": si no se ejecutan, se cancelan al
@@ -164,6 +174,8 @@ class PaperTraderConfig:
             raise ValueError("maximo_posiciones_abiertas debe ser >= 1")
         if self.minutos_maximos_niveles <= 0:
             raise ValueError("minutos_maximos_niveles debe ser > 0")
+        if self.minutos_maximos_entrada_sin_llenar <= 0:
+            raise ValueError("minutos_maximos_entrada_sin_llenar debe ser > 0")
         if not 0 < self.minutos_antes_del_cierre < 390:
             # 390 min = la sesión regular completa (6,5 h): más que eso
             # significaría "cerrar antes de abrir".

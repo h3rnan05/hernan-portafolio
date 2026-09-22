@@ -16,7 +16,10 @@ por cada transición que sea un trade completado:
   - cierre por otra vía        -> "cerrada"      (ERROR: llena sin salidas)
 
 `no_ejecutada` (limit expiró/se canceló sin fill) se persiste igual, pero
-NO se manda a Telegram -- no hubo trade. Ver `notify.py`.
+NO se manda a Telegram -- no hubo trade. Ver `notify.py`. Excepción
+(2026-09-22): si es ESTE módulo el que cancela la entrada por vencida
+(`cfg.minutos_maximos_entrada_sin_llenar`), sí avisa CANCELADA, porque
+antes salió COLOCADA y la historia tiene que cerrarse.
 
 El anti-duplicado es la persistencia misma (`revisiones.json`): se guarda
 el nuevo `resultado` ANTES de enviar el mensaje -- mismo orden
@@ -30,14 +33,46 @@ se sigue con las demás -- nunca tumban la corrida ni bloquean al executor."""
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 
 from momentum_paper_trader import estado, notify
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
+from momentum_paper_trader.config import PaperTraderConfig
 from momentum_paper_trader.notify import enviar as enviar_telegram
 
 log = logging.getLogger("momentum_paper_trader.seguimiento")
 
 _ESTADOS_ORDEN_MUERTA = frozenset({"canceled", "expired", "rejected", "done_for_day"})
+# Estados en los que la ENTRADA todavía no tocó el mercado: cancelarla no
+# deja nada a medias. `partially_filled` queda fuera a propósito: hay
+# acciones compradas con sus patas vivas, y cancelar el resto es otra
+# decisión (limitación anotada, no resuelta).
+_ESTADOS_ENTRADA_ESPERANDO = frozenset({"new", "accepted", "pending_new", "held"})
+
+
+def _parse_ts(valor) -> datetime | None:
+    if not isinstance(valor, str) or not valor:
+        return None
+    try:
+        d = datetime.fromisoformat(valor.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return d if d.tzinfo is not None else d.replace(tzinfo=UTC)
+
+
+def entrada_vencida(r: estado.RevisionIA, datos: dict, cfg: PaperTraderConfig, ahora: datetime) -> float | None:
+    """Minutos que lleva esperando una entrada que ya superó el tope, o
+    None si todavía no toca cancelarla (o no se puede saber). Función
+    pura: sin timestamp legible no se cancela nada (regla 6)."""
+    if datos.get("status") not in _ESTADOS_ENTRADA_ESPERANDO:
+        return None
+    if (_num(datos.get("filled_qty")) or 0) > 0:
+        return None
+    colocada = _parse_ts(r.timestamp)
+    if colocada is None:
+        return None
+    minutos = (ahora - colocada).total_seconds() / 60
+    return minutos if minutos > cfg.minutos_maximos_entrada_sin_llenar else None
 
 
 def _num(v) -> float | None:
@@ -115,9 +150,35 @@ def _evaluar(r: estado.RevisionIA, datos: dict) -> tuple[str, float | None, str]
     return None   # ya está "abierta" y las salidas siguen vivas -- sin novedades
 
 
-def revisar(client: AlpacaPaperClient) -> list[estado.RevisionIA]:
+def _cancelar_vencida(client: AlpacaPaperClient, r: estado.RevisionIA, minutos: float) -> bool:
+    """Cancela la entrada vencida en Alpaca. True solo si de verdad se
+    canceló algo: un fallo leyendo o cancelando deja la orden como está y
+    se reintenta en la pasada siguiente (nunca se marca no_ejecutada una
+    orden que sigue viva)."""
+    try:
+        abiertas = client.ordenes_abiertas()
+    except Exception as ex:
+        log.warning("%s: no se pudieron leer las órdenes abiertas para cancelar la entrada vencida: %s", r.ticker, ex)
+        return False
+    vivas = [o for o in abiertas if o.get("symbol") == r.ticker and o.get("id") == r.order_id]
+    if not vivas:
+        # Ya no está entre las abiertas (se llenó o murió hace un instante):
+        # la próxima consulta de `estado_orden` lo dirá. No se toca nada.
+        return False
+    canceladas = client.cancelar_ordenes_de(r.ticker, vivas)
+    if canceladas < 1:
+        return False
+    log.info("%s: entrada sin llenar en %.0f min -- cancelada", r.ticker, minutos)
+    return True
+
+
+def revisar(
+    client: AlpacaPaperClient, cfg: PaperTraderConfig | None = None, ahora: datetime | None = None,
+) -> list[estado.RevisionIA]:
     """Devuelve las revisiones que cambiaron de estado en esta pasada.
     Guarda ANTES de enviar cada aviso (ver docstring del módulo)."""
+    cfg = cfg or PaperTraderConfig()
+    ahora = ahora or datetime.now(UTC)
     revisiones = estado.cargar()
     cambiadas: list[estado.RevisionIA] = []
 
@@ -134,10 +195,17 @@ def revisar(client: AlpacaPaperClient) -> list[estado.RevisionIA]:
 
         novedad = _evaluar(r, datos)
         if novedad is None:
-            continue
+            # Entrada todavía esperando: ¿ya venció? (2026-09-22, revisión
+            # de riesgo). Si sí y se canceló de verdad, se cierra la
+            # historia: no_ejecutada + CANCELADA por Telegram.
+            minutos = entrada_vencida(r, datos, cfg, ahora)
+            if minutos is None or not _cancelar_vencida(client, r, minutos):
+                continue
+            novedad = ("no_ejecutada", None, notify.formatear_cancelada(
+                ticker=r.ticker, signal_id=r.creado_en, minutos=minutos, precio_limite=r.precio_entrada))
         r.resultado, r.pnl, mensaje = novedad
         estado.guardar(revisiones)
-        if notify.debe_avisar(r.resultado) and mensaje:
+        if mensaje and (notify.debe_avisar(r.resultado) or r.resultado == "no_ejecutada"):
             enviar_telegram(mensaje)
         cambiadas.append(r)
         log.info("%s: trade ahora '%s' (pnl=%s)", r.ticker, r.resultado, r.pnl)

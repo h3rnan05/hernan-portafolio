@@ -17,16 +17,30 @@ def _revision_con_orden(ticker="RKLB", resultado=None) -> RevisionIA:
 
 
 class _FakeClient:
-    def __init__(self, respuestas: dict[str, dict], falla_para: set[str] | None = None) -> None:
+    def __init__(self, respuestas: dict[str, dict], falla_para: set[str] | None = None,
+                 abiertas: list[dict] | None = None, abiertas_rotas: bool = False) -> None:
         self._respuestas = respuestas
         self._falla_para = falla_para or set()
         self.consultadas: list[str] = []
+        self._abiertas = abiertas or []
+        self._abiertas_rotas = abiertas_rotas
+        self.canceladas: list[str] = []
 
     def estado_orden(self, order_id: str) -> dict:
         self.consultadas.append(order_id)
         if order_id in self._falla_para:
             raise RuntimeError("orden no encontrada")
         return self._respuestas[order_id]
+
+    def ordenes_abiertas(self) -> list[dict]:
+        if self._abiertas_rotas:
+            raise RuntimeError("Alpaca caído")
+        return self._abiertas
+
+    def cancelar_ordenes_de(self, ticker: str, ordenes: list[dict]) -> int:
+        ids = [o["id"] for o in ordenes if o.get("symbol") == ticker]
+        self.canceladas += ids
+        return len(ids)
 
 
 def _parchear(monkeypatch, tmp_path, revisiones):
@@ -204,3 +218,72 @@ def test_revisar_fallo_de_una_orden_no_tumba_las_demas(monkeypatch, tmp_path):
 
     assert [c.ticker for c in cambiadas] == ["OK"]
     assert enviados == []   # OK expiró sin fill: persistido, sin Telegram
+
+
+# ------------------------- entrada sin llenar: se cancela a los 15 min (2026-09-22) -------------------------
+
+from datetime import UTC, datetime  # noqa: E402
+
+from momentum_paper_trader.config import PaperTraderConfig  # noqa: E402
+
+_COLOCADA = datetime(2026, 8, 21, 14, 5, 0, tzinfo=UTC)   # = timestamp de _revision_con_orden
+_CFG = PaperTraderConfig()
+
+
+def test_entrada_vencida_es_funcion_pura_y_conservadora():
+    r = _revision_con_orden()
+    esperando = {"status": "new", "filled_qty": "0"}
+    # 14 min: todavía no. 16 min: sí, y devuelve los minutos.
+    assert seguimiento.entrada_vencida(r, esperando, _CFG, _COLOCADA.replace(minute=19)) is None
+    assert seguimiento.entrada_vencida(r, esperando, _CFG, _COLOCADA.replace(minute=21)) == 16.0
+    # Llena, parcial o muerta: nunca se cancela desde acá.
+    assert seguimiento.entrada_vencida(r, {"status": "filled"}, _CFG, _COLOCADA.replace(hour=15)) is None
+    assert seguimiento.entrada_vencida(r, {"status": "partially_filled", "filled_qty": "10"}, _CFG, _COLOCADA.replace(hour=15)) is None
+    assert seguimiento.entrada_vencida(r, {"status": "canceled"}, _CFG, _COLOCADA.replace(hour=15)) is None
+    # Sin timestamp legible no se inventa una edad.
+    r2 = _revision_con_orden()
+    r2.timestamp = "ayer"
+    assert seguimiento.entrada_vencida(r2, esperando, _CFG, _COLOCADA.replace(hour=15)) is None
+
+
+def test_revisar_cancela_la_entrada_vencida_y_avisa_cancelada(monkeypatch, tmp_path):
+    path, enviados = _parchear(monkeypatch, tmp_path, [_revision_con_orden()])
+    cli = _FakeClient({"orden-RKLB": {"status": "new", "filled_qty": "0"}},
+                      abiertas=[{"id": "orden-RKLB", "symbol": "RKLB"}, {"id": "otra", "symbol": "ZZZ"}])
+    cambiadas = seguimiento.revisar(cli, _CFG, ahora=_COLOCADA.replace(minute=21))
+    assert cli.canceladas == ["orden-RKLB"]                       # solo la de este ticker/orden
+    assert [r.resultado for r in cambiadas] == ["no_ejecutada"]
+    assert estado.cargar(path)[0].resultado == "no_ejecutada"
+    assert len(enviados) == 1 and "CANCELADA" in enviados[0] and "RKLB" in enviados[0]
+    assert "16 min" in enviados[0] and "$78.42" in enviados[0]
+
+
+def test_revisar_no_cancela_una_entrada_joven(monkeypatch, tmp_path):
+    path, enviados = _parchear(monkeypatch, tmp_path, [_revision_con_orden()])
+    cli = _FakeClient({"orden-RKLB": {"status": "new", "filled_qty": "0"}},
+                      abiertas=[{"id": "orden-RKLB", "symbol": "RKLB"}])
+    assert seguimiento.revisar(cli, _CFG, ahora=_COLOCADA.replace(minute=10)) == []
+    assert cli.canceladas == [] and enviados == []
+    assert estado.cargar(path)[0].resultado is None
+
+
+def test_si_no_se_pudo_cancelar_la_orden_sigue_viva_para_la_proxima_pasada(monkeypatch, tmp_path):
+    """Nunca se marca no_ejecutada una orden que puede seguir viva."""
+    path, enviados = _parchear(monkeypatch, tmp_path, [_revision_con_orden()])
+    # Alpaca no devuelve las abiertas.
+    cli = _FakeClient({"orden-RKLB": {"status": "new", "filled_qty": "0"}}, abiertas_rotas=True)
+    assert seguimiento.revisar(cli, _CFG, ahora=_COLOCADA.replace(hour=15)) == []
+    assert estado.cargar(path)[0].resultado is None and enviados == []
+    # La orden ya no está entre las abiertas (se llenó hace un instante): tampoco se toca.
+    cli2 = _FakeClient({"orden-RKLB": {"status": "new", "filled_qty": "0"}}, abiertas=[])
+    assert seguimiento.revisar(cli2, _CFG, ahora=_COLOCADA.replace(hour=15)) == []
+    assert cli2.canceladas == []
+
+
+def test_una_cancelacion_ajena_sin_fill_sigue_siendo_silenciosa(monkeypatch, tmp_path):
+    """Si la orden murió por otra vía (expiró al cierre), no hubo trade y
+    no hay Telegram: solo la cancelación PROPIA avisa."""
+    path, enviados = _parchear(monkeypatch, tmp_path, [_revision_con_orden()])
+    cli = _FakeClient({"orden-RKLB": {"status": "expired", "filled_qty": "0"}})
+    cambiadas = seguimiento.revisar(cli, _CFG, ahora=_COLOCADA.replace(hour=20))
+    assert [r.resultado for r in cambiadas] == ["no_ejecutada"] and enviados == []

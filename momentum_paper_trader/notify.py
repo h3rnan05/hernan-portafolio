@@ -45,6 +45,7 @@ ESTADO_CERRADA = "CERRADA"
 ESTADO_ERROR = "ERROR"
 ESTADO_NO_ENTRA = "NO ENTRA"
 ESTADO_COLOCADA = "COLOCADA"
+ESTADO_CANCELADA = "CANCELADA"
 
 # Sub-etiqueta de un cierre (no es un evento extra: viaja en el mismo
 # mensaje CERRADA). Español corto, sin jerga de broker.
@@ -303,4 +304,22 @@ def formatear_colocada(
         " · ".join(x for x in (_cantidad(cantidad), f"límite {_precio(entrada)}" if entrada else None) if x) or None,
         " · ".join(x for x in (f"stop {_precio(stop)}" if stop else None, f"objetivo {_precio(objetivo)}" if objetivo else None) if x) or None,
         "Aceptada; el fill se avisa aparte.",
+    ])
+
+
+def formatear_cancelada(
+    *,
+    ticker: str,
+    signal_id: str | None = None,
+    minutos: float | None = None,
+    precio_limite: float | None = None,
+) -> str:
+    """La entrada no se llenó dentro del tope y se canceló: cierra la
+    historia que abrió COLOCADA. Sin fill no hubo trade."""
+    cuanto = f"sin llenar en {int(minutos)} min" if minutos is not None else "sin llenar"
+    return _armar(ESTADO_CANCELADA, [
+        _linea_ticker(ticker, cuanto),
+        f"límite {_precio(precio_limite)} · el precio se escapó; la señal ya no es la evaluada" if precio_limite else
+        "el precio se escapó; la señal ya no es la evaluada",
+        _linea_senal(signal_id),
     ])
