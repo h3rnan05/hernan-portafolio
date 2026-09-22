@@ -23122,6 +23122,1841 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-22T16:30:07+00:00",
+      "candidatos_evaluados": 5,
+      "candidatos": [
+        {
+          "ticker": "GS",
+          "nombre": "The Goldman Sachs Group, Inc.",
+          "precio_actual": 948.6900024414062,
+          "factores_intradia": {
+            "precio_actual": 948.6900024414062,
+            "vwap": 946.1814713734634,
+            "ema9": 948.8172277706582,
+            "rvol_actual": 0.4191358689796358,
+            "aceleracion_volumen": 0.5984427141268076,
+            "gap_pct": 0.008075945022821083,
+            "maximo_dia": 967.760009765625,
+            "maximo_premarket": 967.5,
+            "rango_apertura_max": 967.760009765625,
+            "rango_apertura_min": 955.0,
+            "velas_desde_ruptura": null,
+            "macd": 0.4160822992239446,
+            "macd_signal": 0.46719528947319644
+          },
+          "meta": {
+            "float_acciones": 301060743.0,
+            "short_pct_float": 0.0241,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Goldman Sachs in talks to acquire Palmer Square, Bloomberg says",
+            "fuente": "Investing.com",
+            "fecha": "2026-09-22T14:54:18Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 95.83133046666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 64.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 51.01131486868686,
+                "aceleracion_volumen": 9.844271412680762,
+                "extension": 100.0,
+                "distancia_maximo_dia": 80.29469379620558,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "AMGN",
+          "nombre": "Amgen Inc.",
+          "precio_actual": 407.6400146484375,
+          "factores_intradia": {
+            "precio_actual": 407.6400146484375,
+            "vwap": 405.11853533124685,
+            "ema9": 407.37456921502957,
+            "rvol_actual": 0.4234714343017592,
+            "aceleracion_volumen": 0.20975266824311367,
+            "gap_pct": 0.02567363055468996,
+            "maximo_dia": 413.78,
+            "maximo_premarket": 413.78,
+            "rango_apertura_max": 407.0,
+            "rango_apertura_min": 402.42498779296875,
+            "velas_desde_ruptura": 0,
+            "macd": 0.06404781577629137,
+            "macd_signal": 0.07589497020280155
+          },
+          "meta": {
+            "float_acciones": 539161486.0,
+            "short_pct_float": 0.024,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1406.1313703500002,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 58.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 85.16123217274286,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 60.5,
+            "score_ajustado": 40.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "ACN",
+          "nombre": "Accenture plc",
+          "precio_actual": 183.6761016845703,
+          "factores_intradia": {
+            "precio_actual": 183.6761016845703,
+            "vwap": 184.13623271523338,
+            "ema9": 183.23574947269984,
+            "rvol_actual": 1.8055295512700493,
+            "aceleracion_volumen": 2.299394856278366,
+            "gap_pct": 0.01724234165246204,
+            "maximo_dia": 190.24000549316406,
+            "maximo_premarket": 189.96,
+            "rango_apertura_max": 190.24000549316406,
+            "rango_apertura_min": 187.27999877929688,
+            "velas_desde_ruptura": 1,
+            "macd": 0.087188378528964,
+            "macd_signal": 0.02179805674980631
+          },
+          "meta": {
+            "float_acciones": 610969121.0,
+            "short_pct_float": 0.0464,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Accenture Up on Partnership with Anthropic; Novo Nordisk Falls on Turnaround | Stock Movers",
+            "fuente": "Bloomberg",
+            "fecha": "2026-09-21T14:52:09Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1537.9814117833334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 65.49672193512623,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "SHOP",
+          "nombre": "Shopify Inc.",
+          "precio_actual": 148.72999572753906,
+          "factores_intradia": {
+            "precio_actual": 148.72999572753906,
+            "vwap": 148.10223698287868,
+            "ema9": 148.1143919088465,
+            "rvol_actual": 1.7695012221474369,
+            "aceleracion_volumen": 1.58907311125036,
+            "gap_pct": 0.04626544717327324,
+            "maximo_dia": 150.17999267578125,
+            "maximo_premarket": 148.65,
+            "rango_apertura_max": 148.92999267578125,
+            "rango_apertura_min": 144.25,
+            "velas_desde_ruptura": 2,
+            "macd": 0.16659527296468468,
+            "macd_signal": 0.01516797754807082
+          },
+          "meta": {
+            "float_acciones": 1205804094.0,
+            "short_pct_float": 0.0153,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Shopify Stock Rallies on Checkout Partnership With Meta’s New Muse AI Agent",
+            "fuente": "Investopedia",
+            "fecha": "2026-09-22T14:55:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 94.93147158333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 89.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 51.55668388888889,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 90.34493927981113,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 47.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "VEEV",
+          "nombre": "Veeva Systems Inc.",
+          "precio_actual": 261.8900146484375,
+          "factores_intradia": {
+            "precio_actual": 261.8900146484375,
+            "vwap": 261.4933354782943,
+            "ema9": 261.937890668878,
+            "rvol_actual": 0.6388144675150703,
+            "aceleracion_volumen": 1.309670781893004,
+            "gap_pct": 0.017182619403485342,
+            "maximo_dia": 265.93,
+            "maximo_premarket": 265.93,
+            "rango_apertura_max": 265.79998779296875,
+            "rango_apertura_min": 261.94000244140625,
+            "velas_desde_ruptura": null,
+            "macd": 0.1112244447023727,
+            "macd_signal": 0.1254751515812232
+          },
+          "meta": {
+            "float_acciones": 148293935.0,
+            "short_pct_float": 0.0326,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1406.1315036166666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 70.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 80.9670781893004,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.80808727273148,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T16:31:08+00:00",
+      "candidatos_evaluados": 5,
+      "candidatos": [
+        {
+          "ticker": "GS",
+          "nombre": "The Goldman Sachs Group, Inc.",
+          "precio_actual": 949.0800170898438,
+          "factores_intradia": {
+            "precio_actual": 949.0800170898438,
+            "vwap": 946.1895419029294,
+            "ema9": 948.8708848776876,
+            "rvol_actual": 1.1566006206731918,
+            "aceleracion_volumen": 1.0427722772277228,
+            "gap_pct": 0.008075945022821083,
+            "maximo_dia": 967.760009765625,
+            "maximo_premarket": 967.5,
+            "rango_apertura_max": 967.760009765625,
+            "rango_apertura_min": 955.0,
+            "velas_desde_ruptura": 0,
+            "macd": 0.4105106263369862,
+            "macd_signal": 0.4560621177101479
+          },
+          "meta": {
+            "float_acciones": 301060743.0,
+            "short_pct_float": 0.0241,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Goldman Sachs in talks to acquire Palmer Square, Bloomberg says",
+            "fuente": "Investing.com",
+            "fecha": "2026-09-22T14:54:18Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 96.83380211666666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 50.403756292929295,
+                "aceleracion_volumen": 54.27722772277228,
+                "extension": 100.0,
+                "distancia_maximo_dia": 80.69770140604871,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 66.8,
+            "score_ajustado": 46.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "AMGN",
+          "nombre": "Amgen Inc.",
+          "precio_actual": 407.6400146484375,
+          "factores_intradia": {
+            "precio_actual": 407.6400146484375,
+            "vwap": 405.11853533124685,
+            "ema9": 407.37456921502957,
+            "rvol_actual": 0.4234714343017592,
+            "aceleracion_volumen": 0.20975266824311367,
+            "gap_pct": 0.02567363055468996,
+            "maximo_dia": 413.78,
+            "maximo_premarket": 413.78,
+            "rango_apertura_max": 407.0,
+            "rango_apertura_min": 402.42498779296875,
+            "velas_desde_ruptura": 0,
+            "macd": 0.06404781577629137,
+            "macd_signal": 0.07589497020280155
+          },
+          "meta": {
+            "float_acciones": 539161486.0,
+            "short_pct_float": 0.024,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1407.1338446666666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 58.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 85.16123217274286,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 60.5,
+            "score_ajustado": 40.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "ACN",
+          "nombre": "Accenture plc",
+          "precio_actual": 183.6761016845703,
+          "factores_intradia": {
+            "precio_actual": 183.6761016845703,
+            "vwap": 184.13612502128385,
+            "ema9": 183.23574947269984,
+            "rvol_actual": 1.8055295512700493,
+            "aceleracion_volumen": 2.299394856278366,
+            "gap_pct": 0.01724234165246204,
+            "maximo_dia": 190.24000549316406,
+            "maximo_premarket": 189.96,
+            "rango_apertura_max": 190.24000549316406,
+            "rango_apertura_min": 187.27999877929688,
+            "velas_desde_ruptura": 1,
+            "macd": 0.087188378528964,
+            "macd_signal": 0.02179805674980631
+          },
+          "meta": {
+            "float_acciones": 610969121.0,
+            "short_pct_float": 0.0464,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Accenture Up on Partnership with Anthropic; Novo Nordisk Falls on Turnaround | Stock Movers",
+            "fuente": "Bloomberg",
+            "fecha": "2026-09-21T14:52:09Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1538.9838864333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 65.49672193512623,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "SHOP",
+          "nombre": "Shopify Inc.",
+          "precio_actual": 148.75999450683594,
+          "factores_intradia": {
+            "precio_actual": 148.75999450683594,
+            "vwap": 148.10396547404216,
+            "ema9": 148.24351242844438,
+            "rvol_actual": 1.5228392854366517,
+            "aceleracion_volumen": 1.542142575817251,
+            "gap_pct": 0.04626544717327324,
+            "maximo_dia": 150.17999267578125,
+            "maximo_premarket": 148.65,
+            "rango_apertura_max": 148.92999267578125,
+            "rango_apertura_min": 144.25,
+            "velas_desde_ruptura": 3,
+            "macd": 0.21410429091619676,
+            "macd_signal": 0.05495524022169601
+          },
+          "meta": {
+            "float_acciones": 1205804094.0,
+            "short_pct_float": 0.0153,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Shopify Stock Rallies on Checkout Partnership With Meta’s New Muse AI Agent",
+            "fuente": "Investopedia",
+            "fecha": "2026-09-22T14:55:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 95.93394545,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 86.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 50.94912396969698,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 90.54469144894084,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 47.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "VEEV",
+          "nombre": "Veeva Systems Inc.",
+          "precio_actual": 262.0400085449219,
+          "factores_intradia": {
+            "precio_actual": 262.0400085449219,
+            "vwap": 261.49787083180206,
+            "ema9": 261.95655491810817,
+            "rvol_actual": 1.3281640820410203,
+            "aceleracion_volumen": 0.7376373626373627,
+            "gap_pct": 0.017182619403485342,
+            "maximo_dia": 265.93,
+            "maximo_premarket": 265.93,
+            "rango_apertura_max": 265.79998779296875,
+            "rango_apertura_min": 261.94000244140625,
+            "velas_desde_ruptura": 0,
+            "macd": 0.11459175174866232,
+            "macd_signal": 0.12328280524438609
+          },
+          "meta": {
+            "float_acciones": 148293935.0,
+            "short_pct_float": 0.0326,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1407.1339780166668,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 63.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 23.76373626373627,
+                "extension": 100.0,
+                "distancia_maximo_dia": 85.37212253195148,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T16:32:08+00:00",
+      "candidatos_evaluados": 5,
+      "candidatos": [
+        {
+          "ticker": "GS",
+          "nombre": "The Goldman Sachs Group, Inc.",
+          "precio_actual": 950.1199951171875,
+          "factores_intradia": {
+            "precio_actual": 950.1199951171875,
+            "vwap": 946.2003615984855,
+            "ema9": 949.3111405113209,
+            "rvol_actual": 1.0727686947199142,
+            "aceleracion_volumen": 1.406532129580457,
+            "gap_pct": 0.008075945022821083,
+            "maximo_dia": 967.760009765625,
+            "maximo_premarket": 967.5,
+            "rango_apertura_max": 967.760009765625,
+            "rango_apertura_min": 955.0,
+            "velas_desde_ruptura": 1,
+            "macd": 0.5341245634680263,
+            "macd_signal": 0.4755579194635629
+          },
+          "meta": {
+            "float_acciones": 301060743.0,
+            "short_pct_float": 0.0241,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Goldman Sachs in talks to acquire Palmer Square, Bloomberg says",
+            "fuente": "Investing.com",
+            "fecha": "2026-09-22T14:54:18Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 97.83429251666666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 86.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 49.797398474747474,
+                "aceleracion_volumen": 90.65321295804569,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.77232529714718,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 66.8,
+            "score_ajustado": 46.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "AMGN",
+          "nombre": "Amgen Inc.",
+          "precio_actual": 407.30999755859375,
+          "factores_intradia": {
+            "precio_actual": 407.30999755859375,
+            "vwap": 405.12081360108874,
+            "ema9": 407.36165488374246,
+            "rvol_actual": 0.5626848018923714,
+            "aceleracion_volumen": 0.28398853398853396,
+            "gap_pct": 0.02567363055468996,
+            "maximo_dia": 413.78,
+            "maximo_premarket": 413.78,
+            "rango_apertura_max": 407.0,
+            "rango_apertura_min": 402.42498779296875,
+            "velas_desde_ruptura": null,
+            "macd": 0.054817006902624144,
+            "macd_signal": 0.07167937754276607
+          },
+          "meta": {
+            "float_acciones": 539161486.0,
+            "short_pct_float": 0.024,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1408.1343666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 51.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.36366561601282,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 60.5,
+            "score_ajustado": 40.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "ACN",
+          "nombre": "Accenture plc",
+          "precio_actual": 183.82000732421875,
+          "factores_intradia": {
+            "precio_actual": 183.82000732421875,
+            "vwap": 184.13338718202903,
+            "ema9": 183.43088210393415,
+            "rvol_actual": 0.3048278346801173,
+            "aceleracion_volumen": 0.6368364632548538,
+            "gap_pct": 0.01724234165246204,
+            "maximo_dia": 190.24000549316406,
+            "maximo_premarket": 189.96,
+            "rango_apertura_max": 190.24000549316406,
+            "rango_apertura_min": 187.27999877929688,
+            "velas_desde_ruptura": 3,
+            "macd": 0.15834127106941764,
+            "macd_signal": 0.06539896064594766
+          },
+          "meta": {
+            "float_acciones": 610969121.0,
+            "short_pct_float": 0.0464,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Accenture Up on Partnership with Anthropic; Novo Nordisk Falls on Turnaround | Stock Movers",
+            "fuente": "Bloomberg",
+            "fecha": "2026-09-21T14:52:09Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1539.9844592333332,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 56.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 13.683646325485377,
+                "extension": 100.0,
+                "distancia_maximo_dia": 66.25316451025853,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "SHOP",
+          "nombre": "Shopify Inc.",
+          "precio_actual": 148.67999267578125,
+          "factores_intradia": {
+            "precio_actual": 148.67999267578125,
+            "vwap": 148.1051524030447,
+            "ema9": 148.33080847791175,
+            "rvol_actual": 0.9448581007328862,
+            "aceleracion_volumen": 1.4474000962927298,
+            "gap_pct": 0.04626544717327324,
+            "maximo_dia": 150.17999267578125,
+            "maximo_premarket": 148.65,
+            "rango_apertura_max": 148.92999267578125,
+            "rango_apertura_min": 144.25,
+            "velas_desde_ruptura": 4,
+            "macd": 0.24250460858988276,
+            "macd_signal": 0.09246511389533336
+          },
+          "meta": {
+            "float_acciones": 1205804094.0,
+            "short_pct_float": 0.0153,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Shopify Stock Rallies on Checkout Partnership With Meta’s New Muse AI Agent",
+            "fuente": "Investopedia",
+            "fecha": "2026-09-22T14:55:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 96.93458728333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 83.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 50.342674373737374,
+                "aceleracion_volumen": 94.74000962927298,
+                "extension": 100.0,
+                "distancia_maximo_dia": 90.01198513014774,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 47.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "VEEV",
+          "nombre": "Veeva Systems Inc.",
+          "precio_actual": 262.0400085449219,
+          "factores_intradia": {
+            "precio_actual": 262.0400085449219,
+            "vwap": 261.4974449978435,
+            "ema9": 261.95655491810817,
+            "rvol_actual": 1.3281640820410203,
+            "aceleracion_volumen": 0.7376373626373627,
+            "gap_pct": 0.017182619403485342,
+            "maximo_dia": 265.93,
+            "maximo_premarket": 265.93,
+            "rango_apertura_max": 265.79998779296875,
+            "rango_apertura_min": 261.94000244140625,
+            "velas_desde_ruptura": 0,
+            "macd": 0.11459175174866232,
+            "macd_signal": 0.12328280524438609
+          },
+          "meta": {
+            "float_acciones": 148293935.0,
+            "short_pct_float": 0.0326,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1408.1346327666665,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 63.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 23.76373626373627,
+                "extension": 100.0,
+                "distancia_maximo_dia": 85.37212253195148,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T16:33:08+00:00",
+      "candidatos_evaluados": 5,
+      "candidatos": [
+        {
+          "ticker": "GS",
+          "nombre": "The Goldman Sachs Group, Inc.",
+          "precio_actual": 950.1199951171875,
+          "factores_intradia": {
+            "precio_actual": 950.1199951171875,
+            "vwap": 946.2003615984855,
+            "ema9": 949.3111405113209,
+            "rvol_actual": 1.0727686947199142,
+            "aceleracion_volumen": 1.406532129580457,
+            "gap_pct": 0.008075945022821083,
+            "maximo_dia": 967.760009765625,
+            "maximo_premarket": 967.5,
+            "rango_apertura_max": 967.760009765625,
+            "rango_apertura_min": 955.0,
+            "velas_desde_ruptura": 1,
+            "macd": 0.5341245634680263,
+            "macd_signal": 0.4755579194635629
+          },
+          "meta": {
+            "float_acciones": 301060743.0,
+            "short_pct_float": 0.0241,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Goldman Sachs in talks to acquire Palmer Square, Bloomberg says",
+            "fuente": "Investing.com",
+            "fecha": "2026-09-22T14:54:18Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 98.83358421666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 86.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 49.19176714141414,
+                "aceleracion_volumen": 90.65321295804569,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.77232529714718,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 66.8,
+            "score_ajustado": 46.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "AMGN",
+          "nombre": "Amgen Inc.",
+          "precio_actual": 407.2900085449219,
+          "factores_intradia": {
+            "precio_actual": 407.2900085449219,
+            "vwap": 405.12814888253115,
+            "ema9": 407.3294608345796,
+            "rvol_actual": 0.9121137712297933,
+            "aceleracion_volumen": 2.5213284582571602,
+            "gap_pct": 0.02567363055468996,
+            "maximo_dia": 413.78,
+            "maximo_premarket": 413.78,
+            "rango_apertura_max": 407.0,
+            "rango_apertura_min": 402.42498779296875,
+            "velas_desde_ruptura": null,
+            "macd": 0.034979577420131136,
+            "macd_signal": 0.059618567739013084
+          },
+          "meta": {
+            "float_acciones": 539161486.0,
+            "short_pct_float": 0.024,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1409.1336248333332,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 74.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.31535730320915,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "ACN",
+          "nombre": "Accenture plc",
+          "precio_actual": 184.1300048828125,
+          "factores_intradia": {
+            "precio_actual": 184.1300048828125,
+            "vwap": 184.13680014767667,
+            "ema9": 183.57070665970983,
+            "rvol_actual": 1.2741639419491768,
+            "aceleracion_volumen": 0.43927232054740445,
+            "gap_pct": 0.01724234165246204,
+            "maximo_dia": 190.24000549316406,
+            "maximo_premarket": 189.96,
+            "rango_apertura_max": 190.24000549316406,
+            "rango_apertura_min": 187.27999877929688,
+            "velas_desde_ruptura": 3,
+            "macd": 0.20846556407542494,
+            "macd_signal": 0.09401228133184313
+          },
+          "meta": {
+            "float_acciones": 610969121.0,
+            "short_pct_float": 0.0464,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Accenture Up on Partnership with Anthropic; Novo Nordisk Falls on Turnaround | Stock Movers",
+            "fuente": "Bloomberg",
+            "fecha": "2026-09-21T14:52:09Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1540.9836661333331,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 54.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 67.8826722354614,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "SHOP",
+          "nombre": "Shopify Inc.",
+          "precio_actual": 148.67999267578125,
+          "factores_intradia": {
+            "precio_actual": 148.67999267578125,
+            "vwap": 148.1051524030447,
+            "ema9": 148.33080847791175,
+            "rvol_actual": 0.9448581007328862,
+            "aceleracion_volumen": 1.4474000962927298,
+            "gap_pct": 0.04626544717327324,
+            "maximo_dia": 150.17999267578125,
+            "maximo_premarket": 148.65,
+            "rango_apertura_max": 148.92999267578125,
+            "rango_apertura_min": 144.25,
+            "velas_desde_ruptura": 4,
+            "macd": 0.24250460858988276,
+            "macd_signal": 0.09246511389533336
+          },
+          "meta": {
+            "float_acciones": 1205804094.0,
+            "short_pct_float": 0.0153,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Shopify Stock Rallies on Checkout Partnership With Meta’s New Muse AI Agent",
+            "fuente": "Investopedia",
+            "fecha": "2026-09-22T14:55:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 97.93372558333334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 82.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 49.737136010101004,
+                "aceleracion_volumen": 94.74000962927298,
+                "extension": 100.0,
+                "distancia_maximo_dia": 90.01198513014774,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 47.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "VEEV",
+          "nombre": "Veeva Systems Inc.",
+          "precio_actual": 261.92999267578125,
+          "factores_intradia": {
+            "precio_actual": 261.92999267578125,
+            "vwap": 261.4983216680536,
+            "ema9": 261.9685940733705,
+            "rvol_actual": 0.1223288943945494,
+            "aceleracion_volumen": 0.7323906781880074,
+            "gap_pct": 0.017182619403485342,
+            "maximo_dia": 265.93,
+            "maximo_premarket": 265.93,
+            "rango_apertura_max": 265.79998779296875,
+            "rango_apertura_min": 261.94000244140625,
+            "velas_desde_ruptura": null,
+            "macd": 0.10571612150403098,
+            "macd_signal": 0.11866785022089271
+          },
+          "meta": {
+            "float_acciones": 148293935.0,
+            "short_pct_float": 0.0326,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1409.1337574666666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 56.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 23.23906781880074,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.95842016989896,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-22T16:34:07+00:00",
+      "candidatos_evaluados": 5,
+      "candidatos": [
+        {
+          "ticker": "GS",
+          "nombre": "The Goldman Sachs Group, Inc.",
+          "precio_actual": 950.0150146484375,
+          "factores_intradia": {
+            "precio_actual": 950.0150146484375,
+            "vwap": 946.2391673811005,
+            "ema9": 949.5660887216006,
+            "rvol_actual": 0.9829417175349109,
+            "aceleracion_volumen": 2.1984801072865445,
+            "gap_pct": 0.008075945022821083,
+            "maximo_dia": 967.760009765625,
+            "maximo_premarket": 967.5,
+            "rango_apertura_max": 967.760009765625,
+            "rango_apertura_min": 955.0,
+            "velas_desde_ruptura": 3,
+            "macd": 0.5639642639914655,
+            "macd_signal": 0.5063684261016432
+          },
+          "meta": {
+            "float_acciones": 301060743.0,
+            "short_pct_float": 0.0241,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Goldman Sachs in talks to acquire Palmer Square, Bloomberg says",
+            "fuente": "Investing.com",
+            "fecha": "2026-09-22T14:54:18Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 99.82789681666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 85.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 48.58915344444445,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.66384750545231,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 66.8,
+            "score_ajustado": 46.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "AMGN",
+          "nombre": "Amgen Inc.",
+          "precio_actual": 407.2300109863281,
+          "factores_intradia": {
+            "precio_actual": 407.2300109863281,
+            "vwap": 405.13475020788405,
+            "ema9": 407.3095708649293,
+            "rvol_actual": 2.872875723915314,
+            "aceleracion_volumen": 2.9858207161739965,
+            "gap_pct": 0.02567363055468996,
+            "maximo_dia": 413.78,
+            "maximo_premarket": 413.78,
+            "rango_apertura_max": 407.0,
+            "rango_apertura_min": 402.42498779296875,
+            "velas_desde_ruptura": 11,
+            "macd": 0.02415811181896288,
+            "macd_signal": 0.052526476555003046
+          },
+          "meta": {
+            "float_acciones": 539161486.0,
+            "short_pct_float": 0.024,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1410.1279363666665,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 63.4,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 11 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.17035861164901,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "El patrón se activó hace 11 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 60.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "El patrón se activó hace 11 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "ACN",
+          "nombre": "Accenture plc",
+          "precio_actual": 183.94000244140625,
+          "factores_intradia": {
+            "precio_actual": 183.94000244140625,
+            "vwap": 184.1341831081643,
+            "ema9": 183.64417873212156,
+            "rvol_actual": 0.49554287517420914,
+            "aceleracion_volumen": 0.5610830999066293,
+            "gap_pct": 0.01724234165246204,
+            "maximo_dia": 190.24000549316406,
+            "maximo_premarket": 189.96,
+            "rango_apertura_max": 190.24000549316406,
+            "rango_apertura_min": 187.27999877929688,
+            "velas_desde_ruptura": 4,
+            "macd": 0.23079803089984807,
+            "macd_signal": 0.1214573527145121
+          },
+          "meta": {
+            "float_acciones": 610969121.0,
+            "short_pct_float": 0.0464,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Accenture Up on Partnership with Anthropic; Novo Nordisk Falls on Turnaround | Stock Movers",
+            "fuente": "Bloomberg",
+            "fecha": "2026-09-21T14:52:09Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1541.9779784999998,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 52.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 6.1083099906629315,
+                "extension": 100.0,
+                "distancia_maximo_dia": 66.88392099534401,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 58.6,
+            "score_ajustado": 38.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "SHOP",
+          "nombre": "Shopify Inc.",
+          "precio_actual": 148.72000122070312,
+          "factores_intradia": {
+            "precio_actual": 148.72000122070312,
+            "vwap": 148.1070438430129,
+            "ema9": 148.4629173770354,
+            "rvol_actual": 1.0400002711423226,
+            "aceleracion_volumen": 0.7505279805113798,
+            "gap_pct": 0.04626544717327324,
+            "maximo_dia": 150.17999267578125,
+            "maximo_premarket": 148.65,
+            "rango_apertura_max": 148.92999267578125,
+            "rango_apertura_min": 144.25,
+            "velas_desde_ruptura": 5,
+            "macd": 0.2768502069460226,
+            "macd_signal": 0.15633886657830912
+          },
+          "meta": {
+            "float_acciones": 1205804094.0,
+            "short_pct_float": 0.0153,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Shopify Stock Rallies on Checkout Partnership With Meta’s New Muse AI Agent",
+            "fuente": "Investopedia",
+            "fecha": "2026-09-22T14:55:12Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 98.92804248333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 66.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 49.13451970707071,
+                "aceleracion_volumen": 25.05279805113798,
+                "extension": 100.0,
+                "distancia_maximo_dia": 90.27838909121499,
+                "frescura_patron": 50.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 47.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "VEEV",
+          "nombre": "Veeva Systems Inc.",
+          "precio_actual": 261.92999267578125,
+          "factores_intradia": {
+            "precio_actual": 261.92999267578125,
+            "vwap": 261.4993386066914,
+            "ema9": 261.9685940733705,
+            "rvol_actual": 0.1223288943945494,
+            "aceleracion_volumen": 0.7323906781880074,
+            "gap_pct": 0.017182619403485342,
+            "maximo_dia": 265.93,
+            "maximo_premarket": 265.93,
+            "rango_apertura_max": 265.79998779296875,
+            "rango_apertura_min": 261.94000244140625,
+            "velas_desde_ruptura": null,
+            "macd": 0.10571612150403098,
+            "macd_signal": 0.11866785022089271
+          },
+          "meta": {
+            "float_acciones": 148293935.0,
+            "short_pct_float": 0.0326,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1410.1280740833333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 56.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 23.23906781880074,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.95842016989896,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
