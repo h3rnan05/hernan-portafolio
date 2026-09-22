@@ -112,18 +112,27 @@ class PaperTraderConfig:
     # TECHO, no una meta -- ver `executor._tamano_posicion`.
     maximo_pct_efectivo_por_posicion: float = 0.15
     # Mínimo de acciones que el tope de concentración debe permitir para
-    # que valga la pena operar la señal.
+    # que valga la pena consultar a la IA por la señal.
     #
-    # POR QUÉ 4, y no un precio máximo fijo: la IA puede pedir tan poco
-    # como el 25% del tamaño (ver `DecisionIA.fraccion`). Con menos de 4
-    # acciones, esa fracción mínima redondea a CERO y la decisión de la
-    # IA deja de ser expresable -- que es exactamente lo que pasó con
-    # LLY el 2026-08-24: el tope dejaba 1 acción, la IA pidió la mitad,
-    # y 1 x 0,5 = 0. No se operó pese a un "sí" explícito.
+    # Historia: nació en 4 (2026-08-24, caso LLY) porque entonces el
+    # tope recortaba PRIMERO y la fracción de la IA (mínimo 25 %) se
+    # aplicaba después: con 1 acción, 1 x 0,5 = 0 y un "sí" explícito no
+    # se operaba. El 2026-08-25 se invirtió el orden (ver
+    # `executor.ejecutar`): la fracción se aplica al tamaño POR RIESGO y
+    # recién después muerde el tope, así que con tope 3 y 49 acciones por
+    # riesgo la IA que pide 25 % termina en 3, nunca en 0. El 4 quedó como
+    # doble guardia de un bug ya corregido.
     #
-    # Derivarlo de la cuenta en vez de hardcodear "nada por encima de
-    # $150" hace que el filtro se ajuste solo cuando el capital cambie.
-    minimo_acciones_para_operar: int = 4
+    # 2026-09-22 (decisión del dueño, delegada): baja a 1. Con $5.000 y
+    # 15 % por posición el 4 vetaba toda acción arriba de ~$187 antes de
+    # preguntarle a la IA (LOW a $193 quedó bloqueada 1 acción por 1
+    # acción cada minuto); con 1, cabe hasta ~$749. El tope de
+    # concentración NO cambia: sigue mandando sobre el tamaño. Lo que se
+    # deja de exigir es una granularidad que el orden actual ya
+    # garantiza. Derivarlo de la cuenta en vez de hardcodear "nada por
+    # encima de $X" hace que el filtro se ajuste solo cuando el capital
+    # cambie.
+    minimo_acciones_para_operar: int = 1
     # Bandas de universo en las que este ejecutor PUEDE abrir posición.
     # Una señal fuera de estas bandas se registra con la decisión de la
     # IA y NO coloca orden. Es un guardarraíl determinista (regla 4 del
