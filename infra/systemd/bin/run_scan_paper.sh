@@ -52,7 +52,11 @@ LOCK="${MOMENTUM_GIT_LOCK:-/tmp/momentum-paper-git.lock}"
 set +e
 "$PY" -m momentum_hunter.run --limit "$LIMIT"
 hunter_rc=$?
-"$PY" -m momentum_paper_trader.run
+# Candado corto compartido con el vigía (momentum_paper_trader/vigia.py):
+# a 60 s de cadencia, dos ejecutores podrían revisar la misma señal en el
+# mismo instante. Solo el paso paper; el escaneo sigue sin candado.
+PAPER_LOCK="${MOMENTUM_PAPER_LOCK:-/tmp/momentum-paper-exec.lock}"
+flock -w 120 "$PAPER_LOCK" "$PY" -m momentum_paper_trader.run
 paper_rc=$?
 set -e
 
