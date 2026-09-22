@@ -97,7 +97,9 @@ def test_yahoo_pausa_del_bot_distinta_de_la_del_panel():
 def test_vuelta_atras_sin_tocar_codigo():
     texto = SCAN_SH.read_text(encoding="utf-8")
     assert 'if [ "${MOMENTUM_SCAN_VPS:-1}" = "0" ]' in texto
-    assert texto.index("MOMENTUM_SCAN_VPS") < texto.index("git pull")
+    # El pull (helper) queda detrás del kill switch: con SCAN_VPS=0
+    # el script sale antes de tocar git.
+    assert texto.index("MOMENTUM_SCAN_VPS") < texto.index("git_pull_con_estado_local.sh")
 
 
 # ───────────── compuertas de GitHub ─────────────

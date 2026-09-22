@@ -44,8 +44,10 @@ LOCK="${MOMENTUM_GIT_LOCK:-/tmp/momentum-paper-git.lock}"
 # Sync corto bajo el candado de git (nunca abre el escaneo con un pull a medias).
 (
   flock -w 120 9 || { echo "WARN: git flock timeout en el pull; se escanea con el árbol actual"; exit 0; }
-  git pull --rebase origin main >/dev/null 2>&1 || git pull --rebase >/dev/null 2>&1 \
-    || echo "WARN: git pull --rebase failed (continuing)"
+  # Misma razón que el rechequeo: la telemetría sucia niega el rebase.
+  # El helper aparta esos paths, trae main y los devuelve.
+  bash "$ROOT/scripts/git_pull_con_estado_local.sh" \
+    || echo "WARN: git pull con estado local falló (continuing)"
 ) 9>"$LOCK"
 
 # ── Escaneo + paper, SIN candado ──

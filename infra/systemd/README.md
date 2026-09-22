@@ -227,7 +227,47 @@ sudo systemctl enable --now momentum-vigia.service
 sudo journalctl -u momentum-vigia.service -f
 ```
 
-Vuelta atrás (un comando cada uno):
+### Pull con la telemetría sucia (2026-09-22)
+
+El vigía reescribe `momentum_paper_trader/telemetria/<fecha>/vps/events.jsonl`
+y `sesion.json` cada 60 s. El wrapper hacía `git pull --rebase` **antes**
+del `git add`. Git se niega si hay cambios sin stage (`cannot pull with
+rebase: You have unstaged changes`) aunque main no toque esos archivos:
+el 2026-09-22 ese pull falló en casi cada persist y el código ya mergeado
+no entraba. No se mueve la telemetría fuera del árbol (el state file de
+#132 es la watchlist, que el VPS no commitea; esta telemetría es el latido
+del respaldo y tiene que llegar a main). `scripts/git_pull_con_estado_local.sh`
+aparta esos paths, trae main y los devuelve. Nunca `--force` ni
+`reset --hard`.
+
+Un `git pull` **no** actualiza el wrapper de `/opt/momentum/bin/`. Hay
+que instalarlo a mano, y la primera vez el pull hay que hacerlo con el
+árbol ya limpio de telemetría (el wrapper viejo sigue negándose):
+
+```bash
+cd /opt/hernan-portafolio
+git stash push --include-untracked -m "pre-deploy telem" -- \
+  momentum_paper_trader/telemetria momentum_hunter/telemetria \
+  momentum_paper_trader/revisiones.json \
+  momentum_paper_trader/archivo_triggered.jsonl \
+  momentum_hunter/watchlist.json momentum_hunter/auditoria \
+  momentum_hunter/alertas_enviadas.json \
+  momentum_hunter/estado_diario.json momentum_hunter/universo_cache.json
+git pull --rebase origin main
+git stash pop
+sudo install -m 755 infra/systemd/bin/run_watchlist_paper.sh \
+  infra/systemd/bin/run_scan_paper.sh /opt/momentum/bin/
+# Comprobar, sin tocar la red ni el stash:
+GIT_PULL_ESTADO_DRY_RUN=1 bash scripts/git_pull_con_estado_local.sh
+```
+
+No hace falta reiniciar el vigía: el próximo persist (cada 5 min) ejecuta
+el wrapper nuevo. Si `git stash pop` avisa conflicto, el estado sigue en
+`git stash list` (no se descarta). Vuelta atrás del script: reinstalar
+el wrapper del commit anterior; el helper no se usa si el wrapper no lo
+llama.
+
+Vuelta atrás del vigía (un comando cada uno):
 
 ```bash
 sudo systemctl disable --now momentum-vigia.service

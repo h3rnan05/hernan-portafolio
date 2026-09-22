@@ -592,10 +592,14 @@ def test_nunca_menciona_broker_real_ni_ejecucion_fuera_de_paper():
 # queda TRIGGERED sin revisar (los estados terminales se conservan varios
 # días). Sin este tope, el bot compraría a un precio que ya no existe.
 
-def _con_niveles_de_hace(minutos: float, ticker="RKLB"):
+def _con_niveles_de_hace(minutos: float, ticker="RKLB", ahora: datetime = AHORA):
+    # El reloj es AHORA, no datetime.now. Sin `ahora=`, el ejecutor usa
+    # la hora real y, a partir de las 19:30 UTC, la guarda de los últimos
+    # 30 min de sesión rechaza la entrada. El job de CI del 2026-09-22
+    # corrió a las 19:31 y este test falló por eso, no por los niveles.
     from datetime import timedelta
-    e = _entrada_triggered(ticker)
-    e.ultimos_niveles_ts = (datetime.now(UTC) - timedelta(minutes=minutos)).isoformat(timespec="seconds")
+    e = _entrada_triggered(ticker, ahora=ahora)
+    e.ultimos_niveles_ts = (ahora - timedelta(minutes=minutos)).isoformat(timespec="seconds")
     return e
 
 
@@ -604,7 +608,7 @@ def test_niveles_frescos_si_operan(monkeypatch, tmp_path):
     _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    assert len(executor.ejecutar(client, CFG, dry_run=False)) == 1
+    assert len(executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)) == 1
 
 
 def test_niveles_viejos_no_operan(monkeypatch, tmp_path):
@@ -612,7 +616,7 @@ def test_niveles_viejos_no_operan(monkeypatch, tmp_path):
     _, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    assert executor.ejecutar(client, CFG, dry_run=False) == []
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
     assert client.ordenes_colocadas == []
     assert enviados == []
     assert contextos == []   # ni se gastó una consulta a la IA
@@ -625,7 +629,7 @@ def test_niveles_de_hace_dias_no_operan(monkeypatch, tmp_path):
     _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    assert executor.ejecutar(client, CFG, dry_run=False) == []
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
     assert client.ordenes_colocadas == []
 
 
@@ -637,7 +641,7 @@ def test_niveles_viejos_no_se_marcan_como_revisados(monkeypatch, tmp_path):
     _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=10_000.0)
 
-    executor.ejecutar(client, CFG, dry_run=False)
+    executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert estado.cargar(rev_path) == []   # sin registro -> se reintenta luego
 
