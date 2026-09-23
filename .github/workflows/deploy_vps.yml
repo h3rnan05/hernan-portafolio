@@ -1,0 +1,77 @@
+# Despliegue manual del VPS (2026-09-23). Entra por SSH con la llave
+# guardada en GitHub Secrets y corre scripts/deploy_vps.sh, que hace la
+# secuencia documentada en infra/systemd/README.md ("Pull con la
+# telemetría sucia") y nada más: apartar estado, pull --rebase de main,
+# devolver estado, instalar los dos wrappers de /opt/momentum/bin/.
+#
+# Solo workflow_dispatch: nunca corre solo. El script se manda por stdin
+# para no depender de que el VPS ya tenga esta versión. Sin los secretos
+# VPS_SSH_KEY y VPS_HOST falla antes de intentar nada (fail-closed).
+# Nunca se imprime la llave ni nada del entorno del runner.
+
+name: deploy-vps
+
+on:
+  workflow_dispatch:
+    inputs:
+      motivo:
+        description: "Por qué se despliega (queda en el historial de Actions)"
+        required: false
+        default: "pull de main + wrappers"
+      forzar_en_sesion:
+        description: "Correr aunque sea horario de sesión (13:00-20:05 UTC). Normalmente NO."
+        type: boolean
+        required: false
+        default: false
+
+concurrency:
+  group: deploy-vps
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  desplegar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comprobar secretos (fail-closed)
+        env:
+          TIENE_LLAVE: ${{ secrets.VPS_SSH_KEY != '' }}
+          TIENE_HOST: ${{ secrets.VPS_HOST != '' }}
+        run: |
+          if [ "$TIENE_LLAVE" != "true" ] || [ "$TIENE_HOST" != "true" ]; then
+            echo "Faltan los secretos VPS_SSH_KEY y/o VPS_HOST en Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - name: Preparar SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/vps
+          chmod 600 ~/.ssh/vps
+          # Confianza al primer uso; la huella queda en el log para poder
+          # compararla con la del servidor si alguna vez cambia.
+          ssh-keyscan -T 10 -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keygen -lf ~/.ssh/known_hosts | sed 's/^/huella del host: /'
+
+      - name: Desplegar (script por stdin)
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER || 'ubuntu' }}
+          FORZAR: ${{ inputs.forzar_en_sesion && '1' || '0' }}
+          MOTIVO: ${{ inputs.motivo }}
+        run: |
+          echo "motivo: $MOTIVO"
+          ssh -i ~/.ssh/vps -o BatchMode=yes -o ConnectTimeout=20 "$VPS_USER@$VPS_HOST" \
+            "FORZAR_EN_SESION=$FORZAR bash -s" < scripts/deploy_vps.sh
+
+      - name: Limpiar la llave del runner
+        if: always()
+        run: rm -f ~/.ssh/vps

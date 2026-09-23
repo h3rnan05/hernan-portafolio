@@ -280,3 +280,21 @@ avisa por el vigía. Lo que sí lo vigila: `Restart=always` de systemd ante
 una caída, el panel (Rechequeo pasa a "Revisar" sin evento en 12 min) y el
 respaldo de GitHub (actúa si el VPS lleva >20 min sin commitear en sesión).
 Marca de vida fuera de git: `/var/lib/momentum/vigia_latido.json`.
+
+### Despliegue desde GitHub Actions (2026-09-23)
+
+`.github/workflows/deploy_vps.yml` (solo `workflow_dispatch`, nunca por
+cron) entra al VPS por SSH y corre `scripts/deploy_vps.sh` por stdin, que
+hace exactamente la secuencia de arriba: apartar el estado con `git
+stash`, `git pull --rebase origin main`, `git stash pop`, e instalar los
+dos wrappers en `/opt/momentum/bin/`. No reinicia servicios (el vigía
+toma el código en su próximo tick), no usa `--force` ni `reset --hard`,
+y se niega a correr en sesión (13:00-20:05 UTC) salvo que se marque
+`forzar_en_sesion`.
+
+Secretos del repositorio (Settings → Secrets and variables → Actions):
+`VPS_SSH_KEY` (la llave privada completa) y `VPS_HOST` (la IP). Opcional
+`VPS_USER` (por omisión `ubuntu`). Sin los dos primeros, el workflow
+falla antes de intentar nada. La llave vive solo en GitHub (regla 7 del
+CLAUDE.md); el runner la escribe con permisos 600 y la borra al final.
+Cada despliegue queda en el historial de Actions con su motivo.
