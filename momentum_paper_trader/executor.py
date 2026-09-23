@@ -36,7 +36,7 @@ from datetime import UTC, datetime
 
 from momentum_hunter import sesion, watchlist
 
-from momentum_paper_trader import aviso_fallo_ia, estado, ia_decision, notify, telemetria
+from momentum_paper_trader import aviso_fallo_ia, bloqueos, estado, ia_decision, notify, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig, banda_de
 
@@ -71,6 +71,36 @@ def _evento(dry_run: bool, tipo: str, **campos) -> None:
         log_event(tipo, **campos)
     except Exception:
         pass
+
+
+def _bloqueo(dry_run: bool, metricas, *, codigo: str, ticker: str | None, limite: str,
+             motivo: str, **campos) -> None:
+    """Un bloqueo POR SEÑAL (2026-09-23, ver `bloqueos.py`): evento para el
+    panel con su código estable, y conteo por código en la telemetría de
+    la corrida. `limite` se conserva por compatibilidad con el panel viejo.
+    Solo observabilidad: nunca decide."""
+    _evento(dry_run, "bloqueo_riesgo", ticker=ticker, limite=limite, codigo=codigo, motivo=motivo, **campos)
+    if metricas is not None and not dry_run:
+        try:
+            metricas.anotar_bloqueo(codigo)
+        except Exception:
+            pass
+
+
+def _capacidad_llena(dry_run: bool, metricas, *, codigo: str, limite: str, motivo: str,
+                     n_pendientes: int, **campos) -> None:
+    """Un límite GLOBAL lleno (2026-09-23): UN evento `capacidad_llena` por
+    corrida, con motivo y hora, en vez de un `bloqueo_riesgo` por cada
+    candidata. El 22-23/9 el tope de posiciones produjo 942 eventos que
+    decían lo mismo 942 veces. Solo observabilidad: la corrida sigue sin
+    operar exactamente igual que antes (fail-closed intacto)."""
+    _evento(dry_run, "capacidad_llena", limite=limite, codigo=codigo, motivo=motivo,
+            n_pendientes=n_pendientes, **campos)
+    if metricas is not None and not dry_run:
+        try:
+            metricas.anotar_capacidad_llena(codigo)
+        except Exception:
+            pass
 
 
 def _velas_totales(e, registro) -> float | None:
@@ -145,9 +175,11 @@ def _mercado_cerrado(client: AlpacaPaperClient) -> str | None:
     try:
         reloj = client.reloj_mercado()
     except Exception as ex:
-        return f"no se pudo leer el reloj del mercado ({type(ex).__name__})"
+        return (bloqueos.DATO_FALTANTE_RELOJ,
+                f"no se pudo leer el reloj del mercado ({type(ex).__name__})")
     if not reloj.get("is_open"):
-        return "el mercado está cerrado -- una orden ahora quedaría encolada para mañana"
+        return (bloqueos.MERCADO_CERRADO,
+                "el mercado está cerrado -- una orden ahora quedaría encolada para mañana")
     return None
 
 
@@ -224,9 +256,11 @@ def _activo_no_operable(client: AlpacaPaperClient, ticker: str) -> str | None:
     try:
         activo = client.activo(ticker)
     except Exception as ex:
-        return f"no se pudo verificar si el símbolo es operable ({type(ex).__name__})"
+        return (bloqueos.DATO_FALTANTE_ACTIVO,
+                f"no se pudo verificar si el símbolo es operable ({type(ex).__name__})")
     if activo.get("tradable") is not True:
-        return f"Alpaca marca el símbolo como no operable (status: {activo.get('status')})"
+        return (bloqueos.ACTIVO_NO_OPERABLE,
+                f"Alpaca marca el símbolo como no operable (status: {activo.get('status')})")
     return None
 
 
@@ -403,8 +437,10 @@ def ejecutar(
         # sigue viva para la próxima corrida dentro de sesión.
         cerrado = _mercado_cerrado(client)
         if cerrado is not None:
-            log.info("no se colocan órdenes en esta corrida: %s", cerrado)
-            _evento(dry_run, "bloqueo_riesgo", ticker=None, limite="mercado_cerrado", motivo=cerrado)
+            codigo, motivo = cerrado
+            log.info("no se colocan órdenes en esta corrida: %s", motivo)
+            _capacidad_llena(dry_run, metricas, codigo=codigo, limite="mercado_cerrado",
+                             motivo=motivo, n_pendientes=len(pendientes))
             if metricas is not None:
                 metricas.cerrar_corrida()
             return nuevas
@@ -417,15 +453,36 @@ def ejecutar(
             motivo = (f"faltan {max(faltan, 0):.0f} min para el cierre "
                       f"(mínimo {cfg.minutos_minimos_para_entrar:.0f}) -- no se abren entradas nuevas")
             log.info("no se colocan órdenes en esta corrida: %s", motivo)
-            _evento(dry_run, "bloqueo_riesgo", ticker=None, limite="cierre_cercano", motivo=motivo,
-                    minutos=round(faltan, 1), minimo=cfg.minutos_minimos_para_entrar)
+            _capacidad_llena(dry_run, metricas, codigo=bloqueos.CIERRE_CERCANO, limite="cierre_cercano",
+                             motivo=motivo, n_pendientes=len(pendientes),
+                             minutos=round(faltan, 1), minimo=cfg.minutos_minimos_para_entrar)
             if metricas is not None:
                 metricas.cerrar_corrida()
             return nuevas
         cuenta = _leer_cuenta(client)
         if cuenta is None:
-            _evento(dry_run, "bloqueo_riesgo", ticker=None, limite="cuenta_ilegible",
-                    motivo="no se pudo leer la cuenta paper (fail-closed)")
+            _capacidad_llena(dry_run, metricas, codigo=bloqueos.DATO_FALTANTE_CUENTA,
+                             limite="cuenta_ilegible",
+                             motivo="no se pudo leer la cuenta paper (fail-closed)",
+                             n_pendientes=len(pendientes))
+            if metricas is not None:
+                metricas.cerrar_corrida()
+            return nuevas
+        # Tope de posiciones (2026-09-23): es un límite de la CUENTA, no de
+        # la señal. Antes se comprobaba dentro del bucle y producía un
+        # bloqueo por candidata en cada tick (942 el 23/9 con 5 posiciones
+        # abiertas y 8 señales disparadas). Ahora se comprueba UNA vez por
+        # corrida, antes de mirar candidatas: si está lleno, ninguna se
+        # evalúa. La regla no cambia -- `maximo_posiciones_abiertas` sigue
+        # siendo el mismo número y sigue mandando sobre todo lo demás.
+        if len(cuenta.tickers_comprometidos) >= cfg.maximo_posiciones_abiertas:
+            motivo = (f"la cuenta ya está en el máximo de {cfg.maximo_posiciones_abiertas} "
+                      f"posiciones simultáneas -- {len(pendientes)} señal(es) sin evaluar")
+            log.info("no se colocan órdenes en esta corrida: %s", motivo)
+            _capacidad_llena(dry_run, metricas, codigo=bloqueos.MAXIMO_POSICIONES,
+                             limite="maximo_posiciones", motivo=motivo, n_pendientes=len(pendientes),
+                             tope=cfg.maximo_posiciones_abiertas,
+                             comprometidos=sorted(cuenta.tickers_comprometidos))
             if metricas is not None:
                 metricas.cerrar_corrida()
             return nuevas
@@ -436,6 +493,11 @@ def ejecutar(
         if e.ultima_entrada is None or e.ultimo_stop is None or e.ultimo_objetivo is None:
             log.warning(
                 "%s: TRIGGERED sin niveles cacheados -- se omite (no se inventa un precio)", e.ticker)
+            # Antes no dejaba rastro: una señal que nunca se podía operar
+            # por un dato ausente era invisible en el panel (2026-09-23).
+            _bloqueo(dry_run, metricas, codigo=bloqueos.DATO_FALTANTE_NIVELES, ticker=e.ticker,
+                     limite="niveles_ausentes",
+                     motivo="TRIGGERED sin entrada/stop/objetivo cacheados (no se inventa un precio)")
             continue
 
         # No se registra como revisada: la señal puede seguir siendo
@@ -446,8 +508,9 @@ def ejecutar(
             log.info(
                 "%s: los niveles tienen %.0f min (tope %.0f) -- se espera a que se recalculen "
                 "en vez de operar un precio viejo", e.ticker, rancios, cfg.minutos_maximos_niveles)
-            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="niveles_rancios",
-                    motivo="niveles rancios", minutos=rancios, tope=cfg.minutos_maximos_niveles)
+            _bloqueo(dry_run, metricas, codigo=bloqueos.DATO_FALTANTE_NIVELES_VIEJOS, ticker=e.ticker,
+                     limite="niveles_rancios", motivo="niveles rancios", minutos=rancios,
+                     tope=cfg.minutos_maximos_niveles)
             continue
 
         cantidad = _tamano_posicion(e.ultima_entrada, e.ultimo_stop, cfg)
@@ -455,8 +518,9 @@ def ejecutar(
             log.info(
                 "%s: riesgo de $%.2f no alcanza para 1 acción con este stop -- se omite",
                 e.ticker, cfg.riesgo_dolares_por_operacion)
-            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="riesgo_por_operacion",
-                    motivo="el riesgo por operación no alcanza para 1 acción")
+            _bloqueo(dry_run, metricas, codigo=bloqueos.RIESGO_POR_OPERACION, ticker=e.ticker,
+                     limite="riesgo_por_operacion",
+                     motivo="el riesgo por operación no alcanza para 1 acción")
             continue
 
         if dry_run:
@@ -471,15 +535,21 @@ def ejecutar(
         assert cuenta is not None
         if e.ticker in cuenta.tickers_comprometidos:
             log.info("%s: ya hay una posición u orden viva con este ticker -- se omite", e.ticker)
-            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="ticker_comprometido",
-                    motivo="ya hay posición u orden viva")
+            _bloqueo(dry_run, metricas, codigo=bloqueos.TICKER_COMPROMETIDO, ticker=e.ticker,
+                     limite="ticker_comprometido", motivo="ya hay posición u orden viva")
             continue
+        # El tope de posiciones se comprueba UNA vez por corrida, antes del
+        # bucle (ver arriba). Acá solo queda el caso raro de que las órdenes
+        # colocadas EN ESTA MISMA corrida (`ocupar`) lo llenen a mitad del
+        # bucle: la regla es la misma, y para las señales que quedan se
+        # registra un bloqueo por señal, como antes.
         if len(cuenta.tickers_comprometidos) >= cfg.maximo_posiciones_abiertas:
             log.info(
-                "%s: la cuenta ya está en el máximo de %d posiciones simultáneas -- se omite",
+                "%s: la cuenta llegó al máximo de %d posiciones en esta corrida -- se omite",
                 e.ticker, cfg.maximo_posiciones_abiertas)
-            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="maximo_posiciones",
-                    motivo="máximo de posiciones simultáneas", tope=cfg.maximo_posiciones_abiertas)
+            _bloqueo(dry_run, metricas, codigo=bloqueos.MAXIMO_POSICIONES, ticker=e.ticker,
+                     limite="maximo_posiciones", motivo="máximo de posiciones alcanzado en esta corrida",
+                     tope=cfg.maximo_posiciones_abiertas)
             continue
         # Techo de GRANULARIDAD (2026-08-25). Si el tope de
         # concentración no da para al menos `minimo_acciones_para_operar`
@@ -510,9 +580,9 @@ def ejecutar(
                     f"equity = ${tope_por_posicion:,.2f}). No se consultó a la IA: con esta cuenta "
                     f"la señal no se puede operar hoy.")
                 log.info("%s: %s", e.ticker, razon)
-                _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="concentracion",
-                        motivo="precio fuera de alcance", techo=techo,
-                        tope_por_posicion=round(tope_por_posicion, 2))
+                _bloqueo(dry_run, metricas, codigo=bloqueos.PRECIO_FUERA_DE_ALCANCE, ticker=e.ticker,
+                         limite="concentracion", motivo="precio fuera de alcance", techo=techo,
+                         tope_por_posicion=round(tope_por_posicion, 2))
                 sin_ia = ia_decision.DecisionIA(entrar=False, confianza=0, razonamiento=razon)
                 registro = _revision_instrumentada(
                     e, sin_ia, executor_leido_ts=executor_leido_ts, ia_decision_ts=None,
@@ -528,17 +598,19 @@ def ejecutar(
                 "%s: a $%.2f la cuenta solo da para %d acción(es) (mínimo %d) -- "
                 "esta señal no se puede dimensionar, se omite",
                 e.ticker, e.ultima_entrada, techo, cfg.minimo_acciones_para_operar)
-            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="concentracion",
-                    motivo="no se puede dimensionar", techo=techo, minimo=cfg.minimo_acciones_para_operar)
+            _bloqueo(dry_run, metricas, codigo=bloqueos.CONCENTRACION, ticker=e.ticker,
+                     limite="concentracion", motivo="no se puede dimensionar", techo=techo,
+                     minimo=cfg.minimo_acciones_para_operar)
             continue
 
         no_operable = _activo_no_operable(client, e.ticker)
         if no_operable is not None:
             # No se registra revisión: el símbolo puede volver a ser
             # operable en la corrida siguiente (un halt se levanta).
-            log.info("%s: %s -- se omite", e.ticker, no_operable)
-            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="activo_no_operable",
-                    motivo=no_operable)
+            codigo_activo, motivo_activo = no_operable
+            log.info("%s: %s -- se omite", e.ticker, motivo_activo)
+            _bloqueo(dry_run, metricas, codigo=codigo_activo, ticker=e.ticker,
+                     limite="activo_no_operable", motivo=motivo_activo)
             continue
 
         decision = ia_decision.decidir(e, cuenta.contexto_para_ia())
@@ -578,8 +650,8 @@ def ejecutar(
                 "%s: banda %s fuera de bandas_operables=%s -- se registra la decisión "
                 "de la IA (entraría=%s, confianza %d/10) pero no se opera",
                 e.ticker, banda, cfg.bandas_operables, decision.entrar, decision.confianza)
-            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="fuera_de_banda",
-                    motivo="banda fuera de bandas_operables", banda=banda)
+            _bloqueo(dry_run, metricas, codigo=bloqueos.FUERA_DE_BANDA, ticker=e.ticker,
+                     limite="fuera_de_banda", motivo="banda fuera de bandas_operables", banda=banda)
             registro = _revision_instrumentada(
                 e, decision, executor_leido_ts=executor_leido_ts,
                 ia_decision_ts=ia_decision_ts, entro=False,
@@ -630,9 +702,10 @@ def ejecutar(
             log.info(
                 "%s: la fracción %.0f%% pedida por la IA no alcanza para 1 acción -- no se opera",
                 e.ticker, decision.fraccion * 100)
-            _evento(dry_run, "bloqueo_riesgo", ticker=e.ticker, limite="fraccion_insuficiente",
-                    motivo="la fracción de la IA no alcanza para 1 acción",
-                    fraccion=getattr(decision, "fraccion", None))
+            _bloqueo(dry_run, metricas, codigo=bloqueos.FRACCION_INSUFICIENTE, ticker=e.ticker,
+                     limite="fraccion_insuficiente",
+                     motivo="la fracción de la IA no alcanza para 1 acción",
+                     fraccion=getattr(decision, "fraccion", None))
             registro = _revision_instrumentada(
                 e, decision, executor_leido_ts=executor_leido_ts,
                 ia_decision_ts=ia_decision_ts, entro=False,

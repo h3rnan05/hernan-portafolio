@@ -46,6 +46,7 @@ import json
 import logging
 import os
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -151,6 +152,18 @@ class Metricas:
     latencias_e2e_ms: list[float] = field(default_factory=list)
     # v2: ruptura -> orden, en velas (ver VERSION_MEDICION).
     latencias_total_velas: list[float] = field(default_factory=list)
+    # Bloqueos de esta corrida por código (ver `bloqueos.py`), y el código
+    # del límite global que la dejó sin capacidad, si lo hubo (2026-09-23).
+    # Solo cuenta; el detalle por ticker vive en el log de eventos del panel.
+    bloqueos: Counter = field(default_factory=Counter)
+    capacidad_llena: str | None = None
+
+    def anotar_bloqueo(self, codigo: str) -> None:
+        self.bloqueos[str(codigo)] += 1
+
+    def anotar_capacidad_llena(self, codigo: str) -> None:
+        self.capacidad_llena = str(codigo)
+        self.bloqueos[str(codigo)] += 1
 
     def anotar_revision(
         self, r, signal_latency_ms: float | None = None, velas_desde_ruptura=None,
@@ -197,6 +210,8 @@ class Metricas:
                 "e2e": _sobre_presupuesto(self.latencias_e2e_ms),
                 "total": _sobre_presupuesto_velas(self.latencias_total_velas),
             },
+            "bloqueos": dict(self.bloqueos),
+            "capacidad_llena": self.capacidad_llena,
         }
 
 
@@ -220,6 +235,10 @@ def resumir_sesion(corridas: list[dict]) -> dict:
         "descubrimiento": [], "alerta": [], "e2e": [],
     }
     total_velas: list[float] = []
+    # Bloqueos por código y corridas sin capacidad por código (2026-09-23).
+    # Una corrida vieja sin estos campos no suma nada: ausente no es cero.
+    bloqueos: dict[str, int] = {}
+    capacidad: dict[str, int] = {}
     for c in corridas:
         if not isinstance(c, dict):
             continue
@@ -227,6 +246,12 @@ def resumir_sesion(corridas: list[dict]) -> dict:
         revisiones += int(c.get("revisiones") or 0)
         ordenes += int(c.get("ordenes_colocadas") or 0)
         ceros += int(c.get("paper_step_success_zero_orders") or 0)
+        if isinstance(c.get("bloqueos"), dict):
+            for codigo, n in c["bloqueos"].items():
+                if isinstance(n, (int, float)) and not isinstance(n, bool):
+                    bloqueos[str(codigo)] = bloqueos.get(str(codigo), 0) + int(n)
+        if isinstance(c.get("capacidad_llena"), str) and c["capacidad_llena"]:
+            capacidad[c["capacidad_llena"]] = capacidad.get(c["capacidad_llena"], 0) + 1
         # Solo corridas v2 traen `total`; las viejas no aportan muestras
         # (no se reconstruye lo que no se midió).
         lat_velas = c.get("latencias_velas") or {}
@@ -253,6 +278,8 @@ def resumir_sesion(corridas: list[dict]) -> dict:
         "presupuesto_velas": PRESUPUESTO_VELAS,
         "presupuesto_ms": PRESUPUESTO_MS,
         "version_medicion": VERSION_MEDICION,
+        "bloqueos": bloqueos,
+        "corridas_sin_capacidad": capacidad,
         "latencia_total_velas": {
             "muestras": len(total_velas),
             "p50": percentil(total_velas, 0.50),

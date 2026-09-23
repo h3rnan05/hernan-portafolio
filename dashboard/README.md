@@ -138,3 +138,24 @@ sin token (el repo es público), se cachea `DASH_GHA_TTL_SEG` segundos en
 403/429 el panel deja de preguntar 15 min y muestra la copia vieja marcada
 "caché vencida". Si Actions no responde y no hay copia, el Hunter queda
 "Sin datos" aunque la watchlist sea fresca: no se inventa una hora.
+
+## Bloqueos de riesgo: únicos, capacidad llena y cuándo dice "Revisar" (2026-09-23)
+
+El 23/9 la tarjeta Riesgo marcó "Revisar" con 942 bloqueos contra 7
+decisiones. No era una falla: con 5 posiciones abiertas, el tope de
+posiciones bloqueaba cada señal disparada en cada tick de 60 s, y el
+panel contaba eventos crudos. Desde entonces:
+
+- Los bloqueos se cuentan **únicos por (ticker, código)**, con veces y
+  última hora; el número de eventos crudos se muestra al lado. El código
+  viene en el evento (`codigo`, ver `momentum_paper_trader/bloqueos.py`);
+  los eventos viejos que solo traen `limite` se mapean al catálogo.
+- Un límite global lleno llega como UN evento `capacidad_llena` por
+  corrida y se resume en una línea: código, desde, hasta y corridas.
+- **"Revisar" solo** si hay un bloqueo `DATO_FALTANTE:<campo>` (dato nulo,
+  faltante o viejo) o un código que el catálogo no conoce. Un límite
+  conocido bloqueando, por muchas veces que se repita, es "OK".
+- La tarjeta Hunter pasa a "Revisar", y se lista en "Datos incompletos",
+  si GitHub Actions (`momentum_hunter.yml`, el respaldo) lleva más de
+  `DASH_GHA_MAX_MIN` (45) minutos sin una corrida exitosa en sesión. Sin
+  dato de Actions no se inventa alerta.

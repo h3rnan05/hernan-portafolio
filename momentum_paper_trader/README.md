@@ -417,6 +417,39 @@ stops del 0,7 % y deslizamiento del 0,4 % por lado, un stop tocado
 cuesta más de 2R: eso no es un defecto del simulador, es la matemática
 que el sistema real también paga.
 
+## Códigos de bloqueo y capacidad llena (`bloqueos.py`, 2026-09-23)
+
+El 23/9 el panel marcó "Revisar" con 942 bloqueos contra 7 decisiones. No
+había falla: con 5 posiciones abiertas, el tope de posiciones bloqueaba
+cada señal disparada en cada tick de 60 s (8 señales × ~120 ticks), y el
+panel contaba eventos crudos. Cambió cómo se NOMBRA y se CUENTA lo que
+ya se bloqueaba; ningún umbral, límite ni criterio de entrada se movió.
+
+- **Un código estable por motivo** en cada evento `bloqueo_riesgo`
+  (`codigo`, además del `limite` de siempre), y un conteo por código en
+  la telemetría de cada tick (`bloqueos`), que el reporte de embudo
+  muestra. Los eventos anteriores solo traen `limite`; el panel los mapea
+  al catálogo.
+- **`DATO_FALTANTE:<campo>`** para los bloqueos por dato nulo, faltante o
+  viejo: reloj de mercado ilegible, cuenta sin `cash`/`equity`, señal
+  TRIGGERED sin niveles cacheados (antes ni siquiera dejaba rastro),
+  niveles más viejos que el tope, ficha del activo ilegible. Son
+  fail-closed "porque no se sabe" y piden revisión humana; los demás son
+  fail-closed "porque se sabe" y son el sistema haciendo su trabajo.
+- **Capacidad llena.** Un límite global (mercado cerrado, poca sesión,
+  cuenta ilegible, tope de posiciones) registra UN evento
+  `capacidad_llena` por corrida, con motivo, hora y cuántas señales
+  quedaron sin evaluar, y la corrida no mira candidatas una por una. El
+  tope de posiciones se comprueba ahora antes del bucle; dentro del
+  bucle solo queda el caso de que las órdenes de esa misma corrida lo
+  llenen a mitad de camino, que sigue registrándose por señal.
+- **Panel:** cuenta bloqueos únicos por (ticker, código) con veces y
+  última hora, resume la capacidad llena en una línea (desde, hasta,
+  corridas) y marca "Revisar" solo si hay un `DATO_FALTANTE` o un código
+  que el catálogo no conoce. Además, avisa si GitHub Actions
+  (`momentum_hunter.yml`, el respaldo) lleva más de 45 min sin correr en
+  sesión (`DASH_GHA_MAX_MIN`).
+
 ## Uso
 
 ```bash

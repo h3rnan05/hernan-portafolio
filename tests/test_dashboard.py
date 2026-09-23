@@ -367,7 +367,7 @@ def test_con_rechequeo_reciente_cero_es_real(tmp_path):
     eventos(tmp_path, {"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"})
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     riesgo = next(e for e in ctx["etapas"] if e["nombre"] == "Riesgo")
-    assert riesgo["estado"] == "ok" and riesgo["detalle"] == "0 bloqueos hoy"
+    assert riesgo["estado"] == "ok" and riesgo["detalle"] == "0 bloqueos únicos (0 eventos) hoy"
     assert "Ningún límite ha bloqueado" in bd.render(ctx)
 
 
@@ -484,7 +484,9 @@ def test_rechequeo_viejo_no_oculta_un_bloqueo_real(tmp_path):
              "limite": "maximo_posiciones"})
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     riesgo = _etapas(ctx)["Riesgo"]
-    assert riesgo["estado"] == "alerta" and riesgo["detalle"] == "1 bloqueos hoy"
+    # (2026-09-23) Un límite conocido bloqueando es el sistema funcionando:
+    # se muestra con su conteo, pero ya no pide "Revisar" por sí solo.
+    assert riesgo["estado"] == "ok" and riesgo["detalle"] == "1 bloqueos únicos (1 eventos) hoy"
 
 
 def test_con_rechequeo_reciente_ejecutor_con_cero_decisiones_es_ok(tmp_path):
@@ -548,12 +550,14 @@ def test_hunter_corrio_bien_sin_cambiar_la_watchlist_es_ok(tmp_path):
     (tmp_path / "watchlist.json").write_text(json.dumps({
         "generado": "2026-09-17T22:33:00+00:00", "entradas": []}))
     escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 52, tzinfo=timezone.utc), evaluadas=(0, 0))
+    # GitHub corrió hace 14 min: es un dato al lado, no una alerta (la
+    # alerta de "más de 45 min sin correr en sesión" se prueba aparte).
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
-                       gha=gha_ok(datetime(2026, 9, 18, 13, 46, tzinfo=timezone.utc)))
+                       gha=gha_ok(datetime(2026, 9, 18, 14, 46, tzinfo=timezone.utc)))
     hunter = _hunter(ctx)
     assert hunter["estado"] == "ok" and hunter["donde"] == "VPS"
     assert hunter["detalle"] == ("escaneo VPS de las 14:52 · slot 3/8 · 0 evaluadas · watchlist del jue 22:33"
-                                 " · GitHub #218 de las 13:46")
+                                 " · GitHub #218 de las 14:46")
     assert ctx["hunter_momento"] == datetime(2026, 9, 18, 14, 52, tzinfo=timezone.utc)
 
 
@@ -1242,3 +1246,93 @@ def test_unidad_del_panel_fija_la_cache_fuera_del_repo():
     texto = (bd.REPO / "deploy" / "momentum-dashboard.service").read_text(encoding="utf-8")
     assert "Environment=DASH_CACHE_VELAS=/var/lib/momentum/dashboard_cache" in texto
     assert "DASH_CACHE_VELAS=/opt/hernan-portafolio" not in texto
+
+
+# ───────── bloqueos únicos, capacidad llena y "Revisar" (2026-09-23) ─────────
+
+def _bloqueo(ts, ticker, codigo, limite="x", motivo="m"):
+    return {"ts": ts, "tipo": "bloqueo_riesgo", "ticker": ticker, "codigo": codigo, "limite": limite, "motivo": motivo}
+
+
+def test_bloqueos_se_cuentan_unicos_por_ticker_y_codigo(tmp_path):
+    # 8 señales × 3 ticks del mismo límite conocido: 8 únicos, 24 eventos, y OK.
+    lineas = [{"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"}]
+    for i in range(8):
+        for m in range(3):
+            lineas.append(_bloqueo(f"2026-09-18T14:{40 + m:02d}:00Z", f"T{i}", "CONCENTRACION", "concentracion"))
+    eventos(tmp_path, *lineas)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "ok"
+    assert riesgo["detalle"] == "8 bloqueos únicos (24 eventos) hoy"
+    r = ctx["riesgo"]
+    assert len(r["unicos"]) == 8 and all(f["veces"] == 3 for f in r["unicos"])
+    assert r["unicos"][0]["hora"] == "14:42"           # última hora, no la primera
+    assert r["dato_faltante"] == [] and r["codigos_nuevos"] == [] and r["revisar"] is False
+    html = bd.render(ctx)
+    assert "8 bloqueos únicos" in html and "<th>Código</th>" in html and "CONCENTRACION" in html
+
+
+def test_dato_faltante_pide_revisar(tmp_path):
+    eventos(tmp_path,
+            {"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"},
+            _bloqueo("2026-09-18T14:50:00Z", "AAA", "DATO_FALTANTE:niveles", "niveles_ausentes"),
+            _bloqueo("2026-09-18T14:51:00Z", "BBB", "TICKER_COMPROMETIDO", "ticker_comprometido"))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "alerta"
+    assert "revisar: DATO_FALTANTE:niveles" in riesgo["detalle"]
+    assert ctx["riesgo"]["dato_faltante"] == ["DATO_FALTANTE:niveles"]
+    assert "<b>revisar:</b> DATO_FALTANTE:niveles" in bd.render(ctx)
+
+
+def test_codigo_nuevo_pide_revisar_y_el_legado_se_mapea(tmp_path):
+    # Un evento viejo solo con `limite` conocido se mapea al catálogo (no es
+    # nuevo); un código que el catálogo no conoce sí pide revisar.
+    eventos(tmp_path,
+            {"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:50:00Z", "tipo": "bloqueo_riesgo", "ticker": "AAA", "limite": "maximo_posiciones"},
+            _bloqueo("2026-09-18T14:51:00Z", "BBB", "LIMITE_INVENTADO", "inventado"))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    r = ctx["riesgo"]
+    assert {f["codigo"] for f in r["unicos"]} == {"MAXIMO_POSICIONES", "LIMITE_INVENTADO"}
+    assert r["codigos_nuevos"] == ["LIMITE_INVENTADO"] and r["revisar"] is True
+    assert _etapas(ctx)["Riesgo"]["estado"] == "alerta"
+    assert "motivo nuevo: LIMITE_INVENTADO" in _etapas(ctx)["Riesgo"]["detalle"]
+
+
+def test_capacidad_llena_se_resume_una_linea_con_desde_hasta_y_corridas(tmp_path):
+    lineas = [{"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"}]
+    for m in range(30, 55):
+        lineas.append({"ts": f"2026-09-18T14:{m:02d}:05Z", "tipo": "capacidad_llena", "codigo": "MAXIMO_POSICIONES",
+                       "limite": "maximo_posiciones", "motivo": "5 posiciones", "n_pendientes": 8})
+    eventos(tmp_path, *lineas)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "ok"
+    assert riesgo["detalle"] == "0 bloqueos únicos (0 eventos) hoy · capacidad llena: MAXIMO_POSICIONES desde 14:30 (25 corridas)"
+    cap = ctx["riesgo"]["capacidad"]
+    assert len(cap) == 1 and cap[0]["desde"] == "14:30" and cap[0]["hasta"] == "14:54" and cap[0]["corridas"] == 25
+    html = bd.render(ctx)
+    assert "Capacidad llena: <b>MAXIMO_POSICIONES</b>" in html and "25 corridas" in html
+
+
+def test_github_actions_mas_de_45_min_sin_correr_en_sesion_es_alerta(tmp_path):
+    # Escaneo del VPS fresco (Hunter OK por sí solo), pero GitHub lleva 60 min.
+    escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 50, tzinfo=timezone.utc))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
+                       gha=gha_ok(datetime(2026, 9, 18, 14, 0, tzinfo=timezone.utc)))
+    hunter = _hunter(ctx)
+    assert hunter["estado"] == "alerta"
+    assert "GitHub lleva 60 min sin correr (máx 45)" in hunter["detalle"]
+    assert any("momentum_hunter.yml" in p and "60 min" in p for p in ctx["problemas"])
+    # Con 30 min, OK; y sin dato de Actions no se inventa alerta.
+    ctx_ok = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
+                          gha=gha_ok(datetime(2026, 9, 18, 14, 30, tzinfo=timezone.utc)))
+    assert _hunter(ctx_ok)["estado"] == "ok"
+    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido()))["estado"] == "ok"
+    # Fuera de sesión (sábado) no es alerta aunque lleve horas.
+    sabado = datetime(2026, 9, 19, 15, 0, tzinfo=timezone.utc)
+    ctx_s = bd.construir(sabado, cfg(tmp_path), get=sin_alpaca,
+                         gha=gha_ok(datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)))
+    assert _hunter(ctx_s)["estado"] != "alerta" or "GitHub lleva" not in _hunter(ctx_s)["detalle"]

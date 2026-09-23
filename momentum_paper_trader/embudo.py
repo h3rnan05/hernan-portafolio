@@ -94,6 +94,11 @@ class Embudo:
     # -- Paper (telemetría de sesión) --
     ticks_paper: int = 0
     ordenes_colocadas: int = 0
+    # Bloqueos del ejecutor por código y corridas sin capacidad por código
+    # (2026-09-23, ver `bloqueos.py`). Un tick viejo sin estos campos no
+    # suma: ausente no es cero.
+    bloqueos_por_codigo: dict[str, int] = field(default_factory=dict)
+    corridas_sin_capacidad: dict[str, int] = field(default_factory=dict)
     # -- Sombra de movers --
     sombra_corridas: int = 0
     sombra_clase_a: int = 0
@@ -275,6 +280,9 @@ def _paper(emb: Embudo, corridas: list[dict]) -> None:
         return
     emb.ticks_paper = len(corridas)
     emb.ordenes_colocadas = sum(int(c.get("ordenes_colocadas") or 0) for c in corridas)
+    resumen = telem_paper.resumir_sesion(corridas)
+    emb.bloqueos_por_codigo = dict(sorted(resumen.get("bloqueos", {}).items(), key=lambda kv: -kv[1]))
+    emb.corridas_sin_capacidad = dict(sorted(resumen.get("corridas_sin_capacidad", {}).items(), key=lambda kv: -kv[1]))
 
 
 def _cargar_movers(desde: str, hasta: str, dir_telemetria: Path) -> list[dict]:
@@ -383,6 +391,8 @@ def formatear(emb: Embudo) -> str:
     l.append(_linea_contador("aprobarían con umbral (cota superior)", emb.ia_aprobarian_con_umbral))
     l.append(_linea_contador("no operadas por", emb.no_operadas_por_motivo))
     l.append(f"  ticks paper {emb.ticks_paper} · órdenes colocadas {emb.ordenes_colocadas}")
+    l.append(_linea_contador("bloqueos del ejecutor por código", emb.bloqueos_por_codigo, 8))
+    l.append(_linea_contador("corridas sin capacidad (límite global lleno)", emb.corridas_sin_capacidad))
     l.append("")
     l.append("5) Sombra de movers (sin catalizador)")
     l.append(f"  corridas {emb.sombra_corridas} · clase A {emb.sombra_clase_a} · clase B {emb.sombra_clase_b}")
