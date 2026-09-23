@@ -210,12 +210,25 @@ que debe ser claro y concreto sobre el PORQUÉ (qué viste en la evidencia \
 que te hizo entrar o no, y por qué ese tamaño)"
 }
 
-Regla dura: "entrar": true requiere confianza >= 7. Rechaza por evidencia \
-concreta de ESTA señal (catalizador flojo o viejo, momentum enfriado, \
-precio bajo el VWAP, asimetría pobre), nunca por los factores de los \
-puntos 3, 5 y 6, que ya vienen resueltos por el pipeline o se manejan con \
-la fracción. Si la evidencia concreta no convence, no entres: rechazar \
-una señal mediocre también es una decisión de trader, y de las buenas."""
+Regla dura: "entrar": true requiere confianza >= __UMBRAL__. Rechaza por \
+evidencia concreta de ESTA señal (catalizador flojo o viejo, momentum \
+enfriado, precio bajo el VWAP, asimetría pobre), nunca por los factores \
+de los puntos 3, 5 y 6, que ya vienen resueltos por el pipeline o se \
+manejan con la fracción. Si la evidencia concreta no convence, no entres: \
+rechazar una señal mediocre también es una decisión de trader, y de las \
+buenas."""
+
+# Umbral de convicción para entrar (2026-09-23, pedido del dueño: "relaja
+# un poco el filtro para ver algún trade"). Era 7 desde el origen de esta
+# capa; con 14 revisiones acumuladas solo 2 llegaron a 7, y cuatro más
+# (SHEL, BEAM, AZN, VEEV) se quedaron en 6. Bajar a 6 es la relajación
+# más chica que cambia algo, y es la única compuerta que se relaja: los
+# límites de riesgo, el tamaño y los niveles no se tocan. Vive en un
+# solo lugar para que el prompt y la re-validación en código nunca
+# discrepen. Es una decisión del dueño sobre una muestra mínima, no una
+# calibración: el libro sombra mide después si 6 fue mejor que 7.
+CONFIANZA_MINIMA_ENTRADA = 6
+SYSTEM_PROMPT = SYSTEM_PROMPT.replace("__UMBRAL__", str(CONFIANZA_MINIMA_ENTRADA))
 
 
 SYSTEM_PROMPT_CIERRE = """\
@@ -624,7 +637,7 @@ def decidir(e: EntradaWatchlist, contexto_cuenta: str | None = None) -> Decision
     # `telegram_bot/idea_evaluator.py`): la regla dura del prompt se
     # re-valida en código, nunca se confía ciegamente en que el modelo la
     # haya aplicado bien.
-    if entrar and confianza < 7:
+    if entrar and confianza < CONFIANZA_MINIMA_ENTRADA:
         entrar = False
 
     return DecisionIA(

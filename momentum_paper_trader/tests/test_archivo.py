@@ -254,7 +254,9 @@ def test_si_jsonl_ya_existe_igual_transiciona_sin_duplicar(tmp_path):
 
 
 def test_no_cambia_umbrales_ni_endpoint_paper():
-    """El archivo no es una excusa para mover stops, ATR, IA≥7 ni live."""
+    """El archivo no es una excusa para mover stops, ATR, el umbral de la
+    IA ni live. (El umbral pasó de 7 a 6 el 2026-09-23 por decisión del
+    dueño, en su propio PR; acá solo se fija que el archivo no lo toca.)"""
     assert PAPER_CFG.riesgo_dolares_por_operacion == 100.0
     assert PAPER_CFG.maximo_pct_efectivo_por_posicion == 0.15
     assert HUNTER_CFG.minutos_maximos_en_watching == 120
@@ -262,7 +264,8 @@ def test_no_cambia_umbrales_ni_endpoint_paper():
     # 5 desde el re-escalado del 2026-09-22 (rechequeo cada 60 s); antes 2.
     assert HUNTER_CFG.verificaciones_tarde_para_missed == 5
     fuente_ia = inspect.getsource(ia_decision)
-    assert "confianza < 7" in fuente_ia
+    assert ia_decision.CONFIANZA_MINIMA_ENTRADA == 6
+    assert "confianza < CONFIANZA_MINIMA_ENTRADA" in fuente_ia
     assert alpaca_client._BASE_URL == "https://paper-api.alpaca.markets/v2"
     fuente_archivo = inspect.getsource(archivo)
     assert "riesgo_dolares_por_operacion" not in fuente_archivo
