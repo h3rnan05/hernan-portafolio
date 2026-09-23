@@ -49,7 +49,8 @@ def _vigia(tmp_path, reloj, ejecutar, **kw):
 def _nombre(cmd: list[str]) -> str:
     if cmd[0] == "bash":
         return "persistir"
-    return {"momentum_hunter.run": "rechequeo", "momentum_paper_trader.run": "paper"}[cmd[2]]
+    return {"momentum_hunter.run": "rechequeo", "momentum_paper_trader.run": "paper",
+            "momentum_paper_trader.libro_sombra": "sombra"}[cmd[2]]
 
 
 # ───────────── funciones puras ─────────────
@@ -323,3 +324,67 @@ def test_smoke_main_con_max_ticks_cero_no_corre_nada(monkeypatch, tmp_path):
     monkeypatch.setattr(vigia.Vigia, "correr", lambda self, max_ticks=None: 0)
     assert vigia.main(["--max-ticks", "0"]) == 0
     assert llamadas == []
+
+
+def test_al_cerrar_la_ventana_corre_el_libro_sombra_una_vez_y_antes_del_persist(tmp_path):
+    """2026-09-23: al salir de la ventana, el libro sombra del día corre
+    UNA vez (con `--dia` = el día del último tick) y ANTES del persist,
+    para que `sombra.json` suba en el mismo commit. Una parada por señal
+    a media sesión no lo dispara."""
+    reloj = Reloj(LUNES.replace(hour=19, minute=59, second=40))
+    llamadas = []
+
+    def ejecutar(cmd, timeout, env=None):
+        llamadas.append((_nombre(cmd), list(cmd), timeout, reloj.t))
+        reloj.dormir(3)
+        return 0
+
+    v = _vigia(tmp_path, reloj, ejecutar, persistir_cada=100)
+
+    def dormir(seg):
+        reloj.dormir(seg)
+        if reloj.t >= LUNES.replace(hour=20, minute=8):
+            v.detener = True
+    v.dormir = dormir
+    v.correr()
+
+    nombres = [n for n, *_ in llamadas]
+    assert nombres == ["rechequeo", "paper", "sombra", "persistir"]
+    sombra = next(c for n, c, *_ in llamadas if n == "sombra")
+    assert sombra[-2:] == ["--dia", "2026-09-21"]
+    assert next(t for n, _, t, _ in llamadas if n == "sombra") == vigia.TIMEOUT_SOMBRA_SEG
+    assert v.sombra_hecha == "2026-09-21" and v.pendiente_persistir is False
+
+
+def test_una_parada_por_senal_a_media_sesion_no_corre_el_libro_sombra(tmp_path):
+    reloj = Reloj(LUNES.replace(hour=14))
+    llamadas = []
+
+    def ejecutar(cmd, timeout, env=None):
+        llamadas.append(_nombre(cmd))
+        return 0
+
+    v = _vigia(tmp_path, reloj, ejecutar, persistir_cada=100)
+    v.correr(max_ticks=1)
+    assert llamadas == ["rechequeo", "paper", "persistir"] and v.sombra_hecha is None
+
+
+def test_si_el_libro_sombra_falla_el_persist_corre_igual(tmp_path):
+    reloj = Reloj(LUNES.replace(hour=20, minute=0, second=0))
+    llamadas = []
+
+    def ejecutar(cmd, timeout, env=None):
+        llamadas.append(_nombre(cmd))
+        reloj.dormir(3)
+        return None if _nombre(cmd) == "sombra" else 0   # timeout en la sombra
+
+    v = _vigia(tmp_path, reloj, ejecutar, persistir_cada=100)
+
+    def dormir(seg):
+        reloj.dormir(seg)
+        if reloj.t >= LUNES.replace(hour=20, minute=8):
+            v.detener = True
+    v.dormir = dormir
+    v.correr()
+    assert llamadas == ["rechequeo", "paper", "sombra", "persistir"]
+    assert v.sombra_hecha == "2026-09-21" and v.pendiente_persistir is False
