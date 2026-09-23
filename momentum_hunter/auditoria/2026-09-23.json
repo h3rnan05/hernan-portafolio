@@ -9701,6 +9701,771 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-23T14:34:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.7249999046325684,
+          "factores_intradia": {
+            "precio_actual": 2.7249999046325684,
+            "vwap": 2.713984354367265,
+            "ema9": 2.7177773650046184,
+            "rvol_actual": 0.015242444529456773,
+            "aceleracion_volumen": 0.37540264743248225,
+            "gap_pct": -0.03191486393612005,
+            "maximo_dia": 2.7792,
+            "maximo_premarket": 2.7792,
+            "rango_apertura_max": 2.7699999809265137,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": 4,
+            "macd": 0.002730110175447109,
+            "macd_signal": 0.000799520218920647
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1805.3901052833332,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 53.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 80.49795071695753,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 65.6,
+            "score_ajustado": 30.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "LFMD",
+          "nombre": "LifeMD, Inc.",
+          "precio_actual": 3.1549999713897705,
+          "factores_intradia": {
+            "precio_actual": 3.1549999713897705,
+            "vwap": 3.1851503094268936,
+            "ema9": 3.1559815421115083,
+            "rvol_actual": 0.6102645198389879,
+            "aceleracion_volumen": 0.9807131074736709,
+            "gap_pct": -0.009063435621868414,
+            "maximo_dia": 3.32,
+            "maximo_premarket": 3.32,
+            "rango_apertura_max": 3.2799999713897705,
+            "rango_apertura_min": 3.2100000381469727,
+            "velas_desde_ruptura": null,
+            "macd": -0.00545615172724645,
+            "macd_signal": -0.007487645607755069
+          },
+          "meta": {
+            "float_acciones": 39655793.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "LifeMD (LFMD) Secures AT&T Partnership. Can Free Memberships Produce Paying Patients?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-20T18:43:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4071.0734546000003,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 58.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 48.07131074736709,
+                "extension": 100.0,
+                "distancia_maximo_dia": 50.30119620173812,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 52.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-23T14:35:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.734999895095825,
+          "factores_intradia": {
+            "precio_actual": 2.734999895095825,
+            "vwap": 2.7146809246746972,
+            "ema9": 2.72122187102286,
+            "rvol_actual": 0.17955116685870534,
+            "aceleracion_volumen": 0.41281266284523194,
+            "gap_pct": -0.03191486393612005,
+            "maximo_dia": 2.7792,
+            "maximo_premarket": 2.7792,
+            "rango_apertura_max": 2.7699999809265137,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": 1,
+            "macd": 0.00401854502292176,
+            "macd_signal": 0.0014433251797208698
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1806.3928904333334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 58.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.09610502872233,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 65.6,
+            "score_ajustado": 30.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "LFMD",
+          "nombre": "LifeMD, Inc.",
+          "precio_actual": 3.1549999713897705,
+          "factores_intradia": {
+            "precio_actual": 3.1549999713897705,
+            "vwap": 3.1851503094268936,
+            "ema9": 3.1559815421115083,
+            "rvol_actual": 0.6102645198389879,
+            "aceleracion_volumen": 0.9807131074736709,
+            "gap_pct": -0.009063435621868414,
+            "maximo_dia": 3.32,
+            "maximo_premarket": 3.32,
+            "rango_apertura_max": 3.2799999713897705,
+            "rango_apertura_min": 3.2100000381469727,
+            "velas_desde_ruptura": null,
+            "macd": -0.00545615172724645,
+            "macd_signal": -0.007487645607755069
+          },
+          "meta": {
+            "float_acciones": 39655793.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "LifeMD (LFMD) Secures AT&T Partnership. Can Free Memberships Produce Paying Patients?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-20T18:43:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4072.076239583333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 58.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 48.07131074736709,
+                "extension": 100.0,
+                "distancia_maximo_dia": 50.30119620173812,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 52.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-23T14:36:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.734999895095825,
+          "factores_intradia": {
+            "precio_actual": 2.734999895095825,
+            "vwap": 2.714728135810406,
+            "ema9": 2.7239774758374535,
+            "rvol_actual": 0.18277256690474142,
+            "aceleracion_volumen": 0.16768127181077938,
+            "gap_pct": -0.03191486393612005,
+            "maximo_dia": 2.7792,
+            "maximo_premarket": 2.7792,
+            "rango_apertura_max": 2.7699999809265137,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": 2,
+            "macd": 0.0049822071396277146,
+            "macd_signal": 0.002151101571702239
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1807.3921703166666,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 58.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.09610502872233,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 65.6,
+            "score_ajustado": 30.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "LFMD",
+          "nombre": "LifeMD, Inc.",
+          "precio_actual": 3.1649999618530273,
+          "factores_intradia": {
+            "precio_actual": 3.1649999618530273,
+            "vwap": 3.184666192777617,
+            "ema9": 3.1577852260598123,
+            "rvol_actual": 1.2714708785784798,
+            "aceleracion_volumen": 1.4134481448651386,
+            "gap_pct": -0.009063435621868414,
+            "maximo_dia": 3.32,
+            "maximo_premarket": 3.32,
+            "rango_apertura_max": 3.2799999713897705,
+            "rango_apertura_min": 3.2100000381469727,
+            "velas_desde_ruptura": 0,
+            "macd": -0.004352461036473354,
+            "macd_signal": -0.006860608693498726
+          },
+          "meta": {
+            "float_acciones": 39655793.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "LifeMD (LFMD) Secures AT&T Partnership. Can Free Memberships Produce Paying Patients?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-20T18:43:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4073.075519533333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 91.34481448651385,
+                "extension": 100.0,
+                "distancia_maximo_dia": 53.31324152199623,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 52.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-23T14:37:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.734999895095825,
+          "factores_intradia": {
+            "precio_actual": 2.734999895095825,
+            "vwap": 2.714067119848371,
+            "ema9": 2.7239774758374535,
+            "rvol_actual": 0.18277256690474142,
+            "aceleracion_volumen": 0.16768127181077938,
+            "gap_pct": -0.03191486393612005,
+            "maximo_dia": 2.7792,
+            "maximo_premarket": 2.7792,
+            "rango_apertura_max": 2.7699999809265137,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": 2,
+            "macd": 0.0049822071396277146,
+            "macd_signal": 0.002151101571702239
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1808.3902831833334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 58.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.09610502872233,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 65.6,
+            "score_ajustado": 30.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "LFMD",
+          "nombre": "LifeMD, Inc.",
+          "precio_actual": 3.1700000762939453,
+          "factores_intradia": {
+            "precio_actual": 3.1700000762939453,
+            "vwap": 3.1833809278392193,
+            "ema9": 3.1602281961066394,
+            "rvol_actual": 5.742145593869732,
+            "aceleracion_volumen": 2.7442574786324787,
+            "gap_pct": -0.009063435621868414,
+            "maximo_dia": 3.32,
+            "maximo_premarket": 3.32,
+            "rango_apertura_max": 3.2799999713897705,
+            "rango_apertura_min": 3.2100000381469727,
+            "velas_desde_ruptura": 1,
+            "macd": -0.003039275884181958,
+            "macd_signal": -0.006096342131635373
+          },
+          "meta": {
+            "float_acciones": 39655793.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "LifeMD (LFMD) Secures AT&T Partnership. Can Free Memberships Produce Paying Patients?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-20T18:43:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4074.0736330333334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 75.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 54.819300088537744,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 52.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-23T14:38:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.734999895095825,
+          "factores_intradia": {
+            "precio_actual": 2.734999895095825,
+            "vwap": 2.7140839949566327,
+            "ema9": 2.7261819596891277,
+            "rvol_actual": 0.02836484983314794,
+            "aceleracion_volumen": 0.18438462042313486,
+            "gap_pct": -0.03191486393612005,
+            "maximo_dia": 2.7792,
+            "maximo_premarket": 2.7792,
+            "rango_apertura_max": 2.7699999809265137,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": 2,
+            "macd": 0.0056804357821795826,
+            "macd_signal": 0.0028569684137977076
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1809.3932702833333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 58.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 84.09610502872233,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 65.6,
+            "score_ajustado": 30.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "LFMD",
+          "nombre": "LifeMD, Inc.",
+          "precio_actual": 3.1695001125335693,
+          "factores_intradia": {
+            "precio_actual": 3.1695001125335693,
+            "vwap": 3.183357862029168,
+            "ema9": 3.1620825793920257,
+            "rvol_actual": 0.05963130173062453,
+            "aceleracion_volumen": 2.4800103506275066,
+            "gap_pct": -0.009063435621868414,
+            "maximo_dia": 3.32,
+            "maximo_premarket": 3.32,
+            "rango_apertura_max": 3.2799999713897705,
+            "rango_apertura_min": 3.2100000381469727,
+            "velas_desde_ruptura": 2,
+            "macd": -0.002015674644505694,
+            "macd_signal": -0.005280208634209437
+          },
+          "meta": {
+            "float_acciones": 39655793.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "LifeMD (LFMD) Secures AT&T Partnership. Can Free Memberships Produce Paying Patients?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-20T18:43:02Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4075.0766195499996,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 75.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 54.66870859444861,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 52.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
