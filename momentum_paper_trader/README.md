@@ -301,8 +301,15 @@ Guardarraíles, todos verificables en el código (no solo en el prompt):
   "entrar de todos modos" ante una falla. Mismo principio que
   `telegram_bot/idea_evaluator.py`.
 - **Cinturón y tirantes sobre el propio LLM.** La regla dura del prompt
-  ("confianza >= 7 para entrar") se re-valida en código -- no se confía
-  ciegamente en que el modelo la haya aplicado bien.
+  ("confianza >= `CONFIANZA_MINIMA_ENTRADA` para entrar") se re-valida en
+  código -- no se confía ciegamente en que el modelo la haya aplicado
+  bien. El umbral vive en una sola constante para que el prompt y el
+  código nunca discrepen. Fue 7 desde el origen; el 2026-09-23 el dueño
+  pidió "relajar un poco el filtro para ver algún trade" y bajó a 6: con
+  14 revisiones acumuladas solo 2 llegaron a 7 y cuatro (SHEL, BEAM,
+  AZN, VEEV) se quedaron en 6. Es la única compuerta que se relajó;
+  riesgo, tamaño y niveles siguen iguales. Decisión sobre muestra
+  mínima, no calibración: el libro sombra mide después si 6 fue mejor.
 - **Auditoría completa.** Cada revisión -- apruebe o rechace -- queda
   registrada en `revisiones.json` con el razonamiento completo, así que
   toda decisión de la IA es reconstruible después.

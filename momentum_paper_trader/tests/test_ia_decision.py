@@ -104,8 +104,9 @@ def test_decidir_entra_false_explicito(monkeypatch):
 
 
 def test_decidir_cinturon_y_tirantes_confianza_insuficiente(monkeypatch):
-    # El modelo dice "entrar": true pero con confianza < 7 -- la regla
-    # dura del prompt se re-valida en código, no se confía ciegamente.
+    # El modelo dice "entrar": true pero con confianza por debajo de
+    # CONFIANZA_MINIMA_ENTRADA -- la regla dura del prompt se re-valida
+    # en código, no se confía ciegamente.
     _parchear_anthropic(monkeypatch, respuesta=(
         '{"entrar": true, "confianza": 5, "razonamiento": "dudoso pero interesante"}'
     ))
@@ -117,6 +118,20 @@ def test_decidir_cinturon_y_tirantes_confianza_insuficiente(monkeypatch):
     assert d.entrar is False
     assert d.fallo_tecnico is False
     assert d.codigo_fallo is None
+
+
+def test_decidir_confianza_en_el_umbral_entra(monkeypatch):
+    """2026-09-23: el umbral bajó de 7 a 6 (pedido del dueño). Un 6 con
+    "entrar": true ahora entra; el prompt dice el mismo número que el
+    código para que nunca discrepen."""
+    assert ia_decision.CONFIANZA_MINIMA_ENTRADA == 6
+    _parchear_anthropic(monkeypatch, respuesta=(
+        '{"entrar": true, "confianza": 6, "fraccion": 0.5, "razonamiento": "sí, con cautela"}'
+    ))
+    d = ia_decision.decidir(_entrada_triggered())
+    assert d.entrar is True and d.confianza == 6 and d.fraccion == 0.5
+    assert "confianza >= 6" in ia_decision.SYSTEM_PROMPT
+    assert "__UMBRAL__" not in ia_decision.SYSTEM_PROMPT
 
 
 def test_decidir_acepta_fraccion_valida(monkeypatch):
@@ -581,4 +596,4 @@ def test_prompt_de_entrada_no_apila_negativas_fijas():
     assert "nunca lo cites como motivo para rechazar" in p
     assert "el clima por sí solo NUNCA es motivo de rechazo" in p
     assert "No rechaces una señal por ser large cap" in p
-    assert "confianza >= 7" in p
+    assert f"confianza >= {ia_decision.CONFIANZA_MINIMA_ENTRADA}" in p
