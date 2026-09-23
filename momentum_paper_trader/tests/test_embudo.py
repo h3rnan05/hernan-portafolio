@@ -196,3 +196,20 @@ def test_main_imprime_texto_y_json(tmp_path, monkeypatch, capsys):
     assert embudo.main(["--desde", DIA, "--hasta", DIA, "--json"]) == 0
     salida = capsys.readouterr().out
     assert "EMBUDO" in salida and '"watchlist_dispararon": 1' in salida
+
+
+def test_embudo_muestra_bloqueos_del_ejecutor_por_codigo(tmp_path):
+    fuentes = _armar_fuentes(tmp_path)
+    tp = fuentes["dir_telemetria_paper"] / DIA / "vps" / "events.jsonl"
+    ticks = [json.loads(l) for l in tp.read_text().splitlines() if l.strip()]
+    ticks[0]["bloqueos"] = {"MAXIMO_POSICIONES": 1}
+    ticks[0]["capacidad_llena"] = "MAXIMO_POSICIONES"
+    ticks[1]["bloqueos"] = {"DATO_FALTANTE:niveles": 2, "MAXIMO_POSICIONES": 1}
+    ticks[1]["capacidad_llena"] = "MAXIMO_POSICIONES"
+    tp.write_text("\n".join(json.dumps(t) for t in ticks) + "\n")
+    emb = embudo.construir(DIA, DIA, **fuentes)
+    assert emb.bloqueos_por_codigo == {"MAXIMO_POSICIONES": 2, "DATO_FALTANTE:niveles": 2}
+    assert emb.corridas_sin_capacidad == {"MAXIMO_POSICIONES": 2}
+    texto = embudo.formatear(emb)
+    assert "bloqueos del ejecutor por código: MAXIMO_POSICIONES 2, DATO_FALTANTE:niveles 2" in texto
+    assert "corridas sin capacidad (límite global lleno): MAXIMO_POSICIONES 2" in texto

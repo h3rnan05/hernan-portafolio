@@ -278,3 +278,19 @@ def test_un_fallo_al_guardar_nunca_propaga(tmp_path, monkeypatch):
         lambda *a, **kw: (_ for _ in ()).throw(OSError("disco lleno")))
     assert telemetria.registrar_corrida(
         telemetria.Metricas(), tmp_path / "x", fuente="vps") is None
+
+
+def test_bloqueos_y_capacidad_llena_van_al_rollup_y_ausentes_no_son_cero():
+    from momentum_paper_trader import telemetria
+    m = telemetria.Metricas()
+    m.anotar_bloqueo("DATO_FALTANTE:niveles")
+    m.anotar_bloqueo("DATO_FALTANTE:niveles")
+    m.anotar_capacidad_llena("MAXIMO_POSICIONES")
+    d = m.como_dict()
+    assert d["bloqueos"] == {"DATO_FALTANTE:niveles": 2, "MAXIMO_POSICIONES": 1}
+    assert d["capacidad_llena"] == "MAXIMO_POSICIONES"
+    vieja = {"timestamp": "x", "triggered_nuevos": 0}   # tick anterior al campo: no suma
+    r = telemetria.resumir_sesion([d, d, vieja])
+    assert r["bloqueos"] == {"DATO_FALTANTE:niveles": 4, "MAXIMO_POSICIONES": 2}
+    assert r["corridas_sin_capacidad"] == {"MAXIMO_POSICIONES": 2}
+    assert telemetria.resumir_sesion([vieja])["bloqueos"] == {}

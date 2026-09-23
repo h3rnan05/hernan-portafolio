@@ -32,6 +32,15 @@ from zoneinfo import ZoneInfo
 from dashboard import gha as dg
 from dashboard import velas as dv
 
+# Catálogo de códigos de bloqueo del ejecutor (2026-09-23). Es un módulo
+# de constantes sin dependencias; si no se puede importar (panel instalado
+# sin el paper trader), el panel lo dice y trata todo código como nuevo:
+# mejor un "Revisar" de más que un límite invisible.
+try:
+    from momentum_paper_trader import bloqueos as _catalogo_bloqueos
+except Exception:  # pragma: no cover - sin paper trader instalado
+    _catalogo_bloqueos = None
+
 ALPACA_PAPER = "https://paper-api.alpaca.markets"  # fijo: el panel nunca habla con la cuenta real
 REPO = Path(__file__).resolve().parents[1]
 # Sin DASH_CACHE_VELAS la caché va al directorio temporal del sistema,
@@ -65,6 +74,9 @@ def cargar_config() -> dict:
         "presupuesto_velas": _env_float("DASH_PRESUPUESTO_VELAS", 8.0),
         "hunter_max_min": _env_float("DASH_HUNTER_MAX_MIN", 45.0),
         "rechequeo_max_min": _env_float("DASH_RECHEQUEO_MAX_MIN", 12.0),
+        # GitHub Actions (momentum_hunter.yml) sin correr en sesión más de
+        # esto es alerta, aunque el VPS esté sano: el respaldo se cayó.
+        "gha_max_min": _env_float("DASH_GHA_MAX_MIN", 45.0),
         "tz": ZoneInfo(os.environ.get("DASH_TZ", "UTC")),
         # Velas de los tickers en operación: caché fuera de git (en el VPS,
         # junto al HTML) y tope de tickers por corrida para no saturar a Yahoo.
@@ -386,6 +398,81 @@ def _estado_frescura(edad: float | None, maximo: float | None, en_sesion: bool) 
     return "ok"
 
 
+def _codigo_de(evento: dict) -> str:
+    if _catalogo_bloqueos is not None:
+        return _catalogo_bloqueos.codigo_de_evento(evento)
+    codigo = evento.get("codigo") or evento.get("limite") or "SIN_CODIGO"
+    return str(codigo).upper()
+
+
+def resumir_bloqueos(bloqueos: list[dict], capacidad: list[dict], tz, ahora: datetime) -> dict:
+    """Bloqueos únicos por (ticker, código) con veces y última hora, la
+    capacidad llena por código con primera/última hora y corridas, y el
+    veredicto: `revisar` solo con un DATO_FALTANTE o un código nuevo.
+
+    Por qué (2026-09-23): 942 eventos crudos contra 7 decisiones eran 8
+    señales × 120 ticks contra UN tope de posiciones lleno. El panel
+    contaba repeticiones y pedía revisar un sistema que funcionaba."""
+    conocidos = set(_catalogo_bloqueos.CODIGOS_CONOCIDOS) if _catalogo_bloqueos is not None else set()
+
+    def _es_dato_faltante(codigo: str) -> bool:
+        if _catalogo_bloqueos is not None:
+            return _catalogo_bloqueos.es_dato_faltante(codigo)
+        return codigo.startswith("DATO_FALTANTE:")
+
+    unicos: dict[tuple[str, str], dict] = {}
+    for b in bloqueos:
+        codigo = _codigo_de(b)
+        clave = (str(b.get("ticker") or "—"), codigo)
+        fila = unicos.setdefault(clave, {"ticker": clave[0], "codigo": codigo, "veces": 0, "ultimo": None,
+                                         "motivo": str(b.get("motivo") or "")})
+        fila["veces"] += 1
+        if fila["ultimo"] is None or b["_ts"] > fila["ultimo"]:
+            fila["ultimo"] = b["_ts"]
+    filas = sorted(unicos.values(), key=lambda f: (-f["veces"], f["ticker"]))
+    for f in filas:
+        f["hora"] = _hora(f["ultimo"], tz, ahora=ahora)
+
+    por_codigo_cap: dict[str, dict] = {}
+    for c in capacidad:
+        codigo = _codigo_de(c)
+        fila = por_codigo_cap.setdefault(codigo, {"codigo": codigo, "corridas": 0, "primero": None, "ultimo": None,
+                                                  "motivo": str(c.get("motivo") or "")})
+        fila["corridas"] += 1
+        if fila["primero"] is None or c["_ts"] < fila["primero"]:
+            fila["primero"] = c["_ts"]
+        if fila["ultimo"] is None or c["_ts"] > fila["ultimo"]:
+            fila["ultimo"] = c["_ts"]
+    capacidad_filas = sorted(por_codigo_cap.values(), key=lambda f: -f["corridas"])
+    for f in capacidad_filas:
+        f["desde"] = _hora(f["primero"], tz, ahora=ahora)
+        f["hasta"] = _hora(f["ultimo"], tz, ahora=ahora)
+
+    codigos = {f["codigo"] for f in filas} | {f["codigo"] for f in capacidad_filas}
+    dato_faltante = sorted(c for c in codigos if _es_dato_faltante(c))
+    nuevos = sorted(c for c in codigos if c not in conocidos and not _es_dato_faltante(c))
+    return {
+        "eventos": len(bloqueos), "unicos": filas, "capacidad": capacidad_filas,
+        "dato_faltante": dato_faltante, "codigos_nuevos": nuevos,
+        "revisar": bool(dato_faltante or nuevos),
+        "sin_catalogo": _catalogo_bloqueos is None,
+    }
+
+
+def _detalle_riesgo(riesgo: dict, hay_eventos: bool, conteos_validos: bool) -> str:
+    """Una línea: únicos (eventos), capacidad llena, y por qué "Revisar"."""
+    if not hay_eventos or not (riesgo["unicos"] or riesgo["capacidad"] or conteos_validos):
+        return "— bloqueos hoy"
+    partes = [f"{len(riesgo['unicos'])} bloqueos únicos ({riesgo['eventos']} eventos) hoy"]
+    for c in riesgo["capacidad"]:
+        partes.append(f"capacidad llena: {c['codigo']} desde {c['desde']} ({c['corridas']} corridas)")
+    if riesgo["dato_faltante"]:
+        partes.append("revisar: " + ", ".join(riesgo["dato_faltante"]))
+    if riesgo["codigos_nuevos"]:
+        partes.append("motivo nuevo: " + ", ".join(riesgo["codigos_nuevos"]))
+    return " · ".join(partes)
+
+
 ESTADOS_ORDEN = {
     "filled": "ejecutada", "partially_filled": "parcial", "rejected": "rechazada",
     "canceled": "cancelada", "expired": "expirada", "new": "abierta", "accepted": "abierta",
@@ -494,6 +581,18 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         nombre = str(b.get("limite") or "sin nombre")
         por_limite[nombre] = por_limite.get(nombre, 0) + 1
 
+    # Bloqueos ÚNICOS (2026-09-23): el mismo ticker bloqueado por el mismo
+    # motivo en 120 ticks es UN hecho repetido, no 120. Se cuenta por
+    # (ticker, código) con veces y última hora. "Revisar" solo si hay un
+    # bloqueo por DATO faltante/nulo/viejo (`DATO_FALTANTE:<campo>`) o un
+    # código que el catálogo no conoce; un límite conocido haciendo su
+    # trabajo es "OK", por muchas veces que se repita.
+    riesgo = resumir_bloqueos(bloqueos, [e for e in eventos if e.get("tipo") == "capacidad_llena"],
+                              cfg["tz"], ahora)
+    if riesgo["sin_catalogo"]:
+        problemas.append("No se pudo cargar el catálogo de códigos de bloqueo (momentum_paper_trader.bloqueos): "
+                         "todo código se trata como nuevo.")
+
     estado_rechequeo = _estado_frescura(_edad_min(ahora, ult_rechequeo), cfg["rechequeo_max_min"], en_sesion)
     # Un 0 solo es un dato si hay log Y el bot corrió hace poco. Sin rechequeo
     # reciente, "0 decisiones" o "0 bloqueos" no significa que no haya pasado nada.
@@ -531,12 +630,23 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         detalle_hunter = f"sin escaneo del VPS hoy · watchlist {_cuando(wl_momento, cfg['tz'], ahora)}"
     if corrida:
         detalle_hunter += f" · GitHub #{corrida['numero']} {_cuando(gha_momento, cfg['tz'], ahora)}"
+    # GitHub Actions (momentum_hunter.yml) es el respaldo del escaneo: en
+    # sesión debe seguir corriendo aunque no actúe. Más de `gha_max_min`
+    # sin una corrida exitosa es alerta (2026-09-23), y se dice cuánto.
+    # Sin dato de Actions (no configurado, caído) no se inventa nada.
+    gha_edad = _edad_min(ahora, gha_momento)
+    gha_max = cfg.get("gha_max_min", 45.0)
+    gha_atrasado = bool(corrida) and _estado_frescura(gha_edad, gha_max, en_sesion) == "alerta"
+    if gha_atrasado:
+        detalle_hunter += f" · GitHub lleva {gha_edad:.0f} min sin correr (máx {gha_max:.0f})"
+        problemas.append(f"GitHub Actions (momentum_hunter.yml) lleva {gha_edad:.0f} min sin correr en sesión.")
 
+    estado_hunter = _estado_frescura(_edad_min(ahora, hunter_momento), cfg["hunter_max_min"], en_sesion)
     etapas = [
         {
             "nombre": "Hunter", "donde": "VPS",
             "rol": "Busca candidatos. Determinista, sin IA ni bróker.",
-            "estado": _estado_frescura(_edad_min(ahora, hunter_momento), cfg["hunter_max_min"], en_sesion),
+            "estado": "alerta" if gha_atrasado else estado_hunter,
             "detalle": detalle_hunter,
         },
         {
@@ -570,10 +680,13 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         {
             "nombre": "Riesgo", "donde": "Código",
             "rol": "Límites deterministas. Sin margen. Fail-closed.",
-            # Un bloqueo registrado siempre es alerta; "OK" exige conteos válidos.
-            "estado": "alerta" if bloqueos else ("ok" if conteos_validos else "sin-datos"),
-            "detalle": (f"{len(bloqueos)} bloqueos hoy"
-                        if hay_eventos and (bloqueos or conteos_validos) else "— bloqueos hoy"),
+            # "Revisar" solo con un DATO_FALTANTE o un código nuevo (2026-09-23).
+            # Un límite conocido bloqueando es el sistema funcionando: "OK"
+            # si los conteos son válidos. Un bloqueo registrado sigue siendo
+            # un hecho aunque el rechequeo esté viejo: se muestra igual.
+            "estado": ("alerta" if riesgo["revisar"]
+                       else ("ok" if conteos_validos or bloqueos or riesgo["capacidad"] else "sin-datos")),
+            "detalle": _detalle_riesgo(riesgo, hay_eventos, conteos_validos),
         },
     ]
 
@@ -626,6 +739,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         "stream": stream, "dudas": dudas,
         "equity_dia": equity_dia, "equity_mes": equity_mes,
         "bloqueos": sorted(por_limite.items(), key=lambda kv: -kv[1]),
+        "riesgo": riesgo,
         "persist_fallidos": persist_fallidos,
         "ia_fallos": ia_fallos,
         "hay_eventos": hay_eventos,
@@ -1220,11 +1334,26 @@ def render(ctx: dict) -> str:
         dudas = ('<p class="vacio">El ejecutor no ha rechazado entradas hoy.</p>' if ctx["conteos_validos"]
                  else f'<p class="vacio">Sin datos: {esc(ctx["motivo_sin_datos"])}.</p>')
 
-    if ctx["bloqueos"]:
-        filas = "".join(f"<tr><td>{esc(n)}</td><td>{c}</td></tr>" for n, c in ctx["bloqueos"])
-        riesgo = f"<table><thead><tr><th>Límite</th><th>Bloqueos</th></tr></thead><tbody>{filas}</tbody></table>"
-        ub = ctx["ult_bloqueo"]
-        riesgo += f'<div class="nota">Último: {esc(ub.get("ticker"))} · {_hora(ub["_ts"], tz, ahora=ctx["ahora"])} · {esc(ub.get("motivo") or ub.get("limite"))}</div>'
+    r = ctx.get("riesgo") or {}
+    if r.get("unicos") or r.get("capacidad"):
+        # Bloqueos únicos por (ticker, código) con veces y última hora; la
+        # capacidad llena aparte, con desde/hasta y corridas (2026-09-23).
+        riesgo = ""
+        if r.get("capacidad"):
+            riesgo += "".join(
+                f'<div class="nota">Capacidad llena: <b>{esc(c["codigo"])}</b> · desde {esc(c["desde"])} '
+                f'hasta {esc(c["hasta"])} · {c["corridas"]} corridas · {esc(c["motivo"])}</div>'
+                for c in r["capacidad"])
+        if r.get("unicos"):
+            filas = "".join(
+                f"<tr><td class='tk'>{esc(f['ticker'])}</td><td>{esc(f['codigo'])}</td>"
+                f"<td>{f['veces']}</td><td>{esc(f['hora'])}</td></tr>" for f in r["unicos"][:20])
+            riesgo += (f"<div class='scroll'><table><thead><tr><th>Ticker</th><th>Código</th><th>Veces</th>"
+                       f"<th>Último</th></tr></thead><tbody>{filas}</tbody></table></div>")
+        riesgo += (f'<div class="nota">{len(r["unicos"])} bloqueos únicos · {r["eventos"]} eventos'
+                   + (f' · <b>revisar:</b> {esc(", ".join(r["dato_faltante"]))}' if r.get("dato_faltante") else "")
+                   + (f' · <b>motivo nuevo:</b> {esc(", ".join(r["codigos_nuevos"]))}' if r.get("codigos_nuevos") else "")
+                   + '</div>')
     else:
         riesgo = ('<p class="vacio">Ningún límite ha bloqueado operaciones hoy.</p>' if ctx["conteos_validos"]
                   else f'<p class="vacio">Sin datos: {esc(ctx["motivo_sin_datos"])}.</p>')
