@@ -6252,9 +6252,9 @@
     {
       "ticker": "DXC",
       "nombre": "DXC Technology Company",
-      "estado": "triggered",
+      "estado": "archived",
       "creado_en": "2026-09-23T13:11:45+00:00",
-      "actualizado_en": "2026-09-23T13:37:05+00:00",
+      "actualizado_en": "2026-09-23T13:46:08+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -6279,6 +6279,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": 1000.0
+        },
+        {
+          "estado": "archived",
+          "timestamp": "2026-09-23T13:46:08+00:00",
+          "motivo": "Desenlace paper terminal (stop). Causa raíz C: no había transición post-revisión. Revisión 2026-09-23T13:37:17+00:00.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -6302,11 +6314,11 @@
       "signal_latency_ms": 66000.0,
       "velas_desde_ruptura": 0,
       "watchlist_escrito_ts": "2026-09-23T13:37:06+00:00",
-      "ultima_entrada": 10.960000038146973,
-      "ultimo_stop": 10.716071503502983,
-      "ultimo_objetivo": 11.447857107434952,
-      "ultima_zona_entrada_baja": 10.971300359544543,
-      "ultimos_niveles_ts": "2026-09-23T13:43:05+00:00",
+      "ultima_entrada": 10.869999885559082,
+      "ultimo_stop": 10.626071350915092,
+      "ultimo_objetivo": 11.357856954847062,
+      "ultima_zona_entrada_baja": 10.9385057123705,
+      "ultimos_niveles_ts": "2026-09-23T13:46:05+00:00",
       "stop_tesis": 10.808035732678004,
       "clima_mercado": "debil"
     },
@@ -6351,11 +6363,11 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 2.7200000286102295,
-      "ultimo_stop": 2.6850000407014574,
-      "ultimo_objetivo": 2.7900000044277737,
-      "ultima_zona_entrada_baja": 2.7188362048906374,
-      "ultimos_niveles_ts": "2026-09-23T13:43:05+00:00",
+      "ultima_entrada": 2.7049999237060547,
+      "ultimo_stop": 2.6349999478885104,
+      "ultimo_objetivo": 2.844999875341143,
+      "ultima_zona_entrada_baja": 2.7139093281946742,
+      "ultimos_niveles_ts": "2026-09-23T13:48:05+00:00",
       "stop_tesis": 2.6400000623294284,
       "clima_mercado": "debil"
     },
@@ -6400,11 +6412,11 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 2.884000062942505,
-      "ultimo_stop": 2.825821510383061,
-      "ultimo_objetivo": 3.0003571680613925,
-      "ultima_zona_entrada_baja": 2.9141295821724134,
-      "ultimos_niveles_ts": "2026-09-23T13:43:05+00:00",
+      "ultima_entrada": 2.880000114440918,
+      "ultimo_stop": 2.821821561881474,
+      "ultimo_objetivo": 2.9963572195598056,
+      "ultima_zona_entrada_baja": 2.89154273142924,
+      "ultimos_niveles_ts": "2026-09-23T13:48:05+00:00",
       "stop_tesis": 2.83682142836707,
       "clima_mercado": "debil"
     }
