@@ -338,6 +338,35 @@ catalizador flojo o viejo, momentum enfriado, precio bajo el VWAP,
 asimetría pobre. Limitación anotada: es una corrección de diseño, no una
 calibración con datos; la muestra sigue siendo mínima.
 
+## Reporte de embudo (`embudo.py`)
+
+Fase 0 de la estrategia aprobada el 2026-09-23: **medir el embudo antes
+de relajar un filtro**. Cada dato ya se guardaba en algún lado (la
+telemetría del escaneo, la auditoría minuto a minuto, las transiciones
+de la watchlist, `revisiones.json`, la telemetría paper y la sombra de
+movers), pero repartido en seis archivos con seis formatos. Este módulo
+los junta en una tabla por rango de días, de punta a punta: universo →
+catalizador → evaluador → watchlist → disparo → guardarraíles → IA →
+orden, con los motivos exactos de cada descarte.
+
+```
+python -m momentum_paper_trader.embudo                       # últimos 7 días
+python -m momentum_paper_trader.embudo --desde 2026-09-22 --hasta 2026-09-22
+python -m momentum_paper_trader.embudo --json
+```
+
+Solo lee y cuenta: nunca decide, nunca cambia umbrales, nunca pide datos
+de mercado. Una fuente que falte deja su sección vacía y su nombre en
+"Fuentes sin datos"; nunca se rellena con ceros que parezcan medidos.
+Dos lecturas que ya salieron del primer día real (22/9): de 31
+ticker-días evaluados, 13 tuvieron patrón, timing y riesgo en la misma
+lectura pero no llegaron al score de 55 (6 pasarían con 45, 2 con 50);
+y de 8 revisiones de la IA, 1 habría pasado con umbral 6 y 5 con 5.
+
+Limitación honesta: `revisiones.json` guarda la confianza y el veredicto
+ya re-validado en código, así que "aprobarían con umbral k" es una cota
+superior (confianza >= k), no el veredicto del modelo a ese umbral.
+
 ## Uso
 
 ```bash
