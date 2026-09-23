@@ -160399,6 +160399,2222 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-23T18:00:12+00:00",
+      "candidatos_evaluados": 6,
+      "candidatos": [
+        {
+          "ticker": "GFS",
+          "nombre": "GLOBALFOUNDRIES Inc.",
+          "precio_actual": 47.0791015625,
+          "factores_intradia": {
+            "precio_actual": 47.0791015625,
+            "vwap": 47.08470583096296,
+            "ema9": 47.080314976060755,
+            "rvol_actual": 0.736191912662501,
+            "aceleracion_volumen": 0.43590435095289465,
+            "gap_pct": -0.018136392004229326,
+            "maximo_dia": 48.296,
+            "maximo_premarket": 48.296,
+            "rango_apertura_max": 47.900001525878906,
+            "rango_apertura_min": 47.099998474121094,
+            "velas_desde_ruptura": null,
+            "macd": 0.02248901049696883,
+            "macd_signal": 0.03290902126955234
+          },
+          "meta": {
+            "float_acciones": 148420705.0,
+            "short_pct_float": 0.1494,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "GFS Augments Photonics Portfolio: Will SMART Partnership Boost Growth?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-22T15:15:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1605.2077117666668,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "micro_pullback",
+            "temprano": true,
+            "early": {
+              "score": 50.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 74.80332869181716,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 63.3,
+            "score_ajustado": 43.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "VEEV",
+          "nombre": "Veeva Systems Inc.",
+          "precio_actual": 271.2449951171875,
+          "factores_intradia": {
+            "precio_actual": 271.2449951171875,
+            "vwap": 269.1278349628256,
+            "ema9": 270.976147112915,
+            "rvol_actual": 2.03213927017074,
+            "aceleracion_volumen": 3.0667957405614716,
+            "gap_pct": 0.008350222601686877,
+            "maximo_dia": 271.5198974609375,
+            "maximo_premarket": 262.47,
+            "rango_apertura_max": 267.7699890136719,
+            "rango_apertura_min": 262.9949951171875,
+            "velas_desde_ruptura": 174,
+            "macd": 0.12649516835034547,
+            "macd_signal": 0.07018361541942507
+          },
+          "meta": {
+            "float_acciones": 148293935.0,
+            "short_pct_float": 0.0326,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2936.2077477333337,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.9,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 174 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 98.9875425472656,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "El patrón se activó hace 174 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 59.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "El patrón se activó hace 174 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "TWST",
+          "nombre": "Twist Bioscience Corporation",
+          "precio_actual": 159.30499267578125,
+          "factores_intradia": {
+            "precio_actual": 159.30499267578125,
+            "vwap": 160.5993556661188,
+            "ema9": 159.319112685303,
+            "rvol_actual": 0.8515370169022437,
+            "aceleracion_volumen": 0.47172156619018024,
+            "gap_pct": -0.0014581094824397376,
+            "maximo_dia": 171.3701,
+            "maximo_premarket": 171.3701,
+            "rango_apertura_max": 166.34950256347656,
+            "rango_apertura_min": 162.6475067138672,
+            "velas_desde_ruptura": null,
+            "macd": -0.010926853286832738,
+            "macd_signal": -0.025106999778587054
+          },
+          "meta": {
+            "float_acciones": 61818860.0,
+            "short_pct_float": 0.22950001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Twist Bioscience (TWST) Expands AI Drug Discovery Exposure With Lilly TuneLab Partnership",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:08:50Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1911.3744554500001,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 44.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 29.59619371046196,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "RARE",
+          "nombre": "Ultragenyx Pharmaceutical Inc.",
+          "precio_actual": 14.614999771118164,
+          "factores_intradia": {
+            "precio_actual": 14.614999771118164,
+            "vwap": 14.871436217759465,
+            "ema9": 14.613702072182047,
+            "rvol_actual": 0.5562886199794027,
+            "aceleracion_volumen": 0.6692772540488277,
+            "gap_pct": -0.013452917537838909,
+            "maximo_dia": 15.75,
+            "maximo_premarket": 15.75,
+            "rango_apertura_max": 15.497900009155273,
+            "rango_apertura_min": 15.100000381469727,
+            "velas_desde_ruptura": 2,
+            "macd": -0.017369174536648657,
+            "macd_signal": -0.01896621410801663
+          },
+          "meta": {
+            "float_acciones": 80416024.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "FDA Approves Fayuvi. What Does It Mean for Ultragenyx (RARE)’s 2027 Profitability Target?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:18:51Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1901.3578387,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 56.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 16.927725404882764,
+                "extension": 100.0,
+                "distancia_maximo_dia": 27.9364934043278,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LCID",
+          "nombre": "Lucid Group, Inc.",
+          "precio_actual": 4.114999771118164,
+          "factores_intradia": {
+            "precio_actual": 4.114999771118164,
+            "vwap": 4.132174738365683,
+            "ema9": 4.116592197561529,
+            "rvol_actual": 1.4864336211473441,
+            "aceleracion_volumen": 0.600896551724138,
+            "gap_pct": -0.009280733731803988,
+            "maximo_dia": 4.3497,
+            "maximo_premarket": 4.3497,
+            "rango_apertura_max": 4.28000020980835,
+            "rango_apertura_min": 4.15500020980835,
+            "velas_desde_ruptura": null,
+            "macd": 0.0015152608237567478,
+            "macd_signal": 0.002430421944214956
+          },
+          "meta": {
+            "float_acciones": 156635014.0,
+            "short_pct_float": 0.45810002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lucid Just Struck a Partnership With Bolt on Mobility. What This Means for LCID Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-21T16:26:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2973.407908816667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 49.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 10.0896551724138,
+                "extension": 100.0,
+                "distancia_maximo_dia": 46.04220316761243,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "KRO",
+          "nombre": "Kronos Worldwide, Inc.",
+          "precio_actual": 8.449999809265137,
+          "factores_intradia": {
+            "precio_actual": 8.449999809265137,
+            "vwap": 8.43507153666961,
+            "ema9": 8.424224772962004,
+            "rvol_actual": 0.7826504481434059,
+            "aceleracion_volumen": 0.5073007926574885,
+            "gap_pct": -0.002907043150655917,
+            "maximo_dia": 8.77,
+            "maximo_premarket": 8.77,
+            "rango_apertura_max": 8.574999809265137,
+            "rango_apertura_min": 8.454999923706055,
+            "velas_desde_ruptura": 2,
+            "macd": 0.008022499032540154,
+            "macd_signal": 0.0024217766407976012
+          },
+          "meta": {
+            "float_acciones": 21495612.0,
+            "short_pct_float": 0.0498,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "NL Upgraded to Outperform on CompX Strength, Kronos Recovery",
+            "fuente": "Zacks",
+            "fecha": "2026-09-23T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 211.20792776666667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 56.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.7300792657488486,
+                "extension": 100.0,
+                "distancia_maximo_dia": 63.51195088542039,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 50.6,
+            "score_ajustado": 15.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-23T18:01:12+00:00",
+      "candidatos_evaluados": 6,
+      "candidatos": [
+        {
+          "ticker": "GFS",
+          "nombre": "GLOBALFOUNDRIES Inc.",
+          "precio_actual": 47.0791015625,
+          "factores_intradia": {
+            "precio_actual": 47.0791015625,
+            "vwap": 47.08470583096296,
+            "ema9": 47.080314976060755,
+            "rvol_actual": 0.736191912662501,
+            "aceleracion_volumen": 0.43590435095289465,
+            "gap_pct": -0.018136392004229326,
+            "maximo_dia": 48.296,
+            "maximo_premarket": 48.296,
+            "rango_apertura_max": 47.900001525878906,
+            "rango_apertura_min": 47.099998474121094,
+            "velas_desde_ruptura": null,
+            "macd": 0.02248901049696883,
+            "macd_signal": 0.03290902126955234
+          },
+          "meta": {
+            "float_acciones": 148420705.0,
+            "short_pct_float": 0.1494,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "GFS Augments Photonics Portfolio: Will SMART Partnership Boost Growth?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-22T15:15:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1606.2108124666668,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "micro_pullback",
+            "temprano": true,
+            "early": {
+              "score": 50.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 74.80332869181716,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 63.3,
+            "score_ajustado": 43.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "VEEV",
+          "nombre": "Veeva Systems Inc.",
+          "precio_actual": 271.1199951171875,
+          "factores_intradia": {
+            "precio_actual": 271.1199951171875,
+            "vwap": 269.15149145835886,
+            "ema9": 271.0049167137695,
+            "rvol_actual": 5.995524209955242,
+            "aceleracion_volumen": 4.132636910414688,
+            "gap_pct": 0.008350222601686877,
+            "maximo_dia": 271.5198974609375,
+            "maximo_premarket": 262.47,
+            "rango_apertura_max": 267.7699890136719,
+            "rango_apertura_min": 262.9949951171875,
+            "velas_desde_ruptura": 175,
+            "macd": 0.1328080260497586,
+            "macd_signal": 0.08270849754549178
+          },
+          "meta": {
+            "float_acciones": 148293935.0,
+            "short_pct_float": 0.0326,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2937.210848716667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.9,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 175 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 98.5271711300365,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 175 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 59.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 175 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "TWST",
+          "nombre": "Twist Bioscience Corporation",
+          "precio_actual": 159.30499267578125,
+          "factores_intradia": {
+            "precio_actual": 159.30499267578125,
+            "vwap": 160.5993556661188,
+            "ema9": 159.319112685303,
+            "rvol_actual": 0.8515370169022437,
+            "aceleracion_volumen": 0.47172156619018024,
+            "gap_pct": -0.0014581094824397376,
+            "maximo_dia": 171.3701,
+            "maximo_premarket": 171.3701,
+            "rango_apertura_max": 166.34950256347656,
+            "rango_apertura_min": 162.6475067138672,
+            "velas_desde_ruptura": null,
+            "macd": -0.010926853286832738,
+            "macd_signal": -0.025106999778587054
+          },
+          "meta": {
+            "float_acciones": 61818860.0,
+            "short_pct_float": 0.22950001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Twist Bioscience (TWST) Expands AI Drug Discovery Exposure With Lilly TuneLab Partnership",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:08:50Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1912.3775566666666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 44.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 29.59619371046196,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "RARE",
+          "nombre": "Ultragenyx Pharmaceutical Inc.",
+          "precio_actual": 14.614999771118164,
+          "factores_intradia": {
+            "precio_actual": 14.614999771118164,
+            "vwap": 14.870657856771862,
+            "ema9": 14.614969262109597,
+            "rvol_actual": 0.5502129715013393,
+            "aceleracion_volumen": 0.8319443437930284,
+            "gap_pct": -0.013452917537838909,
+            "maximo_dia": 15.75,
+            "maximo_premarket": 15.75,
+            "rango_apertura_max": 15.497900009155273,
+            "rango_apertura_min": 15.100000381469727,
+            "velas_desde_ruptura": 4,
+            "macd": -0.014823206828143753,
+            "macd_signal": -0.017634070585090134
+          },
+          "meta": {
+            "float_acciones": 80416024.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "FDA Approves Fayuvi. What Does It Mean for Ultragenyx (RARE)’s 2027 Profitability Target?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:18:51Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1902.3609397,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 54.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 33.19443437930284,
+                "extension": 100.0,
+                "distancia_maximo_dia": 27.9364934043278,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LCID",
+          "nombre": "Lucid Group, Inc.",
+          "precio_actual": 4.114999771118164,
+          "factores_intradia": {
+            "precio_actual": 4.114999771118164,
+            "vwap": 4.132167859155499,
+            "ema9": 4.116273712272855,
+            "rvol_actual": 0.3548544933479345,
+            "aceleracion_volumen": 0.5624787545040452,
+            "gap_pct": -0.009280733731803988,
+            "maximo_dia": 4.3497,
+            "maximo_premarket": 4.3497,
+            "rango_apertura_max": 4.28000020980835,
+            "rango_apertura_min": 4.15500020980835,
+            "velas_desde_ruptura": null,
+            "macd": 0.0012686469742542172,
+            "macd_signal": 0.0021980669502228082
+          },
+          "meta": {
+            "float_acciones": 156635014.0,
+            "short_pct_float": 0.45810002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lucid Just Struck a Partnership With Bolt on Mobility. What This Means for LCID Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-21T16:26:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2974.4109995666668,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 48.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 6.247875450404514,
+                "extension": 100.0,
+                "distancia_maximo_dia": 46.04220316761243,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "KRO",
+          "nombre": "Kronos Worldwide, Inc.",
+          "precio_actual": 8.449999809265137,
+          "factores_intradia": {
+            "precio_actual": 8.449999809265137,
+            "vwap": 8.43507153666961,
+            "ema9": 8.424224772962004,
+            "rvol_actual": 0.7826504481434059,
+            "aceleracion_volumen": 0.5073007926574885,
+            "gap_pct": -0.002907043150655917,
+            "maximo_dia": 8.77,
+            "maximo_premarket": 8.77,
+            "rango_apertura_max": 8.574999809265137,
+            "rango_apertura_min": 8.454999923706055,
+            "velas_desde_ruptura": 2,
+            "macd": 0.008022499032540154,
+            "macd_signal": 0.0024217766407976012
+          },
+          "meta": {
+            "float_acciones": 21495612.0,
+            "short_pct_float": 0.0498,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "NL Upgraded to Outperform on CompX Strength, Kronos Recovery",
+            "fuente": "Zacks",
+            "fecha": "2026-09-23T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 212.21101833333333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 56.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.7300792657488486,
+                "extension": 100.0,
+                "distancia_maximo_dia": 63.51195088542039,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 50.6,
+            "score_ajustado": 15.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-23T18:02:12+00:00",
+      "candidatos_evaluados": 6,
+      "candidatos": [
+        {
+          "ticker": "GFS",
+          "nombre": "GLOBALFOUNDRIES Inc.",
+          "precio_actual": 47.04999923706055,
+          "factores_intradia": {
+            "precio_actual": 47.04999923706055,
+            "vwap": 47.08460754898315,
+            "ema9": 47.07260138326287,
+            "rvol_actual": 1.580207908683245,
+            "aceleracion_volumen": 1.867643793026871,
+            "gap_pct": -0.018136392004229326,
+            "maximo_dia": 48.296,
+            "maximo_premarket": 48.296,
+            "rango_apertura_max": 47.900001525878906,
+            "rango_apertura_min": 47.099998474121094,
+            "velas_desde_ruptura": null,
+            "macd": 0.016237525576656253,
+            "macd_signal": 0.027510272215035297
+          },
+          "meta": {
+            "float_acciones": 148420705.0,
+            "short_pct_float": 0.1494,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "GFS Augments Photonics Portfolio: Will SMART Partnership Boost Growth?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-22T15:15:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1607.2158639000002,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 74.20074617070871,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "VEEV",
+          "nombre": "Veeva Systems Inc.",
+          "precio_actual": 270.75,
+          "factores_intradia": {
+            "precio_actual": 270.75,
+            "vwap": 269.1540284922616,
+            "ema9": 270.9553848015262,
+            "rvol_actual": 0.24167835735237853,
+            "aceleracion_volumen": 2.725356900067981,
+            "gap_pct": 0.008350222601686877,
+            "maximo_dia": 271.5198974609375,
+            "maximo_premarket": 262.47,
+            "rango_apertura_max": 267.7699890136719,
+            "rango_apertura_min": 262.9949951171875,
+            "velas_desde_ruptura": null,
+            "macd": 0.10501223710417662,
+            "macd_signal": 0.08718217009331325
+          },
+          "meta": {
+            "float_acciones": 148293935.0,
+            "short_pct_float": 0.0326,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2938.2159008666663,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.16448971829672,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "TWST",
+          "nombre": "Twist Bioscience Corporation",
+          "precio_actual": 159.19000244140625,
+          "factores_intradia": {
+            "precio_actual": 159.19000244140625,
+            "vwap": 160.59570913569186,
+            "ema9": 159.28623163031267,
+            "rvol_actual": 0.41248346174799594,
+            "aceleracion_volumen": 0.5787741203178207,
+            "gap_pct": -0.0014581094824397376,
+            "maximo_dia": 171.3701,
+            "maximo_premarket": 171.3701,
+            "rango_apertura_max": 166.34950256347656,
+            "rango_apertura_min": 162.6475067138672,
+            "velas_desde_ruptura": null,
+            "macd": -0.021802916288891083,
+            "macd_signal": -0.022558438686258425
+          },
+          "meta": {
+            "float_acciones": 61818860.0,
+            "short_pct_float": 0.22950001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Twist Bioscience (TWST) Expands AI Drug Discovery Exposure With Lilly TuneLab Partnership",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:08:50Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1913.38260845,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 46.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 7.877412031782072,
+                "extension": 100.0,
+                "distancia_maximo_dia": 28.92518847457193,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "RARE",
+          "nombre": "Ultragenyx Pharmaceutical Inc.",
+          "precio_actual": 14.604999542236328,
+          "factores_intradia": {
+            "precio_actual": 14.604999542236328,
+            "vwap": 14.86962572159114,
+            "ema9": 14.612975318134945,
+            "rvol_actual": 2.407280376823524,
+            "aceleracion_volumen": 1.3400028893383416,
+            "gap_pct": -0.013452917537838909,
+            "maximo_dia": 15.75,
+            "maximo_premarket": 15.75,
+            "rango_apertura_max": 15.497900009155273,
+            "rango_apertura_min": 15.100000381469727,
+            "velas_desde_ruptura": null,
+            "macd": -0.014671780922126842,
+            "macd_signal": -0.017041612652497477
+          },
+          "meta": {
+            "float_acciones": 80416024.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "FDA Approves Fayuvi. What Does It Mean for Ultragenyx (RARE)’s 2027 Profitability Target?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:18:51Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1903.3659914833333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 64.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 84.00028893383416,
+                "extension": 100.0,
+                "distancia_maximo_dia": 27.30155823722713,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LCID",
+          "nombre": "Lucid Group, Inc.",
+          "precio_actual": 4.110099792480469,
+          "factores_intradia": {
+            "precio_actual": 4.110099792480469,
+            "vwap": 4.132164655528591,
+            "ema9": 4.1150389283143785,
+            "rvol_actual": 0.15249778212854476,
+            "aceleracion_volumen": 0.7725741949063355,
+            "gap_pct": -0.009280733731803988,
+            "maximo_dia": 4.3497,
+            "maximo_premarket": 4.3497,
+            "rango_apertura_max": 4.28000020980835,
+            "rango_apertura_min": 4.15500020980835,
+            "velas_desde_ruptura": null,
+            "macd": 0.0006700919931565963,
+            "macd_signal": 0.001892471958809566
+          },
+          "meta": {
+            "float_acciones": 156635014.0,
+            "short_pct_float": 0.45810002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lucid Just Struck a Partnership With Bolt on Mobility. What This Means for LCID Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-21T16:26:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2975.4160773333333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 52.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 27.25741949063355,
+                "extension": 100.0,
+                "distancia_maximo_dia": 44.91569360656334,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "KRO",
+          "nombre": "Kronos Worldwide, Inc.",
+          "precio_actual": 8.449999809265137,
+          "factores_intradia": {
+            "precio_actual": 8.449999809265137,
+            "vwap": 8.43507153666961,
+            "ema9": 8.424224772962004,
+            "rvol_actual": 0.7826504481434059,
+            "aceleracion_volumen": 0.5073007926574885,
+            "gap_pct": -0.002907043150655917,
+            "maximo_dia": 8.77,
+            "maximo_premarket": 8.77,
+            "rango_apertura_max": 8.574999809265137,
+            "rango_apertura_min": 8.454999923706055,
+            "velas_desde_ruptura": 2,
+            "macd": 0.008022499032540154,
+            "macd_signal": 0.0024217766407976012
+          },
+          "meta": {
+            "float_acciones": 21495612.0,
+            "short_pct_float": 0.0498,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "NL Upgraded to Outperform on CompX Strength, Kronos Recovery",
+            "fuente": "Zacks",
+            "fecha": "2026-09-23T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 213.21613493333334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 56.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.7300792657488486,
+                "extension": 100.0,
+                "distancia_maximo_dia": 63.51195088542039,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 50.6,
+            "score_ajustado": 15.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-23T18:03:12+00:00",
+      "candidatos_evaluados": 6,
+      "candidatos": [
+        {
+          "ticker": "GFS",
+          "nombre": "GLOBALFOUNDRIES Inc.",
+          "precio_actual": 47.04999923706055,
+          "factores_intradia": {
+            "precio_actual": 47.04999923706055,
+            "vwap": 47.08460754898315,
+            "ema9": 47.07260138326287,
+            "rvol_actual": 1.580207908683245,
+            "aceleracion_volumen": 1.867643793026871,
+            "gap_pct": -0.018136392004229326,
+            "maximo_dia": 48.296,
+            "maximo_premarket": 48.296,
+            "rango_apertura_max": 47.900001525878906,
+            "rango_apertura_min": 47.099998474121094,
+            "velas_desde_ruptura": null,
+            "macd": 0.016237525576656253,
+            "macd_signal": 0.027510272215035297
+          },
+          "meta": {
+            "float_acciones": 148420705.0,
+            "short_pct_float": 0.1494,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "GFS Augments Photonics Portfolio: Will SMART Partnership Boost Growth?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-22T15:15:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1608.2106387833333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 74.20074617070871,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "VEEV",
+          "nombre": "Veeva Systems Inc.",
+          "precio_actual": 270.80999755859375,
+          "factores_intradia": {
+            "precio_actual": 270.80999755859375,
+            "vwap": 269.1555222411353,
+            "ema9": 270.9263073529397,
+            "rvol_actual": 0.20050203953561344,
+            "aceleracion_volumen": 1.6158459595959596,
+            "gap_pct": 0.008350222601686877,
+            "maximo_dia": 271.5198974609375,
+            "maximo_premarket": 262.47,
+            "rango_apertura_max": 267.7699890136719,
+            "rango_apertura_min": 262.9949951171875,
+            "velas_desde_ruptura": null,
+            "macd": 0.08807846448365808,
+            "macd_signal": 0.08736142897138223
+          },
+          "meta": {
+            "float_acciones": 148293935.0,
+            "short_pct_float": 0.0326,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2939.21070925,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.38545900693751,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "TWST",
+          "nombre": "Twist Bioscience Corporation",
+          "precio_actual": 159.0601043701172,
+          "factores_intradia": {
+            "precio_actual": 159.0601043701172,
+            "vwap": 160.5925653694495,
+            "ema9": 159.24100617827358,
+            "rvol_actual": 1.8763073490447635,
+            "aceleracion_volumen": 1.5986824769433465,
+            "gap_pct": -0.0014581094824397376,
+            "maximo_dia": 171.3701,
+            "maximo_premarket": 171.3701,
+            "rango_apertura_max": 166.34950256347656,
+            "rango_apertura_min": 162.6475067138672,
+            "velas_desde_ruptura": null,
+            "macd": -0.038571782525707476,
+            "macd_signal": -0.025761107454148238
+          },
+          "meta": {
+            "float_acciones": 61818860.0,
+            "short_pct_float": 0.22950001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Twist Bioscience (TWST) Expands AI Drug Discovery Exposure With Lilly TuneLab Partnership",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:08:50Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1914.3774513166668,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 68.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 28.167191185143547,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "RARE",
+          "nombre": "Ultragenyx Pharmaceutical Inc.",
+          "precio_actual": 14.604999542236328,
+          "factores_intradia": {
+            "precio_actual": 14.604999542236328,
+            "vwap": 14.86962572159114,
+            "ema9": 14.612975318134945,
+            "rvol_actual": 2.407280376823524,
+            "aceleracion_volumen": 1.3400028893383416,
+            "gap_pct": -0.013452917537838909,
+            "maximo_dia": 15.75,
+            "maximo_premarket": 15.75,
+            "rango_apertura_max": 15.497900009155273,
+            "rango_apertura_min": 15.100000381469727,
+            "velas_desde_ruptura": null,
+            "macd": -0.014671780922126842,
+            "macd_signal": -0.017041612652497477
+          },
+          "meta": {
+            "float_acciones": 80416024.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "FDA Approves Fayuvi. What Does It Mean for Ultragenyx (RARE)’s 2027 Profitability Target?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:18:51Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1904.3608916833332,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 64.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 84.00028893383416,
+                "extension": 100.0,
+                "distancia_maximo_dia": 27.30155823722713,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LCID",
+          "nombre": "Lucid Group, Inc.",
+          "precio_actual": 4.114999771118164,
+          "factores_intradia": {
+            "precio_actual": 4.114999771118164,
+            "vwap": 4.132156103204187,
+            "ema9": 4.1150248317237414,
+            "rvol_actual": 0.6673660426081343,
+            "aceleracion_volumen": 0.273282165951532,
+            "gap_pct": -0.009280733731803988,
+            "maximo_dia": 4.3497,
+            "maximo_premarket": 4.3497,
+            "rango_apertura_max": 4.28000020980835,
+            "rango_apertura_min": 4.15500020980835,
+            "velas_desde_ruptura": null,
+            "macd": 0.0005105738106738755,
+            "macd_signal": 0.0014067982191592954
+          },
+          "meta": {
+            "float_acciones": 156635014.0,
+            "short_pct_float": 0.45810002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lucid Just Struck a Partnership With Bolt on Mobility. What This Means for LCID Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-21T16:26:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2976.411002083333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 46.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 46.04220316761243,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "KRO",
+          "nombre": "Kronos Worldwide, Inc.",
+          "precio_actual": 8.449999809265137,
+          "factores_intradia": {
+            "precio_actual": 8.449999809265137,
+            "vwap": 8.43507153666961,
+            "ema9": 8.424224772962004,
+            "rvol_actual": 0.7826504481434059,
+            "aceleracion_volumen": 0.5073007926574885,
+            "gap_pct": -0.002907043150655917,
+            "maximo_dia": 8.77,
+            "maximo_premarket": 8.77,
+            "rango_apertura_max": 8.574999809265137,
+            "rango_apertura_min": 8.454999923706055,
+            "velas_desde_ruptura": 2,
+            "macd": 0.008022499032540154,
+            "macd_signal": 0.0024217766407976012
+          },
+          "meta": {
+            "float_acciones": 21495612.0,
+            "short_pct_float": 0.0498,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "NL Upgraded to Outperform on CompX Strength, Kronos Recovery",
+            "fuente": "Zacks",
+            "fecha": "2026-09-23T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 214.21105578333334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 56.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.7300792657488486,
+                "extension": 100.0,
+                "distancia_maximo_dia": 63.51195088542039,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 50.6,
+            "score_ajustado": 15.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-23T18:04:12+00:00",
+      "candidatos_evaluados": 6,
+      "candidatos": [
+        {
+          "ticker": "GFS",
+          "nombre": "GLOBALFOUNDRIES Inc.",
+          "precio_actual": 47.04999923706055,
+          "factores_intradia": {
+            "precio_actual": 47.04999923706055,
+            "vwap": 47.08454011809414,
+            "ema9": 47.068080954022406,
+            "rvol_actual": 1.0652154518690338,
+            "aceleracion_volumen": 1.8040833161476595,
+            "gap_pct": -0.018136392004229326,
+            "maximo_dia": 48.296,
+            "maximo_premarket": 48.296,
+            "rango_apertura_max": 47.900001525878906,
+            "rango_apertura_min": 47.099998474121094,
+            "velas_desde_ruptura": null,
+            "macd": 0.013099810121275368,
+            "macd_signal": 0.024628179796283314
+          },
+          "meta": {
+            "float_acciones": 148420705.0,
+            "short_pct_float": 0.1494,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "GFS Augments Photonics Portfolio: Will SMART Partnership Boost Growth?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-22T15:15:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1609.2055009833334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 74.20074617070871,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "VEEV",
+          "nombre": "Veeva Systems Inc.",
+          "precio_actual": 270.92999267578125,
+          "factores_intradia": {
+            "precio_actual": 270.92999267578125,
+            "vwap": 269.1565799448557,
+            "ema9": 270.92704441750806,
+            "rvol_actual": 0.11486299474121228,
+            "aceleracion_volumen": 0.1324396782841823,
+            "gap_pct": 0.008350222601686877,
+            "maximo_dia": 271.5198974609375,
+            "maximo_premarket": 262.47,
+            "rango_apertura_max": 267.7699890136719,
+            "rango_apertura_min": 262.9949951171875,
+            "velas_desde_ruptura": 0,
+            "macd": 0.08337978058813178,
+            "macd_signal": 0.08656509929473215
+          },
+          "meta": {
+            "float_acciones": 148293935.0,
+            "short_pct_float": 0.0326,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Veeva Expands Amgen Partnership With Global Vault CRM Rollout Plan",
+            "fuente": "Zacks",
+            "fecha": "2026-09-21T17:04:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2940.205537733333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 59.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.82739758421899,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 59.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "TWST",
+          "nombre": "Twist Bioscience Corporation",
+          "precio_actual": 159.52499389648438,
+          "factores_intradia": {
+            "precio_actual": 159.52499389648438,
+            "vwap": 160.55178184374194,
+            "ema9": 159.29780372191573,
+            "rvol_actual": 42.69627739765743,
+            "aceleracion_volumen": 15.883620689655173,
+            "gap_pct": -0.0014581094824397376,
+            "maximo_dia": 171.3701,
+            "maximo_premarket": 171.3701,
+            "rango_apertura_max": 166.34950256347656,
+            "rango_apertura_min": 162.6475067138672,
+            "velas_desde_ruptura": 0,
+            "macd": -0.014185014282816155,
+            "macd_signal": -0.023445888819881824
+          },
+          "meta": {
+            "float_acciones": 61818860.0,
+            "short_pct_float": 0.22950001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Twist Bioscience (TWST) Expands AI Drug Discovery Exposure With Lilly TuneLab Partnership",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:08:50Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1915.3722462833332,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 30.879972039955405,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 66.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "RARE",
+          "nombre": "Ultragenyx Pharmaceutical Inc.",
+          "precio_actual": 14.59000015258789,
+          "factores_intradia": {
+            "precio_actual": 14.59000015258789,
+            "vwap": 14.8596367510237,
+            "ema9": 14.599904301262617,
+            "rvol_actual": 9.845458806374335,
+            "aceleracion_volumen": 8.932491289198605,
+            "gap_pct": -0.013452917537838909,
+            "maximo_dia": 15.75,
+            "maximo_premarket": 15.75,
+            "rango_apertura_max": 15.497900009155273,
+            "rango_apertura_min": 15.100000381469727,
+            "velas_desde_ruptura": null,
+            "macd": -0.01796609972902985,
+            "macd_signal": -0.017375950636759396
+          },
+          "meta": {
+            "float_acciones": 80416024.0,
+            "short_pct_float": 0.17979999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "FDA Approves Fayuvi. What Does It Mean for Ultragenyx (RARE)’s 2027 Profitability Target?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:18:51Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1905.35566735,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 67.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 26.34921603732632,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "LCID",
+          "nombre": "Lucid Group, Inc.",
+          "precio_actual": 4.114999771118164,
+          "factores_intradia": {
+            "precio_actual": 4.114999771118164,
+            "vwap": 4.132156103204187,
+            "ema9": 4.1150248317237414,
+            "rvol_actual": 0.6673660426081343,
+            "aceleracion_volumen": 0.273282165951532,
+            "gap_pct": -0.009280733731803988,
+            "maximo_dia": 4.3497,
+            "maximo_premarket": 4.3497,
+            "rango_apertura_max": 4.28000020980835,
+            "rango_apertura_min": 4.15500020980835,
+            "velas_desde_ruptura": null,
+            "macd": 0.0005105738106738755,
+            "macd_signal": 0.0014067982191592954
+          },
+          "meta": {
+            "float_acciones": 156635014.0,
+            "short_pct_float": 0.45810002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lucid Just Struck a Partnership With Bolt on Mobility. What This Means for LCID Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-21T16:26:48Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2977.405796066667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 46.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 46.04220316761243,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "KRO",
+          "nombre": "Kronos Worldwide, Inc.",
+          "precio_actual": 8.449999809265137,
+          "factores_intradia": {
+            "precio_actual": 8.449999809265137,
+            "vwap": 8.43507153666961,
+            "ema9": 8.424224772962004,
+            "rvol_actual": 0.7826504481434059,
+            "aceleracion_volumen": 0.5073007926574885,
+            "gap_pct": -0.002907043150655917,
+            "maximo_dia": 8.77,
+            "maximo_premarket": 8.77,
+            "rango_apertura_max": 8.574999809265137,
+            "rango_apertura_min": 8.454999923706055,
+            "velas_desde_ruptura": 2,
+            "macd": 0.008022499032540154,
+            "macd_signal": 0.0024217766407976012
+          },
+          "meta": {
+            "float_acciones": 21495612.0,
+            "short_pct_float": 0.0498,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "NL Upgraded to Outperform on CompX Strength, Kronos Recovery",
+            "fuente": "Zacks",
+            "fecha": "2026-09-23T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 215.20583248333332,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 56.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.7300792657488486,
+                "extension": 100.0,
+                "distancia_maximo_dia": 63.51195088542039,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 50.6,
+            "score_ajustado": 15.6,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
     }
   ]
 }
