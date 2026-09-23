@@ -367,6 +367,56 @@ Limitación honesta: `revisiones.json` guarda la confianza y el veredicto
 ya re-validado en código, así que "aprobarían con umbral k" es una cota
 superior (confianza >= k), no el veredicto del modelo a ese umbral.
 
+## Libro sombra (`libro_sombra.py`)
+
+La otra mitad de la fase 0: **qué habría pasado, a precios reales, con
+filtros distintos**, sin enviar una sola orden. Al salir de la ventana
+de sesión, el vigía corre `python -m momentum_paper_trader.libro_sombra
+--dia <hoy>` antes del persist final: toma las señales que el sistema
+vio ese día, baja las velas de 1 minuto de esos tickers y simula cada
+entrada con su stop y su objetivo, cobrando deslizamiento. El resultado
+queda en `telemetria/<día>/<fuente>/sombra.json`, que el persist ya
+sube. Así se prueban variantes en paralelo con riesgo cero y en semanas
+hay muestra por variante, no en meses.
+
+Variantes: `disparadas` (todas las TRIGGERED, sin compuerta de IA),
+`ia_confianza_5` (cota superior, ver la limitación del reporte de
+embudo), `ia_real` (lo que de verdad se colocó, control), `score_45` y
+`score_50` (ticker-días con patrón + timing + riesgo que no llegaron al
+mínimo), `sin_catalizador` (movers de clase B), `corte_1130` (sin
+entradas después de las 11:30 ET), `stop_05atr` (piso de stop en 0,5 ×
+ATR, 2R igual), `time_stop_30` (cerrar a los 30 min sin +0,5R) y
+`aleatorio` (entradas al azar en los movers del día con el mismo stop:
+si el sistema no le gana a esto, el edge está en el universo, no en la
+entrada).
+
+Reglas de la simulación, calcadas del ejecutor real: compra limitada al
+precio de entrada, llenada en la primera vela que lo toca dentro de 15
+min (si no, `no_llenada`, como la cancelación real); deslizamiento del
+0,4 % en el llenado y en el stop, nunca en el objetivo; stop y objetivo
+en la misma vela → stop; sin salida a 10 min del cierre → se cierra ahí.
+Cada trade guarda R, MFE y MAE en R y minutos.
+
+```
+python -m momentum_paper_trader.libro_sombra --resumen --desde 2026-09-22 --hasta 2026-10-03
+python -m momentum_paper_trader.libro_sombra --dia 2026-09-22     # rehacer un día a mano
+```
+
+El resumen da por variante: señales, llenadas, tasa de acierto,
+expectativa en R, profit factor, MFE y MAE medios, ganadoras que tocaron
+−0,8R antes de ganar (el stop está dentro del ruido) y drawdown máximo
+en R. **Muestra mínima para decidir: 50 trades por variante**; antes de
+eso el resumen es una curiosidad, no un dato.
+
+Limitaciones anotadas: no es un backtest del universo entero, solo de lo
+que el sistema llegó a ver; los ATR de las señales sin entrada en la
+watchlist se aproximan con los días previos de la misma serie de 1
+minuto y cada señal lo marca (`atr_aproximado`); una señal sin velas
+queda fuera y se lista en `senales_sin_velas`, nunca se rellena. Con
+stops del 0,7 % y deslizamiento del 0,4 % por lado, un stop tocado
+cuesta más de 2R: eso no es un defecto del simulador, es la matemática
+que el sistema real también paga.
+
 ## Uso
 
 ```bash

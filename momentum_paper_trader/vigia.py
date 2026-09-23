@@ -18,6 +18,12 @@ persistencia en modo "solo persistir" (backup del state, git pull,
 materializar overlay, commit y push, con su aviso si falla). La orden ya
 no espera al commit: git dejó de estar en el camino crítico.
 
+Al cerrar la ventana, antes de ese persist final, corre una vez el libro
+sombra del día (`libro_sombra.py`, 2026-09-23): simula variantes de
+filtros a precios reales, sin órdenes, y deja `sombra.json` en la
+telemetría para que suba en el mismo commit. Best-effort: si falla, el
+persist corre igual.
+
 Lo que NO cambia: límites de riesgo, veto de la IA, endpoint paper,
 overlay, regla 2 (este módulo vive en el paper trader, no en el hunter).
 Fail-closed por tick: si un paso falla o se cuelga (timeout), se registra
@@ -55,6 +61,11 @@ DESFASE_SEG = 5           # los ticks caen a los :05 de cada minuto
 PERSISTIR_CADA_TICKS = 5  # misma cadencia de commit que el timer viejo
 TIMEOUT_RECHEQUEO_SEG = 240
 TIMEOUT_PAPER_SEG = 240
+# Libro sombra al cerrar la ventana (2026-09-23): baja las velas del día
+# de ~50-200 tickers y simula variantes; con la pausa entre peticiones
+# de Yahoo son un par de minutos. Corre DESPUÉS del último tick y ANTES
+# del persist final, para que `sombra.json` suba en el mismo commit.
+TIMEOUT_SOMBRA_SEG = 600
 TIMEOUT_PERSIST_SEG = 420
 ESPERA_CANDADO_PAPER_SEG = 60
 WRAPPER_PERSIST_DEFAULT = "/opt/momentum/bin/run_watchlist_paper.sh"
@@ -135,6 +146,11 @@ class Vigia:
         self.ticks = 0
         self.pendiente_persistir = False
         self.detener = False
+        # Día (ISO) del último tick y día para el que ya corrió el libro
+        # sombra: se corre UNA vez por día, solo al salir de la ventana
+        # de forma natural (no en una parada por señal a media sesión).
+        self.dia_ultimo_tick: str | None = None
+        self.sombra_hecha: str | None = None
 
     # ── pasos ──
     def _medir(self, nombre: str, cmd: list[str], timeout: float, env: dict | None = None) -> Resultado:
@@ -175,6 +191,16 @@ class Vigia:
             finally:
                 fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
 
+    def sombra(self, dia: str) -> Resultado:
+        """Libro sombra del día (`libro_sombra.py`): qué habría pasado con
+        filtros distintos, a precios reales, sin órdenes. Best-effort: si
+        falla o se cuelga, se registra y el persist sigue igual; el
+        libro de ese día se puede rehacer a mano con `--dia`."""
+        r = self._medir("sombra", [self.python, "-m", "momentum_paper_trader.libro_sombra", "--dia", dia],
+                        TIMEOUT_SOMBRA_SEG)
+        self.sombra_hecha = dia
+        return r
+
     def persistir(self) -> Resultado:
         env = dict(os.environ)
         env["MOMENTUM_WRAPPER_SOLO_PERSISTIR"] = "1"
@@ -198,6 +224,7 @@ class Vigia:
     def tick(self, ahora: datetime | None = None) -> list[Resultado]:
         ahora = ahora or self.reloj()
         self.ticks += 1
+        self.dia_ultimo_tick = ahora.astimezone(UTC).date().isoformat()
         resultados = [self.rechequeo(), self.paper()]
         self.pendiente_persistir = True
         log.info("tick %d %s · %s", self.ticks, ahora.astimezone(UTC).strftime("%H:%M:%S"),
@@ -215,8 +242,11 @@ class Vigia:
         while not self.detener:
             ahora = self.reloj()
             if not en_ventana(ahora):
-                # Al salir de la ventana se sube lo último del día, una vez.
+                # Al salir de la ventana: libro sombra del día (una vez) y
+                # después se sube lo último del día, sombra incluida.
                 if self.pendiente_persistir:
+                    if self.dia_ultimo_tick and self.sombra_hecha != self.dia_ultimo_tick:
+                        self.sombra(self.dia_ultimo_tick)
                     self.persistir()
                 espera = (inicio_proxima_ventana(ahora) - ahora).total_seconds()
                 self.dormir(max(1.0, min(60.0, espera)))
