@@ -234,6 +234,18 @@ Es la única parte del sistema que usa órdenes **a mercado**, y solo para
 SALIR: al cerrar hay que salir sí o sí, y una orden limitada podría no
 llenarse justo cuando más falta hace. Para ENTRAR nunca se usa mercado.
 
+**Registro del cierre en la revisión** (2026-09-24): al liquidar, la venta
+va en una orden aparte y las dos patas del bracket quedan canceladas.
+`seguimiento.py` veía entonces la entrada llena y las patas muertas sin
+ninguna de salida llenada, y lo tomaba por una "posición sin salidas": un
+ERROR por Telegram y un trade sin P&L (le pasó al 23/9 con UBER, PYPL,
+CSCO, CIEN, DBX). Ahora `cierre` marca la revisión como terminal
+(`cerrada`) con el mismo P&L que ya lleva el resumen de Telegram
+(`unrealized_pl` al liquidar; si falta, `None` -- regla 6), y
+`seguimiento` la salta. Si `cierre` **no** corrió y la posición quedó de
+veras desprotegida, no hay registro y el ERROR sí sale -- que es lo
+correcto.
+
 **Limitación honesta**: la ventana usa la convención de horario de verano
 (cierre 20:00 UTC) que ya usan los cron y `factors/intradia`. En horario
 de invierno el mercado cierra a las 21:00 UTC y esta ventana quedaría una

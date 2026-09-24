@@ -354,3 +354,92 @@ def test_ventana_en_invierno_no_se_adelanta_una_hora():
 
 def test_no_hay_ventana_el_fin_de_semana():
     assert cierre.en_ventana_de_cierre(_utc(8, 29, 19, 55), CFG) is False
+
+
+# ------------- registro del cierre en las revisiones (2026-09-24) -------------
+# El cierre deliberado se marca en la revisión del trade para que
+# `seguimiento.py` no lo confunda con una "posición sin salidas" y mande
+# un ERROR falso sin P&L (le pasó al 23/9 con UBER, PYPL, CSCO, CIEN, DBX).
+
+from momentum_paper_trader import estado                       # noqa: E402
+from momentum_paper_trader.estado import RevisionIA            # noqa: E402
+
+
+def _revisiones_en_tmp(monkeypatch, tmp_path, revisiones):
+    real_cargar, real_guardar = estado.cargar, estado.guardar
+    path = tmp_path / "revisiones.json"
+    real_guardar(revisiones, path)
+    monkeypatch.setattr(estado, "cargar", lambda p=path: real_cargar(p))
+    monkeypatch.setattr(estado, "guardar", lambda rs, p=path: real_guardar(rs, p))
+    return path
+
+
+def _revision_abierta(ticker="RKLB"):
+    return RevisionIA(
+        ticker=ticker, creado_en="2026-08-24T14:00:00+00:00", entro=True, confianza=8,
+        razonamiento="catalizador", timestamp="2026-08-24T14:05:00+00:00",
+        order_id=f"orden-{ticker}", cantidad=65, precio_entrada=78.10,
+        stop=76.90, objetivo=82.50, resultado="abierta",
+    )
+
+
+def test_al_cerrar_marca_la_revision_cerrada_con_su_pnl(monkeypatch, tmp_path):
+    _parchear(monkeypatch)
+    path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_abierta("RKLB")])
+    client = _FakeClient([_POSICION])   # RKLB, unrealized_pl = 123.45
+
+    cierre.cerrar_si_toca(client, CFG, _t(19, 50))
+
+    r = estado.cargar(path)[0]
+    assert r.resultado == "cerrada" and r.pnl == 123.45
+
+
+def test_no_toca_revisiones_de_otros_tickers_ni_las_terminales(monkeypatch, tmp_path):
+    _parchear(monkeypatch)
+    otro = _revision_abierta("AAPL")
+    terminal = _revision_abierta("RKLB")
+    terminal.resultado = "objetivo"    # ya cerrada por el bracket: no se pisa
+    path = _revisiones_en_tmp(monkeypatch, tmp_path, [otro, terminal])
+    client = _FakeClient([_POSICION])   # cierra RKLB
+
+    cierre.cerrar_si_toca(client, CFG, _t(19, 50))
+
+    guardadas = {r.ticker: r for r in estado.cargar(path)}
+    assert guardadas["AAPL"].resultado == "abierta"          # otro ticker, intacto
+    assert guardadas["RKLB"].resultado == "objetivo"          # terminal, no se pisa
+
+
+def test_pnl_none_si_la_posicion_no_trae_unrealized_pl(monkeypatch, tmp_path):
+    # Regla 6: un dato ausente no se inventa. Se marca cerrada igual (para
+    # que no salga el ERROR falso), pero con P&L None.
+    _parchear(monkeypatch)
+    path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_abierta("RKLB")])
+    sin_pl = {"symbol": "RKLB", "qty": "65", "current_price": "80.00", "avg_entry_price": "78.10"}
+    client = _FakeClient([sin_pl])
+
+    cierre.cerrar_si_toca(client, CFG, _t(19, 50))
+
+    r = estado.cargar(path)[0]
+    assert r.resultado == "cerrada" and r.pnl is None
+
+
+def test_seguimiento_no_manda_error_falso_tras_el_cierre_deliberado(monkeypatch, tmp_path):
+    """End to end: cierre marca la revisión "cerrada"; después seguimiento
+    la ve terminal, no consulta a Alpaca y no manda el ERROR de "posición
+    sin salidas"."""
+    from momentum_paper_trader import seguimiento
+    _parchear(monkeypatch)
+    path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_abierta("RKLB")])
+    cierre.cerrar_si_toca(_FakeClient([_POSICION]), CFG, _t(19, 50))
+
+    enviados: list[str] = []
+    monkeypatch.setattr(seguimiento, "enviar_telegram", lambda t: enviados.append(t))
+    consultadas: list[str] = []
+
+    class _SoloLectura:
+        def estado_orden(self, oid):
+            consultadas.append(oid)
+            return {"status": "filled", "filled_avg_price": 78.10, "legs": []}
+
+    cambiadas = seguimiento.revisar(_SoloLectura(), CFG)
+    assert cambiadas == [] and consultadas == [] and enviados == []
