@@ -984,7 +984,7 @@ def test_fuente_de_velas_caida_muestra_sin_datos_y_ninguna_vela(tmp_path):
     html = bd.render(ctx)
     svg = _svg_velas(html, "AAA")
     assert "Sin datos" in svg and "Timeout" in svg
-    assert 'class="vela"' not in svg and "marca-" not in svg
+    assert 'class="vela ' not in svg and "marca-" not in svg
     # Las marcas siguen en el pie, porque salen de Alpaca y la watchlist, no de Yahoo.
     assert "$5.05" in html and "$5.12" in html and "$4.90" in html
 
@@ -998,7 +998,7 @@ def test_velas_reales_se_grafican_con_las_tres_marcas_y_la_hora_del_fill(tmp_pat
                  "entrada_hora": datetime(2026, 9, 18, 14, 32, 10, tzinfo=timezone.utc), "stop": 4.90}
     html = bd.render(ctx)
     svg = _svg_velas(html, "AAA")
-    assert svg.count('class="vela"') == 5
+    assert svg.count('class="vela ') == 5
     for marca in ("marca-ruptura", "marca-stop", "marca-entrada", "marca-entrada-hora"):
         assert marca in svg, marca
     assert "ruptura $5.05" in svg and "stop $4.90" in svg and "entrada $5.12" in svg
@@ -1018,7 +1018,7 @@ def test_marcas_que_faltan_no_se_dibujan_y_dicen_sin_dato(tmp_path):
     assert "marca-ruptura" not in svg and "marca-stop" not in svg and "marca-entrada-hora" not in svg
     assert "marca-entrada" in svg
     assert html.count("<b>sin dato</b>") == 2 and "$5.10 (hora sin dato)" in html
-    assert 'class="vela"' in svg
+    assert 'class="vela ' in svg
 
 
 def test_stop_cancelado_no_cuenta_como_stop(tmp_path):
@@ -1223,7 +1223,7 @@ def test_pausa_por_429_se_ve_en_el_panel(tmp_path):
     html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas))
     assert "5 velas · caché vencida 14:50" in html
     assert "Yahoo limitó peticiones (429)" in html
-    assert 'class="vela"' in html   # la copia vieja sí se dibuja
+    assert 'class="vela ' in html   # la copia vieja sí se dibuja
 
 
 def test_cache_por_defecto_nunca_dentro_del_repo(monkeypatch):
@@ -1359,7 +1359,13 @@ def test_el_panel_ofrece_tema_oscuro_por_boton_y_por_preferencia_del_sistema(tmp
     assert ".rejilla{stroke:var(--rejilla)}" in html
     assert ".ink{fill:var(--tinta)}" in html
     assert ".zona-riesgo{fill:var(--zona-riesgo)}" in html
+    # Colores de serie/velas/marcas de las gráficas por variables (2026-09-24).
+    assert ".serie{stroke:var(--acento)}" in html
+    assert ".vela-sube{fill:var(--verde);stroke:var(--verde)}" in html
+    assert ".m-entrada{stroke:var(--gris)}" in html
     # Y los colores fijos que rompían el oscuro ya no se emiten en ningún SVG.
-    assert 'fill="#16171a"' not in html and 'stroke="#bdb9ad"' not in html
+    for fijo in ('fill="#16171a"', 'stroke="#bdb9ad"', 'stroke="#2451b8"', 'stroke="#5c5b55"',
+                 'fill="#2451b8"', 'style="fill:#'):
+        assert fijo not in html, fijo
     # El modo claro sigue igual: variable de fondo crema intacta.
     assert "--fondo:#f3f1ea" in html

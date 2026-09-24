@@ -915,12 +915,12 @@ def _grafico_equity(hist: dict, tz, modo: str) -> str:
         partes.append(f'<text x="{x0-6}" y="{y(valor)+4:.1f}" text-anchor="end" class="eje">{esc(fmt_dinero(valor))}</text>')
     if base is not None:
         yb = y(base)
-        partes.append(f'<line x1="{x0}" y1="{yb:.1f}" x2="{x1}" y2="{yb:.1f}" stroke="#5c5b55" stroke-width="1" stroke-dasharray="5 4"/>')
+        partes.append(f'<line x1="{x0}" y1="{yb:.1f}" x2="{x1}" y2="{yb:.1f}" class="base-punteada" stroke-width="1" stroke-dasharray="5 4"/>')
         partes.append(f'<text x="{x1}" y="{yb-6:.1f}" text-anchor="end" class="eje">inicial {esc(fmt_dinero(base))}</text>')
     coords = " ".join(f"{x(t.timestamp()):.1f},{y(v):.1f}" for t, v in puntos)
-    partes.append(f'<polyline points="{coords}" fill="none" stroke="#2451b8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>')
+    partes.append(f'<polyline points="{coords}" fill="none" class="serie" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>')
     if len(puntos) == 1:
-        partes.append(f'<circle cx="{x(t_ini):.1f}" cy="{y(valores[0]):.1f}" r="3" fill="#2451b8"/>')
+        partes.append(f'<circle cx="{x(t_ini):.1f}" cy="{y(valores[0]):.1f}" r="3" class="serie-punto"/>')
     partes.append(f'<text x="{x0}" y="{alto-6}" class="eje">{esc(_etiqueta_x(puntos[0][0], tz, modo))}</text>')
     if len(puntos) > 1:
         partes.append(f'<text x="{x1}" y="{alto-6}" text-anchor="end" class="eje">{esc(_etiqueta_x(puntos[-1][0], tz, modo))}</text>')
@@ -1083,32 +1083,32 @@ def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime) -> str:
         partes.append(f'<text x="{x0-6}" y="{y(valor)+4:.1f}" text-anchor="end" class="eje">{esc(fmt_dinero(valor))}</text>')
     for i in range(n):
         o, c, h, lw = velas["open"][i], velas["close"][i], velas["high"][i], velas["low"][i]
-        color = "#1f7a4d" if c >= o else "#b3261e"
-        partes.append(f'<line x1="{x(i):.1f}" y1="{y(h):.1f}" x2="{x(i):.1f}" y2="{y(lw):.1f}" stroke="{color}" stroke-width="1"/>')
+        cls = "vela-sube" if c >= o else "vela-baja"
+        partes.append(f'<line class="{cls}" x1="{x(i):.1f}" y1="{y(h):.1f}" x2="{x(i):.1f}" y2="{y(lw):.1f}" stroke-width="1"/>')
         top, base = max(o, c), min(o, c)
-        partes.append(f'<rect class="vela" x="{x(i)-cuerpo/2:.1f}" y="{y(top):.1f}" width="{cuerpo:.1f}" '
-                      f'height="{max(1.0, y(base)-y(top)):.1f}" fill="{color}"/>')
+        partes.append(f'<rect class="vela {cls}" x="{x(i)-cuerpo/2:.1f}" y="{y(top):.1f}" width="{cuerpo:.1f}" '
+                      f'height="{max(1.0, y(base)-y(top)):.1f}"/>')
 
-    def marca_horizontal(valor, nombre, color, dash):
+    def marca_horizontal(valor, nombre, clase, dash):
         if valor is None:
             return
         if lo <= valor <= hi:
             yv = y(valor)
-            partes.append(f'<line class="marca-{nombre}" x1="{x0}" y1="{yv:.1f}" x2="{x1}" y2="{yv:.1f}" stroke="{color}" stroke-width="1.2" stroke-dasharray="{dash}"/>')
-            partes.append(f'<text x="{x1}" y="{yv-4:.1f}" text-anchor="end" class="eje" style="fill:{color}">{esc(nombre)} {esc(fmt_dinero(valor))}</text>')
+            partes.append(f'<line class="marca-{nombre} {clase}" x1="{x0}" y1="{yv:.1f}" x2="{x1}" y2="{yv:.1f}" stroke-width="1.2" stroke-dasharray="{dash}"/>')
+            partes.append(f'<text x="{x1}" y="{yv-4:.1f}" text-anchor="end" class="eje {clase}-txt">{esc(nombre)} {esc(fmt_dinero(valor))}</text>')
         else:
             yv = y1 + 10 if valor > hi else y0 - 6
-            partes.append(f'<text class="eje marca-{nombre}-fuera" x="{x1}" y="{yv:.1f}" text-anchor="end" style="fill:{color}">{esc(nombre)} {esc(fmt_dinero(valor))} (fuera del gráfico)</text>')
+            partes.append(f'<text class="eje marca-{nombre}-fuera {clase}-txt" x="{x1}" y="{yv:.1f}" text-anchor="end">{esc(nombre)} {esc(fmt_dinero(valor))} (fuera del gráfico)</text>')
 
-    marca_horizontal(marcas["ruptura"], "ruptura", "#2451b8", "6 4")
-    marca_horizontal(marcas["stop"], "stop", "#b3261e", "3 3")
-    marca_horizontal(marcas["entrada_precio"], "entrada", "#5c5b55", "1 3")
+    marca_horizontal(marcas["ruptura"], "ruptura", "m-ruptura", "6 4")
+    marca_horizontal(marcas["stop"], "stop", "m-stop", "3 3")
+    marca_horizontal(marcas["entrada_precio"], "entrada", "m-entrada", "1 3")
     hora = marcas["entrada_hora"]
     if hora is not None and marcas_ts and marcas_ts[0] is not None:
         # Vela más cercana al fill real (sin interpolar entre velas).
         idx = min(range(n), key=lambda i: abs((marcas_ts[i] - hora).total_seconds()) if marcas_ts[i] else float("inf"))
         if marcas_ts[idx] is not None and abs((marcas_ts[idx] - hora).total_seconds()) <= 120:
-            partes.append(f'<line class="marca-entrada-hora" x1="{x(idx):.1f}" y1="{y1}" x2="{x(idx):.1f}" y2="{y0}" stroke="#5c5b55" stroke-width="1" stroke-dasharray="2 3"/>')
+            partes.append(f'<line class="marca-entrada-hora m-entrada" x1="{x(idx):.1f}" y1="{y1}" x2="{x(idx):.1f}" y2="{y0}" stroke-width="1" stroke-dasharray="2 3"/>')
             if marcas["entrada_precio"] is not None and lo <= marcas["entrada_precio"] <= hi:
                 partes.append(f'<circle cx="{x(idx):.1f}" cy="{y(marcas["entrada_precio"]):.1f}" r="3.5" class="ink"/>')
     if marcas_ts[0] is not None:
@@ -1206,14 +1206,14 @@ def _grafico_latencia(ctx: dict) -> str:
     for marca in range(0, int(tope) + 1, 4):
         partes.append(f'<text x="{x0-8}" y="{y(marca)+4:.1f}" text-anchor="end" class="eje">{marca}</text>')
     yp = y(ctx["presupuesto"])
-    partes.append(f'<line x1="{x0}" y1="{yp:.1f}" x2="{ancho-10}" y2="{yp:.1f}" stroke="#b3261e" stroke-width="1.5" stroke-dasharray="6 4"/>')
+    partes.append(f'<line x1="{x0}" y1="{yp:.1f}" x2="{ancho-10}" y2="{yp:.1f}" class="limite" stroke-width="1.5" stroke-dasharray="6 4"/>')
     partes.append(f'<text x="{ancho-14}" y="{yp-8:.1f}" text-anchor="end" class="eje rojo">presupuesto {fmt_num(ctx["presupuesto"])} velas</text>')
     if valores:
         paso = (ancho - x0 - 20) / len(valores)
         barra = max(3.0, paso * 0.7)
         for i, v in enumerate(valores):
-            color = "#b3261e" if v > ctx["presupuesto"] else "#2451b8"
-            partes.append(f'<rect x="{x0 + 6 + i*paso:.1f}" y="{y(v):.1f}" width="{barra:.1f}" height="{y0-y(v):.1f}" fill="{color}"/>')
+            cls = "barra-alta" if v > ctx["presupuesto"] else "barra-ok"
+            partes.append(f'<rect class="{cls}" x="{x0 + 6 + i*paso:.1f}" y="{y(v):.1f}" width="{barra:.1f}" height="{y0-y(v):.1f}"/>')
     else:
         mensaje = "Sin órdenes con latencia completa (ruptura → orden) hoy."
         partes.append(f'<text x="{(ancho+x0)/2}" y="120" text-anchor="middle" class="eje">{esc(mensaje)}</text>')
@@ -1278,6 +1278,12 @@ td.tk{color:var(--tinta);font-weight:700}
 .stats b{display:block;font-size:18px;font-weight:500}
 svg{width:100%;height:auto}.eje{font-family:var(--mono);font-size:10px;fill:var(--gris)}.eje.rojo{fill:var(--rojo)}
 .rejilla{stroke:var(--rejilla)}.ink{fill:var(--tinta)}.zona-riesgo{fill:var(--zona-riesgo)}
+.serie{stroke:var(--acento)}.serie-punto{fill:var(--acento)}.base-punteada{stroke:var(--gris)}
+.vela-sube{fill:var(--verde);stroke:var(--verde)}.vela-baja{fill:var(--rojo);stroke:var(--rojo)}
+.m-ruptura{stroke:var(--acento)}.m-ruptura-txt{fill:var(--acento)}
+.m-stop{stroke:var(--rojo)}.m-stop-txt{fill:var(--rojo)}
+.m-entrada{stroke:var(--gris)}.m-entrada-txt{fill:var(--gris)}
+.barra-ok{fill:var(--acento)}.barra-alta{fill:var(--rojo)}.limite{stroke:var(--rojo)}
 .nota{margin-top:auto;padding:10px 12px;background:var(--mal-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--mal-fg)}
 .scroll{overflow-x:auto}
 .operaciones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
