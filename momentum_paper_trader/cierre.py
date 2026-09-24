@@ -61,7 +61,7 @@ from datetime import datetime
 
 from momentum_hunter import sesion
 
-from momentum_paper_trader import ia_decision, notify
+from momentum_paper_trader import estado, ia_decision, notify
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig
 
@@ -139,6 +139,49 @@ def _mensaje(cerradas: list[tuple[dict, str]], aguantadas: list[tuple[dict, str,
     return notify.formatear_cierre_dia(cerradas)
 
 
+def _registrar_cierres_en_revisiones(cerradas: list[tuple[dict, str]]) -> None:
+    """Deja constancia del cierre deliberado en la revisión de cada trade.
+
+    POR QUÉ. La liquidación de fin de día vende con una orden aparte y las
+    dos patas del bracket quedan canceladas. `seguimiento.py` ve entonces
+    la entrada llena y las patas muertas sin ninguna de salida llenada, y
+    concluye "posición sin salidas": un ERROR por Telegram y un trade sin
+    P&L. Pero acá el cierre fue A PROPÓSITO, no un descuido. Marcando la
+    revisión como terminal ("cerrada") con su P&L, `seguimiento` la salta
+    y ese falso ERROR desaparece. Si `cierre` NO corrió (posición de veras
+    desprotegida), no hay registro y el ERROR sí sale -- que es lo correcto.
+
+    El P&L es el mismo que ya viaja en el resumen de Telegram
+    (`unrealized_pl` de la posición al liquidar). Si falta, no se inventa
+    (queda None; regla 6). Mejor esfuerzo: nunca tumba el cierre."""
+    if not cerradas:
+        return
+    try:
+        revisiones = estado.cargar()
+    except Exception as ex:
+        log.warning("cierre diario: no se pudieron cargar revisiones para registrar el cierre (%s)", type(ex).__name__)
+        return
+    # La entrada abierta de cada ticker (a lo sumo una: el executor veta
+    # `ticker_comprometido`). Solo revisiones con orden real y no terminal.
+    abierta_por_ticker: dict[str, estado.RevisionIA] = {}
+    for r in revisiones:
+        if r.entro and r.order_id and r.resultado not in estado.RESULTADOS_TERMINALES:
+            abierta_por_ticker.setdefault(r.ticker, r)
+    cambio = False
+    for p, _razon in cerradas:
+        r = abierta_por_ticker.get(str(p.get("symbol") or ""))
+        if r is None:
+            continue
+        r.resultado = "cerrada"
+        r.pnl = _num(p.get("unrealized_pl"))
+        cambio = True
+    if cambio:
+        try:
+            estado.guardar(revisiones)
+        except Exception as ex:
+            log.warning("cierre diario: no se pudo guardar el cierre en revisiones (%s)", type(ex).__name__)
+
+
 def cerrar_si_toca(
     client: AlpacaPaperClient, cfg: PaperTraderConfig, ahora: datetime,
     clima: str | None = None,
@@ -211,6 +254,11 @@ def cerrar_si_toca(
             continue
         cerradas.append((p, decision.razonamiento))
         log.info("%s: cerrada al final del día", ticker)
+
+    # Registrar el cierre en las revisiones ANTES de avisar: aunque el
+    # Telegram falle, `seguimiento.py` ya no confundirá esto con una
+    # posición desprotegida.
+    _registrar_cierres_en_revisiones(cerradas)
 
     if cerradas:
         texto = _mensaje(cerradas, aguantadas)
