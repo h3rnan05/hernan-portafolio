@@ -1282,6 +1282,7 @@ svg{width:100%;height:auto}.eje{font-family:var(--mono);font-size:10px;fill:var(
 .m-entrada{stroke:var(--gris)}.m-entrada-txt{fill:var(--gris)}
 .barra-ok{fill:var(--acento)}.barra-alta{fill:var(--rojo)}.limite{stroke:var(--rojo)}
 .nota{margin-top:auto;padding:10px 12px;background:var(--mal-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--mal-fg)}
+.nota-info{margin-top:auto;padding:10px 12px;background:var(--duda-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--gris2)}
 .scroll{overflow-x:auto}
 .operaciones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media (max-width:900px){.operaciones{grid-template-columns:1fr}}
@@ -1354,8 +1355,11 @@ def render(ctx: dict) -> str:
         # capacidad llena aparte, con desde/hasta y corridas (2026-09-23).
         riesgo = ""
         if r.get("capacidad"):
+            # Capacidad llena (mercado cerrado, tope de posiciones) NO es un
+            # error: es el control de riesgo funcionando. Va en estilo
+            # informativo neutro, no en el rojo de alarma (2026-09-24).
             riesgo += "".join(
-                f'<div class="nota">Capacidad llena: <b>{esc(c["codigo"])}</b> · desde {esc(c["desde"])} '
+                f'<div class="nota-info">Capacidad llena: <b>{esc(c["codigo"])}</b> · desde {esc(c["desde"])} '
                 f'hasta {esc(c["hasta"])} · {c["corridas"]} corridas · {esc(c["motivo"])}</div>'
                 for c in r["capacidad"])
         if r.get("unicos"):
@@ -1364,7 +1368,10 @@ def render(ctx: dict) -> str:
                 f"<td>{f['veces']}</td><td>{esc(f['hora'])}</td></tr>" for f in r["unicos"][:20])
             riesgo += (f"<div class='scroll'><table><thead><tr><th>Ticker</th><th>Código</th><th>Veces</th>"
                        f"<th>Último</th></tr></thead><tbody>{filas}</tbody></table></div>")
-        riesgo += (f'<div class="nota">{len(r["unicos"])} bloqueos únicos · {r["eventos"]} eventos'
+        # El resumen va en rojo SOLO si hay algo que revisar (dato faltante o
+        # motivo nuevo); si no, es informativo y va en neutro.
+        hay_revisar = bool(r.get("dato_faltante") or r.get("codigos_nuevos"))
+        riesgo += (f'<div class="{"nota" if hay_revisar else "nota-info"}">{len(r["unicos"])} bloqueos únicos · {r["eventos"]} eventos'
                    + (f' · <b>revisar:</b> {esc(", ".join(r["dato_faltante"]))}' if r.get("dato_faltante") else "")
                    + (f' · <b>motivo nuevo:</b> {esc(", ".join(r["codigos_nuevos"]))}' if r.get("codigos_nuevos") else "")
                    + '</div>')
@@ -1378,7 +1385,7 @@ def render(ctx: dict) -> str:
     if dia["puntos"] and not dia["es_hoy"]:
         titulo_dia = "Equity de la última sesión"
         sub_dia = f"{_fecha_corta(dia['sesion'])} · velas de 5 min"
-        nota_dia = (f'<div class="nota">Sin sesión hoy todavía: Alpaca devuelve la última sesión '
+        nota_dia = (f'<div class="nota-info">Sin sesión hoy todavía: Alpaca devuelve la última sesión '
                     f'que tiene, la del {esc(_fecha_corta(dia["sesion"]))}.</div>')
     else:
         titulo_dia = "Equity de hoy"
