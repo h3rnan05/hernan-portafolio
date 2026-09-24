@@ -1317,25 +1317,22 @@ def test_capacidad_llena_se_resume_una_linea_con_desde_hasta_y_corridas(tmp_path
     assert "Capacidad llena: <b>MAXIMO_POSICIONES</b>" in html and "25 corridas" in html
 
 
-def test_github_actions_mas_de_45_min_sin_correr_en_sesion_es_alerta(tmp_path):
-    # Escaneo del VPS fresco (Hunter OK por sí solo), pero GitHub lleva 60 min.
+def test_github_actions_atrasado_no_pinta_el_hunter_en_rojo_ni_es_problema(tmp_path):
+    # 2026-09-24: GitHub dejó de ser el escáner (ahora escanea el VPS) y quedó
+    # solo como respaldo manual que puede pasar horas sin correr. Con el
+    # escaneo del VPS fresco, que GitHub lleve 60 min NO es alerta ni problema:
+    # antes daba un rojo permanente falso en el Hunter.
     escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 50, tzinfo=timezone.utc))
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
                        gha=gha_ok(datetime(2026, 9, 18, 14, 0, tzinfo=timezone.utc)))
     hunter = _hunter(ctx)
-    assert hunter["estado"] == "alerta"
-    assert "GitHub lleva 60 min sin correr (máx 45)" in hunter["detalle"]
-    assert any("momentum_hunter.yml" in p and "60 min" in p for p in ctx["problemas"])
-    # Con 30 min, OK; y sin dato de Actions no se inventa alerta.
-    ctx_ok = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
-                          gha=gha_ok(datetime(2026, 9, 18, 14, 30, tzinfo=timezone.utc)))
-    assert _hunter(ctx_ok)["estado"] == "ok"
-    assert _hunter(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido()))["estado"] == "ok"
-    # Fuera de sesión (sábado) no es alerta aunque lleve horas.
-    sabado = datetime(2026, 9, 19, 15, 0, tzinfo=timezone.utc)
-    ctx_s = bd.construir(sabado, cfg(tmp_path), get=sin_alpaca,
-                         gha=gha_ok(datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)))
-    assert _hunter(ctx_s)["estado"] != "alerta" or "GitHub lleva" not in _hunter(ctx_s)["detalle"]
+    assert hunter["estado"] == "ok"                       # lo decide el escaneo del VPS
+    assert "GitHub lleva" not in hunter["detalle"]        # sin la alerta vieja
+    assert "GitHub #218" in hunter["detalle"]             # pero sí como dato informativo
+    assert not any("momentum_hunter.yml" in p for p in ctx["problemas"])   # y sin banner "Datos incompletos"
+    # La señal real de un Hunter caído es que el ESCANEO DEL VPS se atrase;
+    # eso lo cubren los tests de frescura del escaneo. Acá solo se fija que
+    # GitHub, como respaldo, ya no dispara el rojo.
 
 
 def test_el_panel_ofrece_tema_oscuro_por_boton_y_por_preferencia_del_sistema(tmp_path):

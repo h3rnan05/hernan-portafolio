@@ -600,10 +600,10 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
     motivo_sin_datos = ("no hay log de eventos" if not hay_eventos
                         else "no hay un rechequeo reciente")
 
-    # El Hunter se juzga por su última corrida exitosa en GitHub Actions, no
-    # por la watchlist: una corrida con 0 candidatos no cambia la watchlist
-    # ni commitea nada, y aun así corrió. Sin respuesta de Actions y sin
-    # copia en caché no hay dato, aunque la watchlist sea fresca.
+    # Última corrida de GitHub Actions, SOLO para mostrarla como dato al
+    # lado (respaldo del escaneo desde el 21/9): ya no decide el estado del
+    # Hunter -- eso lo hace su escaneo del VPS, más abajo. Sin respuesta de
+    # Actions y sin copia en caché, simplemente no se muestra ese dato.
     cache_dir = cache_velas_segura(cfg.get("cache_velas"), problemas)
     if gha is None:
         def gha():
@@ -630,23 +630,20 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         detalle_hunter = f"sin escaneo del VPS hoy · watchlist {_cuando(wl_momento, cfg['tz'], ahora)}"
     if corrida:
         detalle_hunter += f" · GitHub #{corrida['numero']} {_cuando(gha_momento, cfg['tz'], ahora)}"
-    # GitHub Actions (momentum_hunter.yml) es el respaldo del escaneo: en
-    # sesión debe seguir corriendo aunque no actúe. Más de `gha_max_min`
-    # sin una corrida exitosa es alerta (2026-09-23), y se dice cuánto.
-    # Sin dato de Actions (no configurado, caído) no se inventa nada.
-    gha_edad = _edad_min(ahora, gha_momento)
-    gha_max = cfg.get("gha_max_min", 45.0)
-    gha_atrasado = bool(corrida) and _estado_frescura(gha_edad, gha_max, en_sesion) == "alerta"
-    if gha_atrasado:
-        detalle_hunter += f" · GitHub lleva {gha_edad:.0f} min sin correr (máx {gha_max:.0f})"
-        problemas.append(f"GitHub Actions (momentum_hunter.yml) lleva {gha_edad:.0f} min sin correr en sesión.")
-
+    # GitHub Actions (momentum_hunter.yml) dejó de ser el escáner el 21/9:
+    # ahora escanea el VPS y GitHub quedó SOLO como respaldo manual, que
+    # legítimamente puede pasar horas sin correr. Por eso su atraso ya NO
+    # pinta el Hunter en rojo ni entra a "problemas" -- antes daba una
+    # alerta permanente falsa ("GitHub lleva N min sin correr") aunque el
+    # escaneo del VPS estuviera fresco (2026-09-24). La salud del Hunter la
+    # decide su escaneo del VPS; la última corrida de GitHub sigue arriba
+    # como dato informativo.
     estado_hunter = _estado_frescura(_edad_min(ahora, hunter_momento), cfg["hunter_max_min"], en_sesion)
     etapas = [
         {
             "nombre": "Hunter", "donde": "VPS",
             "rol": "Busca candidatos. Determinista, sin IA ni bróker.",
-            "estado": "alerta" if gha_atrasado else estado_hunter,
+            "estado": estado_hunter,
             "detalle": detalle_hunter,
         },
         {
