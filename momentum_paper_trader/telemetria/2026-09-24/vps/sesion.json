@@ -12499,13 +12499,42 @@
       },
       "capacidad_llena": "MERCADO_CERRADO",
       "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-24T20:14:29+00:00",
+      "triggered_nuevos": 24,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "MERCADO_CERRADO": 1
+      },
+      "capacidad_llena": "MERCADO_CERRADO",
+      "fuente": "vps"
     }
   ],
   "sesion": {
-    "triggered_nuevos": 6811,
+    "triggered_nuevos": 6835,
     "revisiones": 0,
     "ordenes_colocadas": 0,
-    "paper_step_success_zero_orders": 431,
+    "paper_step_success_zero_orders": 432,
     "muestras_latencia": {
       "descubrimiento": 0,
       "alerta": 0,
@@ -12530,12 +12559,12 @@
     "presupuesto_ms": 480000,
     "version_medicion": 2,
     "bloqueos": {
-      "MERCADO_CERRADO": 32,
+      "MERCADO_CERRADO": 33,
       "MAXIMO_POSICIONES": 368,
       "CIERRE_CERCANO": 31
     },
     "corridas_sin_capacidad": {
-      "MERCADO_CERRADO": 32,
+      "MERCADO_CERRADO": 33,
       "MAXIMO_POSICIONES": 368,
       "CIERRE_CERCANO": 31
     },
