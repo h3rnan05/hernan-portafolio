@@ -58,7 +58,8 @@ class _FakeClient:
         if self._falla_cerrar:
             raise RuntimeError("rechazado")
         self.cerradas.append(ticker)
-        return {}
+        # `DELETE /v2/positions/{symbol}` devuelve la orden de liquidación.
+        return {"id": f"cierre-{ticker}"}
 
 
 def _parchear(monkeypatch, cerrar=True, razon="tesis agotada"):
@@ -356,10 +357,11 @@ def test_no_hay_ventana_el_fin_de_semana():
     assert cierre.en_ventana_de_cierre(_utc(8, 29, 19, 55), CFG) is False
 
 
-# ------------- registro del cierre en las revisiones (2026-09-24) -------------
-# El cierre deliberado se marca en la revisión del trade para que
-# `seguimiento.py` no lo confunda con una "posición sin salidas" y mande
-# un ERROR falso sin P&L (le pasó al 23/9 con UBER, PYPL, CSCO, CIEN, DBX).
+# ------------- anotar la orden de liquidación en las revisiones (2026-09-24) ---
+# El cierre deliberado anota su orden de liquidación en la revisión para que
+# `seguimiento.py` confirme el llenado real: si se llenó, "cerrada" con P&L
+# real; si no, la posición sigue desprotegida y el ERROR de seguridad vuelve
+# a salir. NO se marca terminal desde acá (aceptar no es llenar).
 
 from momentum_paper_trader import estado                       # noqa: E402
 from momentum_paper_trader.estado import RevisionIA            # noqa: E402
@@ -374,72 +376,119 @@ def _revisiones_en_tmp(monkeypatch, tmp_path, revisiones):
     return path
 
 
-def _revision_abierta(ticker="RKLB"):
+def _revision_abierta(ticker="RKLB", creado_en="2026-08-24T14:00:00+00:00"):
     return RevisionIA(
-        ticker=ticker, creado_en="2026-08-24T14:00:00+00:00", entro=True, confianza=8,
+        ticker=ticker, creado_en=creado_en, entro=True, confianza=8,
         razonamiento="catalizador", timestamp="2026-08-24T14:05:00+00:00",
-        order_id=f"orden-{ticker}", cantidad=65, precio_entrada=78.10,
+        order_id=f"orden-{ticker}-{creado_en}", cantidad=65, precio_entrada=78.10,
         stop=76.90, objetivo=82.50, resultado="abierta",
     )
 
 
-def test_al_cerrar_marca_la_revision_cerrada_con_su_pnl(monkeypatch, tmp_path):
-    _parchear(monkeypatch)
-    path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_abierta("RKLB")])
-    client = _FakeClient([_POSICION])   # RKLB, unrealized_pl = 123.45
-
-    cierre.cerrar_si_toca(client, CFG, _t(19, 50))
-
-    r = estado.cargar(path)[0]
-    assert r.resultado == "cerrada" and r.pnl == 123.45
-
-
-def test_no_toca_revisiones_de_otros_tickers_ni_las_terminales(monkeypatch, tmp_path):
-    _parchear(monkeypatch)
-    otro = _revision_abierta("AAPL")
-    terminal = _revision_abierta("RKLB")
-    terminal.resultado = "objetivo"    # ya cerrada por el bracket: no se pisa
-    path = _revisiones_en_tmp(monkeypatch, tmp_path, [otro, terminal])
-    client = _FakeClient([_POSICION])   # cierra RKLB
-
-    cierre.cerrar_si_toca(client, CFG, _t(19, 50))
-
-    guardadas = {r.ticker: r for r in estado.cargar(path)}
-    assert guardadas["AAPL"].resultado == "abierta"          # otro ticker, intacto
-    assert guardadas["RKLB"].resultado == "objetivo"          # terminal, no se pisa
-
-
-def test_pnl_none_si_la_posicion_no_trae_unrealized_pl(monkeypatch, tmp_path):
-    # Regla 6: un dato ausente no se inventa. Se marca cerrada igual (para
-    # que no salga el ERROR falso), pero con P&L None.
-    _parchear(monkeypatch)
-    path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_abierta("RKLB")])
-    sin_pl = {"symbol": "RKLB", "qty": "65", "current_price": "80.00", "avg_entry_price": "78.10"}
-    client = _FakeClient([sin_pl])
-
-    cierre.cerrar_si_toca(client, CFG, _t(19, 50))
-
-    r = estado.cargar(path)[0]
-    assert r.resultado == "cerrada" and r.pnl is None
-
-
-def test_seguimiento_no_manda_error_falso_tras_el_cierre_deliberado(monkeypatch, tmp_path):
-    """End to end: cierre marca la revisión "cerrada"; después seguimiento
-    la ve terminal, no consulta a Alpaca y no manda el ERROR de "posición
-    sin salidas"."""
-    from momentum_paper_trader import seguimiento
+def test_al_cerrar_anota_la_orden_de_liquidacion_sin_marcar_terminal(monkeypatch, tmp_path):
     _parchear(monkeypatch)
     path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_abierta("RKLB")])
     cierre.cerrar_si_toca(_FakeClient([_POSICION]), CFG, _t(19, 50))
 
+    r = estado.cargar(path)[0]
+    # Se anota qué orden vigilar, pero NO se da por cerrada ni se inventa P&L:
+    # eso lo confirma `seguimiento` con el llenado real.
+    assert r.cierre_order_id == "cierre-RKLB"
+    assert r.resultado == "abierta" and r.pnl is None
+
+
+def test_empareja_con_la_revision_viva_no_la_rancia(monkeypatch, tmp_path):
+    # Una revisión vieja de RKLB quedó sin resolver ("abierta") y hoy RKLB
+    # opera de nuevo: la orden de cierre va a la MÁS RECIENTE, no la primera.
+    vieja = _revision_abierta("RKLB", creado_en="2026-08-20T14:00:00+00:00")
+    hoy = _revision_abierta("RKLB", creado_en="2026-08-24T14:00:00+00:00")
+    path = _revisiones_en_tmp(monkeypatch, tmp_path, [vieja, hoy])
+    _parchear(monkeypatch)
+    cierre.cerrar_si_toca(_FakeClient([_POSICION]), CFG, _t(19, 50))
+
+    por_creado = {r.creado_en: r for r in estado.cargar(path)}
+    assert por_creado["2026-08-24T14:00:00+00:00"].cierre_order_id == "cierre-RKLB"
+    assert por_creado["2026-08-20T14:00:00+00:00"].cierre_order_id is None
+
+
+def test_no_toca_otros_tickers_ni_las_terminales(monkeypatch, tmp_path):
+    _parchear(monkeypatch)
+    otro = _revision_abierta("AAPL")
+    terminal = _revision_abierta("RKLB")
+    terminal.resultado = "objetivo"    # ya cerrada por el bracket: no se toca
+    path = _revisiones_en_tmp(monkeypatch, tmp_path, [otro, terminal])
+    cierre.cerrar_si_toca(_FakeClient([_POSICION]), CFG, _t(19, 50))
+
+    guardadas = {r.ticker: r for r in estado.cargar(path)}
+    assert guardadas["AAPL"].cierre_order_id is None            # otro ticker
+    assert guardadas["RKLB"].cierre_order_id is None            # terminal, intacta
+    assert guardadas["RKLB"].resultado == "objetivo"
+
+
+def _revision_con_cierre(ticker="RKLB"):
+    r = _revision_abierta(ticker)
+    r.order_id = f"orden-{ticker}"
+    r.cierre_order_id = f"cierre-{ticker}"
+    return r
+
+
+def test_seguimiento_cierra_con_pnl_real_cuando_la_liquidacion_se_llena(monkeypatch, tmp_path):
+    """La orden de liquidación se llenó: trade "cerrada" con P&L del precio
+    REAL de venta, y sin Telegram (el resumen de fin de día ya salió)."""
+    from momentum_paper_trader import seguimiento
+    path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_con_cierre("RKLB")])
     enviados: list[str] = []
     monkeypatch.setattr(seguimiento, "enviar_telegram", lambda t: enviados.append(t))
-    consultadas: list[str] = []
 
-    class _SoloLectura:
+    class _Client:
         def estado_orden(self, oid):
-            consultadas.append(oid)
-            return {"status": "filled", "filled_avg_price": 78.10, "legs": []}
+            if oid == "orden-RKLB":   # entrada: llena, patas muertas
+                return {"status": "filled", "filled_avg_price": 78.10,
+                        "legs": [{"status": "canceled"}, {"status": "canceled"}]}
+            return {"status": "filled", "filled_avg_price": 80.00}   # liquidación llena
 
-    cambiadas = seguimiento.revisar(_SoloLectura(), CFG)
-    assert cambiadas == [] and consultadas == [] and enviados == []
+    cambiadas = seguimiento.revisar(_Client(), CFG)
+    assert len(cambiadas) == 1
+    r = estado.cargar(path)[0]
+    assert r.resultado == "cerrada"
+    assert r.pnl == round((80.00 - 78.10) * 65, 2)   # P&L del fill real
+    assert enviados == []
+
+
+def test_seguimiento_alerta_si_la_liquidacion_no_se_llena(monkeypatch, tmp_path):
+    """La orden de liquidación murió sin llenarse: la posición sigue
+    desprotegida y el ERROR de seguridad DEBE salir (fail-closed)."""
+    from momentum_paper_trader import seguimiento
+    path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_con_cierre("RKLB")])
+    enviados: list[str] = []
+    monkeypatch.setattr(seguimiento, "enviar_telegram", lambda t: enviados.append(t))
+
+    class _Client:
+        def estado_orden(self, oid):
+            if oid == "orden-RKLB":
+                return {"status": "filled", "filled_avg_price": 78.10,
+                        "legs": [{"status": "canceled"}, {"status": "canceled"}]}
+            return {"status": "canceled", "filled_avg_price": None}   # liquidación NO llenada
+
+    cambiadas = seguimiento.revisar(_Client(), CFG)
+    assert len(cambiadas) == 1 and estado.cargar(path)[0].resultado == "cerrada"
+    assert len(enviados) == 1 and "ERROR" in enviados[0]
+
+
+def test_seguimiento_espera_si_la_liquidacion_sigue_pendiente(monkeypatch, tmp_path):
+    """La orden de liquidación aún no se llena: no se decide nada este pase
+    (ni cerrada ni ERROR), se reintenta después."""
+    from momentum_paper_trader import seguimiento
+    path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_con_cierre("RKLB")])
+    enviados: list[str] = []
+    monkeypatch.setattr(seguimiento, "enviar_telegram", lambda t: enviados.append(t))
+
+    class _Client:
+        def estado_orden(self, oid):
+            if oid == "orden-RKLB":
+                return {"status": "filled", "filled_avg_price": 78.10,
+                        "legs": [{"status": "canceled"}, {"status": "canceled"}]}
+            return {"status": "pending_new", "filled_avg_price": None}
+
+    assert seguimiento.revisar(_Client(), CFG) == []
+    assert estado.cargar(path)[0].resultado == "abierta" and enviados == []

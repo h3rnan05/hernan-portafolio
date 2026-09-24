@@ -50,6 +50,12 @@ class RevisionIA:
     # cargando sin migración.
     resultado: str | None = None   # "abierta" | "objetivo" | "stop" | "cerrada" | "no_ejecutada"
     pnl: float | None = None       # ganancia/pérdida realizada en dólares (solo al cerrar)
+    # Id de la orden de LIQUIDACIÓN que colocó `cierre.py` al final del día
+    # (no la del bracket). `seguimiento.py` la consulta para confirmar el
+    # llenado real antes de dar el trade por "cerrada": una liquidación
+    # aceptada no es una liquidación llenada. Si la orden muere sin llenar,
+    # la posición sigue desprotegida y el ERROR de seguridad vuelve a salir.
+    cierre_order_id: str | None = None
     # -- Cadena de latencia e2e (solo instrumentación, 2026-09-11).
     # Copia los relojes que ya existen en la watchlist y agrega los
     # hops que solo este módulo ve. Todo opcional: un revisiones.json
