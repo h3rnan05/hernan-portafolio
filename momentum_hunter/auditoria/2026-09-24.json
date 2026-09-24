@@ -206256,6 +206256,1112 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-24T19:37:12+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.734999895095825,
+          "factores_intradia": {
+            "precio_actual": 2.734999895095825,
+            "vwap": 2.6961859650904456,
+            "ema9": 2.7329537314961314,
+            "rvol_actual": 3.8420162901490698,
+            "aceleracion_volumen": 1.1218882537340955,
+            "gap_pct": -0.0072727203369140625,
+            "maximo_dia": 2.744999885559082,
+            "maximo_premarket": 2.7007,
+            "rango_apertura_max": 2.744999885559082,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": 2,
+            "macd": 0.001837875243461795,
+            "macd_signal": 0.0012781917159835911
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3548.495532366667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 72.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 62.18882537340955,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.35701607280023,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.217800140380859,
+          "factores_intradia": {
+            "precio_actual": 5.217800140380859,
+            "vwap": 5.241729545226272,
+            "ema9": 5.208443263444772,
+            "rvol_actual": 0.3471046393498137,
+            "aceleracion_volumen": 0.28766564729867483,
+            "gap_pct": 0.005725231129532638,
+            "maximo_dia": 5.39,
+            "maximo_premarket": 5.39,
+            "rango_apertura_max": 5.320000171661377,
+            "rango_apertura_min": 5.22160005569458,
+            "velas_desde_ruptura": 6,
+            "macd": 0.00506927193349771,
+            "macd_signal": 0.0005017664967421836
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 689.5455526999999,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 46.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 68.05197409663444,
+                "frescura_patron": 33.333333333333336,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 57.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-24T19:38:12+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.734999895095825,
+          "factores_intradia": {
+            "precio_actual": 2.734999895095825,
+            "vwap": 2.6961859650904456,
+            "ema9": 2.7329537314961314,
+            "rvol_actual": 3.8420162901490698,
+            "aceleracion_volumen": 1.1218882537340955,
+            "gap_pct": -0.0072727203369140625,
+            "maximo_dia": 2.744999885559082,
+            "maximo_premarket": 2.7007,
+            "rango_apertura_max": 2.744999885559082,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": 2,
+            "macd": 0.001837875243461795,
+            "macd_signal": 0.0012781917159835911
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3549.4897301833334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 72.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 62.18882537340955,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.35701607280023,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.217800140380859,
+          "factores_intradia": {
+            "precio_actual": 5.217800140380859,
+            "vwap": 5.241729545226272,
+            "ema9": 5.208443263444772,
+            "rvol_actual": 0.3471046393498137,
+            "aceleracion_volumen": 0.28766564729867483,
+            "gap_pct": 0.005725231129532638,
+            "maximo_dia": 5.39,
+            "maximo_premarket": 5.39,
+            "rango_apertura_max": 5.320000171661377,
+            "rango_apertura_min": 5.22160005569458,
+            "velas_desde_ruptura": 6,
+            "macd": 0.00506927193349771,
+            "macd_signal": 0.0005017664967421836
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 690.5397507333333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 46.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 68.05197409663444,
+                "frescura_patron": 33.333333333333336,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 57.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-24T19:39:12+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.7304999828338623,
+          "factores_intradia": {
+            "precio_actual": 2.7304999828338623,
+            "vwap": 2.6963882606705036,
+            "ema9": 2.732462981763678,
+            "rvol_actual": 1.9209339347306977,
+            "aceleracion_volumen": 1.7705788635156665,
+            "gap_pct": -0.0072727203369140625,
+            "maximo_dia": 2.744999885559082,
+            "maximo_premarket": 2.7007,
+            "rango_apertura_max": 2.744999885559082,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": null,
+            "macd": 0.0015577427578850056,
+            "macd_signal": 0.0013341019243638742
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3550.4879198833337,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 75.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 94.71770370501619,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.235000133514404,
+          "factores_intradia": {
+            "precio_actual": 5.235000133514404,
+            "vwap": 5.241713599975761,
+            "ema9": 5.213754637458699,
+            "rvol_actual": 1.342930029154519,
+            "aceleracion_volumen": 0.7439879759519038,
+            "gap_pct": 0.005725231129532638,
+            "maximo_dia": 5.39,
+            "maximo_premarket": 5.39,
+            "rango_apertura_max": 5.320000171661377,
+            "rango_apertura_min": 5.22160005569458,
+            "velas_desde_ruptura": 2,
+            "macd": 0.007064834946598708,
+            "macd_signal": 0.0018143801867134886
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 691.5379407,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 62.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 24.39879759519038,
+                "extension": 100.0,
+                "distancia_maximo_dia": 71.24306744237563,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 57.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-24T19:40:42+00:00",
+      "candidatos_evaluados": 9,
+      "candidatos": [
+        {
+          "ticker": "VRT",
+          "nombre": "Vertiv Holdings Co",
+          "precio_actual": 245.5500030517578,
+          "factores_intradia": {
+            "precio_actual": 245.5500030517578,
+            "vwap": 242.7028305684448,
+            "ema9": 245.4214510279613,
+            "rvol_actual": 0.8058910734682966,
+            "aceleracion_volumen": 0.9405003655267646,
+            "gap_pct": -0.03340299702294756,
+            "maximo_dia": 247.37,
+            "maximo_premarket": 247.37,
+            "rango_apertura_max": 241.33999633789062,
+            "rango_apertura_min": 239.00010681152344,
+            "velas_desde_ruptura": 6,
+            "macd": 0.3161536097798603,
+            "macd_signal": 0.24911637189368174
+          },
+          "meta": {
+            "float_acciones": 383848608.0,
+            "short_pct_float": 0.0358,
+            "market_cap": 94555013120.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Vertiv To Acquire King Environmental As AI Drives Demand For Liquid-Cooling Services",
+            "fuente": "Stocktwits",
+            "fecha": "2026-09-24T11:51:08Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 469.5668353333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 58.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 44.05003655267646,
+                "extension": 100.0,
+                "distancia_maximo_dia": 92.64261249043048,
+                "frescura_patron": 33.333333333333336,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "LITE",
+          "nombre": "Lumentum Holdings Inc.",
+          "precio_actual": 928.0,
+          "factores_intradia": {
+            "precio_actual": 928.0,
+            "vwap": 926.7304836945667,
+            "ema9": 928.6217981673683,
+            "rvol_actual": 0.6529710625138061,
+            "aceleracion_volumen": 1.1269115691489362,
+            "gap_pct": -0.017342582710779084,
+            "maximo_dia": 954.4498901367188,
+            "maximo_premarket": 937.0,
+            "rango_apertura_max": 925.8099975585938,
+            "rango_apertura_min": 914.0499877929688,
+            "velas_desde_ruptura": null,
+            "macd": -0.680721990492998,
+            "macd_signal": -0.5964526285459142
+          },
+          "meta": {
+            "float_acciones": 89061336.0,
+            "short_pct_float": 0.0866,
+            "market_cap": 83294527488.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lumentum Shares Are Up After an AI Optical Tech Partnership With Corning and Qualcomm. What This Means for LITE Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-23T18:32:30Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1508.2002388166666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 64.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 62.69115691489362,
+                "extension": 100.0,
+                "distancia_maximo_dia": 72.28781687749996,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 65.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "GLW",
+          "nombre": "Corning Incorporated",
+          "precio_actual": 154.21499633789062,
+          "factores_intradia": {
+            "precio_actual": 154.21499633789062,
+            "vwap": 153.76130926227717,
+            "ema9": 154.18525708060375,
+            "rvol_actual": 0.861363845234813,
+            "aceleracion_volumen": 0.8583864505554545,
+            "gap_pct": -0.025699128239912265,
+            "maximo_dia": 156.3574981689453,
+            "maximo_premarket": 153.1,
+            "rango_apertura_max": 152.57000732421875,
+            "rango_apertura_min": 149.60000610351562,
+            "velas_desde_ruptura": 0,
+            "macd": -0.07942039939482015,
+            "macd_signal": -0.09479902968067297
+          },
+          "meta": {
+            "float_acciones": 790573596.0,
+            "short_pct_float": 0.026300002,
+            "market_cap": 132774404096.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Lumentum Shares Are Up After an AI Optical Tech Partnership With Corning and Qualcomm. What This Means for LITE Stock.",
+            "fuente": "Barchart",
+            "fecha": "2026-09-23T18:32:30Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1508.20028955,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 65.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 35.83864505554545,
+                "extension": 100.0,
+                "distancia_maximo_dia": 86.29741549880964,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "RCL",
+          "nombre": "Royal Caribbean Cruises Ltd.",
+          "precio_actual": 239.69000244140625,
+          "factores_intradia": {
+            "precio_actual": 239.69000244140625,
+            "vwap": 238.15241509298508,
+            "ema9": 239.77843188698202,
+            "rvol_actual": 0.4432673130467408,
+            "aceleracion_volumen": 0.9860047911525784,
+            "gap_pct": 0.017368649357338638,
+            "maximo_dia": 243.17999267578125,
+            "maximo_premarket": 231.0,
+            "rango_apertura_max": 237.0,
+            "rango_apertura_min": 232.0,
+            "velas_desde_ruptura": null,
+            "macd": 0.06262536276483388,
+            "macd_signal": 0.025123009786428067
+          },
+          "meta": {
+            "float_acciones": 241969249.0,
+            "short_pct_float": 0.06,
+            "market_cap": 64074829824.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "RCL Stock Sees Best Day In Two Months — JPMorgan, Citi Bullish On Royal Caribbean's Sandals Partnership",
+            "fuente": "Stocktwits",
+            "fecha": "2026-09-24T19:30:15Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 10.45033535,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 86.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 100.0,
+                "aceleracion_volumen": 48.60047911525784,
+                "extension": 100.0,
+                "distancia_maximo_dia": 85.64853055560361,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "CTAS",
+          "nombre": "Cintas Corporation",
+          "precio_actual": 198.02999877929688,
+          "factores_intradia": {
+            "precio_actual": 198.02999877929688,
+            "vwap": 197.27404153915145,
+            "ema9": 198.061695358155,
+            "rvol_actual": 1.3126238324370223,
+            "aceleracion_volumen": 0.6833134159381093,
+            "gap_pct": 0.001510617723023372,
+            "maximo_dia": 198.61000061035156,
+            "maximo_premarket": 195.555,
+            "rango_apertura_max": 197.38999938964844,
+            "rango_apertura_min": 191.08999633789062,
+            "velas_desde_ruptura": null,
+            "macd": -0.07830637860107004,
+            "macd_signal": -0.08309669506346898
+          },
+          "meta": {
+            "float_acciones": 341686914.0,
+            "short_pct_float": 0.038900003,
+            "market_cap": 79156338688.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Cintas Raises Full-Year Outlook Following Fiscal First-Quarter Beat",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-23T16:43:45Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1616.9503753,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 56.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 18.331341593810933,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.07969473202616,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 60.0,
+            "score_ajustado": 40.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "ACN",
+          "nombre": "Accenture plc",
+          "precio_actual": 178.16000366210938,
+          "factores_intradia": {
+            "precio_actual": 178.16000366210938,
+            "vwap": 180.37659152146932,
+            "ema9": 178.10866958930995,
+            "rvol_actual": 2.1013505411975015,
+            "aceleracion_volumen": 1.0280004358044483,
+            "gap_pct": 0.012151240603876208,
+            "maximo_dia": 186.33999633789062,
+            "maximo_premarket": 185.65,
+            "rango_apertura_max": 186.33999633789062,
+            "rango_apertura_min": 184.1699981689453,
+            "velas_desde_ruptura": 0,
+            "macd": -0.16463744880076092,
+            "macd_signal": -0.1516181898212275
+          },
+          "meta": {
+            "float_acciones": 610969121.0,
+            "short_pct_float": 0.0464,
+            "market_cap": 108858376192.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Accenture Stock Rallies After Announcing $1 Billion AI Partnership With Anthropic",
+            "fuente": "TIKR",
+            "fecha": "2026-09-23T12:40:39Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1860.05041745,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 66.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 52.800043580444836,
+                "extension": 100.0,
+                "distancia_maximo_dia": 56.10178793312593,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "AMGN",
+          "nombre": "Amgen Inc.",
+          "precio_actual": 408.0400085449219,
+          "factores_intradia": {
+            "precio_actual": 408.0400085449219,
+            "vwap": 406.47568064168865,
+            "ema9": 407.80731864204415,
+            "rvol_actual": 0.3785818866345953,
+            "aceleracion_volumen": 1.2898486197684773,
+            "gap_pct": -0.0003447120887531049,
+            "maximo_dia": 412.2022,
+            "maximo_premarket": 412.2022,
+            "rango_apertura_max": 408.1109924316406,
+            "rango_apertura_min": 405.0,
+            "velas_desde_ruptura": 2,
+            "macd": 0.22298789877584113,
+            "macd_signal": 0.14433991717366873
+          },
+          "meta": {
+            "float_acciones": 539161486.0,
+            "short_pct_float": 0.024,
+            "market_cap": 220626518016.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "Amgen price target raised by Jefferies to $410 after positive Sjögren's data",
+            "fuente": "Proactive",
+            "fecha": "2026-09-23T17:54:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1546.7004602499999,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 74.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 78.98486197684772,
+                "extension": 100.0,
+                "distancia_maximo_dia": 89.90254914923268,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 58.0,
+            "score_ajustado": 38.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "ADBE",
+          "nombre": "Adobe Inc.",
+          "precio_actual": 238.02499389648438,
+          "factores_intradia": {
+            "precio_actual": 238.02499389648438,
+            "vwap": 238.7637419233937,
+            "ema9": 237.9376527012775,
+            "rvol_actual": 1.1695054864236754,
+            "aceleracion_volumen": 1.5518038571515484,
+            "gap_pct": 0.006709835132301161,
+            "maximo_dia": 244.2100067138672,
+            "maximo_premarket": 243.0,
+            "rango_apertura_max": 244.2100067138672,
+            "rango_apertura_min": 242.0,
+            "velas_desde_ruptura": 0,
+            "macd": 0.05633607249572492,
+            "macd_signal": 0.08879931079943731
+          },
+          "meta": {
+            "float_acciones": 388075212.0,
+            "short_pct_float": 0.048899997,
+            "market_cap": 94517551104.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Adobe (ADBE) Expands AI Holiday Planning Through A Multi Year Travel Partnership",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-24T09:15:28Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 625.2338507833333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 77.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 74.67338500739817,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 57.9,
+            "score_ajustado": 37.9,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "JPM",
+          "nombre": "JPMorgan Chase & Co.",
+          "precio_actual": 337.6300048828125,
+          "factores_intradia": {
+            "precio_actual": 337.6300048828125,
+            "vwap": 337.3177239712673,
+            "ema9": 337.34057814955105,
+            "rvol_actual": 0.6170802919708029,
+            "aceleracion_volumen": 0.8519629706878019,
+            "gap_pct": 0.0017479819276046337,
+            "maximo_dia": 339.3699951171875,
+            "maximo_premarket": 338.81,
+            "rango_apertura_max": 339.3699951171875,
+            "rango_apertura_min": 337.1499938964844,
+            "velas_desde_ruptura": 1,
+            "macd": 0.021601750637159967,
+            "macd_signal": -0.01980923215557448
+          },
+          "meta": {
+            "float_acciones": 2643991481.0,
+            "short_pct_float": 0.01,
+            "market_cap": 896526450688.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Can JPM's Thunes Partnership Accelerate Cross-Border Payments Growth?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-24T14:15:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 325.70056425,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 66.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 35.19629706878019,
+                "extension": 100.0,
+                "distancia_maximo_dia": 94.87288134069082,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 57.5,
+            "score_ajustado": 37.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        }
+      ]
     }
   ]
 }
