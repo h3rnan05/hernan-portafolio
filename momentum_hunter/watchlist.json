@@ -9877,9 +9877,9 @@
     {
       "ticker": "KRO",
       "nombre": "Kronos Worldwide, Inc.",
-      "estado": "watching",
+      "estado": "invalidated",
       "creado_en": "2026-09-24T13:11:15+00:00",
-      "actualizado_en": "2026-09-24T13:11:15+00:00",
+      "actualizado_en": "2026-09-24T14:37:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -9892,6 +9892,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "invalidated",
+          "timestamp": "2026-09-24T14:37:05+00:00",
+          "motivo": "El precio ($8.24) cayó por debajo del stop de la idea ($8.24) -- la tesis se rompió antes de que llegara la entrada.",
+          "deteccion_ts": "2026-09-24T14:37:07+00:00",
+          "evaluacion_ts": "2026-09-24T14:37:07+00:00",
+          "mensaje_generado_ts": "2026-09-24T14:37:07+00:00",
+          "telegram_enviado_ts": "2026-09-24T14:37:07+00:00",
+          "latencia_desde_deteccion_ms": 0.0,
+          "latencia_desde_evaluacion_ms": 0.0,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "upgrade_analista",
@@ -9915,11 +9927,11 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 8.255000114440918,
-      "ultimo_stop": 8.067857316562108,
-      "ultimo_objetivo": 8.629285710198538,
-      "ultima_zona_entrada_baja": 8.312242311641441,
-      "ultimos_niveles_ts": "2026-09-24T14:34:05+00:00",
+      "ultima_entrada": 8.239999771118164,
+      "ultimo_stop": 8.052856973239354,
+      "ultimo_objetivo": 8.614285366875784,
+      "ultima_zona_entrada_baja": 8.284762963361654,
+      "ultimos_niveles_ts": "2026-09-24T14:37:05+00:00",
       "stop_tesis": 8.24285720212119,
       "clima_mercado": "debil"
     },
@@ -9965,12 +9977,12 @@
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
       "ultima_entrada": 2.6700000762939453,
-      "ultimo_stop": 2.5977679661342075,
-      "ultimo_objetivo": 2.814464296613421,
-      "ultima_zona_entrada_baja": 2.6728247961647074,
-      "ultimos_niveles_ts": "2026-09-24T14:34:05+00:00",
+      "ultimo_stop": 2.6338840212140764,
+      "ultimo_objetivo": 2.742232186453683,
+      "ultima_zona_entrada_baja": 2.6693538201496345,
+      "ultimos_niveles_ts": "2026-09-24T14:39:05+00:00",
       "stop_tesis": 2.617767947060721,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "TLSI",
@@ -10074,13 +10086,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 5.190000057220459,
-      "ultimo_stop": 5.078689336776733,
-      "ultimo_objetivo": 5.41262149810791,
-      "ultima_zona_entrada_baja": 5.2098459218642015,
-      "ultimos_niveles_ts": "2026-09-24T14:34:05+00:00",
+      "ultima_entrada": 5.230000019073486,
+      "ultimo_stop": 5.118689298629761,
+      "ultimo_objetivo": 5.4526214599609375,
+      "ultima_zona_entrada_baja": 5.213876741306058,
+      "ultimos_niveles_ts": "2026-09-24T14:39:05+00:00",
       "stop_tesis": 4.989978790283203,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "SFIX",
@@ -10123,13 +10135,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 2.156100034713745,
-      "ultimo_stop": 2.0709571838378906,
-      "ultimo_objetivo": 2.326385736465454,
-      "ultima_zona_entrada_baja": 2.1736642770303187,
-      "ultimos_niveles_ts": "2026-09-24T14:34:05+00:00",
+      "ultima_entrada": 2.1698999404907227,
+      "ultimo_stop": 2.1273285150527954,
+      "ultimo_objetivo": 2.255042791366577,
+      "ultima_zona_entrada_baja": 2.163832878716345,
+      "ultimos_niveles_ts": "2026-09-24T14:39:05+00:00",
       "stop_tesis": 2.1048572063446045,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     }
   ]
 }
