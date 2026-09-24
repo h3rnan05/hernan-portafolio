@@ -880,8 +880,8 @@ def _grafico_equity(hist: dict, tz, modo: str) -> str:
     ancho, alto, x0, x1, y0, y1 = 480, 230, 62, 470, 196, 14
     etiqueta = {"dia": "Equity de hoy, velas de 5 minutos", "mes": "Equity del último mes, cierre diario"}[modo]
     partes = [f'<svg viewBox="0 0 {ancho} {alto}" role="img" aria-label="{esc(etiqueta)}">',
-              f'<line x1="{x0}" y1="{y1}" x2="{x0}" y2="{y0}" stroke="#bdb9ad"/>',
-              f'<line x1="{x0}" y1="{y0}" x2="{x1}" y2="{y0}" stroke="#bdb9ad"/>']
+              f'<line x1="{x0}" y1="{y1}" x2="{x0}" y2="{y0}" class="rejilla"/>',
+              f'<line x1="{x0}" y1="{y0}" x2="{x1}" y2="{y0}" class="rejilla"/>']
     puntos, base = hist["puntos"], hist["base"]
     if not puntos:
         motivo = "Alpaca no respondió" if hist.get("error") else "sin historial de equity"
@@ -1048,8 +1048,8 @@ def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime) -> str:
     velas para que quepa."""
     ancho, alto, x0, x1, y0, y1 = 480, 230, 56, 470, 196, 14
     partes = [f'<svg viewBox="0 0 {ancho} {alto}" role="img" aria-label="Velas de 1 minuto de hoy">',
-              f'<line x1="{x0}" y1="{y1}" x2="{x0}" y2="{y0}" stroke="#bdb9ad"/>',
-              f'<line x1="{x0}" y1="{y0}" x2="{x1}" y2="{y0}" stroke="#bdb9ad"/>']
+              f'<line x1="{x0}" y1="{y1}" x2="{x0}" y2="{y0}" class="rejilla"/>',
+              f'<line x1="{x0}" y1="{y0}" x2="{x1}" y2="{y0}" class="rejilla"/>']
     velas = res.get("velas")
     if not velas:
         partes.append(f'<text x="{(x0+x1)/2}" y="110" text-anchor="middle" class="eje">Sin datos</text>')
@@ -1110,7 +1110,7 @@ def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime) -> str:
         if marcas_ts[idx] is not None and abs((marcas_ts[idx] - hora).total_seconds()) <= 120:
             partes.append(f'<line class="marca-entrada-hora" x1="{x(idx):.1f}" y1="{y1}" x2="{x(idx):.1f}" y2="{y0}" stroke="#5c5b55" stroke-width="1" stroke-dasharray="2 3"/>')
             if marcas["entrada_precio"] is not None and lo <= marcas["entrada_precio"] <= hi:
-                partes.append(f'<circle cx="{x(idx):.1f}" cy="{y(marcas["entrada_precio"]):.1f}" r="3.5" fill="#16171a"/>')
+                partes.append(f'<circle cx="{x(idx):.1f}" cy="{y(marcas["entrada_precio"]):.1f}" r="3.5" class="ink"/>')
     if marcas_ts[0] is not None:
         partes.append(f'<text x="{x0}" y="{alto-6}" class="eje">{esc(_hora(marcas_ts[0], tz, ahora=ahora))}</text>')
     if n > 1 and marcas_ts[-1] is not None:
@@ -1199,9 +1199,9 @@ def _grafico_latencia(ctx: dict) -> str:
     y = lambda v: y0 - (v / tope) * (y0 - y1)
     partes = [
         f'<svg viewBox="0 0 {ancho} {alto}" role="img" aria-label="Latencia ruptura a orden por operación, en velas de 1 minuto">',
-        f'<rect x="{x0+1}" y="{y1}" width="{ancho-x0-10}" height="{y(ctx["presupuesto"])-y1:.1f}" fill="#fbeceb"/>',
-        f'<line x1="{x0}" y1="{y1}" x2="{x0}" y2="{y0}" stroke="#bdb9ad"/>',
-        f'<line x1="{x0}" y1="{y0}" x2="{ancho-10}" y2="{y0}" stroke="#bdb9ad"/>',
+        f'<rect x="{x0+1}" y="{y1}" width="{ancho-x0-10}" height="{y(ctx["presupuesto"])-y1:.1f}" class="zona-riesgo"/>',
+        f'<line x1="{x0}" y1="{y1}" x2="{x0}" y2="{y0}" class="rejilla"/>',
+        f'<line x1="{x0}" y1="{y0}" x2="{ancho-10}" y2="{y0}" class="rejilla"/>',
     ]
     for marca in range(0, int(tope) + 1, 4):
         partes.append(f'<text x="{x0-8}" y="{y(marca)+4:.1f}" text-anchor="end" class="eje">{marca}</text>')
@@ -1223,7 +1223,15 @@ def _grafico_latencia(ctx: dict) -> str:
 
 CSS = """
 :root{--fondo:#f3f1ea;--papel:#fff;--tinta:#16171a;--gris:#5c5b55;--gris2:#45443f;--linea:#d6d3c8;--linea2:#ebe8df;
---acento:#2451b8;--verde:#1f7a4d;--rojo:#b3261e;--mono:'JetBrains Mono',ui-monospace,monospace}
+--acento:#2451b8;--verde:#1f7a4d;--rojo:#b3261e;--mono:'JetBrains Mono',ui-monospace,monospace;
+--rejilla:#bdb9ad;--zona-riesgo:#fbeceb;--ok-bg:#e6f1ea;--ok-fg:#1b6a43;--mal-bg:#fbeceb;--mal-fg:#8f1d17;--duda-bg:#f6f4ee;
+--oscuro-bg:var(--tinta);--oscuro-fg:#e9e7df;--oscuro-linea:#2c2d31;--oscuro-tk:#fff;--oscuro-sub:#a9a69b;--oscuro-td:#c9c6bb}
+/* Tema oscuro: por preferencia del sistema (salvo que el usuario haya
+   elegido claro a mano) y por elección manual guardada en el navegador.
+   Se redefinen las MISMAS variables; el resto del CSS ya las usa, así que
+   el modo claro queda idéntico. */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--fondo:#000000;--papel:#1b1c20;--tinta:#e9e7df;--gris:#9a978d;--gris2:#c7c4ba;--linea:#2f3034;--linea2:#26272b;--acento:#7a9bff;--verde:#46b37e;--rojo:#f2685e;--rejilla:#3a3b40;--zona-riesgo:#37211f;--ok-bg:#15352a;--ok-fg:#7fd0a4;--mal-bg:#37211f;--mal-fg:#f0a49d;--duda-bg:#24252a;--oscuro-bg:#16171b;--oscuro-fg:#e9e7df;--oscuro-linea:#2c2d31;--oscuro-tk:#fff;--oscuro-sub:#a9a69b;--oscuro-td:#c9c6bb}}
+:root[data-theme="dark"]{--fondo:#000000;--papel:#1b1c20;--tinta:#e9e7df;--gris:#9a978d;--gris2:#c7c4ba;--linea:#2f3034;--linea2:#26272b;--acento:#7a9bff;--verde:#46b37e;--rojo:#f2685e;--rejilla:#3a3b40;--zona-riesgo:#37211f;--ok-bg:#15352a;--ok-fg:#7fd0a4;--mal-bg:#37211f;--mal-fg:#f0a49d;--duda-bg:#24252a;--oscuro-bg:#16171b;--oscuro-fg:#e9e7df;--oscuro-linea:#2c2d31;--oscuro-tk:#fff;--oscuro-sub:#a9a69b;--oscuro-td:#c9c6bb}
 *{box-sizing:border-box}
 body{margin:0;background:var(--fondo);color:var(--tinta);font-family:'Space Grotesk','Helvetica Neue',sans-serif}
 main{max-width:1440px;margin:0 auto;padding:32px 40px;display:flex;flex-direction:column;gap:20px}
@@ -1235,16 +1243,18 @@ h1{margin:0;font-size:28px;letter-spacing:.04em}
 .pildoras{display:flex;gap:10px;flex-wrap:wrap;font-family:var(--mono);font-size:12px}
 .pildora{padding:8px 12px;border-radius:4px;background:var(--papel);border:1px solid var(--linea)}
 .pildora.paper{border:1.5px solid var(--acento);color:var(--acento);font-weight:700}
-.pildora.ok{background:#e6f1ea;color:#1b6a43;border-color:transparent}
-.pildora.mal{background:#fbeceb;color:#8f1d17;border-color:transparent}
-.problemas{background:#fbeceb;color:#8f1d17;border-radius:6px;padding:14px 18px;font-size:14px}
+.pildora.ok{background:var(--ok-bg);color:var(--ok-fg);border-color:transparent}
+.pildora.mal{background:var(--mal-bg);color:var(--mal-fg);border-color:transparent}
+button.pildora{cursor:pointer;font-family:var(--mono);font-size:12px;line-height:1.2;color:inherit}
+button.pildora:hover{border-color:var(--acento)}
+.problemas{background:var(--mal-bg);color:var(--mal-fg);border-radius:6px;padding:14px 18px;font-size:14px}
 .problemas ul{margin:6px 0 0;padding-left:18px}
 .fila{display:grid;gap:12px}
 .c4{grid-template-columns:repeat(4,minmax(0,1fr))}.c5{grid-template-columns:repeat(5,minmax(0,1fr))}
 .c3{grid-template-columns:repeat(3,minmax(0,1fr))}.c2{grid-template-columns:1.55fr 1fr}
 .c2i{grid-template-columns:repeat(2,minmax(0,1fr))}
 .panel{background:var(--papel);border:1px solid var(--linea);border-radius:6px;padding:18px;display:flex;flex-direction:column;gap:10px;min-width:0}
-.panel.oscuro{background:var(--tinta);color:#e9e7df;border-color:var(--tinta)}
+.panel.oscuro{background:var(--oscuro-bg);color:var(--oscuro-fg);border-color:var(--oscuro-bg)}
 .titulo{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
 .titulo h2{margin:0;font-size:16px;letter-spacing:.04em}
 .etapa .nombre{font-size:20px;font-weight:700}.etapa .rol{font-size:13px;color:var(--gris2)}
@@ -1258,16 +1268,17 @@ table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px
 th{text-align:left;font-weight:400;font-size:11px;color:var(--gris);padding:8px 8px 8px 0;border-bottom:1px solid var(--linea)}
 td{padding:8px 8px 8px 0;border-bottom:1px solid var(--linea2);color:var(--gris2)}
 td.tk{color:var(--tinta);font-weight:700}
-.oscuro td{border-color:#2c2d31;color:#c9c6bb}.oscuro td.tk{color:#fff}.oscuro .sub{color:#a9a69b}
+.oscuro td{border-color:var(--oscuro-linea);color:var(--oscuro-td)}.oscuro td.tk{color:var(--oscuro-tk)}.oscuro .sub{color:var(--oscuro-sub)}
 .vacio{font-size:13px;color:var(--gris);padding:12px 0}
-.oscuro .vacio{color:#a9a69b}
-.duda{background:#f6f4ee;border-radius:4px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.oscuro .vacio{color:var(--oscuro-sub)}
+.duda{background:var(--duda-bg);border-radius:4px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
 .duda .cab{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px}
 .duda p{margin:0;font-size:13px;color:var(--gris2)}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;font-family:var(--mono)}
 .stats b{display:block;font-size:18px;font-weight:500}
 svg{width:100%;height:auto}.eje{font-family:var(--mono);font-size:10px;fill:var(--gris)}.eje.rojo{fill:var(--rojo)}
-.nota{margin-top:auto;padding:10px 12px;background:#fbeceb;border-radius:4px;font-family:var(--mono);font-size:12px;color:#8f1d17}
+.rejilla{stroke:var(--rejilla)}.ink{fill:var(--tinta)}.zona-riesgo{fill:var(--zona-riesgo)}
+.nota{margin-top:auto;padding:10px 12px;background:var(--mal-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--mal-fg)}
 .scroll{overflow-x:auto}
 .operaciones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media (max-width:900px){.operaciones{grid-template-columns:1fr}}
@@ -1420,6 +1431,9 @@ def render(ctx: dict) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="refresh" content="60">
 <title>Momentum · panel paper</title>
+<script>/* Aplica el tema elegido ANTES de pintar, para que el refresco de
+cada 60 s no parpadee. Sin elección guardada manda el sistema. */
+try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.documentElement.dataset.theme=_t;}}catch(_e){{}}</script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap">
 <style>{CSS}</style>
 </head>
@@ -1434,6 +1448,7 @@ def render(ctx: dict) -> str:
     <span class="pildora paper">PAPER · ALPACA</span>{sesion}{alpaca}{persist}{ia}
     <span class="pildora">Actualizado {_hora(ctx['ahora'], tz, segundos=True)} {esc(etiqueta_tz)}</span>
     <span class="pildora">Solo lectura</span>
+    <button class="pildora" id="tema-toggle" type="button" aria-label="Cambiar entre tema claro y oscuro" title="Cambiar tema claro/oscuro">Tema</button>
   </div>
 </header>
 {problemas}
@@ -1457,6 +1472,26 @@ def render(ctx: dict) -> str:
   <div class="panel"><div class="titulo"><h2>Límites de riesgo</h2><span class="mono">fail-closed</span></div>{riesgo}</div>
 </section>
 </main>
+<script>/* Botón de tema: alterna claro/oscuro y guarda la elección en el
+navegador (por dispositivo). Sin elección previa parte de lo que pide el
+sistema. Todo entre try por si el navegador bloquea el almacenamiento. */
+(function(){{
+  var b=document.getElementById("tema-toggle");if(!b)return;
+  var root=document.documentElement;
+  function actual(){{
+    var t=root.dataset.theme;
+    if(t==="dark"||t==="light")return t;
+    try{{return window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";}}catch(e){{return "light";}}
+  }}
+  function pinta(){{b.textContent="Tema: "+(actual()==="dark"?"Oscuro":"Claro");}}
+  pinta();
+  b.addEventListener("click",function(){{
+    var nuevo=actual()==="dark"?"light":"dark";
+    root.dataset.theme=nuevo;
+    try{{localStorage.setItem("tema",nuevo);}}catch(e){{}}
+    pinta();
+  }});
+}})();</script>
 </body>
 </html>"""
 

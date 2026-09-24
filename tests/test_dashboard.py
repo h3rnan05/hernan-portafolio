@@ -1336,3 +1336,30 @@ def test_github_actions_mas_de_45_min_sin_correr_en_sesion_es_alerta(tmp_path):
     ctx_s = bd.construir(sabado, cfg(tmp_path), get=sin_alpaca,
                          gha=gha_ok(datetime(2026, 9, 19, 10, 0, tzinfo=timezone.utc)))
     assert _hunter(ctx_s)["estado"] != "alerta" or "GitHub lleva" not in _hunter(ctx_s)["detalle"]
+
+
+def test_el_panel_ofrece_tema_oscuro_por_boton_y_por_preferencia_del_sistema(tmp_path):
+    """El panel trae tema oscuro (pedido del dueño 2026-09-24): botón para
+    alternarlo, elección guardada en el navegador y respeto de la
+    preferencia del sistema. El modo claro no cambia: las mismas variables
+    se redefinen, y los colores fijos de las gráficas que se romperían en
+    oscuro pasan a clases que siguen las variables."""
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))
+    # Botón visible y accesible.
+    assert 'id="tema-toggle"' in html and 'aria-label="Cambiar entre tema claro y oscuro"' in html
+    # Se aplica antes de pintar (sin parpadeo en el refresco de 60 s) y se
+    # guarda/lee del navegador.
+    assert 'localStorage.getItem("tema")' in html and 'localStorage.setItem("tema"' in html
+    # Oscuro por sistema (salvo elección clara) y por elección manual.
+    assert "@media (prefers-color-scheme:dark)" in html
+    assert ':root:not([data-theme="light"])' in html
+    assert ':root[data-theme="dark"]' in html
+    # Colores fijos de SVG que se romperían en oscuro, ahora por clase que
+    # sigue las variables (las definiciones van siempre en el CSS).
+    assert ".rejilla{stroke:var(--rejilla)}" in html
+    assert ".ink{fill:var(--tinta)}" in html
+    assert ".zona-riesgo{fill:var(--zona-riesgo)}" in html
+    # Y los colores fijos que rompían el oscuro ya no se emiten en ningún SVG.
+    assert 'fill="#16171a"' not in html and 'stroke="#bdb9ad"' not in html
+    # El modo claro sigue igual: variable de fondo crema intacta.
+    assert "--fondo:#f3f1ea" in html

@@ -119,6 +119,17 @@ ssh -N -L 8787:127.0.0.1:8787 ubuntu@momentum-paper
 Luego abre http://localhost:8787. El servidor escucha solo en 127.0.0.1, así que no
 hace falta abrir ningún puerto en Oracle Cloud.
 
+### Tema claro / oscuro (2026-09-24)
+
+El panel tiene un botón **Tema** en la cabecera que alterna claro y oscuro.
+La elección se guarda en el navegador (`localStorage`, por dispositivo) y se
+aplica antes de pintar, así el refresco automático cada 60 s no parpadea. Sin
+elección guardada, sigue la preferencia del sistema
+(`prefers-color-scheme`). Es 100 % del lado del navegador: no toca el bot ni
+lo que se sube a git. Los colores se definen como variables CSS que se
+redefinen para el oscuro; el resto del CSS ya las usa, por eso el claro queda
+idéntico.
+
 ## Estado del Hunter: último escaneo del VPS (desde 2026-09-21)
 
 El escaneo corre en el VPS. El estado "Hunter" sale del último registro de modo
