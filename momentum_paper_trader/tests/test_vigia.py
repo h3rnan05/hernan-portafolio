@@ -356,6 +356,36 @@ def test_al_cerrar_la_ventana_corre_el_libro_sombra_una_vez_y_antes_del_persist(
     assert v.sombra_hecha == "2026-09-21" and v.pendiente_persistir is False
 
 
+def test_la_sombra_corre_al_cerrar_aunque_el_ultimo_tick_ya_haya_persistido(tmp_path):
+    """Regresión (2026-09-23): si el último tick de la sesión cae en un
+    múltiplo de `persistir_cada`, ese tick ya persistió y dejó
+    `pendiente_persistir` en False. La sombra colgaba de esa bandera, así
+    que ese día no se generaba `sombra.json` (le pasó al 23/9 tras un
+    reinicio que desfasó el conteo). Debe correr igual y volver a dejar un
+    persist pendiente para subir el archivo."""
+    reloj = Reloj(LUNES.replace(hour=19, minute=59, second=40))
+    llamadas = []
+
+    def ejecutar(cmd, timeout, env=None):
+        llamadas.append(_nombre(cmd))
+        reloj.dormir(3)
+        return 0
+
+    # persistir_cada=1: el único tick en ventana (20:00:05) persiste y
+    # deja pendiente_persistir en False antes de salir de la ventana.
+    v = _vigia(tmp_path, reloj, ejecutar, persistir_cada=1)
+
+    def dormir(seg):
+        reloj.dormir(seg)
+        if reloj.t >= LUNES.replace(hour=20, minute=8):
+            v.detener = True
+    v.dormir = dormir
+    v.correr()
+
+    assert llamadas == ["rechequeo", "paper", "persistir", "sombra", "persistir"]
+    assert v.sombra_hecha == "2026-09-21" and v.pendiente_persistir is False
+
+
 def test_una_parada_por_senal_a_media_sesion_no_corre_el_libro_sombra(tmp_path):
     reloj = Reloj(LUNES.replace(hour=14))
     llamadas = []
