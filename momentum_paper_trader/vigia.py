@@ -242,11 +242,20 @@ class Vigia:
         while not self.detener:
             ahora = self.reloj()
             if not en_ventana(ahora):
-                # Al salir de la ventana: libro sombra del día (una vez) y
-                # después se sube lo último del día, sombra incluida.
+                # Al salir de la ventana, una vez por día: corre el libro
+                # sombra del día y sube lo último, sombra incluida. La
+                # sombra NO puede colgar de `pendiente_persistir`: si el
+                # último tick de la sesión cayó en un múltiplo de
+                # `persistir_cada` ya persistió y dejó esa bandera en
+                # False, y así el libro sombra de ese día no se generaba
+                # nunca (medido 2026-09-23: un reinicio a media sesión
+                # desfasó el conteo y el último tick coincidió con un
+                # persist). Al producir `sombra.json` hay algo nuevo que
+                # subir, así que se vuelve a marcar el persist como pendiente.
+                if self.dia_ultimo_tick and self.sombra_hecha != self.dia_ultimo_tick:
+                    self.sombra(self.dia_ultimo_tick)
+                    self.pendiente_persistir = True
                 if self.pendiente_persistir:
-                    if self.dia_ultimo_tick and self.sombra_hecha != self.dia_ultimo_tick:
-                        self.sombra(self.dia_ultimo_tick)
                     self.persistir()
                 espera = (inicio_proxima_ventana(ahora) - ahora).total_seconds()
                 self.dormir(max(1.0, min(60.0, espera)))
