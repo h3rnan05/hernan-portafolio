@@ -139,41 +139,47 @@ def _mensaje(cerradas: list[tuple[dict, str]], aguantadas: list[tuple[dict, str,
     return notify.formatear_cierre_dia(cerradas)
 
 
-def _registrar_cierres_en_revisiones(cerradas: list[tuple[dict, str]]) -> None:
-    """Deja constancia del cierre deliberado en la revisión de cada trade.
+def _anotar_orden_de_cierre_en_revisiones(ids_cierre: dict[str, str]) -> None:
+    """Anota en la revisión de cada trade la orden de liquidación de fin de
+    día, para que `seguimiento.py` confirme su llenado real.
 
     POR QUÉ. La liquidación de fin de día vende con una orden aparte y las
     dos patas del bracket quedan canceladas. `seguimiento.py` ve entonces
     la entrada llena y las patas muertas sin ninguna de salida llenada, y
     concluye "posición sin salidas": un ERROR por Telegram y un trade sin
-    P&L. Pero acá el cierre fue A PROPÓSITO, no un descuido. Marcando la
-    revisión como terminal ("cerrada") con su P&L, `seguimiento` la salta
-    y ese falso ERROR desaparece. Si `cierre` NO corrió (posición de veras
-    desprotegida), no hay registro y el ERROR sí sale -- que es lo correcto.
+    P&L. Pero acá el cierre fue A PROPÓSITO, no un descuido. Anotando la
+    orden de liquidación, `seguimiento.py` confirma el llenado real antes
+    de dar el trade por "cerrada": una liquidación ACEPTADA no es una
+    liquidación LLENADA. Si esa orden muere sin llenarse (símbolo halted,
+    sin liquidez al cierre, rechazo), la posición sigue abierta y
+    desprotegida, y el ERROR de "posición sin salidas" tiene que salir
+    igual -- por eso acá NO se marca terminal ni se inventa un P&L: solo
+    se anota qué orden hay que vigilar.
 
-    El P&L es el mismo que ya viaja en el resumen de Telegram
-    (`unrealized_pl` de la posición al liquidar). Si falta, no se inventa
-    (queda None; regla 6). Mejor esfuerzo: nunca tumba el cierre."""
-    if not cerradas:
+    Empareja con la revisión viva del ticker: la de `creado_en` más
+    reciente entre las no terminales con orden real (una revisión rancia
+    sin resolver no debe robarse el cierre de hoy). Mejor esfuerzo: nunca
+    tumba el cierre."""
+    if not ids_cierre:
         return
     try:
         revisiones = estado.cargar()
     except Exception as ex:
         log.warning("cierre diario: no se pudieron cargar revisiones para registrar el cierre (%s)", type(ex).__name__)
         return
-    # La entrada abierta de cada ticker (a lo sumo una: el executor veta
-    # `ticker_comprometido`). Solo revisiones con orden real y no terminal.
-    abierta_por_ticker: dict[str, estado.RevisionIA] = {}
+    viva_por_ticker: dict[str, estado.RevisionIA] = {}
     for r in revisiones:
-        if r.entro and r.order_id and r.resultado not in estado.RESULTADOS_TERMINALES:
-            abierta_por_ticker.setdefault(r.ticker, r)
+        if not (r.entro and r.order_id and r.resultado not in estado.RESULTADOS_TERMINALES):
+            continue
+        prev = viva_por_ticker.get(r.ticker)
+        if prev is None or (r.creado_en or "") > (prev.creado_en or ""):
+            viva_por_ticker[r.ticker] = r
     cambio = False
-    for p, _razon in cerradas:
-        r = abierta_por_ticker.get(str(p.get("symbol") or ""))
+    for ticker, order_id in ids_cierre.items():
+        r = viva_por_ticker.get(ticker)
         if r is None:
             continue
-        r.resultado = "cerrada"
-        r.pnl = _num(p.get("unrealized_pl"))
+        r.cierre_order_id = order_id
         cambio = True
     if cambio:
         try:
@@ -213,6 +219,7 @@ def cerrar_si_toca(
 
     cerradas: list[tuple[dict, str]] = []
     aguantadas: list[tuple[dict, str, float]] = []
+    ids_cierre: dict[str, str] = {}   # ticker -> id de la orden de liquidación
 
     for p in posiciones:
         ticker = p.get("symbol", "?")
@@ -248,17 +255,22 @@ def cerrar_si_toca(
                 log.warning("%s: no se pudo calcular un stop protector -- se cierra", ticker)
 
         try:
-            client.cerrar_posicion(ticker)
+            resp = client.cerrar_posicion(ticker)
         except Exception as ex:
             log.warning("%s: falló el cierre de la posición: %s", ticker, ex)
             continue
         cerradas.append((p, decision.razonamiento))
-        log.info("%s: cerrada al final del día", ticker)
+        # `DELETE /v2/positions/{symbol}` devuelve la orden de liquidación;
+        # su id es lo que `seguimiento.py` vigilará para confirmar el fill.
+        oid = resp.get("id") if isinstance(resp, dict) else None
+        if oid:
+            ids_cierre[str(ticker)] = str(oid)
+        log.info("%s: liquidación enviada al final del día", ticker)
 
-    # Registrar el cierre en las revisiones ANTES de avisar: aunque el
-    # Telegram falle, `seguimiento.py` ya no confundirá esto con una
-    # posición desprotegida.
-    _registrar_cierres_en_revisiones(cerradas)
+    # Anotar la orden de liquidación en las revisiones ANTES de avisar:
+    # aunque el Telegram falle, `seguimiento.py` ya sabrá qué orden vigilar
+    # para confirmar el fill (y volver a alertar si no se llena).
+    _anotar_orden_de_cierre_en_revisiones(ids_cierre)
 
     if cerradas:
         texto = _mensaje(cerradas, aguantadas)

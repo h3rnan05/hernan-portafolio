@@ -95,11 +95,12 @@ def _patas_todas_muertas(datos: dict) -> bool:
     return bool(legs) and all(leg.get("status") in _ESTADOS_ORDEN_MUERTA for leg in legs)
 
 
-def _evaluar(r: estado.RevisionIA, datos: dict) -> tuple[str, float | None, str] | None:
+def _evaluar(r: estado.RevisionIA, datos: dict, cierre_datos: dict | None = None) -> tuple[str, float | None, str] | None:
     """(nuevo resultado, pnl, mensaje) para esta revisión según el estado
     real de la orden en Alpaca -- None si no hay ninguna novedad que
-    avisar. Función pura: toda la lógica de transición en un solo lugar,
-    testeable sin red."""
+    avisar. `cierre_datos` es el estado de la orden de liquidación de fin
+    de día (`r.cierre_order_id`), si la hay. Función pura: toda la lógica
+    de transición en un solo lugar, testeable sin red."""
     status = datos.get("status")
     precio_llenado = _num(datos.get("filled_avg_price"))
 
@@ -132,6 +133,28 @@ def _evaluar(r: estado.RevisionIA, datos: dict) -> tuple[str, float | None, str]
         ))
 
     if _patas_todas_muertas(datos):
+        if r.cierre_order_id:
+            # Cierre deliberado de fin de día (`cierre.py`). Se confirma el
+            # llenado REAL de la orden de liquidación antes de dar el trade
+            # por cerrado: aceptar no es llenar.
+            estado_c = (cierre_datos or {}).get("status")
+            precio_c = _num((cierre_datos or {}).get("filled_avg_price"))
+            if estado_c == "filled" and precio_c is not None:
+                cantidad = _num(datos.get("filled_qty")) or (r.cantidad or 0)
+                pnl = round((precio_c - precio_llenado) * cantidad, 2) if cantidad else None
+                # Sin Telegram: el resumen de fin de día ya lo mandó `cierre.py`.
+                return ("cerrada", pnl, "")
+            if estado_c in _ESTADOS_ORDEN_MUERTA:
+                # La liquidación murió SIN llenarse: la posición sigue abierta
+                # y desprotegida -> el ERROR de seguridad debe salir.
+                return ("cerrada", None, notify.formatear_error(
+                    tipo="liquidación de cierre no llenada",
+                    ticker=r.ticker,
+                    signal_id=r.creado_en,
+                    detalle="El cierre de fin de día se aceptó pero la orden de liquidación no se llenó. La posición puede seguir abierta y sin salidas. Revisar en Alpaca -- no se repone sola.",
+                ))
+            # Todavía pendiente de llenarse: se reintenta en la próxima pasada.
+            return None
         return ("cerrada", None, notify.formatear_error(
             tipo="posición sin salidas",
             ticker=r.ticker,
@@ -193,7 +216,15 @@ def revisar(
             log.warning("%s: no se pudo consultar la orden %s: %s", r.ticker, r.order_id, ex)
             continue
 
-        novedad = _evaluar(r, datos)
+        cierre_datos = None
+        if r.cierre_order_id:
+            try:
+                cierre_datos = client.estado_orden(r.cierre_order_id)
+            except Exception as ex:
+                log.warning("%s: no se pudo consultar la orden de liquidación %s: %s", r.ticker, r.cierre_order_id, ex)
+                # Sin poder confirmar el fill, no se da por cerrado este pase.
+                continue
+        novedad = _evaluar(r, datos, cierre_datos)
         if novedad is None:
             # Entrada todavía esperando: ¿ya venció? (2026-09-22, revisión
             # de riesgo). Si sí y se canceló de verdad, se cierra la
