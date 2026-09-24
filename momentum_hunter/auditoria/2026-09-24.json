@@ -205464,6 +205464,798 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-24T19:32:12+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.734999895095825,
+          "factores_intradia": {
+            "precio_actual": 2.734999895095825,
+            "vwap": 2.695636056275305,
+            "ema9": 2.7314117207345756,
+            "rvol_actual": 0.05925574780753733,
+            "aceleracion_volumen": 0.17944467467882305,
+            "gap_pct": -0.0072727203369140625,
+            "maximo_dia": 2.744999885559082,
+            "maximo_premarket": 2.7007,
+            "rango_apertura_max": 2.744999885559082,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": 3,
+            "macd": 0.0015349552506997988,
+            "macd_signal": 0.0006023672891098181
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3543.4916740666667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 57.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.35701607280023,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 67.7,
+            "score_ajustado": 32.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.210000038146973,
+          "factores_intradia": {
+            "precio_actual": 5.210000038146973,
+            "vwap": 5.241901554550359,
+            "ema9": 5.2023500118588375,
+            "rvol_actual": 0.6404338795291945,
+            "aceleracion_volumen": 1.0069800862245946,
+            "gap_pct": 0.005725231129532638,
+            "maximo_dia": 5.39,
+            "maximo_premarket": 5.39,
+            "rango_apertura_max": 5.320000171661377,
+            "rango_apertura_min": 5.22160005569458,
+            "velas_desde_ruptura": 3,
+            "macd": 0.0026441738792115643,
+            "macd_signal": -0.003141070728544446
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 684.5417152166666,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 64.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 50.698008622459454,
+                "extension": 100.0,
+                "distancia_maximo_dia": 66.60483082504132,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 57.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-24T19:33:12+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.7304999828338623,
+          "factores_intradia": {
+            "precio_actual": 2.7304999828338623,
+            "vwap": 2.6957184438990525,
+            "ema9": 2.731229373154433,
+            "rvol_actual": 0.7067397699919765,
+            "aceleracion_volumen": 0.20670154107168104,
+            "gap_pct": -0.0072727203369140625,
+            "maximo_dia": 2.744999885559082,
+            "maximo_premarket": 2.7007,
+            "rango_apertura_max": 2.744999885559082,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": null,
+            "macd": 0.0014086382429403521,
+            "macd_signal": 0.0007636214798759249
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3544.491631233333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 52.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 94.71770370501619,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 67.7,
+            "score_ajustado": 32.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.210000038146973,
+          "factores_intradia": {
+            "precio_actual": 5.210000038146973,
+            "vwap": 5.241901554550359,
+            "ema9": 5.2023500118588375,
+            "rvol_actual": 0.6404338795291945,
+            "aceleracion_volumen": 1.0069800862245946,
+            "gap_pct": 0.005725231129532638,
+            "maximo_dia": 5.39,
+            "maximo_premarket": 5.39,
+            "rango_apertura_max": 5.320000171661377,
+            "rango_apertura_min": 5.22160005569458,
+            "velas_desde_ruptura": 3,
+            "macd": 0.0026441738792115643,
+            "macd_signal": -0.003141070728544446
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 685.5416514499999,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 64.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 50.698008622459454,
+                "extension": 100.0,
+                "distancia_maximo_dia": 66.60483082504132,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 57.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-24T19:34:12+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.73009991645813,
+          "factores_intradia": {
+            "precio_actual": 2.73009991645813,
+            "vwap": 2.6961600345955357,
+            "ema9": 2.7310034818151725,
+            "rvol_actual": 1.310266351989211,
+            "aceleracion_volumen": 0.5678534031413612,
+            "gap_pct": -0.0072727203369140625,
+            "maximo_dia": 2.744999885559082,
+            "maximo_premarket": 2.7007,
+            "rango_apertura_max": 2.744999885559082,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": null,
+            "macd": 0.0012617049420109439,
+            "macd_signal": 0.0008632381723029288
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3545.4957177166666,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 53.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 6.785340314136121,
+                "extension": 100.0,
+                "distancia_maximo_dia": 94.57196002836355,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.210000038146973,
+          "factores_intradia": {
+            "precio_actual": 5.210000038146973,
+            "vwap": 5.2418105931641135,
+            "ema9": 5.2038800171164645,
+            "rvol_actual": 0.4088050314465409,
+            "aceleracion_volumen": 0.2945690672963401,
+            "gap_pct": 0.005725231129532638,
+            "maximo_dia": 5.39,
+            "maximo_premarket": 5.39,
+            "rango_apertura_max": 5.320000171661377,
+            "rango_apertura_min": 5.22160005569458,
+            "velas_desde_ruptura": 4,
+            "macd": 0.0033139149824377157,
+            "macd_signal": -0.0018500735863480134
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 686.54573805,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 51.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 66.60483082504132,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 57.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-24T19:35:12+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.734999895095825,
+          "factores_intradia": {
+            "precio_actual": 2.734999895095825,
+            "vwap": 2.696119076455208,
+            "ema9": 2.731802764471303,
+            "rvol_actual": 0.27234369006520903,
+            "aceleracion_volumen": 2.174364896073903,
+            "gap_pct": -0.0072727203369140625,
+            "maximo_dia": 2.744999885559082,
+            "maximo_premarket": 2.7007,
+            "rango_apertura_max": 2.744999885559082,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": 0,
+            "macd": 0.0015230893418172187,
+            "macd_signal": 0.000995208406205787
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3546.48978115,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 79.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.35701607280023,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.215000152587891,
+          "factores_intradia": {
+            "precio_actual": 5.215000152587891,
+            "vwap": 5.241771677716703,
+            "ema9": 5.20610404421075,
+            "rvol_actual": 0.2482373678025852,
+            "aceleracion_volumen": 0.4192651439920556,
+            "gap_pct": 0.005725231129532638,
+            "maximo_dia": 5.39,
+            "maximo_premarket": 5.39,
+            "rango_apertura_max": 5.320000171661377,
+            "rango_apertura_min": 5.22160005569458,
+            "velas_desde_ruptura": 5,
+            "macd": 0.004199745033158564,
+            "macd_signal": -0.000640109862446698
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 687.5398189333333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 49.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 67.53249584190924,
+                "frescura_patron": 50.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 57.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-24T19:36:12+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.734999895095825,
+          "factores_intradia": {
+            "precio_actual": 2.734999895095825,
+            "vwap": 2.696055409601358,
+            "ema9": 2.731802764471303,
+            "rvol_actual": 0.27234369006520903,
+            "aceleracion_volumen": 2.174364896073903,
+            "gap_pct": -0.0072727203369140625,
+            "maximo_dia": 2.744999885559082,
+            "maximo_premarket": 2.7007,
+            "rango_apertura_max": 2.744999885559082,
+            "rango_apertura_min": 2.700000047683716,
+            "velas_desde_ruptura": 0,
+            "macd": 0.0015230893418172187,
+            "macd_signal": 0.000995208406205787
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.0537,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3547.49316425,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 79.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.35701607280023,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.215000152587891,
+          "factores_intradia": {
+            "precio_actual": 5.215000152587891,
+            "vwap": 5.241771677716703,
+            "ema9": 5.20610404421075,
+            "rvol_actual": 0.2482373678025852,
+            "aceleracion_volumen": 0.4192651439920556,
+            "gap_pct": 0.005725231129532638,
+            "maximo_dia": 5.39,
+            "maximo_premarket": 5.39,
+            "rango_apertura_max": 5.320000171661377,
+            "rango_apertura_min": 5.22160005569458,
+            "velas_desde_ruptura": 5,
+            "macd": 0.004199745033158564,
+            "macd_signal": -0.000640109862446698
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 688.5431881000001,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 49.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 67.53249584190924,
+                "frescura_patron": 50.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 57.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
