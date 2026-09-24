@@ -1283,7 +1283,10 @@ def test_dato_faltante_pide_revisar(tmp_path):
     assert riesgo["estado"] == "alerta"
     assert "revisar: DATO_FALTANTE:niveles" in riesgo["detalle"]
     assert ctx["riesgo"]["dato_faltante"] == ["DATO_FALTANTE:niveles"]
-    assert "<b>revisar:</b> DATO_FALTANTE:niveles" in bd.render(ctx)
+    html = bd.render(ctx)
+    assert "<b>revisar:</b> DATO_FALTANTE:niveles" in html
+    # Con algo que revisar, el resumen SÍ va en rojo de alarma.
+    assert '<div class="nota">2 bloqueos únicos · 2 eventos' in html
 
 
 def test_codigo_nuevo_pide_revisar_y_el_legado_se_mapea(tmp_path):
@@ -1315,6 +1318,10 @@ def test_capacidad_llena_se_resume_una_linea_con_desde_hasta_y_corridas(tmp_path
     assert len(cap) == 1 and cap[0]["desde"] == "14:30" and cap[0]["hasta"] == "14:54" and cap[0]["corridas"] == 25
     html = bd.render(ctx)
     assert "Capacidad llena: <b>MAXIMO_POSICIONES</b>" in html and "25 corridas" in html
+    # Capacidad llena no es error: va en estilo informativo neutro, no en el
+    # rojo de alarma (2026-09-24). Y el resumen, sin nada que revisar, igual.
+    assert '<div class="nota-info">Capacidad llena: <b>MAXIMO_POSICIONES</b>' in html
+    assert '<div class="nota-info">0 bloqueos únicos · 0 eventos</div>' in html
 
 
 def test_github_actions_atrasado_no_pinta_el_hunter_en_rojo_ni_es_problema(tmp_path):
