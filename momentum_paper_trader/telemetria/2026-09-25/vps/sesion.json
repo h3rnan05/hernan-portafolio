@@ -7626,27 +7626,151 @@
       },
       "capacidad_llena": null,
       "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T17:12:17+00:00",
+      "triggered_nuevos": 24,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 24
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T17:13:16+00:00",
+      "triggered_nuevos": 24,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 24
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T17:14:16+00:00",
+      "triggered_nuevos": 24,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 24
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T17:15:30+00:00",
+      "triggered_nuevos": 25,
+      "revisiones": 1,
+      "ordenes_colocadas": 1,
+      "paper_step_success_zero_orders": 0,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": [
+          3.5
+        ]
+      },
+      "latencias_ms": {
+        "descubrimiento": [
+          73000.0
+        ],
+        "alerta": [
+          74000.0
+        ],
+        "e2e": [
+          89000.0
+        ]
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 24
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
     }
   ],
   "sesion": {
-    "triggered_nuevos": 6272,
-    "revisiones": 7,
-    "ordenes_colocadas": 5,
-    "paper_step_success_zero_orders": 256,
+    "triggered_nuevos": 6369,
+    "revisiones": 8,
+    "ordenes_colocadas": 6,
+    "paper_step_success_zero_orders": 259,
     "muestras_latencia": {
-      "descubrimiento": 7,
-      "alerta": 7,
-      "e2e": 7
+      "descubrimiento": 8,
+      "alerta": 8,
+      "e2e": 8
     },
     "latencia_p50_ms": {
-      "descubrimiento": 71000.0,
-      "alerta": 71000.0,
-      "e2e": 87000.0
+      "descubrimiento": 72000.0,
+      "alerta": 72500.0,
+      "e2e": 88000.0
     },
     "latencia_p95_ms": {
-      "descubrimiento": 125500.0,
-      "alerta": 126500.0,
-      "e2e": 144400.0
+      "descubrimiento": 121750.0,
+      "alerta": 122750.0,
+      "e2e": 140800.0
     },
     "sobre_presupuesto": {
       "descubrimiento": 0,
@@ -7658,16 +7782,16 @@
     "version_medicion": 2,
     "bloqueos": {
       "MERCADO_CERRADO": 31,
-      "DATO_FALTANTE:ultimos_niveles_ts": 5520,
+      "DATO_FALTANTE:ultimos_niveles_ts": 5616,
       "PRECIO_FUERA_DE_ALCANCE": 1
     },
     "corridas_sin_capacidad": {
       "MERCADO_CERRADO": 31
     },
     "latencia_total_velas": {
-      "muestras": 7,
+      "muestras": 8,
       "p50": 1.6,
-      "p95": 2.7,
+      "p95": 3.3,
       "sobre_presupuesto": 0
     }
   }
