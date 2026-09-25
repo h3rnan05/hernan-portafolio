@@ -11636,51 +11636,207 @@
       },
       "capacidad_llena": "MAXIMO_POSICIONES",
       "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T19:26:12+00:00",
+      "triggered_nuevos": 29,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "MAXIMO_POSICIONES": 1
+      },
+      "capacidad_llena": "MAXIMO_POSICIONES",
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T19:27:25+00:00",
+      "triggered_nuevos": 29,
+      "revisiones": 1,
+      "ordenes_colocadas": 1,
+      "paper_step_success_zero_orders": 0,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": [
+          109.4
+        ]
+      },
+      "latencias_ms": {
+        "descubrimiento": [
+          73000.0
+        ],
+        "alerta": [
+          73000.0
+        ],
+        "e2e": [
+          6505000.0
+        ]
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 1,
+        "total": 1
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 24,
+        "MAXIMO_POSICIONES": 4
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T19:28:12+00:00",
+      "triggered_nuevos": 28,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "MAXIMO_POSICIONES": 1
+      },
+      "capacidad_llena": "MAXIMO_POSICIONES",
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T19:29:12+00:00",
+      "triggered_nuevos": 28,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "MAXIMO_POSICIONES": 1
+      },
+      "capacidad_llena": "MAXIMO_POSICIONES",
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T19:30:12+00:00",
+      "triggered_nuevos": 28,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "CIERRE_CERCANO": 1
+      },
+      "capacidad_llena": "CIERRE_CERCANO",
+      "fuente": "vps"
     }
   ],
   "sesion": {
-    "triggered_nuevos": 9967,
-    "revisiones": 8,
-    "ordenes_colocadas": 6,
-    "paper_step_success_zero_orders": 393,
+    "triggered_nuevos": 10109,
+    "revisiones": 9,
+    "ordenes_colocadas": 7,
+    "paper_step_success_zero_orders": 397,
     "muestras_latencia": {
-      "descubrimiento": 8,
-      "alerta": 8,
-      "e2e": 8
+      "descubrimiento": 9,
+      "alerta": 9,
+      "e2e": 9
     },
     "latencia_p50_ms": {
-      "descubrimiento": 72000.0,
-      "alerta": 72500.0,
-      "e2e": 88000.0
+      "descubrimiento": 73000.0,
+      "alerta": 73000.0,
+      "e2e": 89000.0
     },
     "latencia_p95_ms": {
-      "descubrimiento": 121750.0,
-      "alerta": 122750.0,
-      "e2e": 140800.0
+      "descubrimiento": 118000.0,
+      "alerta": 119000.0,
+      "e2e": 3969400.0
     },
     "sobre_presupuesto": {
       "descubrimiento": 0,
       "alerta": 0,
-      "e2e": 0
+      "e2e": 1
     },
     "presupuesto_velas": 8,
     "presupuesto_ms": 480000,
     "version_medicion": 2,
     "bloqueos": {
       "MERCADO_CERRADO": 31,
-      "DATO_FALTANTE:ultimos_niveles_ts": 5616,
+      "DATO_FALTANTE:ultimos_niveles_ts": 5640,
       "PRECIO_FUERA_DE_ALCANCE": 1,
-      "MAXIMO_POSICIONES": 134
+      "MAXIMO_POSICIONES": 141,
+      "CIERRE_CERCANO": 1
     },
     "corridas_sin_capacidad": {
       "MERCADO_CERRADO": 31,
-      "MAXIMO_POSICIONES": 134
+      "MAXIMO_POSICIONES": 137,
+      "CIERRE_CERCANO": 1
     },
     "latencia_total_velas": {
-      "muestras": 8,
+      "muestras": 9,
       "p50": 1.6,
-      "p95": 3.3,
-      "sobre_presupuesto": 0
+      "p95": 67.0,
+      "sobre_presupuesto": 1
     }
   }
 }
