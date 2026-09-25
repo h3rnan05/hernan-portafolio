@@ -596,67 +596,6 @@
       "clima_mercado": "favorable"
     },
     {
-      "ticker": "TJX",
-      "nombre": "The TJX Companies, Inc.",
-      "estado": "invalidated",
-      "creado_en": "2026-09-18T19:45:08+00:00",
-      "actualizado_en": "2026-09-18T20:05:22+00:00",
-      "transiciones": [
-        {
-          "estado": "watching",
-          "timestamp": "2026-09-18T19:45:08+00:00",
-          "motivo": "Catalizador confirmado -- en observación.",
-          "deteccion_ts": "2026-09-18T19:45:08+00:00",
-          "evaluacion_ts": "2026-09-18T19:45:08+00:00",
-          "mensaje_generado_ts": null,
-          "telegram_enviado_ts": null,
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": null
-        },
-        {
-          "estado": "invalidated",
-          "timestamp": "2026-09-18T20:05:22+00:00",
-          "motivo": "El precio ($127.25) cayó por debajo del stop de la idea ($127.42) -- la tesis se rompió antes de que llegara la entrada.",
-          "deteccion_ts": "2026-09-18T20:05:22+00:00",
-          "evaluacion_ts": "2026-09-18T20:05:22+00:00",
-          "mensaje_generado_ts": null,
-          "telegram_enviado_ts": null,
-          "latencia_desde_deteccion_ms": null,
-          "latencia_desde_evaluacion_ms": null,
-          "latencia_desde_transicion_ms": null
-        }
-      ],
-      "catalizador_tipo": "earnings",
-      "catalizador_titular": "TJX Raises Fiscal 2027 Outlook as Q2 Results Show Broad-Based Growth",
-      "catalizador_fuente": "Zacks",
-      "catalizador_fecha": "2026-09-16T16:13:00Z",
-      "catalizador_confirmado": true,
-      "catalizador_fuentes_adicionales": [],
-      "shares_float": 1097422121.0,
-      "short_pct_float": 0.0198,
-      "es_large_cap": true,
-      "score_base": 63.6,
-      "atr_diario": 2.586431230817522,
-      "gap_pct_congelado": -0.0010273005110820043,
-      "tarde_consecutivas": 0,
-      "market_event_ts": null,
-      "data_received_ts": null,
-      "evaluador_ts": null,
-      "mensaje_generado_ts": null,
-      "telegram_enviado_ts": null,
-      "signal_latency_ms": null,
-      "velas_desde_ruptura": null,
-      "watchlist_escrito_ts": null,
-      "ultima_entrada": 127.24500274658203,
-      "ultimo_stop": 125.95178713117328,
-      "ultimo_objetivo": 129.83143397739954,
-      "ultima_zona_entrada_baja": 126.80999755859375,
-      "ultimos_niveles_ts": "2026-09-18T20:05:22+00:00",
-      "stop_tesis": 127.41666886540719,
-      "clima_mercado": "favorable"
-    },
-    {
       "ticker": "TTE",
       "nombre": "TotalEnergies SE",
       "estado": "expired",
@@ -12245,9 +12184,9 @@
     {
       "ticker": "NBIS",
       "nombre": "Nebius Group N.V.",
-      "estado": "triggered",
+      "estado": "archived",
       "creado_en": "2026-09-25T15:40:42+00:00",
-      "actualizado_en": "2026-09-25T17:02:05+00:00",
+      "actualizado_en": "2026-09-25T20:14:43+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -12272,6 +12211,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": 9000.0
+        },
+        {
+          "estado": "archived",
+          "timestamp": "2026-09-25T20:14:43+00:00",
+          "motivo": "Desenlace paper terminal (cerrada). Causa raíz C: no había transición post-revisión. Revisión 2026-09-25T17:02:33+00:00.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -12501,9 +12452,9 @@
     {
       "ticker": "CTAS",
       "nombre": "Cintas Corporation",
-      "estado": "triggered",
+      "estado": "archived",
       "creado_en": "2026-09-25T15:40:42+00:00",
-      "actualizado_en": "2026-09-25T16:30:05+00:00",
+      "actualizado_en": "2026-09-25T20:14:43+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -12528,6 +12479,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": 6000.0
+        },
+        {
+          "estado": "archived",
+          "timestamp": "2026-09-25T20:14:43+00:00",
+          "motivo": "Desenlace paper terminal (cerrada). Causa raíz C: no había transición post-revisión. Revisión 2026-09-25T16:30:22+00:00.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
         }
       ],
       "catalizador_tipo": "guidance",
@@ -13135,9 +13098,9 @@
     {
       "ticker": "TWST",
       "nombre": "Twist Bioscience Corporation",
-      "estado": "triggered",
+      "estado": "archived",
       "creado_en": "2026-09-25T16:41:28+00:00",
-      "actualizado_en": "2026-09-25T16:41:28+00:00",
+      "actualizado_en": "2026-09-25T20:14:43+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13162,6 +13125,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": 1000.0
+        },
+        {
+          "estado": "archived",
+          "timestamp": "2026-09-25T20:14:43+00:00",
+          "motivo": "Desenlace paper terminal (cerrada). Causa raíz C: no había transición post-revisión. Revisión 2026-09-25T16:41:46+00:00.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -13379,9 +13354,9 @@
     {
       "ticker": "DLB",
       "nombre": "Dolby Laboratories, Inc.",
-      "estado": "triggered",
+      "estado": "archived",
       "creado_en": "2026-09-25T16:41:28+00:00",
-      "actualizado_en": "2026-09-25T17:15:05+00:00",
+      "actualizado_en": "2026-09-25T20:14:43+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13406,6 +13381,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": 9000.0
+        },
+        {
+          "estado": "archived",
+          "timestamp": "2026-09-25T20:14:43+00:00",
+          "motivo": "Desenlace paper terminal (cerrada). Causa raíz C: no había transición post-revisión. Revisión 2026-09-25T17:15:29+00:00.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -13974,6 +13961,155 @@
       "ultimos_niveles_ts": "2026-09-25T20:00:05+00:00",
       "stop_tesis": 42.81378972107531,
       "clima_mercado": "debil"
+    },
+    {
+      "ticker": "NTAP",
+      "nombre": "NetApp, Inc.",
+      "estado": "watching",
+      "creado_en": "2026-09-25T20:14:27+00:00",
+      "actualizado_en": "2026-09-25T20:14:27+00:00",
+      "transiciones": [
+        {
+          "estado": "watching",
+          "timestamp": "2026-09-25T20:14:27+00:00",
+          "motivo": "Catalizador confirmado -- en observación.",
+          "deteccion_ts": "2026-09-25T20:14:27+00:00",
+          "evaluacion_ts": "2026-09-25T20:14:27+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        }
+      ],
+      "catalizador_tipo": "adquisicion",
+      "catalizador_titular": "NetApp plans to acquire PEAK:AIO to expand AI infrastructure capabilities",
+      "catalizador_fuente": "Proactive",
+      "catalizador_fecha": "2026-09-25T15:17:00Z",
+      "catalizador_confirmado": true,
+      "catalizador_fuentes_adicionales": [
+        "Stocktwits"
+      ],
+      "shares_float": 195332808.0,
+      "short_pct_float": 0.051799998,
+      "es_large_cap": true,
+      "score_base": 79.2,
+      "atr_diario": 7.685712541852679,
+      "gap_pct_congelado": 0.00088718205280528,
+      "tarde_consecutivas": 1,
+      "market_event_ts": null,
+      "data_received_ts": null,
+      "evaluador_ts": null,
+      "mensaje_generado_ts": null,
+      "telegram_enviado_ts": null,
+      "signal_latency_ms": null,
+      "velas_desde_ruptura": null,
+      "watchlist_escrito_ts": null,
+      "ultima_entrada": 201.145,
+      "ultimo_stop": 199.22357186453684,
+      "ultimo_objetivo": 204.98785627092636,
+      "ultima_zona_entrada_baja": 197.4149932861328,
+      "ultimos_niveles_ts": "2026-09-25T20:14:27+00:00",
+      "stop_tesis": 199.22357186453684,
+      "clima_mercado": "debil"
+    },
+    {
+      "ticker": "RVMD",
+      "nombre": "Revolution Medicines, Inc.",
+      "estado": "watching",
+      "creado_en": "2026-09-25T20:14:27+00:00",
+      "actualizado_en": "2026-09-25T20:14:27+00:00",
+      "transiciones": [
+        {
+          "estado": "watching",
+          "timestamp": "2026-09-25T20:14:27+00:00",
+          "motivo": "Catalizador confirmado -- en observación.",
+          "deteccion_ts": "2026-09-25T20:14:27+00:00",
+          "evaluacion_ts": "2026-09-25T20:14:27+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        }
+      ],
+      "catalizador_tipo": "fda",
+      "catalizador_titular": "Is Revolution Medicines (RVMD) Cheap After Its FDA Breakthrough Therapy Win?",
+      "catalizador_fuente": "Simply Wall St.",
+      "catalizador_fecha": "2026-09-23T06:13:25Z",
+      "catalizador_confirmado": true,
+      "catalizador_fuentes_adicionales": [],
+      "shares_float": 184492215.0,
+      "short_pct_float": 0.0476,
+      "es_large_cap": true,
+      "score_base": 68.7,
+      "atr_diario": 7.9244264875139505,
+      "gap_pct_congelado": 0.0032022385054235277,
+      "tarde_consecutivas": 1,
+      "market_event_ts": null,
+      "data_received_ts": null,
+      "evaluador_ts": null,
+      "mensaje_generado_ts": null,
+      "telegram_enviado_ts": null,
+      "signal_latency_ms": null,
+      "velas_desde_ruptura": null,
+      "watchlist_escrito_ts": null,
+      "ultima_entrada": 204.97,
+      "ultimo_stop": 201.00778675624304,
+      "ultimo_objetivo": 212.89442648751393,
+      "ultima_zona_entrada_baja": 201.99000549316406,
+      "ultimos_niveles_ts": "2026-09-25T20:14:27+00:00",
+      "stop_tesis": 201.00778675624304,
+      "clima_mercado": "debil"
+    },
+    {
+      "ticker": "BBY",
+      "nombre": "Best Buy Co., Inc.",
+      "estado": "watching",
+      "creado_en": "2026-09-25T20:14:27+00:00",
+      "actualizado_en": "2026-09-25T20:14:27+00:00",
+      "transiciones": [
+        {
+          "estado": "watching",
+          "timestamp": "2026-09-25T20:14:27+00:00",
+          "motivo": "Catalizador confirmado -- en observación.",
+          "deteccion_ts": "2026-09-25T20:14:27+00:00",
+          "evaluacion_ts": "2026-09-25T20:14:27+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        }
+      ],
+      "catalizador_tipo": "nuevo_cliente",
+      "catalizador_titular": "Best Buy and Amazon Expand Fire TV Partnership Into Connected TV Advertising",
+      "catalizador_fuente": "InvestorsHub",
+      "catalizador_fecha": "2026-09-23T12:08:35Z",
+      "catalizador_confirmado": true,
+      "catalizador_fuentes_adicionales": [],
+      "shares_float": 196904947.0,
+      "short_pct_float": 0.086,
+      "es_large_cap": true,
+      "score_base": 60.9,
+      "atr_diario": 3.004286084856306,
+      "gap_pct_congelado": -0.014175834236564218,
+      "tarde_consecutivas": 0,
+      "market_event_ts": null,
+      "data_received_ts": null,
+      "evaluador_ts": null,
+      "mensaje_generado_ts": null,
+      "telegram_enviado_ts": null,
+      "signal_latency_ms": null,
+      "velas_desde_ruptura": null,
+      "watchlist_escrito_ts": null,
+      "ultima_entrada": null,
+      "ultimo_stop": null,
+      "ultimo_objetivo": null,
+      "ultima_zona_entrada_baja": null,
+      "ultimos_niveles_ts": null,
+      "stop_tesis": null,
+      "clima_mercado": null
     }
   ]
 }
