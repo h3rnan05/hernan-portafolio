@@ -6711,27 +6711,151 @@
       },
       "capacidad_llena": null,
       "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T16:42:16+00:00",
+      "triggered_nuevos": 24,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 24
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T16:43:35+00:00",
+      "triggered_nuevos": 25,
+      "revisiones": 1,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": [
+          1.6
+        ]
+      },
+      "latencias_ms": {
+        "descubrimiento": [
+          73000.0
+        ],
+        "alerta": [
+          74000.0
+        ],
+        "e2e": [
+          94000.0
+        ]
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 24
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T16:44:15+00:00",
+      "triggered_nuevos": 24,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 24
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-25T16:45:16+00:00",
+      "triggered_nuevos": 24,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 24
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
     }
   ],
   "sesion": {
-    "triggered_nuevos": 5526,
-    "revisiones": 5,
+    "triggered_nuevos": 5623,
+    "revisiones": 6,
     "ordenes_colocadas": 4,
-    "paper_step_success_zero_orders": 226,
+    "paper_step_success_zero_orders": 230,
     "muestras_latencia": {
-      "descubrimiento": 5,
-      "alerta": 5,
-      "e2e": 5
+      "descubrimiento": 6,
+      "alerta": 6,
+      "e2e": 6
     },
     "latencia_p50_ms": {
-      "descubrimiento": 70000.0,
+      "descubrimiento": 70500.0,
       "alerta": 71000.0,
-      "e2e": 86000.0
+      "e2e": 86500.0
     },
     "latencia_p95_ms": {
-      "descubrimiento": 132600.0,
-      "alerta": 133400.0,
-      "e2e": 150200.0
+      "descubrimiento": 129250.0,
+      "alerta": 130250.0,
+      "e2e": 148000.0
     },
     "sobre_presupuesto": {
       "descubrimiento": 0,
@@ -6743,15 +6867,15 @@
     "version_medicion": 2,
     "bloqueos": {
       "MERCADO_CERRADO": 31,
-      "DATO_FALTANTE:ultimos_niveles_ts": 4776,
+      "DATO_FALTANTE:ultimos_niveles_ts": 4872,
       "PRECIO_FUERA_DE_ALCANCE": 1
     },
     "corridas_sin_capacidad": {
       "MERCADO_CERRADO": 31
     },
     "latencia_total_velas": {
-      "muestras": 5,
-      "p50": 1.4,
+      "muestras": 6,
+      "p50": 1.5,
       "p95": 2.7,
       "sobre_presupuesto": 0
     }
