@@ -178518,6 +178518,2374 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-25T18:06:11+00:00",
+      "candidatos_evaluados": 8,
+      "candidatos": [
+        {
+          "ticker": "RVMD",
+          "nombre": "Revolution Medicines, Inc.",
+          "precio_actual": 206.00999450683594,
+          "factores_intradia": {
+            "precio_actual": 206.00999450683594,
+            "vwap": 206.07793788202892,
+            "ema9": 206.13879309408225,
+            "rvol_actual": 2.1064182598517363,
+            "aceleracion_volumen": 1.1431092807765846,
+            "gap_pct": 0.0028510345876074177,
+            "maximo_dia": 211.50999450683594,
+            "maximo_premarket": 202.0,
+            "rango_apertura_max": 201.99000549316406,
+            "rango_apertura_min": 197.97000122070312,
+            "velas_desde_ruptura": 250,
+            "macd": -0.034525138171318304,
+            "macd_signal": -0.08856653314692654
+          },
+          "meta": {
+            "float_acciones": 184492215.0,
+            "short_pct_float": 0.0476,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Is Revolution Medicines (RVMD) Cheap After Its FDA Breakthrough Therapy Win?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-23T06:13:25Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3592.768688416667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 55.3,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 250 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 64.31092807765846,
+                "extension": 100.0,
+                "distancia_maximo_dia": 73.9965006721125,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "El patrón se activó hace 250 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 68.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "El patrón se activó hace 250 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "AMBA",
+          "nombre": "Ambarella, Inc.",
+          "precio_actual": 73.54000091552734,
+          "factores_intradia": {
+            "precio_actual": 73.54000091552734,
+            "vwap": 73.06605652513888,
+            "ema9": 73.5551804710079,
+            "rvol_actual": 0.18628204548537325,
+            "aceleracion_volumen": 0.8240438896398188,
+            "gap_pct": 0.013027969677716236,
+            "maximo_dia": 74.98999786376953,
+            "maximo_premarket": 72.0,
+            "rango_apertura_max": 70.76000213623047,
+            "rango_apertura_min": 69.9000015258789,
+            "velas_desde_ruptura": null,
+            "macd": -0.006397209272776649,
+            "macd_signal": 0.0009639733552000019
+          },
+          "meta": {
+            "float_acciones": 42140944.0,
+            "short_pct_float": 0.15630001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Ambarella (AMBA) Could Be 23% Undervalued After Its Edge AI Partnerships",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-22T16:15:05Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4431.102060916667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 58.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 32.40438896398188,
+                "extension": 100.0,
+                "distancia_maximo_dia": 80.66412868985107,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 70.7,
+            "score_ajustado": 50.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "RARE",
+          "nombre": "Ultragenyx Pharmaceutical Inc.",
+          "precio_actual": 14.21500015258789,
+          "factores_intradia": {
+            "precio_actual": 14.21500015258789,
+            "vwap": 14.358350675561026,
+            "ema9": 14.234486196586834,
+            "rvol_actual": 1.2154495679134507,
+            "aceleracion_volumen": 0.5875315922493681,
+            "gap_pct": 0.009485053352132865,
+            "maximo_dia": 14.95,
+            "maximo_premarket": 14.95,
+            "rango_apertura_max": 14.9399995803833,
+            "rango_apertura_min": 14.770000457763672,
+            "velas_desde_ruptura": null,
+            "macd": -0.001712068647252707,
+            "macd_signal": 0.0029132301150177303
+          },
+          "meta": {
+            "float_acciones": 80416024.0,
+            "short_pct_float": 0.17379999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "FDA Approves Fayuvi. What Does It Mean for Ultragenyx (RARE)’s 2027 Profitability Target?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:18:51Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4787.335435849999,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 49.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 8.753159224936816,
+                "extension": 100.0,
+                "distancia_maximo_dia": 50.83613060788572,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 68.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "GAP",
+          "nombre": "The Gap, Inc.",
+          "precio_actual": 21.604999542236328,
+          "factores_intradia": {
+            "precio_actual": 21.604999542236328,
+            "vwap": 21.608215418731348,
+            "ema9": 21.613070709600763,
+            "rvol_actual": 2.4776416031798605,
+            "aceleracion_volumen": 1.1129161652627357,
+            "gap_pct": 0.002766227038499686,
+            "maximo_dia": 21.780000686645508,
+            "maximo_premarket": 21.78,
+            "rango_apertura_max": 21.764999389648438,
+            "rango_apertura_min": 21.600000381469727,
+            "velas_desde_ruptura": null,
+            "macd": -0.00789020158165954,
+            "macd_signal": -0.008587900250982512
+          },
+          "meta": {
+            "float_acciones": 193595511.0,
+            "short_pct_float": 0.1392,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Gap partners with boy band Just Your Type in multiyear partnership",
+            "fuente": "Associated Press",
+            "fecha": "2026-09-23T14:59:03Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3067.1354725666665,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 66.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 61.29161652627357,
+                "extension": 100.0,
+                "distancia_maximo_dia": 91.96505331074289,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 62.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "CZR",
+          "nombre": "Caesars Entertainment, Inc.",
+          "precio_actual": 29.604999542236328,
+          "factores_intradia": {
+            "precio_actual": 29.604999542236328,
+            "vwap": 29.60424551653515,
+            "ema9": 29.605573935392947,
+            "rvol_actual": 0.11557897000322545,
+            "aceleracion_volumen": 6.871781615138041,
+            "gap_pct": 0.0018571772953184331,
+            "maximo_dia": 29.670000076293945,
+            "maximo_premarket": 29.67,
+            "rango_apertura_max": 29.670000076293945,
+            "rango_apertura_min": 29.610000610351562,
+            "velas_desde_ruptura": null,
+            "macd": -0.0024457229892256294,
+            "macd_signal": -0.0022700209768644203
+          },
+          "meta": {
+            "float_acciones": 181889697.0,
+            "short_pct_float": 0.1076,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "MGM Resorts International Sinks 10% as Barry Diller Withdraws $48.30-a-Share Buyout Offer; Caesars Entertainment Barely Moves",
+            "fuente": "24/7 Wall St.",
+            "fecha": "2026-09-24T13:25:14Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1720.95217015,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.8092169231387,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "EVC",
+          "nombre": "Entravision Communications Corporation",
+          "precio_actual": 7.525000095367432,
+          "factores_intradia": {
+            "precio_actual": 7.525000095367432,
+            "vwap": 7.57806798489701,
+            "ema9": 7.524928015714095,
+            "rvol_actual": 0.14232558139534884,
+            "aceleracion_volumen": 1.6026365348399247,
+            "gap_pct": 0.0,
+            "maximo_dia": 7.820000171661377,
+            "maximo_premarket": null,
+            "rango_apertura_max": 7.820000171661377,
+            "rango_apertura_min": 7.650000095367432,
+            "velas_desde_ruptura": 6,
+            "macd": 0.002598158072068202,
+            "macd_signal": 0.0012681812547061105
+          },
+          "meta": {
+            "float_acciones": 69938846.0,
+            "short_pct_float": 0.16690001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "Zacks Initiates Coverage of Entravision With Neutral Recommendation",
+            "fuente": "Zacks",
+            "fecha": "2026-09-25T13:42:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 264.1855343666667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 66.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 62.27620590559757,
+                "frescura_patron": 33.333333333333336,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 55.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.7899999618530273,
+          "factores_intradia": {
+            "precio_actual": 2.7899999618530273,
+            "vwap": 2.7403242656216893,
+            "ema9": 2.784553781517595,
+            "rvol_actual": 1.2041049538452406,
+            "aceleracion_volumen": 0.6891048304006141,
+            "gap_pct": -0.0036900333293332973,
+            "maximo_dia": 2.799999952316284,
+            "maximo_premarket": 2.75,
+            "rango_apertura_max": 2.700000047683716,
+            "rango_apertura_min": 2.680000066757202,
+            "velas_desde_ruptura": 3,
+            "macd": 0.004188886447445306,
+            "macd_signal": 0.0018991460685238585
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.053000003,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4897.468898016667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 60.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 18.91048304006141,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.42857477373012,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 68.7,
+            "score_ajustado": 33.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.21999979019165,
+          "factores_intradia": {
+            "precio_actual": 5.21999979019165,
+            "vwap": 5.174711744948458,
+            "ema9": 5.212698003719163,
+            "rvol_actual": 0.8168364405150875,
+            "aceleracion_volumen": 0.35869809203142533,
+            "gap_pct": 0.0,
+            "maximo_dia": 5.2781,
+            "maximo_premarket": 5.2781,
+            "rango_apertura_max": 5.239999771118164,
+            "rango_apertura_min": 5.190000057220459,
+            "velas_desde_ruptura": 0,
+            "macd": 0.006115796220747427,
+            "macd_signal": 0.0064242602473108135
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2038.5189134666666,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 58.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.99221124867852,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 57.0,
+            "score_ajustado": 22.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-25T18:07:11+00:00",
+      "candidatos_evaluados": 8,
+      "candidatos": [
+        {
+          "ticker": "RVMD",
+          "nombre": "Revolution Medicines, Inc.",
+          "precio_actual": 205.6699981689453,
+          "factores_intradia": {
+            "precio_actual": 205.6699981689453,
+            "vwap": 206.07732243617326,
+            "ema9": 206.04503410905488,
+            "rvol_actual": 1.1712875047474365,
+            "aceleracion_volumen": 1.593201404404724,
+            "gap_pct": 0.0028510345876074177,
+            "maximo_dia": 211.50999450683594,
+            "maximo_premarket": 202.0,
+            "rango_apertura_max": 201.99000549316406,
+            "rango_apertura_min": 197.97000122070312,
+            "velas_desde_ruptura": null,
+            "macd": -0.06799159787064468,
+            "macd_signal": -0.08445154609167017
+          },
+          "meta": {
+            "float_acciones": 184492215.0,
+            "short_pct_float": 0.0476,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Is Revolution Medicines (RVMD) Cheap After Its FDA Breakthrough Therapy Win?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-23T06:13:25Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3593.7709038000003,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 72.38902893687194,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 68.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "AMBA",
+          "nombre": "Ambarella, Inc.",
+          "precio_actual": 73.60469818115234,
+          "factores_intradia": {
+            "precio_actual": 73.60469818115234,
+            "vwap": 73.06671000312902,
+            "ema9": 73.5650840130368,
+            "rvol_actual": 0.32189534937422065,
+            "aceleracion_volumen": 0.6687423068568532,
+            "gap_pct": 0.013027969677716236,
+            "maximo_dia": 74.98999786376953,
+            "maximo_premarket": 72.0,
+            "rango_apertura_max": 70.76000213623047,
+            "rango_apertura_min": 69.9000015258789,
+            "velas_desde_ruptura": 0,
+            "macd": -0.0023499585861799233,
+            "macd_signal": 0.00030118696692401693
+          },
+          "meta": {
+            "float_acciones": 42140944.0,
+            "short_pct_float": 0.15630001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Ambarella (AMBA) Could Be 23% Undervalued After Its Edge AI Partnerships",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-22T16:15:05Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4432.104278033334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 61.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 16.87423068568532,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.5268739554601,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 70.7,
+            "score_ajustado": 50.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "RARE",
+          "nombre": "Ultragenyx Pharmaceutical Inc.",
+          "precio_actual": 14.220000267028809,
+          "factores_intradia": {
+            "precio_actual": 14.220000267028809,
+            "vwap": 14.358169682200133,
+            "ema9": 14.23158901067523,
+            "rvol_actual": 0.5867178471190357,
+            "aceleracion_volumen": 1.2815844922039612,
+            "gap_pct": 0.009485053352132865,
+            "maximo_dia": 14.95,
+            "maximo_premarket": 14.95,
+            "rango_apertura_max": 14.9399995803833,
+            "rango_apertura_min": 14.770000457763672,
+            "velas_desde_ruptura": null,
+            "macd": -0.002938100595683224,
+            "macd_signal": 0.0017429639728775393
+          },
+          "meta": {
+            "float_acciones": 80416024.0,
+            "short_pct_float": 0.17379999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "FDA Approves Fayuvi. What Does It Mean for Ultragenyx (RARE)’s 2027 Profitability Target?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:18:51Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4788.337675516666,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 65.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 78.15844922039612,
+                "extension": 100.0,
+                "distancia_maximo_dia": 51.17058642333172,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 68.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "GAP",
+          "nombre": "The Gap, Inc.",
+          "precio_actual": 21.604999542236328,
+          "factores_intradia": {
+            "precio_actual": 21.604999542236328,
+            "vwap": 21.60822857937266,
+            "ema9": 21.613070709600763,
+            "rvol_actual": 2.4776416031798605,
+            "aceleracion_volumen": 1.1129161652627357,
+            "gap_pct": 0.002766227038499686,
+            "maximo_dia": 21.780000686645508,
+            "maximo_premarket": 21.78,
+            "rango_apertura_max": 21.764999389648438,
+            "rango_apertura_min": 21.600000381469727,
+            "velas_desde_ruptura": null,
+            "macd": -0.00789020158165954,
+            "macd_signal": -0.008587900250982512
+          },
+          "meta": {
+            "float_acciones": 193595511.0,
+            "short_pct_float": 0.1392,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Gap partners with boy band Just Your Type in multiyear partnership",
+            "fuente": "Associated Press",
+            "fecha": "2026-09-23T14:59:03Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3068.1377294833337,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 66.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 61.29161652627357,
+                "extension": 100.0,
+                "distancia_maximo_dia": 91.96505331074289,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 62.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "CZR",
+          "nombre": "Caesars Entertainment, Inc.",
+          "precio_actual": 29.604999542236328,
+          "factores_intradia": {
+            "precio_actual": 29.604999542236328,
+            "vwap": 29.60424551653515,
+            "ema9": 29.605573935392947,
+            "rvol_actual": 0.11557897000322545,
+            "aceleracion_volumen": 6.871781615138041,
+            "gap_pct": 0.0018571772953184331,
+            "maximo_dia": 29.670000076293945,
+            "maximo_premarket": 29.67,
+            "rango_apertura_max": 29.670000076293945,
+            "rango_apertura_min": 29.610000610351562,
+            "velas_desde_ruptura": null,
+            "macd": -0.0024457229892256294,
+            "macd_signal": -0.0022700209768644203
+          },
+          "meta": {
+            "float_acciones": 181889697.0,
+            "short_pct_float": 0.1076,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "MGM Resorts International Sinks 10% as Barry Diller Withdraws $48.30-a-Share Buyout Offer; Caesars Entertainment Barely Moves",
+            "fuente": "24/7 Wall St.",
+            "fecha": "2026-09-24T13:25:14Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1721.9544276666668,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.8092169231387,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "EVC",
+          "nombre": "Entravision Communications Corporation",
+          "precio_actual": 7.534999847412109,
+          "factores_intradia": {
+            "precio_actual": 7.534999847412109,
+            "vwap": 7.577213365035554,
+            "ema9": 7.526942382053698,
+            "rvol_actual": 4.291419581265885,
+            "aceleracion_volumen": 7.455396475770924,
+            "gap_pct": 0.0,
+            "maximo_dia": 7.820000171661377,
+            "maximo_premarket": null,
+            "rango_apertura_max": 7.820000171661377,
+            "rango_apertura_min": 7.650000095367432,
+            "velas_desde_ruptura": 0,
+            "macd": 0.0033018769624515443,
+            "macd_signal": 0.0016749203962551974
+          },
+          "meta": {
+            "float_acciones": 69938846.0,
+            "short_pct_float": 0.16690001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "Zacks Initiates Coverage of Entravision With Neutral Recommendation",
+            "fuente": "Zacks",
+            "fecha": "2026-09-25T13:42:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 265.1877923166667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 63.55494654820204,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 55.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.7850000858306885,
+          "factores_intradia": {
+            "precio_actual": 2.7850000858306885,
+            "vwap": 2.740351520648846,
+            "ema9": 2.784643042380214,
+            "rvol_actual": 0.059965216551124426,
+            "aceleracion_volumen": 0.3095412987418926,
+            "gap_pct": -0.0036900333293332973,
+            "maximo_dia": 2.799999952316284,
+            "maximo_premarket": 2.75,
+            "rango_apertura_max": 2.700000047683716,
+            "rango_apertura_min": 2.680000066757202,
+            "velas_desde_ruptura": 4,
+            "macd": 0.004068980412257339,
+            "macd_signal": 0.0023331129372705546
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.053000003,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4898.471156216667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 54.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 94.6429047353422,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 68.7,
+            "score_ajustado": 33.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.21999979019165,
+          "factores_intradia": {
+            "precio_actual": 5.21999979019165,
+            "vwap": 5.174711744948458,
+            "ema9": 5.212698003719163,
+            "rvol_actual": 0.8168364405150875,
+            "aceleracion_volumen": 0.35869809203142533,
+            "gap_pct": 0.0,
+            "maximo_dia": 5.2781,
+            "maximo_premarket": 5.2781,
+            "rango_apertura_max": 5.239999771118164,
+            "rango_apertura_min": 5.190000057220459,
+            "velas_desde_ruptura": 0,
+            "macd": 0.006115796220747427,
+            "macd_signal": 0.0064242602473108135
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2039.5211714833333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 58.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.99221124867852,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 57.0,
+            "score_ajustado": 22.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-25T18:08:10+00:00",
+      "candidatos_evaluados": 8,
+      "candidatos": [
+        {
+          "ticker": "RVMD",
+          "nombre": "Revolution Medicines, Inc.",
+          "precio_actual": 205.39999389648438,
+          "factores_intradia": {
+            "precio_actual": 205.39999389648438,
+            "vwap": 206.07682064641094,
+            "ema9": 205.9160260665408,
+            "rvol_actual": 0.49051431869003825,
+            "aceleracion_volumen": 1.356501547987616,
+            "gap_pct": 0.0028510345876074177,
+            "maximo_dia": 211.50999450683594,
+            "maximo_premarket": 202.0,
+            "rango_apertura_max": 201.99000549316406,
+            "rango_apertura_min": 197.97000122070312,
+            "velas_desde_ruptura": null,
+            "macd": -0.11497572794112898,
+            "macd_signal": -0.09055638246156193
+          },
+          "meta": {
+            "float_acciones": 184492215.0,
+            "short_pct_float": 0.0476,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Is Revolution Medicines (RVMD) Cheap After Its FDA Breakthrough Therapy Win?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-23T06:13:25Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3594.7662566,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 69.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 85.65015479876159,
+                "extension": 100.0,
+                "distancia_maximo_dia": 71.11247331551462,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 68.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "AMBA",
+          "nombre": "Ambarella, Inc.",
+          "precio_actual": 73.58999633789062,
+          "factores_intradia": {
+            "precio_actual": 73.58999633789062,
+            "vwap": 73.0679759760104,
+            "ema9": 73.57565279178105,
+            "rvol_actual": 0.14351037636299682,
+            "aceleracion_volumen": 0.4109417213431108,
+            "gap_pct": 0.013027969677716236,
+            "maximo_dia": 74.98999786376953,
+            "maximo_premarket": 72.0,
+            "rango_apertura_max": 70.76000213623047,
+            "rango_apertura_min": 69.9000015258789,
+            "velas_desde_ruptura": 2,
+            "macd": 0.001881152981326295,
+            "macd_signal": 0.0006446445058236141
+          },
+          "meta": {
+            "float_acciones": 42140944.0,
+            "short_pct_float": 0.15630001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Ambarella (AMBA) Could Be 23% Undervalued After Its Edge AI Partnerships",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-22T16:15:05Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4433.099629716667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 58.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.33082323295682,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 70.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "RARE",
+          "nombre": "Ultragenyx Pharmaceutical Inc.",
+          "precio_actual": 14.21500015258789,
+          "factores_intradia": {
+            "precio_actual": 14.21500015258789,
+            "vwap": 14.35806391640433,
+            "ema9": 14.224817003453241,
+            "rvol_actual": 0.3206204062735112,
+            "aceleracion_volumen": 0.3182535130484658,
+            "gap_pct": 0.009485053352132865,
+            "maximo_dia": 14.95,
+            "maximo_premarket": 14.95,
+            "rango_apertura_max": 14.9399995803833,
+            "rango_apertura_min": 14.770000457763672,
+            "velas_desde_ruptura": null,
+            "macd": -0.0055622719801764475,
+            "macd_signal": -0.0007430251918377472
+          },
+          "meta": {
+            "float_acciones": 80416024.0,
+            "short_pct_float": 0.17379999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "FDA Approves Fayuvi. What Does It Mean for Ultragenyx (RARE)’s 2027 Profitability Target?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:18:51Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4789.333004550001,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 47.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 50.83613060788572,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 68.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "GAP",
+          "nombre": "The Gap, Inc.",
+          "precio_actual": 21.610000610351562,
+          "factores_intradia": {
+            "precio_actual": 21.610000610351562,
+            "vwap": 21.60822953027928,
+            "ema9": 21.612456689750925,
+            "rvol_actual": 1.77311049764978,
+            "aceleracion_volumen": 1.4596626701889859,
+            "gap_pct": 0.002766227038499686,
+            "maximo_dia": 21.780000686645508,
+            "maximo_premarket": 21.78,
+            "rango_apertura_max": 21.764999389648438,
+            "rango_apertura_min": 21.600000381469727,
+            "velas_desde_ruptura": null,
+            "macd": -0.007660181893086815,
+            "macd_signal": -0.008402356579403372
+          },
+          "meta": {
+            "float_acciones": 193595511.0,
+            "short_pct_float": 0.1392,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Gap partners with boy band Just Your Type in multiyear partnership",
+            "fuente": "Associated Press",
+            "fecha": "2026-09-23T14:59:03Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3069.1330426833333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 74.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 95.96626701889859,
+                "extension": 100.0,
+                "distancia_maximo_dia": 92.19467075599397,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 62.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "CZR",
+          "nombre": "Caesars Entertainment, Inc.",
+          "precio_actual": 29.604999542236328,
+          "factores_intradia": {
+            "precio_actual": 29.604999542236328,
+            "vwap": 29.60424641451444,
+            "ema9": 29.605459056761624,
+            "rvol_actual": 0.19297447087645084,
+            "aceleracion_volumen": 6.85640506329114,
+            "gap_pct": 0.0018571772953184331,
+            "maximo_dia": 29.670000076293945,
+            "maximo_premarket": 29.67,
+            "rango_apertura_max": 29.670000076293945,
+            "rango_apertura_min": 29.610000610351562,
+            "velas_desde_ruptura": null,
+            "macd": -0.0023585684287041886,
+            "macd_signal": -0.0022877304672323743
+          },
+          "meta": {
+            "float_acciones": 181889697.0,
+            "short_pct_float": 0.1076,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "MGM Resorts International Sinks 10% as Barry Diller Withdraws $48.30-a-Share Buyout Offer; Caesars Entertainment Barely Moves",
+            "fuente": "24/7 Wall St.",
+            "fecha": "2026-09-24T13:25:14Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1722.9497404166666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.8092169231387,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "EVC",
+          "nombre": "Entravision Communications Corporation",
+          "precio_actual": 7.534999847412109,
+          "factores_intradia": {
+            "precio_actual": 7.534999847412109,
+            "vwap": 7.577247087705862,
+            "ema9": 7.526942382053698,
+            "rvol_actual": 4.291419581265885,
+            "aceleracion_volumen": 7.455396475770924,
+            "gap_pct": 0.0,
+            "maximo_dia": 7.820000171661377,
+            "maximo_premarket": null,
+            "rango_apertura_max": 7.820000171661377,
+            "rango_apertura_min": 7.650000095367432,
+            "velas_desde_ruptura": 0,
+            "macd": 0.0033018769624515443,
+            "macd_signal": 0.0016749203962551974
+          },
+          "meta": {
+            "float_acciones": 69938846.0,
+            "short_pct_float": 0.16690001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "Zacks Initiates Coverage of Entravision With Neutral Recommendation",
+            "fuente": "Zacks",
+            "fecha": "2026-09-25T13:42:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 266.18310510000003,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 63.55494654820204,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 55.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.7844998836517334,
+          "factores_intradia": {
+            "precio_actual": 2.7844998836517334,
+            "vwap": 2.740357432694415,
+            "ema9": 2.7846144106345183,
+            "rvol_actual": 0.013040461321273898,
+            "aceleracion_volumen": 0.26275502516348737,
+            "gap_pct": -0.0036900333293332973,
+            "maximo_dia": 2.799999952316284,
+            "maximo_premarket": 2.75,
+            "rango_apertura_max": 2.700000047683716,
+            "rango_apertura_min": 2.680000066757202,
+            "velas_desde_ruptura": null,
+            "macd": 0.0038887646221246186,
+            "macd_signal": 0.0026442432742413676
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.053000003,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4899.46646865,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 52.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 94.46426109695882,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 68.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.21999979019165,
+          "factores_intradia": {
+            "precio_actual": 5.21999979019165,
+            "vwap": 5.174711744948458,
+            "ema9": 5.212698003719163,
+            "rvol_actual": 0.8168364405150875,
+            "aceleracion_volumen": 0.35869809203142533,
+            "gap_pct": 0.0,
+            "maximo_dia": 5.2781,
+            "maximo_premarket": 5.2781,
+            "rango_apertura_max": 5.239999771118164,
+            "rango_apertura_min": 5.190000057220459,
+            "velas_desde_ruptura": 0,
+            "macd": 0.006115796220747427,
+            "macd_signal": 0.0064242602473108135
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2040.5164843333334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 58.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.99221124867852,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 57.0,
+            "score_ajustado": 22.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-25T18:09:11+00:00",
+      "candidatos_evaluados": 8,
+      "candidatos": [
+        {
+          "ticker": "RVMD",
+          "nombre": "Revolution Medicines, Inc.",
+          "precio_actual": 205.38999938964844,
+          "factores_intradia": {
+            "precio_actual": 205.38999938964844,
+            "vwap": 206.07561951608568,
+            "ema9": 205.81082073116235,
+            "rvol_actual": 1.0870988867059594,
+            "aceleracion_volumen": 0.9135357694287185,
+            "gap_pct": 0.0028510345876074177,
+            "maximo_dia": 211.50999450683594,
+            "maximo_premarket": 202.0,
+            "rango_apertura_max": 201.99000549316406,
+            "rango_apertura_min": 197.97000122070312,
+            "velas_desde_ruptura": null,
+            "macd": -0.15127367394975977,
+            "macd_signal": -0.10269984075920151
+          },
+          "meta": {
+            "float_acciones": 184492215.0,
+            "short_pct_float": 0.0476,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "Is Revolution Medicines (RVMD) Cheap After Its FDA Breakthrough Therapy Win?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-23T06:13:25Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3595.769517866667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 59.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 41.353576942871854,
+                "extension": 100.0,
+                "distancia_maximo_dia": 71.06522019700722,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 68.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "AMBA",
+          "nombre": "Ambarella, Inc.",
+          "precio_actual": 73.58999633789062,
+          "factores_intradia": {
+            "precio_actual": 73.58999633789062,
+            "vwap": 73.0679759760104,
+            "ema9": 73.57565279178105,
+            "rvol_actual": 0.14351037636299682,
+            "aceleracion_volumen": 0.4109417213431108,
+            "gap_pct": 0.013027969677716236,
+            "maximo_dia": 74.98999786376953,
+            "maximo_premarket": 72.0,
+            "rango_apertura_max": 70.76000213623047,
+            "rango_apertura_min": 69.9000015258789,
+            "velas_desde_ruptura": 2,
+            "macd": 0.001881152981326295,
+            "macd_signal": 0.0006446445058236141
+          },
+          "meta": {
+            "float_acciones": 42140944.0,
+            "short_pct_float": 0.15630001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Ambarella (AMBA) Could Be 23% Undervalued After Its Edge AI Partnerships",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-22T16:15:05Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4434.10294645,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 58.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.33082323295682,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 70.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "RARE",
+          "nombre": "Ultragenyx Pharmaceutical Inc.",
+          "precio_actual": 14.21500015258789,
+          "factores_intradia": {
+            "precio_actual": 14.21500015258789,
+            "vwap": 14.35806391640433,
+            "ema9": 14.224817003453241,
+            "rvol_actual": 0.3206204062735112,
+            "aceleracion_volumen": 0.3182535130484658,
+            "gap_pct": 0.009485053352132865,
+            "maximo_dia": 14.95,
+            "maximo_premarket": 14.95,
+            "rango_apertura_max": 14.9399995803833,
+            "rango_apertura_min": 14.770000457763672,
+            "velas_desde_ruptura": null,
+            "macd": -0.0055622719801764475,
+            "macd_signal": -0.0007430251918377472
+          },
+          "meta": {
+            "float_acciones": 80416024.0,
+            "short_pct_float": 0.17379999,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "FDA Approves Fayuvi. What Does It Mean for Ultragenyx (RARE)’s 2027 Profitability Target?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-22T10:18:51Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4790.3363738,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 47.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 50.83613060788572,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 68.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "GAP",
+          "nombre": "The Gap, Inc.",
+          "precio_actual": 21.604999542236328,
+          "factores_intradia": {
+            "precio_actual": 21.604999542236328,
+            "vwap": 21.6082049886969,
+            "ema9": 21.609772116645672,
+            "rvol_actual": 1.723511322337154,
+            "aceleracion_volumen": 1.3115276025710338,
+            "gap_pct": 0.002766227038499686,
+            "maximo_dia": 21.780000686645508,
+            "maximo_premarket": 21.78,
+            "rango_apertura_max": 21.764999389648438,
+            "rango_apertura_min": 21.600000381469727,
+            "velas_desde_ruptura": null,
+            "macd": -0.007805800083165337,
+            "macd_signal": -0.008185326966947182
+          },
+          "meta": {
+            "float_acciones": 193595511.0,
+            "short_pct_float": 0.1392,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Gap partners with boy band Just Your Type in multiyear partnership",
+            "fuente": "Associated Press",
+            "fecha": "2026-09-23T14:59:03Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3070.1364466666664,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 71.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 81.15276025710338,
+                "extension": 100.0,
+                "distancia_maximo_dia": 91.96505331074289,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 62.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "CZR",
+          "nombre": "Caesars Entertainment, Inc.",
+          "precio_actual": 29.604999542236328,
+          "factores_intradia": {
+            "precio_actual": 29.604999542236328,
+            "vwap": 29.60424769842163,
+            "ema9": 29.60536715385657,
+            "rvol_actual": 0.2945661313078052,
+            "aceleracion_volumen": 0.13325097608589556,
+            "gap_pct": 0.0018571772953184331,
+            "maximo_dia": 29.670000076293945,
+            "maximo_premarket": 29.67,
+            "rango_apertura_max": 29.670000076293945,
+            "rango_apertura_min": 29.610000610351562,
+            "velas_desde_ruptura": null,
+            "macd": -0.002263406668426171,
+            "macd_signal": -0.0022828657074711336
+          },
+          "meta": {
+            "float_acciones": 181889697.0,
+            "short_pct_float": 0.1076,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "MGM Resorts International Sinks 10% as Barry Diller Withdraws $48.30-a-Share Buyout Offer; Caesars Entertainment Barely Moves",
+            "fuente": "24/7 Wall St.",
+            "fecha": "2026-09-24T13:25:14Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1723.9531736,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 52.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.8092169231387,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "EVC",
+          "nombre": "Entravision Communications Corporation",
+          "precio_actual": 7.534999847412109,
+          "factores_intradia": {
+            "precio_actual": 7.534999847412109,
+            "vwap": 7.577207066708228,
+            "ema9": 7.528553875125381,
+            "rvol_actual": 0.13498992612491606,
+            "aceleracion_volumen": 1.0411105178857447,
+            "gap_pct": 0.0,
+            "maximo_dia": 7.820000171661377,
+            "maximo_premarket": null,
+            "rango_apertura_max": 7.820000171661377,
+            "rango_apertura_min": 7.650000095367432,
+            "velas_desde_ruptura": 1,
+            "macd": 0.003815595443948716,
+            "macd_signal": 0.0021030554057939015
+          },
+          "meta": {
+            "float_acciones": 69938846.0,
+            "short_pct_float": 0.16690001,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "Zacks Initiates Coverage of Entravision With Neutral Recommendation",
+            "fuente": "Zacks",
+            "fecha": "2026-09-25T13:42:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 267.18656871666667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": true,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 67.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 54.11105178857447,
+                "extension": 100.0,
+                "distancia_maximo_dia": 63.55494654820204,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 55.0,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.7844998836517334,
+          "factores_intradia": {
+            "precio_actual": 2.7844998836517334,
+            "vwap": 2.7403771695705528,
+            "ema9": 2.7846144106345183,
+            "rvol_actual": 0.013040461321273898,
+            "aceleracion_volumen": 0.26275502516348737,
+            "gap_pct": -0.0036900333293332973,
+            "maximo_dia": 2.799999952316284,
+            "maximo_premarket": 2.75,
+            "rango_apertura_max": 2.700000047683716,
+            "rango_apertura_min": 2.680000066757202,
+            "velas_desde_ruptura": null,
+            "macd": 0.0038887646221246186,
+            "macd_signal": 0.0026442432742413676
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.053000003,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4900.4699672,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 52.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 94.46426109695882,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 68.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.21999979019165,
+          "factores_intradia": {
+            "precio_actual": 5.21999979019165,
+            "vwap": 5.174711744948458,
+            "ema9": 5.212698003719163,
+            "rvol_actual": 0.8168364405150875,
+            "aceleracion_volumen": 0.35869809203142533,
+            "gap_pct": 0.0,
+            "maximo_dia": 5.2781,
+            "maximo_premarket": 5.2781,
+            "rango_apertura_max": 5.239999771118164,
+            "rango_apertura_min": 5.190000057220459,
+            "velas_desde_ruptura": 0,
+            "macd": 0.006115796220747427,
+            "macd_signal": 0.0064242602473108135
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2041.5200008666666,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 58.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.99221124867852,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 57.0,
+            "score_ajustado": 22.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
     }
   ]
 }
