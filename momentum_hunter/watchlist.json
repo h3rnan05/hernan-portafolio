@@ -12976,9 +12976,9 @@
     {
       "ticker": "HPE",
       "nombre": "Hewlett Packard Enterprise Company",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-25T15:40:42+00:00",
-      "actualizado_en": "2026-09-25T15:40:42+00:00",
+      "actualizado_en": "2026-09-25T17:41:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -12991,6 +12991,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-25T17:41:05+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-25T17:41:12+00:00",
+          "telegram_enviado_ts": "2026-09-25T17:41:12+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 7000.0
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -13075,20 +13087,20 @@
       "signal_latency_ms": 73000.0,
       "velas_desde_ruptura": 1,
       "watchlist_escrito_ts": "2026-09-25T17:40:13+00:00",
-      "ultima_entrada": 251.38499450683594,
-      "ultimo_stop": 248.04954883030481,
-      "ultimo_objetivo": 258.0558858598982,
-      "ultima_zona_entrada_baja": 250.83228153596383,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 251.49000549316406,
+      "ultimo_stop": 248.15455981663294,
+      "ultimo_objetivo": 258.1608968462263,
+      "ultima_zona_entrada_baja": 251.21928107428025,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 243.21910803658622,
       "clima_mercado": "debil"
     },
     {
       "ticker": "CRWD",
       "nombre": "CrowdStrike Holdings, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-25T15:40:42+00:00",
-      "actualizado_en": "2026-09-25T15:40:42+00:00",
+      "actualizado_en": "2026-09-25T17:41:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13101,6 +13113,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-25T17:41:05+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-25T17:41:12+00:00",
+          "telegram_enviado_ts": "2026-09-25T17:41:13+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 8000.0
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -13185,11 +13209,11 @@
       "signal_latency_ms": 71000.0,
       "velas_desde_ruptura": 1,
       "watchlist_escrito_ts": "2026-09-25T16:06:10+00:00",
-      "ultima_entrada": 191.77000427246094,
-      "ultimo_stop": 188.89564732142858,
-      "ultimo_objetivo": 197.51871817452565,
-      "ultima_zona_entrada_baja": 191.94155243919013,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 191.77999877929688,
+      "ultimo_stop": 188.90564182826452,
+      "ultimo_objetivo": 197.52871268136158,
+      "ultima_zona_entrada_baja": 191.89785250604544,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 188.62564304896765,
       "clima_mercado": "favorable"
     },
@@ -13319,20 +13343,20 @@
       "signal_latency_ms": 74000.0,
       "velas_desde_ruptura": 0,
       "watchlist_escrito_ts": "2026-09-25T17:02:13+00:00",
-      "ultima_entrada": 239.0050048828125,
-      "ultimo_stop": 235.06243297031946,
-      "ultimo_objetivo": 246.89014870779857,
-      "ultima_zona_entrada_baja": 238.67001818307585,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 238.99000549316406,
+      "ultimo_stop": 235.04743358067103,
+      "ultimo_objetivo": 246.87514931815014,
+      "ultima_zona_entrada_baja": 238.89189410217563,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 229.23335593087333,
       "clima_mercado": "debil"
     },
     {
       "ticker": "GLW",
       "nombre": "Corning Incorporated",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-25T15:40:42+00:00",
-      "actualizado_en": "2026-09-25T15:40:42+00:00",
+      "actualizado_en": "2026-09-25T17:41:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13345,6 +13369,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-25T17:41:05+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-25T17:41:13+00:00",
+          "telegram_enviado_ts": "2026-09-25T17:41:13+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 8000.0
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -13379,9 +13415,9 @@
     {
       "ticker": "AMGN",
       "nombre": "Amgen Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-25T15:40:42+00:00",
-      "actualizado_en": "2026-09-25T15:40:42+00:00",
+      "actualizado_en": "2026-09-25T17:41:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13394,6 +13430,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-25T17:41:05+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-25T17:41:13+00:00",
+          "telegram_enviado_ts": "2026-09-25T17:41:14+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 9000.0
         }
       ],
       "catalizador_tipo": "upgrade_analista",
@@ -13551,11 +13599,11 @@
       "signal_latency_ms": 71000.0,
       "velas_desde_ruptura": 0,
       "watchlist_escrito_ts": "2026-09-25T16:30:11+00:00",
-      "ultima_entrada": 199.97999572753906,
-      "ultimo_stop": 198.85249046944088,
-      "ultimo_objetivo": 202.23500624373543,
-      "ultima_zona_entrada_baja": 199.85174921551848,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 200.1999969482422,
+      "ultimo_stop": 199.05818470445806,
+      "ultimo_objetivo": 202.48362143581045,
+      "ultima_zona_entrada_baja": 200.0584770899076,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 197.88950725493888,
       "clima_mercado": "favorable"
     },
@@ -13635,9 +13683,9 @@
     {
       "ticker": "ADBE",
       "nombre": "Adobe Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-25T15:40:42+00:00",
-      "actualizado_en": "2026-09-25T15:40:42+00:00",
+      "actualizado_en": "2026-09-25T17:41:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13650,6 +13698,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-25T17:41:05+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-25T17:41:14+00:00",
+          "telegram_enviado_ts": "2026-09-25T17:41:14+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 9000.0
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -13684,9 +13744,9 @@
     {
       "ticker": "MNST",
       "nombre": "Monster Beverage Corporation",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-25T15:40:42+00:00",
-      "actualizado_en": "2026-09-25T15:40:42+00:00",
+      "actualizado_en": "2026-09-25T17:41:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13699,6 +13759,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-25T17:41:05+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-25T17:41:14+00:00",
+          "telegram_enviado_ts": "2026-09-25T17:41:15+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 10000.0
         }
       ],
       "catalizador_tipo": "nuevo_cliente",
@@ -13806,9 +13878,9 @@
     {
       "ticker": "SW",
       "nombre": "Smurfit Westrock Plc",
-      "estado": "watching",
+      "estado": "triggered",
       "creado_en": "2026-09-25T16:14:08+00:00",
-      "actualizado_en": "2026-09-25T16:14:08+00:00",
+      "actualizado_en": "2026-09-25T17:41:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13821,6 +13893,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "triggered",
+          "timestamp": "2026-09-25T17:41:05+00:00",
+          "motivo": "Todas las condiciones se cumplieron.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
+          "mensaje_generado_ts": "2026-09-25T17:41:11+00:00",
+          "telegram_enviado_ts": "2026-09-25T17:41:12+00:00",
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": 7000.0
         }
       ],
       "catalizador_tipo": "adquisicion",
@@ -13836,19 +13920,19 @@
       "atr_diario": 1.4178567613874162,
       "gap_pct_congelado": 0.011739150337550951,
       "tarde_consecutivas": 0,
-      "market_event_ts": null,
-      "data_received_ts": null,
-      "evaluador_ts": null,
-      "mensaje_generado_ts": null,
-      "telegram_enviado_ts": null,
-      "signal_latency_ms": null,
-      "velas_desde_ruptura": null,
-      "watchlist_escrito_ts": null,
-      "ultima_entrada": 46.439998626708984,
-      "ultimo_stop": 46.0395572296314,
-      "ultimo_objetivo": 47.240881420864156,
-      "ultima_zona_entrada_baja": 46.44358429477166,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "market_event_ts": "2026-09-25T17:39:00+00:00",
+      "data_received_ts": "2026-09-25T17:41:11+00:00",
+      "evaluador_ts": "2026-09-25T17:41:11+00:00",
+      "mensaje_generado_ts": "2026-09-25T17:41:11+00:00",
+      "telegram_enviado_ts": "2026-09-25T17:41:12+00:00",
+      "signal_latency_ms": 132000.0,
+      "velas_desde_ruptura": 0,
+      "watchlist_escrito_ts": "2026-09-25T17:41:11+00:00",
+      "ultima_entrada": 46.41999816894531,
+      "ultimo_stop": 46.04340471872345,
+      "ultimo_objetivo": 47.173185069389035,
+      "ultima_zona_entrada_baja": 46.446265825278886,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 46.26553474153791,
       "clima_mercado": "favorable"
     },
@@ -13954,13 +14038,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 205.33999633789062,
-      "ultimo_stop": 201.37778309413366,
-      "ultimo_objetivo": 213.26442282540455,
-      "ultima_zona_entrada_baja": 205.90946553140364,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 205.77999877929688,
+      "ultimo_stop": 203.79889215741838,
+      "ultimo_objetivo": 209.74221202305387,
+      "ultima_zona_entrada_baja": 205.74406781408484,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 204.63260495316763,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     },
     {
       "ticker": "AMBA",
@@ -13994,7 +14078,7 @@
       "score_base": 70.7,
       "atr_diario": 4.517857960292271,
       "gap_pct_congelado": 0.01288293040389049,
-      "tarde_consecutivas": 0,
+      "tarde_consecutivas": 1,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -14003,13 +14087,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 73.47250366210938,
-      "ultimo_stop": 72.34303917203631,
-      "ultimo_objetivo": 75.7314326422555,
-      "ultima_zona_entrada_baja": 73.27702337605116,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 73.8499984741211,
+      "ultimo_stop": 72.72053398404803,
+      "ultimo_objetivo": 76.10892745426722,
+      "ultima_zona_entrada_baja": 70.76000213623047,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 72.47233436676377,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     },
     {
       "ticker": "RARE",
@@ -14052,13 +14136,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 14.1899995803833,
-      "ultimo_stop": 13.76264248575483,
-      "ultimo_objetivo": 15.044713769640243,
-      "ultima_zona_entrada_baja": 14.211536997804489,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 14.244999885559082,
+      "ultimo_stop": 14.031321338244847,
+      "ultimo_objetivo": 14.672356980187551,
+      "ultima_zona_entrada_baja": 14.21958143839496,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 13.822642905371529,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     },
     {
       "ticker": "TWST",
@@ -14113,11 +14197,11 @@
       "signal_latency_ms": 149000.0,
       "velas_desde_ruptura": 0,
       "watchlist_escrito_ts": "2026-09-25T16:41:28+00:00",
-      "ultima_entrada": 185.5500030517578,
-      "ultimo_stop": 182.65740271977015,
-      "ultimo_objetivo": 191.33520371573314,
-      "ultima_zona_entrada_baja": 185.13724478178378,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 184.13999938964844,
+      "ultimo_stop": 180.99778813384367,
+      "ultimo_objetivo": 190.42442190125797,
+      "ultima_zona_entrada_baja": 184.87444295114963,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 179.99739905766077,
       "clima_mercado": null
     },
@@ -14162,13 +14246,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 27.899999618530273,
-      "ultimo_stop": 27.248928138187953,
-      "ultimo_objetivo": 29.202142579214915,
-      "ultima_zona_entrada_baja": 27.92426213629566,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 27.920000076293945,
+      "ultimo_stop": 27.268928595951625,
+      "ultimo_objetivo": 29.222143036978586,
+      "ultima_zona_entrada_baja": 27.923142395057795,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 27.889464412416732,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     },
     {
       "ticker": "GAP",
@@ -14211,13 +14295,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 21.6299991607666,
-      "ultimo_stop": 21.459374121257238,
-      "ultimo_objetivo": 21.97124923978533,
-      "ultima_zona_entrada_baja": 21.63571125548614,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 21.635000228881836,
+      "ultimo_stop": 21.464375189372472,
+      "ultimo_objetivo": 21.976250307900564,
+      "ultima_zona_entrada_baja": 21.630911776124677,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 21.487948223463757,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     },
     {
       "ticker": "CZR",
@@ -14260,13 +14344,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 29.614999771118164,
-      "ultimo_stop": 29.46569884513368,
-      "ultimo_objetivo": 29.913601623087132,
-      "ultima_zona_entrada_baja": 29.613767683551437,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 29.604999542236328,
+      "ultimo_stop": 29.456239160558486,
+      "ultimo_objetivo": 29.902520305592013,
+      "ultima_zona_entrada_baja": 29.613358062759033,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 29.4657522855865,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     },
     {
       "ticker": "DLB",
@@ -14321,11 +14405,11 @@
       "signal_latency_ms": 74000.0,
       "velas_desde_ruptura": 2,
       "watchlist_escrito_ts": "2026-09-25T17:15:13+00:00",
-      "ultima_entrada": 57.974998474121094,
-      "ultimo_stop": 57.504820006234304,
-      "ultimo_objetivo": 58.91535540989467,
-      "ultima_zona_entrada_baja": 57.947243323890774,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 58.0099983215332,
+      "ultimo_stop": 57.539819853646414,
+      "ultimo_objetivo": 58.95035525730678,
+      "ultima_zona_entrada_baja": 57.976102907702,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 57.03964260646275,
       "clima_mercado": "favorable"
     },
@@ -14431,13 +14515,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 7.510000228881836,
-      "ultimo_stop": 7.339464528220041,
-      "ultimo_objetivo": 7.851071630205427,
-      "ultima_zona_entrada_baja": 7.515083706688432,
-      "ultimos_niveles_ts": "2026-09-25T17:40:05+00:00",
+      "ultima_entrada": 7.514999866485596,
+      "ultimo_stop": 7.429732016154698,
+      "ultimo_objetivo": 7.685535567147392,
+      "ultima_zona_entrada_baja": 7.514574633488167,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 7.454732111522129,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     },
     {
       "ticker": "VGZ",
@@ -14480,13 +14564,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 2.765000104904175,
-      "ultimo_stop": 2.7237750778289773,
-      "ultimo_objetivo": 2.8474501590545698,
-      "ultima_zona_entrada_baja": 2.7708497187828565,
-      "ultimos_niveles_ts": "2026-09-25T17:40:08+00:00",
+      "ultima_entrada": 2.7750000953674316,
+      "ultimo_stop": 2.7374108220849718,
+      "ultimo_objetivo": 2.8501786419323514,
+      "ultima_zona_entrada_baja": 2.771563113547536,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 2.7237750778289773,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     },
     {
       "ticker": "BMM",
@@ -14529,13 +14613,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 5.199999809265137,
-      "ultimo_stop": 5.081785525594439,
-      "ultimo_objetivo": 5.436428376606532,
-      "ultima_zona_entrada_baja": 5.205512126128929,
-      "ultimos_niveles_ts": "2026-09-25T17:40:08+00:00",
+      "ultima_entrada": 5.219900131225586,
+      "ultimo_stop": 5.101685847554888,
+      "ultimo_objetivo": 5.456328698566981,
+      "ultima_zona_entrada_baja": 5.210658274251841,
+      "ultimos_niveles_ts": "2026-09-25T17:45:05+00:00",
       "stop_tesis": 5.081785525594439,
-      "clima_mercado": "favorable"
+      "clima_mercado": "debil"
     }
   ]
 }
