@@ -8780,6 +8780,1534 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-25T14:01:06+00:00",
+      "candidatos_evaluados": 4,
+      "candidatos": [
+        {
+          "ticker": "KRO",
+          "nombre": "Kronos Worldwide, Inc.",
+          "precio_actual": 8.229999542236328,
+          "factores_intradia": {
+            "precio_actual": 8.229999542236328,
+            "vwap": 8.162459248801923,
+            "ema9": 8.11638553534614,
+            "rvol_actual": 0.9661545847335574,
+            "aceleracion_volumen": 0.221976401179941,
+            "gap_pct": 0.009876533325735336,
+            "maximo_dia": 8.229999542236328,
+            "maximo_premarket": 7.75,
+            "rango_apertura_max": 8.180000305175781,
+            "rango_apertura_min": 8.130000114440918,
+            "velas_desde_ruptura": 9,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 21495612.0,
+            "short_pct_float": 0.050100002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "NL Upgraded to Outperform on CompX Strength, Kronos Recovery",
+            "fuente": "Zacks",
+            "fecha": "2026-09-23T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2852.1154942333333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": false,
+            "early": {
+              "score": 45.0,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 9 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 99.99999999999997,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "El patrón se activó hace 9 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 49.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "El patrón se activó hace 9 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.744999885559082,
+          "factores_intradia": {
+            "precio_actual": 2.744999885559082,
+            "vwap": 2.712136849601146,
+            "ema9": 2.7347267811254334,
+            "rvol_actual": 0.04588534851646214,
+            "aceleracion_volumen": 4.06370330937805,
+            "gap_pct": -0.0036900333293332973,
+            "maximo_dia": 2.75,
+            "maximo_premarket": 2.75,
+            "rango_apertura_max": 2.700000047683716,
+            "rango_apertura_min": 2.680000066757202,
+            "velas_desde_ruptura": 1,
+            "macd": 0.009446047201715935,
+            "macd_signal": 0.009411772171588803
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.053000003,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4652.3988602,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 98.18177656693894,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 32.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.215700149536133,
+          "factores_intradia": {
+            "precio_actual": 5.215700149536133,
+            "vwap": 5.219971870075747,
+            "ema9": 5.200466653611925,
+            "rvol_actual": 0.07818088911599387,
+            "aceleracion_volumen": 0.13954821694759775,
+            "gap_pct": 0.0,
+            "maximo_dia": 5.2781,
+            "maximo_premarket": 5.2781,
+            "rango_apertura_max": 5.239999771118164,
+            "rango_apertura_min": 5.190000057220459,
+            "velas_desde_ruptura": 0,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1793.4488706,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 58.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.17759222753119,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "TLSI",
+          "nombre": "TriSalus Life Sciences, Inc.",
+          "precio_actual": 4.53000020980835,
+          "factores_intradia": {
+            "precio_actual": 4.53000020980835,
+            "vwap": 4.56512823061473,
+            "ema9": 4.541046673818673,
+            "rvol_actual": 0.5617977528089888,
+            "aceleracion_volumen": 3.1192787794729537,
+            "gap_pct": -0.008676781061724965,
+            "maximo_dia": 4.93,
+            "maximo_premarket": 4.93,
+            "rango_apertura_max": 4.610000133514404,
+            "rango_apertura_min": 4.570000171661377,
+            "velas_desde_ruptura": null,
+            "macd": -0.016733536275260086,
+            "macd_signal": -0.014770092149904717
+          },
+          "meta": {
+            "float_acciones": 49499205.0,
+            "short_pct_float": 0.0717,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "TriSalus Life Sciences Shares Rise 15.6% After FDA Clearance for TriNav Advance",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-23T12:51:46Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2949.3488952333337,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 66.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 18.864139920557797,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 52.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-25T14:02:07+00:00",
+      "candidatos_evaluados": 4,
+      "candidatos": [
+        {
+          "ticker": "KRO",
+          "nombre": "Kronos Worldwide, Inc.",
+          "precio_actual": 8.229999542236328,
+          "factores_intradia": {
+            "precio_actual": 8.229999542236328,
+            "vwap": 8.162392410118876,
+            "ema9": 8.125828368462459,
+            "rvol_actual": 4.969135802469136,
+            "aceleracion_volumen": 1.1804680468046806,
+            "gap_pct": 0.009876533325735336,
+            "maximo_dia": 8.229999542236328,
+            "maximo_premarket": 7.75,
+            "rango_apertura_max": 8.180000305175781,
+            "rango_apertura_min": 8.130000114440918,
+            "velas_desde_ruptura": 0,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 21495612.0,
+            "short_pct_float": 0.050100002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "NL Upgraded to Outperform on CompX Strength, Kronos Recovery",
+            "fuente": "Zacks",
+            "fecha": "2026-09-23T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2853.1174753166665,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": true,
+            "early": {
+              "score": 73.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 68.04680468046806,
+                "extension": 100.0,
+                "distancia_maximo_dia": 99.99999999999997,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 49.5,
+            "score_ajustado": 34.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.744999885559082,
+          "factores_intradia": {
+            "precio_actual": 2.744999885559082,
+            "vwap": 2.712136849601146,
+            "ema9": 2.7347267811254334,
+            "rvol_actual": 0.04588534851646214,
+            "aceleracion_volumen": 4.06370330937805,
+            "gap_pct": -0.0036900333293332973,
+            "maximo_dia": 2.75,
+            "maximo_premarket": 2.75,
+            "rango_apertura_max": 2.700000047683716,
+            "rango_apertura_min": 2.680000066757202,
+            "velas_desde_ruptura": 1,
+            "macd": 0.009446047201715935,
+            "macd_signal": 0.009411772171588803
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.053000003,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4653.400831766666,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 98.18177656693894,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 32.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.159999847412109,
+          "factores_intradia": {
+            "precio_actual": 5.159999847412109,
+            "vwap": 5.219203379867779,
+            "ema9": 5.192373292371962,
+            "rvol_actual": 0.1570489408327246,
+            "aceleracion_volumen": 0.38703339882121807,
+            "gap_pct": 0.0,
+            "maximo_dia": 5.2781,
+            "maximo_premarket": 5.2781,
+            "rango_apertura_max": 5.239999771118164,
+            "rango_apertura_min": 5.190000057220459,
+            "velas_desde_ruptura": null,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1794.4508431333334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 50.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 77.62449506680602,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "TLSI",
+          "nombre": "TriSalus Life Sciences, Inc.",
+          "precio_actual": 4.550000190734863,
+          "factores_intradia": {
+            "precio_actual": 4.550000190734863,
+            "vwap": 4.564861882938403,
+            "ema9": 4.542837377201912,
+            "rvol_actual": 1.1779026217228465,
+            "aceleracion_volumen": 0.7263212977498692,
+            "gap_pct": -0.008676781061724965,
+            "maximo_dia": 4.93,
+            "maximo_premarket": 4.93,
+            "rango_apertura_max": 4.610000133514404,
+            "rango_apertura_min": 4.570000171661377,
+            "velas_desde_ruptura": 0,
+            "macd": -0.015136707285960505,
+            "macd_signal": -0.014843415177115876
+          },
+          "meta": {
+            "float_acciones": 49499205.0,
+            "short_pct_float": 0.0717,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "TriSalus Life Sciences Shares Rise 15.6% After FDA Clearance for TriNav Advance",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-23T12:51:46Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2950.3508659833333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "micro_pullback",
+            "temprano": true,
+            "early": {
+              "score": 56.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 22.63212977498692,
+                "extension": 100.0,
+                "distancia_maximo_dia": 22.920931183542326,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 52.3,
+            "score_ajustado": 17.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-25T14:03:06+00:00",
+      "candidatos_evaluados": 4,
+      "candidatos": [
+        {
+          "ticker": "KRO",
+          "nombre": "Kronos Worldwide, Inc.",
+          "precio_actual": 8.21500015258789,
+          "factores_intradia": {
+            "precio_actual": 8.21500015258789,
+            "vwap": 8.163363248897193,
+            "ema9": 8.143662725287546,
+            "rvol_actual": 1.0215807174887892,
+            "aceleracion_volumen": 2.7267996530789245,
+            "gap_pct": 0.009876533325735336,
+            "maximo_dia": 8.229999542236328,
+            "maximo_premarket": 7.75,
+            "rango_apertura_max": 8.180000305175781,
+            "rango_apertura_min": 8.130000114440918,
+            "velas_desde_ruptura": 1,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 21495612.0,
+            "short_pct_float": 0.050100002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "NL Upgraded to Outperform on CompX Strength, Kronos Recovery",
+            "fuente": "Zacks",
+            "fecha": "2026-09-23T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2854.115588066667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 98.17747381740904,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 49.5,
+            "score_ajustado": 14.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.744999885559082,
+          "factores_intradia": {
+            "precio_actual": 2.744999885559082,
+            "vwap": 2.7134772354773955,
+            "ema9": 2.7347267811254334,
+            "rvol_actual": 0.04588534851646214,
+            "aceleracion_volumen": 4.06370330937805,
+            "gap_pct": -0.0036900333293332973,
+            "maximo_dia": 2.75,
+            "maximo_premarket": 2.75,
+            "rango_apertura_max": 2.700000047683716,
+            "rango_apertura_min": 2.680000066757202,
+            "velas_desde_ruptura": 1,
+            "macd": 0.009446047201715935,
+            "macd_signal": 0.009411772171588803
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.053000003,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4654.398944933333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 98.18177656693894,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 32.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.150000095367432,
+          "factores_intradia": {
+            "precio_actual": 5.150000095367432,
+            "vwap": 5.2183479286907914,
+            "ema9": 5.183898652971056,
+            "rvol_actual": 0.16908212560386474,
+            "aceleracion_volumen": 0.11846689895470383,
+            "gap_pct": 0.0,
+            "maximo_dia": 5.2781,
+            "maximo_premarket": 5.2781,
+            "rango_apertura_max": 5.239999771118164,
+            "rango_apertura_min": 5.190000057220459,
+            "velas_desde_ruptura": null,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1795.4489561333332,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 50.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 75.7299208744494,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "TLSI",
+          "nombre": "TriSalus Life Sciences, Inc.",
+          "precio_actual": 4.550000190734863,
+          "factores_intradia": {
+            "precio_actual": 4.550000190734863,
+            "vwap": 4.564861882938403,
+            "ema9": 4.542837377201912,
+            "rvol_actual": 1.1779026217228465,
+            "aceleracion_volumen": 0.7263212977498692,
+            "gap_pct": -0.008676781061724965,
+            "maximo_dia": 4.93,
+            "maximo_premarket": 4.93,
+            "rango_apertura_max": 4.610000133514404,
+            "rango_apertura_min": 4.570000171661377,
+            "velas_desde_ruptura": 0,
+            "macd": -0.015136707285960505,
+            "macd_signal": -0.014843415177115876
+          },
+          "meta": {
+            "float_acciones": 49499205.0,
+            "short_pct_float": 0.0717,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "TriSalus Life Sciences Shares Rise 15.6% After FDA Clearance for TriNav Advance",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-23T12:51:46Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2951.348976766667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "micro_pullback",
+            "temprano": true,
+            "early": {
+              "score": 56.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 22.63212977498692,
+                "extension": 100.0,
+                "distancia_maximo_dia": 22.920931183542326,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 52.3,
+            "score_ajustado": 17.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-25T14:04:07+00:00",
+      "candidatos_evaluados": 4,
+      "candidatos": [
+        {
+          "ticker": "KRO",
+          "nombre": "Kronos Worldwide, Inc.",
+          "precio_actual": 8.21500015258789,
+          "factores_intradia": {
+            "precio_actual": 8.21500015258789,
+            "vwap": 8.15839442602541,
+            "ema9": 8.143662725287546,
+            "rvol_actual": 1.635996409335727,
+            "aceleracion_volumen": 1.5646140503035562,
+            "gap_pct": 0.009876533325735336,
+            "maximo_dia": 8.229999542236328,
+            "maximo_premarket": 7.75,
+            "rango_apertura_max": 8.180000305175781,
+            "rango_apertura_min": 8.130000114440918,
+            "velas_desde_ruptura": 1,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 21495612.0,
+            "short_pct_float": 0.050100002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "NL Upgraded to Outperform on CompX Strength, Kronos Recovery",
+            "fuente": "Zacks",
+            "fecha": "2026-09-23T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2855.11702305,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 98.17747381740904,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 49.5,
+            "score_ajustado": 14.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.740000009536743,
+          "factores_intradia": {
+            "precio_actual": 2.740000009536743,
+            "vwap": 2.7174415535568675,
+            "ema9": 2.735781426807695,
+            "rvol_actual": 10.149836191944498,
+            "aceleracion_volumen": 14.918295028854915,
+            "gap_pct": -0.0036900333293332973,
+            "maximo_dia": 2.75,
+            "maximo_premarket": 2.75,
+            "rango_apertura_max": 2.700000047683716,
+            "rango_apertura_min": 2.680000066757202,
+            "velas_desde_ruptura": 19,
+            "macd": 0.00932819871194246,
+            "macd_signal": 0.009395057479659534
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.053000003,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4655.400397616667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.6,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 19 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.36363983154294,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "El patrón se activó hace 19 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "El patrón se activó hace 19 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.163599967956543,
+          "factores_intradia": {
+            "precio_actual": 5.163599967956543,
+            "vwap": 5.192083150246839,
+            "ema9": 5.179838915968154,
+            "rvol_actual": 25.016983695652176,
+            "aceleracion_volumen": 6.261298274445357,
+            "gap_pct": 0.0,
+            "maximo_dia": 5.2781,
+            "maximo_premarket": 5.2781,
+            "rango_apertura_max": 5.239999771118164,
+            "rango_apertura_min": 5.190000057220459,
+            "velas_desde_ruptura": null,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1796.4504194,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 78.3065815267886,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "TLSI",
+          "nombre": "TriSalus Life Sciences, Inc.",
+          "precio_actual": 4.565000057220459,
+          "factores_intradia": {
+            "precio_actual": 4.565000057220459,
+            "vwap": 4.564863219676433,
+            "ema9": 4.547269913205621,
+            "rvol_actual": 0.5490874764002517,
+            "aceleracion_volumen": 0.568252556691863,
+            "gap_pct": -0.008676781061724965,
+            "maximo_dia": 4.93,
+            "maximo_premarket": 4.93,
+            "rango_apertura_max": 4.610000133514404,
+            "rango_apertura_min": 4.570000171661377,
+            "velas_desde_ruptura": 1,
+            "macd": -0.012516561807904836,
+            "macd_signal": -0.014378044503273669
+          },
+          "meta": {
+            "float_acciones": 49499205.0,
+            "short_pct_float": 0.0717,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "TriSalus Life Sciences Shares Rise 15.6% After FDA Clearance for TriNav Advance",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-23T12:51:46Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2952.350458866667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 54.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 6.825255669186305,
+                "extension": 100.0,
+                "distancia_maximo_dia": 25.963500450397415,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 52.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-25T14:05:06+00:00",
+      "candidatos_evaluados": 4,
+      "candidatos": [
+        {
+          "ticker": "KRO",
+          "nombre": "Kronos Worldwide, Inc.",
+          "precio_actual": 8.21500015258789,
+          "factores_intradia": {
+            "precio_actual": 8.21500015258789,
+            "vwap": 8.15839442602541,
+            "ema9": 8.143662725287546,
+            "rvol_actual": 1.635996409335727,
+            "aceleracion_volumen": 1.5646140503035562,
+            "gap_pct": 0.009876533325735336,
+            "maximo_dia": 8.229999542236328,
+            "maximo_premarket": 7.75,
+            "rango_apertura_max": 8.180000305175781,
+            "rango_apertura_min": 8.130000114440918,
+            "velas_desde_ruptura": 1,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 21495612.0,
+            "short_pct_float": 0.050100002,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "upgrade_analista",
+            "titular": "NL Upgraded to Outperform on CompX Strength, Kronos Recovery",
+            "fuente": "Zacks",
+            "fecha": "2026-09-23T14:29:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2856.11590805,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 98.17747381740904,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 49.5,
+            "score_ajustado": 14.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "VGZ",
+          "nombre": "Vista Gold Corp.",
+          "precio_actual": 2.7249999046325684,
+          "factores_intradia": {
+            "precio_actual": 2.7249999046325684,
+            "vwap": 2.7174740741994055,
+            "ema9": 2.7336251223726697,
+            "rvol_actual": 0.22035897868037413,
+            "aceleracion_volumen": 2.326724084515769,
+            "gap_pct": -0.0036900333293332973,
+            "maximo_dia": 2.75,
+            "maximo_premarket": 2.75,
+            "rango_apertura_max": 2.700000047683716,
+            "rango_apertura_min": 2.680000066757202,
+            "velas_desde_ruptura": null,
+            "macd": 0.007932973450254455,
+            "macd_signal": 0.00910264067377852
+          },
+          "meta": {
+            "float_acciones": 138367699.0,
+            "short_pct_float": 0.053000003,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Artemis Gold to acquire Vista Gold for $427m",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-22T08:28:43Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4656.399264116667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 75.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 90.90905623002487,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "BMM",
+          "nombre": "Blue Moon Metals Inc.",
+          "precio_actual": 5.119999885559082,
+          "factores_intradia": {
+            "precio_actual": 5.119999885559082,
+            "vwap": 5.190273999309323,
+            "ema9": 5.159896901641982,
+            "rvol_actual": 0.12715543977174049,
+            "aceleracion_volumen": 19.25980392156863,
+            "gap_pct": 0.0,
+            "maximo_dia": 5.2781,
+            "maximo_premarket": 5.2781,
+            "rango_apertura_max": 5.239999771118164,
+            "rango_apertura_min": 5.190000057220459,
+            "velas_desde_ruptura": null,
+            "macd": null,
+            "macd_signal": null
+          },
+          "meta": {
+            "float_acciones": 82757880.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Blue Moon Metals to acquire Turner deposit from Gold Coast Mining",
+            "fuente": "Mining Technology",
+            "fecha": "2026-09-24T08:07:40Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1797.4492749833335,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 72.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 70.0460176122244,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.4,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "TLSI",
+          "nombre": "TriSalus Life Sciences, Inc.",
+          "precio_actual": 4.565000057220459,
+          "factores_intradia": {
+            "precio_actual": 4.565000057220459,
+            "vwap": 4.564863219676433,
+            "ema9": 4.547269913205621,
+            "rvol_actual": 0.5490874764002517,
+            "aceleracion_volumen": 0.568252556691863,
+            "gap_pct": -0.008676781061724965,
+            "maximo_dia": 4.93,
+            "maximo_premarket": 4.93,
+            "rango_apertura_max": 4.610000133514404,
+            "rango_apertura_min": 4.570000171661377,
+            "velas_desde_ruptura": 1,
+            "macd": -0.012516561807904836,
+            "macd_signal": -0.014378044503273669
+          },
+          "meta": {
+            "float_acciones": 49499205.0,
+            "short_pct_float": 0.0717,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "fda",
+            "titular": "TriSalus Life Sciences Shares Rise 15.6% After FDA Clearance for TriNav Advance",
+            "fuente": "InvestorsHub",
+            "fecha": "2026-09-23T12:51:46Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 2953.349296133333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 54.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 6.825255669186305,
+                "extension": 100.0,
+                "distancia_maximo_dia": 25.963500450397415,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 52.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
