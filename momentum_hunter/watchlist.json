@@ -12927,9 +12927,9 @@
     {
       "ticker": "KRO",
       "nombre": "Kronos Worldwide, Inc.",
-      "estado": "watching",
+      "estado": "missed",
       "creado_en": "2026-09-25T13:11:24+00:00",
-      "actualizado_en": "2026-09-25T13:11:24+00:00",
+      "actualizado_en": "2026-09-25T14:58:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -12942,6 +12942,18 @@
           "latencia_desde_deteccion_ms": null,
           "latencia_desde_evaluacion_ms": null,
           "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "missed",
+          "timestamp": "2026-09-25T14:58:05+00:00",
+          "motivo": "El patrón se activó hace 22 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+          "deteccion_ts": "2026-09-25T14:58:06+00:00",
+          "evaluacion_ts": "2026-09-25T14:58:06+00:00",
+          "mensaje_generado_ts": "2026-09-25T14:58:06+00:00",
+          "telegram_enviado_ts": "2026-09-25T14:58:07+00:00",
+          "latencia_desde_deteccion_ms": 1000.0,
+          "latencia_desde_evaluacion_ms": 1000.0,
+          "latencia_desde_transicion_ms": 2000.0
         }
       ],
       "catalizador_tipo": "upgrade_analista",
@@ -12956,7 +12968,7 @@
       "score_base": 49.5,
       "atr_diario": 0.3492856366293771,
       "gap_pct_congelado": -0.007117487241354032,
-      "tarde_consecutivas": 2,
+      "tarde_consecutivas": 5,
       "market_event_ts": null,
       "data_received_ts": null,
       "evaluador_ts": null,
@@ -12966,12 +12978,12 @@
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
       "ultima_entrada": 8.300000190734863,
-      "ultimo_stop": 8.155334354206266,
-      "ultimo_objetivo": 8.589331863792058,
+      "ultimo_stop": 8.156095813874904,
+      "ultimo_objetivo": 8.587808944454782,
       "ultima_zona_entrada_baja": 8.180000305175781,
-      "ultimos_niveles_ts": "2026-09-25T14:55:05+00:00",
+      "ultimos_niveles_ts": "2026-09-25T14:58:05+00:00",
       "stop_tesis": 7.925357181685311,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "VGZ",
@@ -13014,13 +13026,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 2.75,
-      "ultimo_stop": 2.7139285845415935,
-      "ultimo_objetivo": 2.822142830916813,
-      "ultima_zona_entrada_baja": 2.744146836841895,
-      "ultimos_niveles_ts": "2026-09-25T14:55:05+00:00",
+      "ultima_entrada": 2.755000114440918,
+      "ultimo_stop": 2.7189286989825114,
+      "ultimo_objetivo": 2.827142945357731,
+      "ultima_zona_entrada_baja": 2.749595264493641,
+      "ultimos_niveles_ts": "2026-09-25T15:00:05+00:00",
       "stop_tesis": 2.608257063797542,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "BMM",
@@ -13063,13 +13075,13 @@
       "signal_latency_ms": null,
       "velas_desde_ruptura": null,
       "watchlist_escrito_ts": null,
-      "ultima_entrada": 5.179999828338623,
-      "ultimo_stop": 5.060892675604139,
-      "ultimo_objetivo": 5.4182141338075915,
-      "ultima_zona_entrada_baja": 5.151434697080288,
-      "ultimos_niveles_ts": "2026-09-25T14:55:05+00:00",
+      "ultima_entrada": 5.150000095367432,
+      "ultimo_stop": 4.911785789898464,
+      "ultimo_objetivo": 5.626428706305367,
+      "ultima_zona_entrada_baja": 5.154118237411902,
+      "ultimos_niveles_ts": "2026-09-25T15:00:05+00:00",
       "stop_tesis": 4.951785751751491,
-      "clima_mercado": "debil"
+      "clima_mercado": "favorable"
     },
     {
       "ticker": "TLSI",
