@@ -7,6 +7,14 @@ import { NextResponse } from "next/server";
 
 const ALPACA_DATA = "https://data.alpaca.markets";
 
+// Default sip: the paid market-data subscription. ALPACA_DATA_FEED=iex
+// keeps the partial tape. Anything else stays on sip so a typo does not
+// silently drop back to IEX.
+function dataFeed(): "sip" | "iex" {
+  const raw = (process.env.ALPACA_DATA_FEED ?? "sip").trim().toLowerCase();
+  return raw === "iex" ? "iex" : "sip";
+}
+
 const TICKERS = [
   "AMZN", "BA", "CAT", "CRM", "GOOGL", "NVDA", "QCOM", "V", "XOM",
   "MDLZ", "CL", "KHC", "KMB", "HSY", "AAL",
@@ -20,7 +28,7 @@ export async function GET() {
     return NextResponse.json({ error: "Missing keys" }, { status: 500 });
   }
 
-  const url = `${ALPACA_DATA}/v2/stocks/snapshots?symbols=${TICKERS.join(",")}&feed=iex`;
+  const url = `${ALPACA_DATA}/v2/stocks/snapshots?symbols=${TICKERS.join(",")}&feed=${dataFeed()}`;
 
   try {
     const res = await fetch(url, {

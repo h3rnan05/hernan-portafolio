@@ -230,8 +230,15 @@ def _seccion_alarmas(corridas: list[dict]) -> list[str]:
     return alarmas or ["Sin señales de alarma esta semana."]
 
 
+def _solo_escaneo(corridas: list[dict]) -> list[dict]:
+    """El rechequeo escribe un evento por minuto (`modo=watchlist`) solo
+    para anotar la fuente de precios. Sumarlo acá convertiría ~400 ticks
+    en "corridas" y dispararía la alarma de embudo vacío."""
+    return [c for c in corridas if c.get("modo", "escaneo") != "watchlist"]
+
+
 def construir(desde: str, hasta: str, dir_telemetria: Path = telemetria.DIR_TELEMETRIA) -> str:
-    corridas = telemetria.cargar_dias(desde, hasta, dir_telemetria)
+    corridas = _solo_escaneo(telemetria.cargar_dias(desde, hasta, dir_telemetria))
     bloques = [
         f"📊 REPORTE SEMANAL — {desde} a {hasta}",
         "",

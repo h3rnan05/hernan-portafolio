@@ -620,8 +620,8 @@ def main(argv: list[str] | None = None) -> int:
     a = p.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     if a.dia:
-        from momentum_hunter.data.provider import YahooProvider
-        salida = correr_dia(a.dia, YahooProvider())
+        from momentum_hunter.data.fuente import proveedor_configurado
+        salida = correr_dia(a.dia, proveedor_configurado())
         print(formatear_resumen(resumir(salida["resultados"]), a.dia, a.dia))
     if a.resumen or not a.dia:
         print(formatear_resumen(resumir(cargar_resultados(a.desde, a.hasta)), a.desde, a.hasta))

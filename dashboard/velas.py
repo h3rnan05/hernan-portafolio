@@ -1,12 +1,15 @@
 """Velas de 1 minuto para el panel, con caché en disco y freno ante Yahoo.
 Solo lectura: no escribe nada fuera de su carpeta de caché.
 
-MISMA FUENTE QUE EL HUNTER. La petición a Yahoo es la misma que hace
-`YahooProvider._intradia_una` (misma URL, mismos headers, mismos parámetros
-con el intervalo y el periodo de `momentum_hunter.config`) y el JSON se
-parsea con `provider.parsear_chart_intradia`, la misma función que usa el
-bot, y se recorta a hoy con `factors.intradia.barras_de_hoy`. Lo que muestra
-el panel es lo que vio el bot, incluida la vela en formación que se descarta.
+MISMA FUENTE QUE EL HUNTER MIENTRAS EL HUNTER SIGA EN YAHOO. La petición
+es la de `YahooProvider._intradia_una` (misma URL, mismos headers, mismos
+parámetros con el intervalo y el periodo de `momentum_hunter.config`) y el
+JSON se parsea con `provider.parsear_chart_intradia`, la misma función que
+usa el bot en esa fuente, y se recorta a hoy con
+`factors.intradia.barras_de_hoy`. Incluye la vela en formación que se
+descarta. Si en el VPS se exporta `MOMENTUM_DATA_PROVIDER=alpaca`, el bot
+deja de mirar este chart y el panel puede no coincidir con lo que él vio:
+el freno de 429 de acá es de Yahoo y no se reescribió al enchufar el feed.
 
 POR QUÉ NO SE LLAMA A `barras_intradia` DIRECTO. Ese método se traga
 cualquier error (incluido un 429) y reintenta tres veces con pausas: desde
