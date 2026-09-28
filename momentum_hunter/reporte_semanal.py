@@ -43,10 +43,11 @@ from pathlib import Path
 from momentum_hunter import telemetria
 from momentum_hunter.audit import DIR_AUDITORIA
 from momentum_hunter.config import CONFIG
+from momentum_hunter.rutas_estado import RutaEstado
 
 log = logging.getLogger("momentum_hunter.reporte_semanal")
 
-PATH_REVISIONES = Path(__file__).resolve().parent.parent / "momentum_paper_trader" / "revisiones.json"
+PATH_REVISIONES = RutaEstado("momentum_paper_trader/revisiones.json")
 
 
 def rango_semana(hasta: datetime) -> tuple[str, str]:

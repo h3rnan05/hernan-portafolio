@@ -231,8 +231,8 @@ candado (#152).
 Datos: Yahoo a 60 s hasta el viernes 2026-09-25 (decisión del dueño); si no
 alcanza, feed de Alpaca en tiempo real. Con ~10 tickers vigilados son ~12
 peticiones por minuto; un 429 activa la pausa del bot 15 min y los ticks
-salen vacíos hasta que pase. Limitación anotada: la telemetría paper
-escribe una línea por tick (~400/día) y se commitea; si pesa, se agrega.
+salen vacíos hasta que pase. La telemetría paper escribe una línea por
+tick (~400/día) en `/var/lib/momentum/estado`, no en el repo.
 
 Instalar (desde `/opt/hernan-portafolio` con `main` al día):
 
@@ -245,65 +245,56 @@ sudo systemctl enable --now momentum-vigia.service
 sudo journalctl -u momentum-vigia.service -f
 ```
 
-### Pull con la telemetría sucia (2026-09-22)
+### Estado fuera del repo (2026-09-28)
 
-El vigía reescribe `momentum_paper_trader/telemetria/<fecha>/vps/events.jsonl`
-y `sesion.json` cada 60 s. El wrapper hacía `git pull --rebase` **antes**
-del `git add`. Git se niega si hay cambios sin stage (`cannot pull with
-rebase: You have unstaged changes`) aunque main no toque esos archivos:
-el 2026-09-22 ese pull falló en casi cada persist y el código ya mergeado
-no entraba. No se mueve la telemetría fuera del árbol (el state file de
-#132 es la watchlist, que el VPS no commitea; esta telemetría es el latido
-del respaldo y tiene que llegar a main). `scripts/git_pull_con_estado_local.sh`
-aparta esos paths, trae main y los devuelve. Nunca `--force` ni
-`reset --hard`.
+Watchlist, revisiones, auditoría, telemetría (incluye `sesion.json` y
+`movers.jsonl`), alertas, diario, caché de universo y `estado_diario.json`
+viven en `MOMENTUM_ESTADO_DIR` (default `/var/lib/momentum/estado`), con
+las mismas subcarpetas. El checkout ya no los tiene. El único proceso
+que hace pull es el wrapper del rechequeo (lo llama el vigía), bajo
+flock, y solo sube `vps_latido.json`. El escaneo, movers y los workflows
+de GitHub no tocan git para este estado.
 
-Un `git pull` **no** actualiza el wrapper de `/opt/momentum/bin/`. Hay
-que instalarlo a mano, y la primera vez el pull hay que hacerlo con el
-árbol ya limpio de telemetría (el wrapper viejo sigue negándose):
+Decisión de la watchlist: en el VPS el buscador y el ejecutor comparten
+disco, así que `watchlist.json` también sale del repo. El ejecutor sigue
+sin escribirlo (overlay en `/var/lib/momentum/watchlist_vps_state.json`).
+El panel lee el directorio de estado. GitHub ya no recibe la telemetría:
+`respaldo_gha.py` mira `vps_latido.json`. Limitación honesta: si el VPS
+está caído, el respaldo de GitHub puede escanear y avisar, pero no le
+deja una watchlist al VPS cuando vuelva, porque el ejecutor tampoco
+estaría leyendo GitHub. Hasta el primer latido después del deploy,
+GitHub puede creer que el VPS está en silencio.
 
-```bash
-cd /opt/hernan-portafolio
-git stash push --include-untracked -m "pre-deploy telem" -- \
-  momentum_paper_trader/telemetria momentum_hunter/telemetria \
-  momentum_paper_trader/revisiones.json \
-  momentum_paper_trader/archivo_triggered.jsonl \
-  momentum_hunter/watchlist.json momentum_hunter/auditoria \
-  momentum_hunter/alertas_enviadas.json \
-  momentum_hunter/estado_diario.json momentum_hunter/universo_cache.json
-git pull --rebase origin main
-git stash pop
-sudo install -m 755 infra/systemd/bin/run_watchlist_paper.sh \
-  infra/systemd/bin/run_scan_paper.sh /opt/momentum/bin/
-# Comprobar, sin tocar la red ni el stash:
-GIT_PULL_ESTADO_DRY_RUN=1 bash scripts/git_pull_con_estado_local.sh
-```
+`scripts/git_pull_con_estado_local.sh` se queda como red de seguridad
+por si el árbol todavía tiene estado sucio. Nunca `--force` ni
+`reset --hard`. No uses `git stash` para desplegar esto: un pop abortado
+fue lo que perdió el libro el 2026-09-28. Hay stashes de ese día en el
+VPS; no se tiran hasta comprobar que la copia tiene la entrada viva.
 
-No hace falta reiniciar el vigía: el próximo persist (cada 5 min) ejecuta
-el wrapper nuevo, y el helper vive en el árbol (entra con ese pull). Si
-`stash pop` falla, el helper restaura archivo por archivo (checkout si
-nadie más tocó el path; en un JSONL que cambió, anexa las líneas del
-stash sin duplicar). Solo si queda algo sin restaurar el stash sigue en
-`git stash list`, se loguea ERROR y sale `persist_fallido` (Telegram a
-lo sumo una vez por día). Nunca se descarta. Vuelta atrás del script:
-reinstalar el wrapper del commit anterior; el helper no se usa si el
-wrapper no lo llama.
-
-El pre-pull del escaneo ya tomaba el mismo candado, pero el timer
-disparaba a los :01:00/:31:00 y el pull seguía vivo a los :05, encima
-del tick del vigía. Ahora dispara a los :20 y el wrapper, si arranca
-antes, espera a ese segundo sin tener el candado. Actualizar timer y
-wrapper (el vigía no se reinicia):
+Primera migración, con los servicios parados, ANTES del pull (el commit
+borra los archivos del índice y un pull sobre un worktree sucio falla,
+o un pop abortado se los lleva):
 
 ```bash
+sudo systemctl stop momentum-vigia.service momentum-scan.timer momentum-movers-sombra.timer
+sudo systemctl stop momentum-scan.service momentum-movers-sombra.service
+sudo mkdir -p /var/lib/momentum/estado
+sudo chown -R momentum:momentum /var/lib/momentum
 cd /opt/hernan-portafolio
-sudo install -m 755 infra/systemd/bin/run_scan_paper.sh \
-  infra/systemd/bin/run_watchlist_paper.sh /opt/momentum/bin/
-sudo cp infra/systemd/momentum-scan.timer /etc/systemd/system/
+sudo -u momentum env MOMENTUM_ESTADO_DIR=/var/lib/momentum/estado bash scripts/migrar_estado_fuera_del_repo.sh
+sudo -u momentum grep -n 783f81bc /var/lib/momentum/estado/momentum_paper_trader/revisiones.json
+sudo -u momentum git pull --rebase origin main
+sudo install -m 755 infra/systemd/bin/run_vigia.sh infra/systemd/bin/run_watchlist_paper.sh infra/systemd/bin/run_scan_paper.sh infra/systemd/bin/run_movers_sombra.sh /opt/momentum/bin/
+sudo cp infra/systemd/momentum-vigia.service infra/systemd/momentum-scan.service infra/systemd/momentum-scan.timer infra/systemd/momentum-movers-sombra.service infra/systemd/momentum-movers-sombra.timer infra/systemd/momentum-watchlist.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl restart momentum-scan.timer
-systemctl list-timers momentum-scan.timer
+sudo systemctl restart momentum-vigia.service momentum-scan.timer momentum-movers-sombra.timer
 ```
+
+Si `revisiones.json` del directorio de estado no tiene `783f81bc`,
+recuperar desde `git stash list` hacia ese directorio y no soltar el
+stash. Un pull no actualiza `/opt/momentum/bin/`.
+
+El escaneo ya no hace pre-pull. Su timer sigue en el segundo :20.
 
 Vuelta atrás del vigía (un comando cada uno):
 
@@ -316,17 +307,17 @@ El watchdog (`momentum-watchlist-watchdog.timer`) omite el chequeo de
 silencio mientras `momentum-watchlist.timer` está apagado, así que no
 avisa por el vigía. Lo que sí lo vigila: `Restart=always` de systemd ante
 una caída, el panel (Rechequeo pasa a "Revisar" sin evento en 12 min) y el
-respaldo de GitHub (actúa si el VPS lleva >20 min sin commitear en sesión).
+respaldo de GitHub (actúa si `vps_latido.json` lleva >20 min en sesión).
 Marca de vida fuera de git: `/var/lib/momentum/vigia_latido.json`.
 
 ### Despliegue desde GitHub Actions (2026-09-23)
 
 `.github/workflows/deploy_vps.yml` (solo `workflow_dispatch`, nunca por
 cron) entra al VPS por SSH y corre `scripts/deploy_vps.sh` por stdin, que
-hace exactamente la secuencia de arriba: apartar el estado con `git
-stash`, `git pull --rebase origin main`, `git stash pop`, e instalar los
-dos wrappers en `/opt/momentum/bin/`. No reinicia servicios (el vigía
-toma el código en su próximo tick), no usa `--force` ni `reset --hard`,
+hace la copia a `/var/lib/momentum/estado` antes del `git pull --rebase
+origin main` e instala los wrappers en `/opt/momentum/bin/`. No reinicia
+servicios (el daemon-reload y el restart son del operador), no usa
+`--force` ni `reset --hard`,
 y se niega a correr en sesión (13:00-20:05 UTC) salvo que se marque
 `forzar_en_sesion`.
 

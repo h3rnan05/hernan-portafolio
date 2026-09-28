@@ -73,52 +73,37 @@ def test_vps_es_escritor_primario_con_flock():
     texto = VPS.read_text(encoding="utf-8")
     assert "MOMENTUM_TELEM_FUENTE=vps" in texto
     assert "flock" in texto
-    assert "momentum_paper_trader/telemetria" in texto
+    assert "vps_latido.json" in texto
     assert "git_persist_rebase_push.sh" in texto
     assert "git push --force" not in texto
     assert "force-with-lease" not in texto
 
 
-def test_vps_es_dueno_de_watchlist_y_auditoria():
-    """Desde el 2026-09-21 el escaneo corre en el VPS y el VPS es el dueño
-    de watchlist.json + auditoria + telemetría del hunter: los commitea
-    después de volcar el overlay al canónico. GitHub solo los toca en
-    modo respaldo (ver test_escaneo_vps_infra.py)."""
+def test_vps_sube_solo_el_latido_y_no_el_estado():
+    """El estado vive fuera del repo. El wrapper solo versiona el latido
+    que usa el respaldo de GitHub."""
     texto = VPS.read_text(encoding="utf-8")
-    bloque = _vps_paths_de_persistencia(texto)
-    assert "momentum_hunter/watchlist.json" in bloque
-    assert "momentum_hunter/auditoria" in bloque
-    assert "momentum_hunter/telemetria" in bloque
-    assert "momentum_paper_trader/telemetria" in bloque
-    assert "momentum_paper_trader/revisiones.json" in bloque
-    assert "momentum_paper_trader/archivo_triggered.jsonl" in bloque
-    assert "momentum_hunter/alertas_enviadas.json" in bloque
+    assert "git add -- vps_latido.json" in texto
+    assert "momentum_hunter/watchlist.json" not in texto
+    assert "momentum_hunter/auditoria" not in texto
+    assert "momentum_paper_trader/revisiones.json" not in texto
+    assert "momentum_paper_trader/telemetria" not in texto
     assert "--solo-watchlist" in texto
     assert "MOMENTUM_WATCHLIST_VPS_STATE" in texto
     assert "backup_watchlist_vps_state.sh" in texto
+    assert "--materializar-overlay" in texto
     cron = (ROOT / "infra" / "cron" / "momentum-watchlist-state-backup").read_text(encoding="utf-8")
     assert "15 2 * * *" in cron
     assert "/opt/hernan-portafolio/scripts/backup_watchlist_vps_state.sh" in cron
 
 
-def test_gha_hunter_sigue_persistiendo_watchlist_y_auditoria():
-    """GitHub conserva sus git-add para el modo RESPALDO (VPS callado):
-    quitarlos dejaría el respaldo sin escritor."""
-    texto = HUNTER_WF.read_text(encoding="utf-8")
-    assert "momentum_hunter/watchlist.json" in texto
-    assert "momentum_paper_trader/archivo_triggered.jsonl" in texto
-    assert "git add momentum_hunter/auditoria" in texto
-    assert "git add momentum_hunter/telemetria" in texto
-
-
-def test_gha_watchlist_sigue_como_escritor_secundario():
-    """Fallback de re-chequeo: no se apaga ni se le quita el
-    git-add de watchlist/auditoria. El overlap con hunter GHA
-    ya estaba aceptado; el VPS ya no es el tercer escritor."""
-    texto = WATCHLIST_WF.read_text(encoding="utf-8")
-    assert "momentum_hunter/watchlist.json" in texto
-    assert "git add momentum_hunter/auditoria" in texto
-    assert 'cron: "*/5 13-20 * * 1-5"' in texto
+def test_gha_no_versiona_watchlist_ni_auditoria():
+    """El respaldo ya no escribe el repo. La voz del VPS es el latido."""
+    for path in (HUNTER_WF, WATCHLIST_WF):
+        texto = path.read_text(encoding="utf-8")
+        assert "git add" not in texto, path
+        assert "vps_latido.json" in texto, path
+    assert 'cron: "*/5 13-20 * * 1-5"' in WATCHLIST_WF.read_text(encoding="utf-8")
 
 
 def test_gitattributes_union_en_jsonl_de_telemetria():
@@ -128,12 +113,11 @@ def test_gitattributes_union_en_jsonl_de_telemetria():
     assert "momentum_paper_trader/archivo_triggered.jsonl merge=union" in texto
 
 
-def test_workflows_gha_no_agregan_paper_telem():
+def test_workflows_gha_no_agregan_telemetria():
     for path in (HUNTER_WF, WATCHLIST_WF):
         texto = path.read_text(encoding="utf-8")
-        assert "git add momentum_paper_trader/telemetria" not in texto
-        assert "git add momentum_hunter/telemetria" in texto
-        assert "git_persist_rebase_push.sh" in texto
+        assert "git add" not in texto
+        assert "git_persist_rebase_push.sh" not in texto
 
 
 def test_vps_deja_rastro_cuando_el_persist_falla():
@@ -384,23 +368,32 @@ def test_helper_rechaza_force_sin_tocar_git(tmp_path):
     assert "force push is forbidden" in r.stderr
 
 
-def test_el_helper_aparta_todos_los_paths_que_los_wrappers_commitean():
+def test_el_helper_sigue_conociendo_el_estado_por_si_el_arbol_sigue_sucio():
+    """Red de seguridad del primer pull. Los wrappers ya no commitean
+    esos paths: solo el latido."""
     helper = HELPER.read_text(encoding="utf-8")
-    for wrapper in (VPS, VPS_INSTALADO, SCAN):
-        bloque = _vps_paths_de_persistencia(wrapper.read_text(encoding="utf-8"))
-        for linea in bloque.splitlines():
-            linea = linea.strip().strip('"').strip("'")
-            if linea.startswith("momentum_"):
-                assert linea in helper, (wrapper.name, linea)
+    for rel in (
+        "momentum_paper_trader/revisiones.json",
+        "momentum_hunter/alertas_enviadas.json",
+        "momentum_hunter/telemetria",
+        "momentum_paper_trader/telemetria",
+    ):
+        assert rel in helper
+    for wrapper in (VPS, VPS_INSTALADO):
+        texto = wrapper.read_text(encoding="utf-8")
+        assert "git add -- vps_latido.json" in texto
+        assert "paths=(" not in texto
+    assert "git " not in SCAN.read_text(encoding="utf-8")
 
 
 def test_los_wrappers_dejan_de_hacer_pull_rebase_a_pelo():
-    """El pull crudo anterior al git add es el que se negaba con la
-    telemetría sucia. Los tres wrappers pasan por el helper."""
-    for wrapper in (VPS, VPS_INSTALADO, SCAN):
+    """El pull crudo se negaba con la telemetría sucia. Solo el wrapper
+    del rechequeo pasa por el helper. El escaneo no toca el checkout."""
+    for wrapper in (VPS, VPS_INSTALADO):
         texto = wrapper.read_text(encoding="utf-8")
         assert "git_pull_con_estado_local.sh" in texto, wrapper
         assert "git pull --rebase origin main" not in texto, wrapper
+    assert "git_pull_con_estado_local.sh" not in SCAN.read_text(encoding="utf-8")
 
 
 def test_cli_de_eventos_escribe_el_evento_y_nunca_falla(tmp_path, monkeypatch):

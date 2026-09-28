@@ -143,30 +143,8 @@ jobs:
           pip install -q -r momentum_paper_trader/requirements.txt
           python -m momentum_paper_trader.run
 
-      - name: Persistir universo/tracker/auditoría
+      - name: El estado no se versiona
         if: steps.vps.outputs.respaldo == 'true'
         run: |
-          git config user.name "momentum-opportunity-hunter"
-          git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
-          # revisiones.json NO: su único escritor es el VPS (2026-09-21).
-          for f in momentum_hunter/universo_cache.json momentum_hunter/alertas_enviadas.json \
-                   momentum_hunter/estado_diario.json momentum_hunter/watchlist.json \
-                   momentum_paper_trader/archivo_triggered.jsonl; do
-            [ -f "$f" ] && git add "$f" || true
-          done
-          # Auditoría completa de cada corrida (Principio 9: cada alerta
-          # debe poder reconstruirse meses después) -- se committea igual
-          # que el tracker, nunca se pierde la trazabilidad.
-          [ -d momentum_hunter/auditoria ] && git add momentum_hunter/auditoria || true
-          # Telemetría del hunter (embudo / errores). El layout es
-          # telemetria/{fecha}/gha/events.jsonl -- no pisa el JSONL del VPS.
-          [ -d momentum_hunter/telemetria ] && git add momentum_hunter/telemetria || true
-          # Paper telem: el VPS es el escritor primario. Commitearla
-          # desde GHA reventaba el rebase sobre el JSON diario
-          # (run 34624961161) y se perdía también la telemetría del hunter.
-          if git diff --cached --quiet; then
-            echo "INFO: nothing to persist"
-          else
-            git commit -m "momentum_hunter: alertas y auditoría del día [skip ci]"
-            PERSIST_BRANCH=main bash scripts/git_persist_rebase_push.sh
-          fi
+          echo "INFO: watchlist, auditoría y telemetría viven en MOMENTUM_ESTADO_DIR."
+          echo "INFO: este job no los sube. La voz del VPS es vps_latido.json."
