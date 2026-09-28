@@ -258,12 +258,16 @@ def senal_del_dia(
                 ev.fallos.append("sin_catalizador_operable")
         if not ev.fallos:
             alcanzadas.add("catalizador")
-            etapas.add("catalizador")
             sp = _spread(cierre)
             ev2 = reglas.evaluar_ruptura(velas_hoy, i, gap_oficial=gap, rvol_valor=rv, spread_pct=sp,
                                          indice_sobre_vwap=indice_ok, cfg=cfg)
             ev.fallos = ev2.fallos
         if not ev.fallos:
+            # Esta vela pasó TODO, incluido el spread real: en el embudo
+            # ordenado cuenta hasta catalizador aunque `_embudo` hubiera
+            # agotado sus intentos de spread en velas anteriores. Así
+            # "catalizador" nunca supera a "ventana".
+            etapas.update({n for n, _ in ETAPAS} | {"catalizador"})
             elegida = next(n for n, c in clasif if cat.operable(c, cfg.catalizador) and c.nivel == nivel)
             _contar_etapas()
             return Senal(ticker, dia, cierre, vela.c, ev.orb_bajo, nivel, gap, rv, elegida.titular)

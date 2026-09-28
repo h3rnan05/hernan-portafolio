@@ -304,6 +304,16 @@ def test_embudo_etapa_por_etapa_cuenta_en_orden():
     res2 = motor.Resultado()
     assert motor.senal_del_dia("ACME", DIA, velas, previos, spy, 0.06, [buena], ok, lambda m: 0.05, CFG, res2) is None
     assert res2.embudo_etapas["ruptura_orb"] == 1 and res2.embudo_etapas["spread"] == 0 and res2.embudo_etapas["spy"] == 0
+    # Con spread ancho en las 3 primeras velas pero fino en la de la señal, la vela que pasa todo
+    # cuenta hasta catalizador (y las etapas previas), nunca catalizador sin ventana.
+    llamadas = []
+
+    def spread_tardio(m):
+        llamadas.append(m)
+        return 0.05 if len(llamadas) <= 3 else 0.001
+    res4 = motor.Resultado()
+    motor.senal_del_dia("ACME", DIA, velas, previos, spy, 0.06, [buena], ok, spread_tardio, CFG, res4)
+    assert res4.embudo_etapas["catalizador"] <= res4.embudo_etapas["ventana"]
     # Sin catalizador operable: llega a ventana, no a catalizador.
     res3 = motor.Resultado()
     nivel0 = lambda n: cat.Clasificacion(True, 0, "opinion", "neutral", 0.9)  # noqa: E731
