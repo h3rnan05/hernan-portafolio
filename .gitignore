@@ -44,8 +44,9 @@ logs/
 *.sqlite3
 local_data/
 
-# Catálogo local de activos paper. Lo escribe el job diario; el hunter
-# solo lo lee. Miles de símbolos, se regenera: no va a git.
+# Red de seguridad. El catálogo ya no se escribe acá: vive en
+# /var/lib/momentum/estado/datos/. Si alguien apunta
+# MOMENTUM_CATALOGO_ACTIVOS de vuelta al árbol, igual no entra a git.
 momentum_hunter/datos/alpaca_assets.json
 
 # Logs rotativos que genera el SDK de Webull al correr las sondas

@@ -9,7 +9,17 @@ User=momentum
 Group=momentum
 WorkingDirectory=/opt/hernan-portafolio
 Environment=PYTHONPATH=/opt/hernan-portafolio
+# El JSON no vive en el árbol git. StateDirectory crea
+# /var/lib/momentum/estado/datos con dueño momentum antes de ExecStart.
+# ReadWritePaths nombra el único directorio de estado de este job.
+# No hay ProtectSystem=strict: un sandbox que deje el checkout en
+# solo lectura se come el __pycache__ y no es lo que se pidió.
+# Environment va ANTES de EnvironmentFile para que paper.env pueda
+# cambiar MOMENTUM_ESTADO_DIR.
+Environment=MOMENTUM_ESTADO_DIR=/var/lib/momentum/estado
 EnvironmentFile=/etc/momentum/paper.env
+StateDirectory=momentum/estado/datos
+ReadWritePaths=/var/lib/momentum/estado
 ExecStart=/opt/momentum/bin/run_assets.sh
 Nice=15
 # Una lista de us_equity activos. Si pasa de 3 min, algo está mal.
