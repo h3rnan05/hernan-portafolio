@@ -108229,6 +108229,2857 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-28T17:33:08+00:00",
+      "candidatos_evaluados": 13,
+      "candidatos": [
+        {
+          "ticker": "ETN",
+          "nombre": "Eaton Corporation plc",
+          "precio_actual": 430.755,
+          "factores_intradia": {
+            "precio_actual": 430.755,
+            "vwap": 430.9675932368584,
+            "ema9": 430.40400328639083,
+            "rvol_actual": 0.5651636812847437,
+            "aceleracion_volumen": 0.9502164502164502,
+            "gap_pct": -0.0047521600727604175,
+            "maximo_dia": 441.94,
+            "maximo_premarket": 437.23,
+            "rango_apertura_max": 439.62,
+            "rango_apertura_min": 435.02,
+            "velas_desde_ruptura": 1,
+            "macd": 0.35025740942160155,
+            "macd_signal": 0.3561422835197309
+          },
+          "meta": {
+            "float_acciones": 387716416.0,
+            "short_pct_float": 0.02,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Eaton to acquire COL Group for $923m",
+            "fuente": "Power Technology",
+            "fecha": "2026-09-28T08:21:54Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 551.2389138666666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 66.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 45.021645021645014,
+                "extension": 100.0,
+                "distancia_maximo_dia": 74.69113454315057,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 71.8,
+            "score_ajustado": 51.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "INTC",
+          "nombre": "Intel Corporation",
+          "precio_actual": 116.0629,
+          "factores_intradia": {
+            "precio_actual": 116.0629,
+            "vwap": 116.65789985897237,
+            "ema9": 115.86246654772016,
+            "rvol_actual": 1.1707499114880533,
+            "aceleracion_volumen": 1.606780254798526,
+            "gap_pct": -0.018583279115159376,
+            "maximo_dia": 123.0,
+            "maximo_premarket": 123.0,
+            "rango_apertura_max": 121.71,
+            "rango_apertura_min": 119.83,
+            "velas_desde_ruptura": 1,
+            "macd": 0.025117703442305128,
+            "macd_signal": -0.006435443139112358
+          },
+          "meta": {
+            "float_acciones": 4619496960.0,
+            "short_pct_float": 0.0301,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "SKHY Likely to Gain From a Potential Intel Partnership: Worth a Buy?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-28T13:41:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 232.13901881666666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 74.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 43.60081300813001,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "HPE",
+          "nombre": "Hewlett Packard Enterprise Company",
+          "precio_actual": 62.4851,
+          "factores_intradia": {
+            "precio_actual": 62.4851,
+            "vwap": 61.84953737946908,
+            "ema9": 62.50373023377279,
+            "rvol_actual": 1.87568411237686,
+            "aceleracion_volumen": 1.620962756915469,
+            "gap_pct": -0.0030187480139815337,
+            "maximo_dia": 63.38,
+            "maximo_premarket": 62.78,
+            "rango_apertura_max": 63.38,
+            "rango_apertura_min": 62.28,
+            "velas_desde_ruptura": null,
+            "macd": 0.039165983803478355,
+            "macd_signal": 0.05478210009964536
+          },
+          "meta": {
+            "float_acciones": 1321411540.0,
+            "short_pct_float": 0.048,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Should HPE’s Expanded Networking and Quantum Partnerships Require Action From Hewlett Packard Enterprise (HPE) Investors?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-25T13:12:08Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4581.00572775,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 74.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 85.8804039129063,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 64.7,
+            "score_ajustado": 44.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "NBIS",
+          "nombre": "Nebius Group N.V.",
+          "precio_actual": 233.715,
+          "factores_intradia": {
+            "precio_actual": 233.715,
+            "vwap": 235.74489712782767,
+            "ema9": 233.5427046686612,
+            "rvol_actual": 0.4125975300986927,
+            "aceleracion_volumen": 0.4964285714285714,
+            "gap_pct": -0.008802223719676565,
+            "maximo_dia": 245.35,
+            "maximo_premarket": 236.0,
+            "rango_apertura_max": 242.6,
+            "rango_apertura_min": 233.5,
+            "velas_desde_ruptura": 1,
+            "macd": -0.008744129240682241,
+            "macd_signal": 0.01450546908147346
+          },
+          "meta": {
+            "float_acciones": 228614878.0,
+            "short_pct_float": 0.1981,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Why Palantir (PLTR) Is Up 6.8% After Expanding AIP Deals And Announcing Nebius AI Partnership",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-26T03:17:27Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3735.6891189000003,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 55.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 52.57794986753617,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "NVDA",
+          "nombre": "NVIDIA Corporation",
+          "precio_actual": 230.35,
+          "factores_intradia": {
+            "precio_actual": 230.35,
+            "vwap": 231.03626774213305,
+            "ema9": 230.28746542514384,
+            "rvol_actual": 1.1363435134780313,
+            "aceleracion_volumen": 0.9681499035439047,
+            "gap_pct": 0.020925893015816505,
+            "maximo_dia": 233.21,
+            "maximo_premarket": 230.01,
+            "rango_apertura_max": 232.4,
+            "rango_apertura_min": 229.48,
+            "velas_desde_ruptura": 1,
+            "macd": -0.16867482709940873,
+            "macd_signal": -0.1570628295162228
+          },
+          "meta": {
+            "float_acciones": 23132626000.0,
+            "short_pct_float": 0.0127,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Nvidia latest: What to know about its new AI security system & stock buyback increase",
+            "fuente": "Yahoo Finance Video",
+            "fecha": "2026-09-28T13:14:52Z",
+            "confirmado": true,
+            "fuentes_adicionales": [
+              "Yahoo Finance"
+            ]
+          },
+          "minutos_desde_catalizador": 258.27251825,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 68.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 46.814990354390474,
+                "extension": 100.0,
+                "distancia_maximo_dia": 87.73637494104014,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 62.7,
+            "score_ajustado": 42.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "CTAS",
+          "nombre": "Cintas Corporation",
+          "precio_actual": 200.67,
+          "factores_intradia": {
+            "precio_actual": 200.67,
+            "vwap": 200.69784772872455,
+            "ema9": 200.67909897888984,
+            "rvol_actual": 0.8492812417320751,
+            "aceleracion_volumen": 1.5742286046962934,
+            "gap_pct": -0.0020009004051823607,
+            "maximo_dia": 201.45,
+            "maximo_premarket": 200.99,
+            "rango_apertura_max": 200.14,
+            "rango_apertura_min": 198.64,
+            "velas_desde_ruptura": null,
+            "macd": -0.055167560448950326,
+            "macd_signal": -0.07223577194609906
+          },
+          "meta": {
+            "float_acciones": 341515122.0,
+            "short_pct_float": 0.0376,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Cintas Raises Guidance as a Major Catalyst Moves Closer",
+            "fuente": "MarketBeat",
+            "fecha": "2026-09-25T12:40:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4613.139213949999,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.12807148175729,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "SW",
+          "nombre": "Smurfit Westrock Plc",
+          "precio_actual": 45.35,
+          "factores_intradia": {
+            "precio_actual": 45.35,
+            "vwap": 45.720572394383794,
+            "ema9": 45.39047978315574,
+            "rvol_actual": 2.8596863658152434,
+            "aceleracion_volumen": 3.383653203475604,
+            "gap_pct": -0.016156828953037484,
+            "maximo_dia": 46.2,
+            "maximo_premarket": null,
+            "rango_apertura_max": 46.01,
+            "rango_apertura_min": 44.925,
+            "velas_desde_ruptura": null,
+            "macd": -0.029813203896615903,
+            "macd_signal": -0.009362549326829289
+          },
+          "meta": {
+            "float_acciones": 520626735.0,
+            "short_pct_float": 0.051999997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Smurfit Westrock to acquire CMPC’s Chilean packaging assets",
+            "fuente": "Packaging Gateway",
+            "fecha": "2026-09-25T09:07:24Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4825.7392457,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 74.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.60173160173156,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 72.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "MDB",
+          "nombre": "MongoDB, Inc.",
+          "precio_actual": 340.695,
+          "factores_intradia": {
+            "precio_actual": 340.695,
+            "vwap": 325.87929699168126,
+            "ema9": 340.05444583883695,
+            "rvol_actual": 1.3831254358100256,
+            "aceleracion_volumen": 1.2519338526718602,
+            "gap_pct": -0.24126964786158156,
+            "maximo_dia": 410.16,
+            "maximo_premarket": 410.16,
+            "rango_apertura_max": 313.0,
+            "rango_apertura_min": 300.0,
+            "velas_desde_ruptura": 1,
+            "macd": 0.42068962367005724,
+            "macd_signal": 0.4262892669122927
+          },
+          "meta": {
+            "float_acciones": 78453820.0,
+            "short_pct_float": 0.0367,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Top Midday Stories: MongoDB CEO Leaves to Lead Meta Enterprise Platform; Nvidia Ups Buyback Program by $150 Billion",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-28T15:37:32Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 115.60594606666668,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 69.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 39.02669935353535,
+                "aceleracion_volumen": 75.19338526718602,
+                "extension": 82.81802787075439,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 70.3,
+            "score_ajustado": 50.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "SN",
+          "nombre": "SharkNinja, Inc.",
+          "precio_actual": 183.36,
+          "factores_intradia": {
+            "precio_actual": 183.36,
+            "vwap": 180.0682131698928,
+            "ema9": 183.43365133576498,
+            "rvol_actual": 0.4998733429029807,
+            "aceleracion_volumen": 0.7867233575641202,
+            "gap_pct": -0.011648190872770364,
+            "maximo_dia": 184.63,
+            "maximo_premarket": null,
+            "rango_apertura_max": 176.62,
+            "rango_apertura_min": 175.25,
+            "velas_desde_ruptura": null,
+            "macd": 0.18714749742591152,
+            "macd_signal": 0.3097703576077562
+          },
+          "meta": {
+            "float_acciones": 86309182.0,
+            "short_pct_float": 0.1117,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "SharkNinja (SN) Stock May Be 25% Undervalued After Racing Partnership",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-26T03:18:22Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3734.7726400833335,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 58.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 28.672335756412014,
+                "extension": 100.0,
+                "distancia_maximo_dia": 93.12137789091702,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "COIN",
+          "nombre": "Coinbase Global, Inc.",
+          "precio_actual": 194.42,
+          "factores_intradia": {
+            "precio_actual": 194.42,
+            "vwap": 194.1318642273739,
+            "ema9": 194.40003476999846,
+            "rvol_actual": 0.848562396507602,
+            "aceleracion_volumen": 0.9513812154696132,
+            "gap_pct": 0.004561529393675292,
+            "maximo_dia": 198.7799,
+            "maximo_premarket": 196.57,
+            "rango_apertura_max": 198.7799,
+            "rango_apertura_min": 194.0,
+            "velas_desde_ruptura": 0,
+            "macd": 0.08990495841953816,
+            "macd_signal": 0.19977430601955976
+          },
+          "meta": {
+            "float_acciones": 219789349.0,
+            "short_pct_float": 0.114700004,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Citi Expands Digital-Assets Footprint With Coinbase Partnership",
+            "fuente": "The Wall Street Journal",
+            "fecha": "2026-09-28T11:30:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 363.13935656666666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 66.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 45.138121546961315,
+                "extension": 100.0,
+                "distancia_maximo_dia": 78.06669587820491,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 62.1,
+            "score_ajustado": 42.1,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "WTTR",
+          "nombre": "Select Water Solutions, Inc.",
+          "precio_actual": 20.245,
+          "factores_intradia": {
+            "precio_actual": 20.245,
+            "vwap": 20.171195842815745,
+            "ema9": 20.239571854633642,
+            "rvol_actual": 1.2197373820270825,
+            "aceleracion_volumen": 1.6982643524699599,
+            "gap_pct": 0.009072580645161275,
+            "maximo_dia": 20.44,
+            "maximo_premarket": 19.92,
+            "rango_apertura_max": 20.02,
+            "rango_apertura_min": 19.635,
+            "velas_desde_ruptura": 4,
+            "macd": 0.017175254507073134,
+            "macd_signal": 0.004218775893901451
+          },
+          "meta": {
+            "float_acciones": 121830402.0,
+            "short_pct_float": 0.0514,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Select to acquire Delaware Basin-focused Pilot Water for $700m",
+            "fuente": "Offshore Technology",
+            "fecha": "2026-09-25T09:04:45Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4828.3893843,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 74.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 90.45988258317017,
+                "frescura_patron": 66.66666666666667,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.5,
+            "score_ajustado": 47.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "CZR",
+          "nombre": "Caesars Entertainment, Inc.",
+          "precio_actual": 29.595,
+          "factores_intradia": {
+            "precio_actual": 29.595,
+            "vwap": 29.617489081012497,
+            "ema9": 29.607155718404105,
+            "rvol_actual": 1.1047153741038167,
+            "aceleracion_volumen": 0.4582038498513269,
+            "gap_pct": 0.00016894745734085347,
+            "maximo_dia": 29.6595,
+            "maximo_premarket": null,
+            "rango_apertura_max": 29.604,
+            "rango_apertura_min": 29.57,
+            "velas_desde_ruptura": null,
+            "macd": -0.005804706578420138,
+            "macd_signal": -0.0032813660069328718
+          },
+          "meta": {
+            "float_acciones": 181889697.0,
+            "short_pct_float": 0.1076,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Does Caesars (CZR)’s $31 Buyout Offer Enough Reward for the Regulatory Wait?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-28T01:51:41Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 941.4560767666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 52.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.82531735194443,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.16,
+          "factores_intradia": {
+            "precio_actual": 17.16,
+            "vwap": 17.097375721201814,
+            "ema9": 17.168555166539186,
+            "rvol_actual": 0.31794871794871793,
+            "aceleracion_volumen": 1.7951482479784366,
+            "gap_pct": -0.005586592178770883,
+            "maximo_dia": 17.28,
+            "maximo_premarket": 17.0,
+            "rango_apertura_max": 17.02,
+            "rango_apertura_min": 16.77,
+            "velas_desde_ruptura": null,
+            "macd": 0.00704545912909893,
+            "macd_signal": 0.012921684718751433
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4176.122763333334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 75.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 93.05555555555544,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 52.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T17:34:08+00:00",
+      "candidatos_evaluados": 13,
+      "candidatos": [
+        {
+          "ticker": "ETN",
+          "nombre": "Eaton Corporation plc",
+          "precio_actual": 430.57,
+          "factores_intradia": {
+            "precio_actual": 430.57,
+            "vwap": 430.9670290700195,
+            "ema9": 430.4372026291127,
+            "rvol_actual": 0.999797098508674,
+            "aceleracion_volumen": 0.7942961165048543,
+            "gap_pct": -0.0047521600727604175,
+            "maximo_dia": 441.94,
+            "maximo_premarket": 437.23,
+            "rango_apertura_max": 439.62,
+            "rango_apertura_min": 435.02,
+            "velas_desde_ruptura": 2,
+            "macd": 0.3433278585608832,
+            "macd_signal": 0.35357939852796133
+          },
+          "meta": {
+            "float_acciones": 387716416.0,
+            "short_pct_float": 0.02,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Eaton to acquire COL Group for $923m",
+            "fuente": "Power Technology",
+            "fecha": "2026-09-28T08:21:54Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 552.2329217833334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 63.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 29.429611650485434,
+                "extension": 100.0,
+                "distancia_maximo_dia": 74.27252568221931,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 71.8,
+            "score_ajustado": 51.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "INTC",
+          "nombre": "Intel Corporation",
+          "precio_actual": 116.01,
+          "factores_intradia": {
+            "precio_actual": 116.01,
+            "vwap": 116.65723283058828,
+            "ema9": 115.89197323817613,
+            "rvol_actual": 0.5493396191915744,
+            "aceleracion_volumen": 0.9169497993289032,
+            "gap_pct": -0.018583279115159376,
+            "maximo_dia": 123.0,
+            "maximo_premarket": 123.0,
+            "rango_apertura_max": 121.71,
+            "rango_apertura_min": 119.83,
+            "velas_desde_ruptura": 2,
+            "macd": 0.03660170690072562,
+            "macd_signal": 0.0021719868688552376
+          },
+          "meta": {
+            "float_acciones": 4619496960.0,
+            "short_pct_float": 0.0301,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "SKHY Likely to Gain From a Potential Intel Partnership: Worth a Buy?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-28T13:41:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 233.1330115,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 62.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 41.69497993289032,
+                "extension": 100.0,
+                "distancia_maximo_dia": 43.17073170731711,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "HPE",
+          "nombre": "Hewlett Packard Enterprise Company",
+          "precio_actual": 62.47,
+          "factores_intradia": {
+            "precio_actual": 62.47,
+            "vwap": 61.850278667368826,
+            "ema9": 62.496984187018235,
+            "rvol_actual": 0.7331986679041327,
+            "aceleracion_volumen": 2.022304297774367,
+            "gap_pct": -0.0030187480139815337,
+            "maximo_dia": 63.38,
+            "maximo_premarket": 62.78,
+            "rango_apertura_max": 63.38,
+            "rango_apertura_min": 62.28,
+            "velas_desde_ruptura": null,
+            "macd": 0.03367632082773753,
+            "macd_signal": 0.0505609442452638
+          },
+          "meta": {
+            "float_acciones": 1321411540.0,
+            "short_pct_float": 0.048,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Should HPE’s Expanded Networking and Quantum Partnerships Require Action From Hewlett Packard Enterprise (HPE) Investors?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-25T13:12:08Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4581.999719933333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 74.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 85.64215840959288,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.7,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "NBIS",
+          "nombre": "Nebius Group N.V.",
+          "precio_actual": 233.95,
+          "factores_intradia": {
+            "precio_actual": 233.95,
+            "vwap": 235.7417829068721,
+            "ema9": 233.62416373492897,
+            "rvol_actual": 1.091609589041096,
+            "aceleracion_volumen": 0.6906820926337113,
+            "gap_pct": -0.008802223719676565,
+            "maximo_dia": 245.35,
+            "maximo_premarket": 236.0,
+            "rango_apertura_max": 242.6,
+            "rango_apertura_min": 233.5,
+            "velas_desde_ruptura": 2,
+            "macd": 0.023400370712863605,
+            "macd_signal": 0.01628444940775149
+          },
+          "meta": {
+            "float_acciones": 228614878.0,
+            "short_pct_float": 0.1981,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Why Palantir (PLTR) Is Up 6.8% After Expanding AIP Deals And Announcing Nebius AI Partnership",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-26T03:17:27Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3736.68311115,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 59.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 19.068209263371127,
+                "extension": 100.0,
+                "distancia_maximo_dia": 53.53576523334003,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "NVDA",
+          "nombre": "NVIDIA Corporation",
+          "precio_actual": 230.4054,
+          "factores_intradia": {
+            "precio_actual": 230.4054,
+            "vwap": 231.03543806862245,
+            "ema9": 230.31105234011505,
+            "rvol_actual": 0.8892710288485532,
+            "aceleracion_volumen": 1.134409598759711,
+            "gap_pct": 0.020925893015816505,
+            "maximo_dia": 233.21,
+            "maximo_premarket": 230.01,
+            "rango_apertura_max": 232.4,
+            "rango_apertura_min": 229.48,
+            "velas_desde_ruptura": 1,
+            "macd": -0.1500776428578945,
+            "macd_signal": -0.15566579218455714
+          },
+          "meta": {
+            "float_acciones": 23132626000.0,
+            "short_pct_float": 0.0127,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Nvidia latest: What to know about its new AI security system & stock buyback increase",
+            "fuente": "Yahoo Finance Video",
+            "fecha": "2026-09-28T13:14:52Z",
+            "confirmado": true,
+            "fuentes_adicionales": [
+              "Yahoo Finance"
+            ]
+          },
+          "minutos_desde_catalizador": 259.2665099166667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 71.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 63.44095987597109,
+                "extension": 100.0,
+                "distancia_maximo_dia": 87.97392907679757,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 62.7,
+            "score_ajustado": 42.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "CTAS",
+          "nombre": "Cintas Corporation",
+          "precio_actual": 200.66,
+          "factores_intradia": {
+            "precio_actual": 200.66,
+            "vwap": 200.69779061687092,
+            "ema9": 200.67527918311188,
+            "rvol_actual": 0.5456570155902005,
+            "aceleracion_volumen": 1.0054914881933004,
+            "gap_pct": -0.0020009004051823607,
+            "maximo_dia": 201.45,
+            "maximo_premarket": 200.99,
+            "rango_apertura_max": 200.14,
+            "rango_apertura_min": 198.64,
+            "velas_desde_ruptura": null,
+            "macd": -0.05292767584307967,
+            "macd_signal": -0.06837415272549519
+          },
+          "meta": {
+            "float_acciones": 341515122.0,
+            "short_pct_float": 0.0376,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Cintas Raises Guidance as a Major Catalyst Moves Closer",
+            "fuente": "MarketBeat",
+            "fecha": "2026-09-25T12:40:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4614.13320775,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 64.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 50.549148819330036,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.078431372549,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 58.8,
+            "score_ajustado": 38.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "SW",
+          "nombre": "Smurfit Westrock Plc",
+          "precio_actual": 45.355,
+          "factores_intradia": {
+            "precio_actual": 45.355,
+            "vwap": 45.719362118750574,
+            "ema9": 45.38338382652459,
+            "rvol_actual": 1.1788787604666806,
+            "aceleracion_volumen": 3.80155010814708,
+            "gap_pct": -0.016156828953037484,
+            "maximo_dia": 46.2,
+            "maximo_premarket": null,
+            "rango_apertura_max": 46.01,
+            "rango_apertura_min": 44.925,
+            "velas_desde_ruptura": null,
+            "macd": -0.03168760758947542,
+            "macd_signal": -0.013827560979358515
+          },
+          "meta": {
+            "float_acciones": 520626735.0,
+            "short_pct_float": 0.051999997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Smurfit Westrock to acquire CMPC’s Chilean packaging assets",
+            "fuente": "Packaging Gateway",
+            "fecha": "2026-09-25T09:07:24Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4826.7332369666665,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 74.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.70995670995651,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 72.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "MDB",
+          "nombre": "MongoDB, Inc.",
+          "precio_actual": 339.71,
+          "factores_intradia": {
+            "precio_actual": 339.71,
+            "vwap": 325.88968303130093,
+            "ema9": 339.98555667106956,
+            "rvol_actual": 0.6254108688506629,
+            "aceleracion_volumen": 0.844676981115128,
+            "gap_pct": -0.24126964786158156,
+            "maximo_dia": 410.16,
+            "maximo_premarket": 410.16,
+            "rango_apertura_max": 313.0,
+            "rango_apertura_min": 300.0,
+            "velas_desde_ruptura": null,
+            "macd": 0.3690381381653083,
+            "macd_signal": 0.4148390411628958
+          },
+          "meta": {
+            "float_acciones": 78453820.0,
+            "short_pct_float": 0.0367,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Top Midday Stories: MongoDB CEO Leaves to Lead Meta Enterprise Platform; Nvidia Ups Buyback Program by $150 Billion",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-28T15:37:32Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 116.59993653333332,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 55.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 38.424280888888894,
+                "aceleracion_volumen": 34.4676981115128,
+                "extension": 86.2133766652849,
+                "distancia_maximo_dia": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 70.3,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "SN",
+          "nombre": "SharkNinja, Inc.",
+          "precio_actual": 183.09,
+          "factores_intradia": {
+            "precio_actual": 183.09,
+            "vwap": 180.08804641004144,
+            "ema9": 183.36492106861198,
+            "rvol_actual": 1.8524927894519982,
+            "aceleracion_volumen": 1.1567890027233823,
+            "gap_pct": -0.011648190872770364,
+            "maximo_dia": 184.63,
+            "maximo_premarket": null,
+            "rango_apertura_max": 176.62,
+            "rango_apertura_min": 175.25,
+            "velas_desde_ruptura": null,
+            "macd": 0.14461579139381797,
+            "macd_signal": 0.27673944436496856
+          },
+          "meta": {
+            "float_acciones": 86309182.0,
+            "short_pct_float": 0.1117,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "SharkNinja (SN) Stock May Be 25% Undervalued After Racing Partnership",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-26T03:18:22Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3735.7666304333334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 67.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 65.67890027233823,
+                "extension": 100.0,
+                "distancia_maximo_dia": 91.65899366300168,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "COIN",
+          "nombre": "Coinbase Global, Inc.",
+          "precio_actual": 194.2452,
+          "factores_intradia": {
+            "precio_actual": 194.2452,
+            "vwap": 194.13209508075747,
+            "ema9": 194.3690678159988,
+            "rvol_actual": 0.8979019526381388,
+            "aceleracion_volumen": 1.1371847948814453,
+            "gap_pct": 0.004561529393675292,
+            "maximo_dia": 198.7799,
+            "maximo_premarket": 196.57,
+            "rango_apertura_max": 198.7799,
+            "rango_apertura_min": 194.0,
+            "velas_desde_ruptura": null,
+            "macd": 0.06843969656696913,
+            "macd_signal": 0.17350738412904163
+          },
+          "meta": {
+            "float_acciones": 219789349.0,
+            "short_pct_float": 0.114700004,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Citi Expands Digital-Assets Footprint With Coinbase Partnership",
+            "fuente": "The Wall Street Journal",
+            "fecha": "2026-09-28T11:30:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 364.13334473333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 65.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 63.71847948814453,
+                "extension": 100.0,
+                "distancia_maximo_dia": 77.18733131468525,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 62.1,
+            "score_ajustado": 42.1,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "WTTR",
+          "nombre": "Select Water Solutions, Inc.",
+          "precio_actual": 20.26,
+          "factores_intradia": {
+            "precio_actual": 20.26,
+            "vwap": 20.173114523118507,
+            "ema9": 20.243657483706915,
+            "rvol_actual": 6.781476739223218,
+            "aceleracion_volumen": 5.128774422735346,
+            "gap_pct": 0.009072580645161275,
+            "maximo_dia": 20.44,
+            "maximo_premarket": 19.92,
+            "rango_apertura_max": 20.02,
+            "rango_apertura_min": 19.635,
+            "velas_desde_ruptura": 109,
+            "macd": 0.01829684448551916,
+            "macd_signal": 0.007034389612224993
+          },
+          "meta": {
+            "float_acciones": 121830402.0,
+            "short_pct_float": 0.0514,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Select to acquire Delaware Basin-focused Pilot Water for $700m",
+            "fuente": "Offshore Technology",
+            "fecha": "2026-09-25T09:04:45Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4829.38337265,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.1,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 109 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 91.19373776908024,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 109 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 67.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 109 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "CZR",
+          "nombre": "Caesars Entertainment, Inc.",
+          "precio_actual": 29.59,
+          "factores_intradia": {
+            "precio_actual": 29.59,
+            "vwap": 29.617466694132844,
+            "ema9": 29.603724574723284,
+            "rvol_actual": 0.060692241084834085,
+            "aceleracion_volumen": 0.41524670650700907,
+            "gap_pct": 0.00016894745734085347,
+            "maximo_dia": 29.6595,
+            "maximo_premarket": null,
+            "rango_apertura_max": 29.604,
+            "rango_apertura_min": 29.57,
+            "velas_desde_ruptura": null,
+            "macd": -0.006934161210992329,
+            "macd_signal": -0.004011925047744763
+          },
+          "meta": {
+            "float_acciones": 181889697.0,
+            "short_pct_float": 0.1076,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Does Caesars (CZR)’s $31 Buyout Offer Enough Reward for the Regulatory Wait?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-28T01:51:41Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 942.45006685,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 52.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.65673730170765,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.16,
+          "factores_intradia": {
+            "precio_actual": 17.16,
+            "vwap": 17.097421328125677,
+            "ema9": 17.16684413323135,
+            "rvol_actual": 0.4607789358200768,
+            "aceleracion_volumen": 2.0677966101694913,
+            "gap_pct": -0.005586592178770883,
+            "maximo_dia": 17.28,
+            "maximo_premarket": 17.0,
+            "rango_apertura_max": 17.02,
+            "rango_apertura_min": 16.77,
+            "velas_desde_ruptura": null,
+            "macd": 0.005748092399905147,
+            "macd_signal": 0.011486966254982175
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4177.116753833334,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 75.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 93.05555555555544,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 52.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T17:35:08+00:00",
+      "candidatos_evaluados": 13,
+      "candidatos": [
+        {
+          "ticker": "ETN",
+          "nombre": "Eaton Corporation plc",
+          "precio_actual": 430.655,
+          "factores_intradia": {
+            "precio_actual": 430.655,
+            "vwap": 430.9667142122285,
+            "ema9": 430.4807621032902,
+            "rvol_actual": 0.6257682422617052,
+            "aceleracion_volumen": 0.7124149659863945,
+            "gap_pct": -0.0047521600727604175,
+            "maximo_dia": 441.94,
+            "maximo_premarket": 437.23,
+            "rango_apertura_max": 439.62,
+            "rango_apertura_min": 435.02,
+            "velas_desde_ruptura": 3,
+            "macd": 0.34076678186301024,
+            "macd_signal": 0.35101687519497116
+          },
+          "meta": {
+            "float_acciones": 387716416.0,
+            "short_pct_float": 0.02,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Eaton to acquire COL Group for $923m",
+            "fuente": "Power Technology",
+            "fecha": "2026-09-28T08:21:54Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 553.2385298833334,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 59.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 21.241496598639454,
+                "extension": 100.0,
+                "distancia_maximo_dia": 74.46485948318771,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 71.8,
+            "score_ajustado": 51.8,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "INTC",
+          "nombre": "Intel Corporation",
+          "precio_actual": 115.98,
+          "factores_intradia": {
+            "precio_actual": 115.98,
+            "vwap": 116.65655381079453,
+            "ema9": 115.90957859054092,
+            "rvol_actual": 0.5228932261768082,
+            "aceleracion_volumen": 0.6613503712657572,
+            "gap_pct": -0.018583279115159376,
+            "maximo_dia": 123.0,
+            "maximo_premarket": 123.0,
+            "rango_apertura_max": 121.71,
+            "rango_apertura_min": 119.83,
+            "velas_desde_ruptura": 3,
+            "macd": 0.04278886964561934,
+            "macd_signal": 0.01029536342420806
+          },
+          "meta": {
+            "float_acciones": 4619496960.0,
+            "short_pct_float": 0.0301,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "SKHY Likely to Gain From a Potential Intel Partnership: Worth a Buy?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-28T13:41:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 234.13859778333332,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 55.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 16.135037126575725,
+                "extension": 100.0,
+                "distancia_maximo_dia": 42.92682926829272,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.9,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "HPE",
+          "nombre": "Hewlett Packard Enterprise Company",
+          "precio_actual": 62.51,
+          "factores_intradia": {
+            "precio_actual": 62.51,
+            "vwap": 61.851109582497486,
+            "ema9": 62.49958734961459,
+            "rvol_actual": 0.7950428638042971,
+            "aceleracion_volumen": 1.2136813619703355,
+            "gap_pct": -0.0030187480139815337,
+            "maximo_dia": 63.38,
+            "maximo_premarket": 62.78,
+            "rango_apertura_max": 63.38,
+            "rango_apertura_min": 62.28,
+            "velas_desde_ruptura": 0,
+            "macd": 0.03218241028176294,
+            "macd_signal": 0.04688523745256363
+          },
+          "meta": {
+            "float_acciones": 1321411540.0,
+            "short_pct_float": 0.048,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Should HPE’s Expanded Networking and Quantum Partnerships Require Action From Hewlett Packard Enterprise (HPE) Investors?",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-25T13:12:08Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4583.0053059833335,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 72.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 71.36813619703355,
+                "extension": 100.0,
+                "distancia_maximo_dia": 86.27327232565474,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 99.99999999999949
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 64.7,
+            "score_ajustado": 44.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "NBIS",
+          "nombre": "Nebius Group N.V.",
+          "precio_actual": 233.787,
+          "factores_intradia": {
+            "precio_actual": 233.787,
+            "vwap": 235.7397101891242,
+            "ema9": 233.6567309879432,
+            "rvol_actual": 0.6410140510383304,
+            "aceleracion_volumen": 0.574348068986646,
+            "gap_pct": -0.008802223719676565,
+            "maximo_dia": 245.35,
+            "maximo_premarket": 236.0,
+            "rango_apertura_max": 242.6,
+            "rango_apertura_min": 233.5,
+            "velas_desde_ruptura": 3,
+            "macd": 0.035315288104243336,
+            "macd_signal": 0.02009061714704986
+          },
+          "meta": {
+            "float_acciones": 228614878.0,
+            "short_pct_float": 0.1981,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Why Palantir (PLTR) Is Up 6.8% After Expanding AIP Deals And Announcing Nebius AI Partnership",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-26T03:17:27Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3737.688696633333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 54.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 7.434806898664604,
+                "extension": 100.0,
+                "distancia_maximo_dia": 52.87140819237823,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 63.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "NVDA",
+          "nombre": "NVIDIA Corporation",
+          "precio_actual": 230.3799,
+          "factores_intradia": {
+            "precio_actual": 230.3799,
+            "vwap": 231.03463488079217,
+            "ema9": 230.32482187209206,
+            "rvol_actual": 0.8203196080718534,
+            "aceleracion_volumen": 0.973027404915803,
+            "gap_pct": 0.020925893015816505,
+            "maximo_dia": 233.21,
+            "maximo_premarket": 230.01,
+            "rango_apertura_max": 232.4,
+            "rango_apertura_min": 229.48,
+            "velas_desde_ruptura": 2,
+            "macd": -0.13583110086972283,
+            "macd_signal": -0.1516988539215903
+          },
+          "meta": {
+            "float_acciones": 23132626000.0,
+            "short_pct_float": 0.0127,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Nvidia latest: What to know about its new AI security system & stock buyback increase",
+            "fuente": "Yahoo Finance Video",
+            "fecha": "2026-09-28T13:14:52Z",
+            "confirmado": true,
+            "fuentes_adicionales": [
+              "Yahoo Finance"
+            ]
+          },
+          "minutos_desde_catalizador": 260.27209615,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 68.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 47.302740491580295,
+                "extension": 100.0,
+                "distancia_maximo_dia": 87.86458556665654,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 62.7,
+            "score_ajustado": 42.7,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "CTAS",
+          "nombre": "Cintas Corporation",
+          "precio_actual": 200.545,
+          "factores_intradia": {
+            "precio_actual": 200.545,
+            "vwap": 200.6975291321505,
+            "ema9": 200.64922334648952,
+            "rvol_actual": 0.6619315379303541,
+            "aceleracion_volumen": 0.6092808075143699,
+            "gap_pct": -0.0020009004051823607,
+            "maximo_dia": 201.45,
+            "maximo_premarket": 200.99,
+            "rango_apertura_max": 200.14,
+            "rango_apertura_min": 198.64,
+            "velas_desde_ruptura": null,
+            "macd": -0.05974340527333766,
+            "macd_signal": -0.06664800323506369
+          },
+          "meta": {
+            "float_acciones": 341515122.0,
+            "short_pct_float": 0.0376,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "guidance",
+            "titular": "Cintas Raises Guidance as a Major Catalyst Moves Closer",
+            "fuente": "MarketBeat",
+            "fecha": "2026-09-25T12:40:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4615.138792,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 55.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 10.928080751436987,
+                "extension": 100.0,
+                "distancia_maximo_dia": 95.50757011665422,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 58.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "SW",
+          "nombre": "Smurfit Westrock Plc",
+          "precio_actual": 45.34,
+          "factores_intradia": {
+            "precio_actual": 45.34,
+            "vwap": 45.71857957351378,
+            "ema9": 45.37470706121968,
+            "rvol_actual": 0.6339780113955542,
+            "aceleracion_volumen": 1.444570184983678,
+            "gap_pct": -0.016156828953037484,
+            "maximo_dia": 46.2,
+            "maximo_premarket": null,
+            "rango_apertura_max": 46.01,
+            "rango_apertura_min": 44.925,
+            "velas_desde_ruptura": null,
+            "macd": -0.033991626350669435,
+            "macd_signal": -0.0178603740536207
+          },
+          "meta": {
+            "float_acciones": 520626735.0,
+            "short_pct_float": 0.051999997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Smurfit Westrock to acquire CMPC’s Chilean packaging assets",
+            "fuente": "Packaging Gateway",
+            "fecha": "2026-09-25T09:07:24Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4827.738820883333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 73.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 94.4570184983678,
+                "extension": 100.0,
+                "distancia_maximo_dia": 81.38528138528133,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 72.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "MDB",
+          "nombre": "MongoDB, Inc.",
+          "precio_actual": 340.14,
+          "factores_intradia": {
+            "precio_actual": 340.14,
+            "vwap": 325.9028392643915,
+            "ema9": 340.01644533685567,
+            "rvol_actual": 0.9597240289143929,
+            "aceleracion_volumen": 1.145083861791027,
+            "gap_pct": -0.24126964786158156,
+            "maximo_dia": 410.16,
+            "maximo_premarket": 410.16,
+            "rango_apertura_max": 313.0,
+            "rango_apertura_min": 300.0,
+            "velas_desde_ruptura": 0,
+            "macd": 0.35866688156568216,
+            "macd_signal": 0.4036046092434531
+          },
+          "meta": {
+            "float_acciones": 78453820.0,
+            "short_pct_float": 0.0367,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Top Midday Stories: MongoDB CEO Leaves to Lead Meta Enterprise Platform; Nvidia Ups Buyback Program by $150 Billion",
+            "fuente": "MT Newswires",
+            "fecha": "2026-09-28T15:37:32Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 117.60552243333333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "micro_pullback",
+            "temprano": true,
+            "early": {
+              "score": 67.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 37.81483488888889,
+                "aceleracion_volumen": 64.5083861791027,
+                "extension": 84.79411986800949,
+                "distancia_maximo_dia": 0.0,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 70.3,
+            "score_ajustado": 50.3,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "SN",
+          "nombre": "SharkNinja, Inc.",
+          "precio_actual": 182.91,
+          "factores_intradia": {
+            "precio_actual": 182.91,
+            "vwap": 180.09614481881772,
+            "ema9": 183.27393685488957,
+            "rvol_actual": 0.6661216481360366,
+            "aceleracion_volumen": 0.8030176899063476,
+            "gap_pct": -0.011648190872770364,
+            "maximo_dia": 184.63,
+            "maximo_premarket": null,
+            "rango_apertura_max": 176.62,
+            "rango_apertura_min": 175.25,
+            "velas_desde_ruptura": null,
+            "macd": 0.09528621212203348,
+            "macd_signal": 0.24044879791638157
+          },
+          "meta": {
+            "float_acciones": 86309182.0,
+            "short_pct_float": 0.1117,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "SharkNinja (SN) Stock May Be 25% Undervalued After Racing Partnership",
+            "fuente": "Simply Wall St.",
+            "fecha": "2026-09-26T03:18:22Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 3736.7722161166666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 59.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 30.30176899063476,
+                "extension": 100.0,
+                "distancia_maximo_dia": 90.68407084439146,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 64.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "COIN",
+          "nombre": "Coinbase Global, Inc.",
+          "precio_actual": 194.26,
+          "factores_intradia": {
+            "precio_actual": 194.26,
+            "vwap": 194.1323481113315,
+            "ema9": 194.34725425279905,
+            "rvol_actual": 1.4384868991844526,
+            "aceleracion_volumen": 1.062420098938358,
+            "gap_pct": 0.004561529393675292,
+            "maximo_dia": 198.7799,
+            "maximo_premarket": 196.57,
+            "rango_apertura_max": 198.7799,
+            "rango_apertura_min": 194.0,
+            "velas_desde_ruptura": null,
+            "macd": 0.052022870938117194,
+            "macd_signal": 0.14921048149085675
+          },
+          "meta": {
+            "float_acciones": 219789349.0,
+            "short_pct_float": 0.114700004,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "Citi Expands Digital-Assets Footprint With Coinbase Partnership",
+            "fuente": "The Wall Street Journal",
+            "fecha": "2026-09-28T11:30:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 365.1389306666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 63.5,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 56.24200989383581,
+                "extension": 100.0,
+                "distancia_maximo_dia": 77.26178552258045,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 62.1,
+            "score_ajustado": 42.1,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "WTTR",
+          "nombre": "Select Water Solutions, Inc.",
+          "precio_actual": 20.27,
+          "factores_intradia": {
+            "precio_actual": 20.27,
+            "vwap": 20.17335231532359,
+            "ema9": 20.24892598696553,
+            "rvol_actual": 0.3150695312796029,
+            "aceleracion_volumen": 2.453225012309207,
+            "gap_pct": 0.009072580645161275,
+            "maximo_dia": 20.44,
+            "maximo_premarket": 19.92,
+            "rango_apertura_max": 20.02,
+            "rango_apertura_min": 19.635,
+            "velas_desde_ruptura": 1,
+            "macd": 0.01976479282207322,
+            "macd_signal": 0.009580470254194638
+          },
+          "meta": {
+            "float_acciones": 121830402.0,
+            "short_pct_float": 0.0514,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Select to acquire Delaware Basin-focused Pilot Water for $700m",
+            "fuente": "Offshore Technology",
+            "fecha": "2026-09-25T09:04:45Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4830.38895995,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 79.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 91.68297455968677,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "CZR",
+          "nombre": "Caesars Entertainment, Inc.",
+          "precio_actual": 29.59,
+          "factores_intradia": {
+            "precio_actual": 29.59,
+            "vwap": 29.617466694132844,
+            "ema9": 29.603724574723284,
+            "rvol_actual": 0.060692241084834085,
+            "aceleracion_volumen": 0.41524670650700907,
+            "gap_pct": 0.00016894745734085347,
+            "maximo_dia": 29.6595,
+            "maximo_premarket": null,
+            "rango_apertura_max": 29.604,
+            "rango_apertura_min": 29.57,
+            "velas_desde_ruptura": null,
+            "macd": -0.006934161210992329,
+            "macd_signal": -0.004011925047744763
+          },
+          "meta": {
+            "float_acciones": 181889697.0,
+            "short_pct_float": 0.1076,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Does Caesars (CZR)’s $31 Buyout Offer Enough Reward for the Regulatory Wait?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-28T01:51:41Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 943.4556549166666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 52.7,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.65673730170765,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 60.8,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.16,
+          "factores_intradia": {
+            "precio_actual": 17.16,
+            "vwap": 17.097493674037572,
+            "ema9": 17.16547530658508,
+            "rvol_actual": 0.7135221806520577,
+            "aceleracion_volumen": 0.35402153261557945,
+            "gap_pct": -0.005586592178770883,
+            "maximo_dia": 17.28,
+            "maximo_premarket": 17.0,
+            "rango_apertura_max": 17.02,
+            "rango_apertura_min": 16.77,
+            "velas_desde_ruptura": null,
+            "macd": 0.004666131658797923,
+            "macd_signal": 0.010122799335745324
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4178.122341666666,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 52.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 93.05555555555544,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 52.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
