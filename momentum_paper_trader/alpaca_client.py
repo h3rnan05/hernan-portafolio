@@ -108,6 +108,25 @@ def parametros_ordenes_de_simbolos(simbolos: list[str]) -> dict | None:
     }
 
 
+def _es_client_order_id_duplicado(respuesta: requests.Response) -> bool:
+    """True solo si el cuerpo dice que ese `client_order_id` ya existe.
+
+    No basta un 422: Alpaca usa el mismo rango para otras validaciones.
+    Si el cuerpo no se puede leer, no es un duplicado confirmado -- el
+    caller no debe dar la orden por enviada."""
+    try:
+        datos = respuesta.json()
+    except Exception:
+        return False
+    if not isinstance(datos, dict):
+        return False
+    mensaje = datos.get("message")
+    if not isinstance(mensaje, str):
+        return False
+    texto = mensaje.lower()
+    return "client_order_id" in texto and "unique" in texto
+
+
 # NUNCA "https://api.alpaca.markets" (esa es la cuenta real) -- ver
 # docstring del módulo.
 _BASE_URL = "https://paper-api.alpaca.markets/v2"
@@ -155,6 +174,25 @@ class AlpacaPaperClient:
         r = requests.get(f"{_BASE_URL}/positions", headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         return r.json()
+
+    def posicion(self, ticker: str) -> dict | None:
+        """Una posición (`GET /v2/positions/{symbol}`).
+
+        `None` solo si Alpaca responde 404: ese símbolo no tiene posición.
+        Cualquier otro fallo se propaga. Un 404 no es un error de lectura,
+        y un error de lectura no es un 404 -- quien va a vender tiene que
+        poder distinguirlos. Un cuerpo que no sea un objeto tampoco se
+        disfraza de "no hay posición"."""
+        r = requests.get(
+            f"{_BASE_URL}/positions/{ticker}",
+            headers=self._headers, timeout=self._timeout)
+        if r.status_code == 404:
+            return None
+        r.raise_for_status()
+        datos = r.json()
+        if not isinstance(datos, dict):
+            raise ValueError(f"{ticker}: la posición no vino como objeto")
+        return datos
 
     def ordenes_abiertas(self) -> list[dict]:
         """Órdenes todavía vivas (`GET /v2/orders?status=open&nested=true`).
@@ -265,14 +303,15 @@ class AlpacaPaperClient:
         del día se decide posición por posición (ver `cierre.py`): la IA
         puede querer cerrar una y aguantar otra.
 
-        `cancel_orders=True` le pide a Alpaca que cancele las órdenes
-        vivas del símbolo ANTES de armar la venta. Sin eso el DELETE
-        responde 403: las patas del bracket ya reservan toda la cantidad
-        y la venta ve disponible 0 (CTAS, TWST, NBIS y DLB, 2026-09-25).
-        El cierre diario además cancela de forma explícita y reintenta;
-        este parámetro es la red del propio endpoint por si alguna pata
-        sigue viva. Un cuerpo que no sea la orden se devuelve vacío: no
-        se inventa un id."""
+        `cancel_orders=True` se reenvía si el caller lo pide, pero Alpaca
+        documenta ese parámetro solo en `DELETE /v2/positions` (cerrar
+        todas), no en este DELETE de un símbolo. No hay que contar con
+        que cancele las patas: el cierre espera el status terminal de
+        cada una antes de llegar acá. Un 404 se propaga con su código
+        (no se convierte en un dict vacío): para el caller es "no hay
+        posición", no un rechazo, y un cuerpo inventado ocultaría esa
+        diferencia. Un cuerpo que no sea la orden se devuelve vacío:
+        no se inventa un id."""
         params = {"cancel_orders": "true"} if cancel_orders else None
         r = requests.delete(
             f"{_BASE_URL}/positions/{ticker}", params=params,
@@ -281,14 +320,21 @@ class AlpacaPaperClient:
         datos = r.json()
         return datos if isinstance(datos, dict) else {}
 
-    def vender_a_mercado(self, ticker: str, cantidad: str) -> dict:
-        """Venta a mercado de la cantidad que el broker reporta.
+    def vender_a_mercado(
+        self, ticker: str, cantidad: str, client_order_id: str | None = None,
+    ) -> dict:
+        """Venta a mercado de la cantidad que el broker acaba de reportar.
 
         Solo para SALIR, y solo cuando `DELETE /v2/positions/{symbol}`
         fue rechazado (ver `cierre.py`). Nunca para entrar: el lado va
-        fijo en `sell`. `cantidad` es el `qty` de la posición, como
-        string, sin recortar ni recalcular -- una cantidad ausente o no
-        positiva no se convierte en cero, se rechaza acá."""
+        fijo en `sell`. `cantidad` es min(qty, qty_available) de una
+        lectura fresca, como string. Una cantidad ausente o no positiva
+        no se convierte en cero: se rechaza acá.
+
+        `client_order_id` (el cierre usa `eod-{ticker}-{YYYYMMDD}`) hace
+        que un reintento no abra una segunda venta. Si Alpaca responde
+        que ese id ya existe, se devuelve la orden que ya estaba: no es
+        un fallo y no se manda otra."""
         try:
             n = float(cantidad)
         except (TypeError, ValueError):
@@ -303,11 +349,32 @@ class AlpacaPaperClient:
             "time_in_force": "day",
             "extended_hours": False,
         }
+        coid = client_order_id[:48] if client_order_id else None
+        if coid:
+            payload["client_order_id"] = coid
         r = requests.post(
             f"{_BASE_URL}/orders", json=payload, headers=self._headers, timeout=self._timeout)
+        if coid and _es_client_order_id_duplicado(r):
+            # El POST no se aceptó porque la orden ya estaba. Devolverla
+            # es "ya enviada": un segundo POST con otro id sí vendería dos veces.
+            hallada = self._orden_con_client_order_id(ticker, coid)
+            if isinstance(hallada, dict) and hallada.get("id"):
+                log.info("%s: la venta eod ya estaba enviada", ticker)
+                return hallada
         r.raise_for_status()
         datos = r.json()
         return datos if isinstance(datos, dict) else {}
+
+    def _orden_con_client_order_id(self, ticker: str, client_order_id: str) -> dict | None:
+        ordenes = self.ordenes_de_simbolos([ticker])
+        if not isinstance(ordenes, list):
+            return None
+        for o in ordenes_con_patas(ordenes):
+            if o.get("client_order_id") != client_order_id:
+                continue
+            if o.get("id"):
+                return o
+        return None
 
     def cancelar_ordenes_de(self, ticker: str, ordenes_abiertas: list[dict]) -> int:
         """Cancela las órdenes vivas de un ticker, patas `held` incluidas.
@@ -321,11 +388,12 @@ class AlpacaPaperClient:
         patas vivas sí, por id, porque cancelar solo el take-profit de
         la lista `open` deja el stop fuera de este bucle.
 
-        El cierre además manda `cancel_orders=true` en el DELETE de la
-        posición. Ese flag es el que cancela en el servidor lo que este
-        listado no vio -- incluidas las patas `held` que retienen la
-        cantidad y provocan el 403. Las dos cosas van juntas: el DELETE
-        no se queda esperando a que este bucle haya visto cada pata.
+        El número que devuelve es cuántos DELETE aceptó Alpaca. Un 204
+        no significa que la pata ya esté `canceled`: puede seguir
+        `pending_cancel` y retener la cantidad. Quien va a liquidar
+        tiene que releer el status. `cancel_orders` en el DELETE de
+        UNA posición no está documentado (sí en el de todas) y no
+        sustituye esa espera.
 
         Una pata ya terminal no se toca. Un 404/422 (la hermana ya cayó
         al cancelar la otra) no es un fallo. Cualquier otro error no

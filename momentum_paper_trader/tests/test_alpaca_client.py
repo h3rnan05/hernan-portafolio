@@ -4,6 +4,8 @@ importar nada -- ver docstring del módulo."""
 
 from __future__ import annotations
 
+import requests
+
 from momentum_paper_trader import alpaca_client
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 
@@ -353,6 +355,70 @@ def test_vender_a_mercado_vende_la_qty_recibida_y_solo_en_paper(monkeypatch):
     assert payload["type"] == "market"
     assert payload["time_in_force"] == "day"
     assert payload["extended_hours"] is False
+
+
+def test_un_client_order_id_repetido_se_trata_como_ya_enviado(monkeypatch):
+    import json as _json
+
+    posts = []
+
+    def _post(url, json, headers, timeout):
+        posts.append(json)
+        cuerpo = _json.dumps(
+            {"code": 42210000, "message": "client_order_id must be unique"}
+        ).encode()
+        r = requests.Response()
+        r.status_code = 422
+        r.url = url
+        r._content = cuerpo
+        return r
+
+    def _get(url, params=None, headers=None, timeout=None):
+        class _R:
+            status_code = 200
+
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return [{
+                    "id": "ya-1",
+                    "symbol": "CTAS",
+                    "side": "sell",
+                    "type": "market",
+                    "status": "accepted",
+                    "client_order_id": "eod-CTAS-20260928",
+                }]
+
+        return _R()
+
+    monkeypatch.setattr(alpaca_client.requests, "post", _post)
+    monkeypatch.setattr(alpaca_client.requests, "get", _get)
+    resp = AlpacaPaperClient("clave", "secreto").vender_a_mercado(
+        "CTAS", "3", client_order_id="eod-CTAS-20260928",
+    )
+
+    assert resp["id"] == "ya-1"
+    assert posts[0]["client_order_id"] == "eod-CTAS-20260928"
+    assert len(posts) == 1
+
+
+def test_posicion_404_es_ausente_y_un_5xx_no(monkeypatch):
+    def _get(url, headers=None, timeout=None):
+        r = requests.Response()
+        r.status_code = 404 if url.endswith("/CTAS") else 500
+        r.url = url
+        r._content = b""
+        return r
+
+    monkeypatch.setattr(alpaca_client.requests, "get", _get)
+    client = AlpacaPaperClient("c", "s")
+    assert client.posicion("CTAS") is None
+    try:
+        client.posicion("MNST")
+        assert False, "un 500 no es 'no hay posición'"
+    except requests.HTTPError:
+        pass
 
 
 def test_vender_a_mercado_no_inventa_una_cantidad(monkeypatch):

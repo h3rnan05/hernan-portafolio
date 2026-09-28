@@ -52,6 +52,11 @@ class _FakeClient:
     def cancelar_ordenes_de(self, ticker, abiertas):
         return 0
 
+    def estado_orden(self, order_id):
+        # Las patas que el cierre cancela tienen que verse terminales;
+        # si no, no manda el DELETE. Un ausente no cuenta como canceled.
+        return {"id": order_id, "status": "canceled"}
+
     def colocar_stop_protector(self, ticker, cantidad, stop):
         if self._falla_stop:
             raise RuntimeError("rechazado")
@@ -66,7 +71,7 @@ class _FakeClient:
         # `DELETE /v2/positions/{symbol}` devuelve la orden de liquidación.
         return {"id": f"cierre-{ticker}"}
 
-    def vender_a_mercado(self, ticker, cantidad):
+    def vender_a_mercado(self, ticker, cantidad, client_order_id=None):
         self.ventas_mercado.append((ticker, cantidad))
         return {"id": f"mkt-{ticker}"}
 
@@ -559,11 +564,19 @@ class _CierreConPatas:
         self._abiertas = [o for o in self._abiertas if o.get("symbol") != ticker]
         return len(ids)
 
+    def estado_orden(self, order_id):
+        return {"id": order_id, "status": "canceled"}
+
+    def posicion(self, ticker):
+        # Lectura fresca, no la del snapshot: misma qty en este caso,
+        # con disponible y lado, que es lo único que se puede vender.
+        return {"symbol": ticker, "qty": "3", "qty_available": "3", "side": "long"}
+
     def cerrar_posicion(self, ticker, cancel_orders=False):
         self.llamadas.append(("delete", ticker, cancel_orders))
         raise _http(403)
 
-    def vender_a_mercado(self, ticker, cantidad):
+    def vender_a_mercado(self, ticker, cantidad, client_order_id=None):
         self.llamadas.append(("mercado", ticker, cantidad))
         if self.falla_mercado:
             raise _http(403)
@@ -683,3 +696,357 @@ def test_qty_ausente_no_se_vende_como_cero():
     assert cierre._qty_para_vender({"qty": "0"}) is None
     assert cierre._qty_para_vender({"qty": "3"}) == "3"
     assert cierre._qty_para_vender({"qty": "12.5"}) == "12.5"
+
+
+# ------------- carreras del cierre (2026-09-28) -------------------------
+# Un 204 al cancelar no suelta la cantidad. Un 404 del DELETE no es un
+# rechazo. La venta de respaldo no puede usar la qty del snapshot.
+
+
+class _Carrera:
+    """Posición MNST. El DELETE y la lectura fresca se sobreescriben."""
+
+    def __init__(self):
+        self.ventas: list = []
+        self.deletes: list = []
+        self.lecturas: list = []
+        self.statuses: list = []
+
+    def posiciones(self):
+        return [{"symbol": "MNST", "qty": "17", "side": "long",
+                 "current_price": "42.00", "avg_entry_price": "41.00",
+                 "unrealized_pl": "17.00"}]
+
+    def ordenes_de_simbolos(self, simbolos):
+        return []
+
+    def cancelar_ordenes_de(self, ticker, abiertas):
+        return 0
+
+    def estado_orden(self, order_id):
+        return {"id": order_id, "status": "canceled"}
+
+    def posicion(self, ticker):
+        self.lecturas.append(ticker)
+        return None
+
+    def cerrar_posicion(self, ticker, cancel_orders=False):
+        self.deletes.append((ticker, cancel_orders))
+        raise _http(404)
+
+    def vender_a_mercado(self, ticker, cantidad, client_order_id=None):
+        self.ventas.append((ticker, cantidad, client_order_id))
+        return {"id": f"mkt-{ticker}"}
+
+
+def test_delete_404_dos_veces_y_posicion_ausente_no_vende(monkeypatch):
+    enviados = _parchear(monkeypatch)
+    client = _Carrera()
+
+    assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
+
+    assert len(client.deletes) == 2
+    assert client.lecturas == ["MNST"]
+    assert client.ventas == []
+    assert enviados == []
+
+
+def test_timeout_y_luego_404_no_vende(monkeypatch):
+    enviados = _parchear(monkeypatch)
+    client = _Carrera()
+
+    def _cerrar(ticker, cancel_orders=False):
+        client.deletes.append((ticker, cancel_orders))
+        if len(client.deletes) == 1:
+            raise requests.Timeout()
+        raise _http(404)
+
+    client.cerrar_posicion = _cerrar
+
+    assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
+    assert len(client.deletes) == 2
+    assert client.ventas == []
+    assert enviados == []
+
+
+def test_delete_espera_a_que_la_pata_salga_de_pending_cancel(monkeypatch, tmp_path):
+    _parchear(monkeypatch)
+    _revisiones_en_tmp(monkeypatch, tmp_path, [])
+    dormidos: list[float] = []
+    monkeypatch.setattr(cierre.time, "sleep", lambda s: dormidos.append(s))
+    client = _Carrera()
+    secuencia = ["pending_cancel", "pending_cancel", "canceled"]
+
+    def _ordenes(simbolos):
+        return [{"id": "f2d920f1", "symbol": "MNST", "side": "sell",
+                 "type": "stop", "status": "held"}]
+
+    def _estado(order_id):
+        status = secuencia.pop(0)
+        client.statuses.append(status)
+        return {"id": order_id, "status": status}
+
+    def _cerrar(ticker, cancel_orders=False):
+        client.deletes.append(list(client.statuses))
+        return {"id": "cierre-MNST"}
+
+    client.ordenes_de_simbolos = _ordenes
+    client.estado_orden = _estado
+    client.cerrar_posicion = _cerrar
+
+    cerradas = cierre.cerrar_si_toca(client, CFG, _t(19, 50))
+
+    assert [c.get("symbol") for c in cerradas] == ["MNST"]
+    assert client.deletes == [["pending_cancel", "pending_cancel", "canceled"]]
+    assert dormidos == [0.5, 0.5]
+    assert client.ventas == []
+
+
+def test_la_venta_de_respaldo_usa_la_qty_fresca_no_la_del_snapshot(monkeypatch, tmp_path):
+    _parchear(monkeypatch)
+    _revisiones_en_tmp(monkeypatch, tmp_path, [])
+    client = _Carrera()
+
+    def _cerrar(ticker, cancel_orders=False):
+        client.deletes.append((ticker, cancel_orders))
+        raise _http(403)
+
+    def _posicion(ticker):
+        client.lecturas.append(ticker)
+        return {"symbol": ticker, "qty": "10", "qty_available": "12", "side": "long"}
+
+    client.cerrar_posicion = _cerrar
+    client.posicion = _posicion
+
+    cerradas = cierre.cerrar_si_toca(client, CFG, _t(19, 50))
+
+    assert [c.get("symbol") for c in cerradas] == ["MNST"]
+    assert client.ventas == [("MNST", "10", "eod-MNST-20260824")]
+
+
+def test_si_falla_la_lectura_fresca_no_vende_y_avisa(monkeypatch):
+    enviados = _parchear(monkeypatch)
+    client = _Carrera()
+
+    def _cerrar(ticker, cancel_orders=False):
+        client.deletes.append((ticker, cancel_orders))
+        raise _http(403)
+
+    def _posicion(ticker):
+        client.lecturas.append(ticker)
+        raise RuntimeError("Alpaca no contestó")
+
+    client.cerrar_posicion = _cerrar
+    client.posicion = _posicion
+
+    assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
+    assert client.ventas == []
+    assert len(enviados) == 1
+    assert "ERROR" in enviados[0] and "CERRADA" not in enviados[0]
+    assert "MNST" in enviados[0] and "https://" not in enviados[0]
+
+
+def _posicion_vendible(ticker):
+    """La lectura fresca SÍ daría para vender. El timeout no puede usarla."""
+    return {"symbol": ticker, "qty": "17", "qty_available": "17", "side": "long"}
+
+
+def test_si_la_espera_de_las_patas_vence_sin_terminal_no_vende_y_avisa(monkeypatch):
+    """La espera se agota (~5 s, pasos de 0,5 s) con una pata todavía en
+    `pending_cancel`. La otra ya está `canceled` y la posición fresca es
+    vendible: igual no hay DELETE ni venta. Solo un Telegram ERROR.
+
+    Un `AssertionError` dentro de `cerrar_posicion` no sirve como prueba:
+    `_liquidar` lo atrapa. Acá el DELETE, si se llamara, devolvería una
+    orden, y la venta de respaldo encontraría qty."""
+    enviados = _parchear(monkeypatch)
+    dormidos: list[float] = []
+    monkeypatch.setattr(cierre.time, "sleep", lambda s: dormidos.append(s))
+    client = _Carrera()
+    lecturas: list[str] = []
+
+    def _ordenes(simbolos):
+        return [
+            {"id": "tp", "symbol": "MNST", "side": "sell", "type": "limit",
+             "status": "pending_cancel"},
+            {"id": "sl", "symbol": "MNST", "side": "sell", "type": "stop",
+             "status": "pending_cancel"},
+        ]
+
+    def _estado(order_id):
+        lecturas.append(order_id)
+        if order_id == "tp":
+            return {"id": order_id, "status": "canceled"}
+        return {"id": order_id, "status": "pending_cancel"}
+
+    def _cerrar(ticker, cancel_orders=False):
+        client.deletes.append((ticker, cancel_orders))
+        return {"id": "no-debia-borrar"}
+
+    client.ordenes_de_simbolos = _ordenes
+    client.estado_orden = _estado
+    client.cerrar_posicion = _cerrar
+    client.posicion = _posicion_vendible
+
+    assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
+
+    pasos = cierre._ESPERA_PATA_PASOS
+    assert lecturas == ["tp", "sl"] * pasos
+    assert dormidos == [cierre._ESPERA_PATA_SEG] * (pasos - 1)
+    assert client.deletes == []
+    assert client.ventas == []
+    assert len(enviados) == 1
+    assert "ERROR" in enviados[0] and "CERRADA" not in enviados[0]
+    assert "MNST" in enviados[0]
+    assert "no llegaron a un estado terminal" in enviados[0]
+    assert "https://" not in enviados[0]
+
+
+def test_status_ausente_durante_toda_la_espera_no_vende_y_avisa(monkeypatch):
+    """Un status que no viene no es un terminal. Se agota la espera,
+    se avisa, y no se vende aunque la posición fresca tenga qty."""
+    enviados = _parchear(monkeypatch)
+    monkeypatch.setattr(cierre.time, "sleep", lambda _s: None)
+    client = _Carrera()
+    lecturas: list[str] = []
+
+    def _ordenes(simbolos):
+        return [{"id": "sl", "symbol": "MNST", "side": "sell", "type": "stop",
+                 "status": "held"}]
+
+    def _estado(order_id):
+        lecturas.append(order_id)
+        return {"id": order_id}
+
+    def _cerrar(ticker, cancel_orders=False):
+        client.deletes.append((ticker, cancel_orders))
+        return {"id": "no-debia-borrar"}
+
+    client.ordenes_de_simbolos = _ordenes
+    client.estado_orden = _estado
+    client.cerrar_posicion = _cerrar
+    client.posicion = _posicion_vendible
+
+    assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
+    assert len(lecturas) == cierre._ESPERA_PATA_PASOS
+    assert client.deletes == []
+    assert client.ventas == []
+    assert len(enviados) == 1 and "ERROR" in enviados[0] and "CERRADA" not in enviados[0]
+
+
+def test_pata_llena_durante_la_cancelacion_no_vende(monkeypatch):
+    enviados = _parchear(monkeypatch)
+    client = _Carrera()
+
+    def _ordenes(simbolos):
+        return [{"id": "f2d920f1", "symbol": "MNST", "side": "sell",
+                 "type": "stop", "status": "held"}]
+
+    def _estado(order_id):
+        client.statuses.append("filled")
+        return {"id": order_id, "status": "filled"}
+
+    def _cerrar(ticker, cancel_orders=False):
+        raise AssertionError("no debía borrar la posición")
+
+    client.ordenes_de_simbolos = _ordenes
+    client.estado_orden = _estado
+    client.cerrar_posicion = _cerrar
+
+    assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
+    assert client.statuses == ["filled"]
+    assert client.ventas == []
+    assert enviados == []
+
+
+def test_timeout_con_venta_viva_no_reintenta_ni_vende(monkeypatch, tmp_path):
+    _parchear(monkeypatch)
+    path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_abierta("MNST")])
+    client = _Carrera()
+    lecturas = {"n": 0}
+
+    def _ordenes(simbolos):
+        lecturas["n"] += 1
+        if lecturas["n"] == 1:
+            return []
+        return [{
+            "id": "mkt-ya",
+            "symbol": "MNST",
+            "side": "sell",
+            "type": "market",
+            "status": "accepted",
+            "client_order_id": "eod-MNST-20260824",
+        }]
+
+    def _cerrar(ticker, cancel_orders=False):
+        client.deletes.append((ticker, cancel_orders))
+        if len(client.deletes) == 1:
+            raise requests.Timeout()
+        raise AssertionError("no debía repetir el DELETE")
+
+    client.ordenes_de_simbolos = _ordenes
+    client.cerrar_posicion = _cerrar
+
+    cerradas = cierre.cerrar_si_toca(client, CFG, _t(19, 50))
+
+    assert [c.get("symbol") for c in cerradas] == ["MNST"]
+    assert len(client.deletes) == 1
+    assert client.ventas == []
+    assert estado.cargar(path)[0].cierre_order_id == "mkt-ya"
+
+
+def test_timeout_con_venta_en_pending_cancel_aborta_sin_vender(monkeypatch):
+    """`pending_cancel` no está en la lista blanca de `orden_sigue_viva`
+    ni es un terminal. Después de un timeout eso es duda: ERROR y ni
+    un segundo DELETE ni una venta, aunque la posición fresca tenga qty."""
+    enviados = _parchear(monkeypatch)
+    client = _Carrera()
+    lecturas = {"n": 0}
+
+    def _ordenes(simbolos):
+        lecturas["n"] += 1
+        if lecturas["n"] == 1:
+            return []
+        return [{
+            "id": "mkt-duda",
+            "symbol": "MNST",
+            "side": "sell",
+            "type": "market",
+            "status": "pending_cancel",
+        }]
+
+    def _cerrar(ticker, cancel_orders=False):
+        client.deletes.append((ticker, cancel_orders))
+        if len(client.deletes) == 1:
+            raise requests.Timeout()
+        return {"id": "segundo-delete"}
+
+    client.ordenes_de_simbolos = _ordenes
+    client.cerrar_posicion = _cerrar
+    client.posicion = _posicion_vendible
+
+    assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
+    assert len(client.deletes) == 1
+    assert client.ventas == []
+    assert len(enviados) == 1
+    assert "ERROR" in enviados[0] and "CERRADA" not in enviados[0]
+
+
+def test_qty_available_ausente_no_se_vende_como_cero(monkeypatch):
+    enviados = _parchear(monkeypatch)
+    client = _Carrera()
+
+    def _cerrar(ticker, cancel_orders=False):
+        client.deletes.append((ticker, cancel_orders))
+        raise _http(403)
+
+    def _posicion(ticker):
+        # qty presente, disponible ausente: no es un cero.
+        return {"symbol": ticker, "qty": "17", "side": "long"}
+
+    client.cerrar_posicion = _cerrar
+    client.posicion = _posicion
+
+    assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
+    assert client.ventas == []
+    assert len(enviados) == 1 and "ERROR" in enviados[0]
