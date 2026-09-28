@@ -63,6 +63,14 @@ import requests
 
 from momentum_hunter.data.provider import DataProvider, _velas_finales_en_formacion
 from momentum_hunter.models import Barras, BarraIntradia, Metadata
+try:
+    from uso_api.contador import DATOS
+    from uso_api.contador import registrar as registrar_uso
+except ImportError:   # medir nunca puede impedir una consulta
+    DATOS = "datos"
+
+    def registrar_uso(host: str) -> None:
+        return None
 
 log = logging.getLogger("momentum_hunter.data.alpaca")
 
@@ -378,6 +386,8 @@ class AlpacaProvider(DataProvider):
         for intento in range(self.reintentos):
             if intento:
                 self._dormir(self._espera(intento - 1, respuesta))
+            # Cada intento gasta cupo del plan (un reintento también).
+            registrar_uso(DATOS)
             try:
                 respuesta = requests.get(
                     f"{DATA_BASE}{path}", params=params, headers=headers, timeout=self.timeout,
