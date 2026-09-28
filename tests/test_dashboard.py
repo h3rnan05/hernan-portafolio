@@ -397,7 +397,7 @@ def test_rechequeo_viejo_en_sesion_ejecutor_y_riesgo_sin_datos(tmp_path):
     assert et["Rechequeo"]["estado"] == "alerta"
     assert et["Ejecutor"]["estado"] == "sin-datos"
     assert et["Riesgo"]["estado"] == "sin-datos"
-    assert et["Riesgo"]["detalle"] == "— bloqueos hoy"
+    assert et["Riesgo"]["detalle"] == "— sin datos recientes"
 
 
 def test_persist_fallido_se_ve_en_rojo_en_cabecera_y_en_rechequeo(tmp_path):
@@ -477,16 +477,21 @@ def test_ia_fallo_de_ayer_no_cuenta_hoy(tmp_path):
 
 
 def test_rechequeo_viejo_no_oculta_un_bloqueo_real(tmp_path):
-    # Un bloqueo registrado es un hecho: sigue en alerta y con su conteo.
+    # Un bloqueo registrado es un hecho: sigue en el historial. Sin un
+    # ciclo reciente la tarjeta no se pone verde (no sabemos si sigue)
+    # ni roja (el límite conocido no pide Revisar).
     eventos(tmp_path,
             {"ts": "2026-09-18T14:00:00Z", "tipo": "rechequeo"},
             {"ts": "2026-09-18T14:01:00Z", "tipo": "bloqueo_riesgo", "ticker": "AAA",
              "limite": "maximo_posiciones"})
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     riesgo = _etapas(ctx)["Riesgo"]
-    # (2026-09-23) Un límite conocido bloqueando es el sistema funcionando:
-    # se muestra con su conteo, pero ya no pide "Revisar" por sí solo.
-    assert riesgo["estado"] == "ok" and riesgo["detalle"] == "1 bloqueos únicos (1 eventos) hoy"
+    assert riesgo["estado"] == "sin-datos"
+    assert riesgo["detalle"] == "— sin datos recientes"
+    assert ctx["riesgo"]["revisar"] is False
+    html = bd.render(ctx)
+    assert "MAXIMO_POSICIONES" in html and "historial" in html and "resuelto" in html
+    assert '<div class="nota">' not in html
 
 
 def test_con_rechequeo_reciente_ejecutor_con_cero_decisiones_es_ok(tmp_path):
@@ -2033,10 +2038,14 @@ def test_bloqueos_se_cuentan_unicos_por_ticker_y_codigo(tmp_path):
 
 
 def test_dato_faltante_pide_revisar(tmp_path):
+    # Dentro de los últimos 3 ciclos: el rechequeo se anota antes que el
+    # bloqueo, igual que el ejecutor.
     eventos(tmp_path,
-            {"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"},
-            _bloqueo("2026-09-18T14:50:00Z", "AAA", "DATO_FALTANTE:niveles", "niveles_ausentes"),
-            _bloqueo("2026-09-18T14:51:00Z", "BBB", "TICKER_COMPROMETIDO", "ticker_comprometido"))
+            {"ts": "2026-09-18T14:57:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:58:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:59:00Z", "tipo": "rechequeo"},
+            _bloqueo("2026-09-18T14:58:30Z", "AAA", "DATO_FALTANTE:niveles", "niveles_ausentes"),
+            _bloqueo("2026-09-18T14:59:10Z", "BBB", "TICKER_COMPROMETIDO", "ticker_comprometido"))
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     riesgo = _etapas(ctx)["Riesgo"]
     assert riesgo["estado"] == "alerta"
@@ -2052,9 +2061,11 @@ def test_codigo_nuevo_pide_revisar_y_el_legado_se_mapea(tmp_path):
     # Un evento viejo solo con `limite` conocido se mapea al catálogo (no es
     # nuevo); un código que el catálogo no conoce sí pide revisar.
     eventos(tmp_path,
-            {"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"},
-            {"ts": "2026-09-18T14:50:00Z", "tipo": "bloqueo_riesgo", "ticker": "AAA", "limite": "maximo_posiciones"},
-            _bloqueo("2026-09-18T14:51:00Z", "BBB", "LIMITE_INVENTADO", "inventado"))
+            {"ts": "2026-09-18T14:57:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:58:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:59:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:58:30Z", "tipo": "bloqueo_riesgo", "ticker": "AAA", "limite": "maximo_posiciones"},
+            _bloqueo("2026-09-18T14:59:10Z", "BBB", "LIMITE_INVENTADO", "inventado"))
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     r = ctx["riesgo"]
     assert {f["codigo"] for f in r["unicos"]} == {"MAXIMO_POSICIONES", "LIMITE_INVENTADO"}
@@ -2072,15 +2083,159 @@ def test_capacidad_llena_se_resume_una_linea_con_desde_hasta_y_corridas(tmp_path
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     riesgo = _etapas(ctx)["Riesgo"]
     assert riesgo["estado"] == "ok"
-    assert riesgo["detalle"] == "0 bloqueos únicos (0 eventos) hoy · capacidad llena: MAXIMO_POSICIONES desde 14:30 (25 corridas)"
+    # La última corrida es 14:54 y la ventana activa arranca después: no
+    # sigue lleno. El hasta es lo que evita leer "desde 14:30" como vigente.
+    assert riesgo["detalle"] == (
+        "0 bloqueos únicos (0 eventos) hoy · "
+        "historial: MAXIMO_POSICIONES desde 14:30 hasta 14:54 (25 corridas)"
+    )
     cap = ctx["riesgo"]["capacidad"]
     assert len(cap) == 1 and cap[0]["desde"] == "14:30" and cap[0]["hasta"] == "14:54" and cap[0]["corridas"] == 25
+    assert cap[0]["activo"] is False
     html = bd.render(ctx)
-    assert "Capacidad llena: <b>MAXIMO_POSICIONES</b>" in html and "25 corridas" in html
-    # Capacidad llena no es error: va en estilo informativo neutro, no en el
-    # rojo de alarma (2026-09-24). Y el resumen, sin nada que revisar, igual.
-    assert '<div class="nota-info">Capacidad llena: <b>MAXIMO_POSICIONES</b>' in html
+    assert "desde 14:30 hasta 14:54 (25 corridas)" in html
+    assert "resuelto" in html and "nota-historial" in html
+    assert "Capacidad llena: <b>MAXIMO_POSICIONES</b>" not in html
+    assert '<div class="nota">' not in html
     assert '<div class="nota-info">0 bloqueos únicos · 0 eventos</div>' in html
+
+
+def _rechequeos_recientes():
+    """Tres ciclos del vigía pegados a AHORA (15:00). La ventana activa
+    abre en el primero."""
+    return [
+        {"ts": "2026-09-18T14:57:00Z", "tipo": "rechequeo"},
+        {"ts": "2026-09-18T14:58:00Z", "tipo": "rechequeo"},
+        {"ts": "2026-09-18T14:59:00Z", "tipo": "rechequeo"},
+    ]
+
+
+def test_dato_faltante_de_horas_antes_no_pinta_revisar_y_queda_en_gris(tmp_path):
+    # El caso del 28/9: miles de DATO_FALTANTE que pararon por la mañana
+    # y el vigía sigue ciclando. La tarjeta no se queda en rojo.
+    eventos(tmp_path,
+            *_rechequeos_recientes(),
+            _bloqueo("2026-09-18T14:10:00Z", "AAA", "DATO_FALTANTE:ultimos_niveles_ts", "niveles_rancios"),
+            _bloqueo("2026-09-18T14:20:00Z", "AAA", "DATO_FALTANTE:ultimos_niveles_ts", "niveles_rancios"))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "ok"
+    assert riesgo["estado"] != "alerta"
+    assert "revisar" not in riesgo["detalle"]
+    assert ctx["riesgo"]["revisar"] is False
+    assert ctx["riesgo"]["dato_faltante"] == []
+    assert len(ctx["riesgo"]["unicos"]) == 1
+    html = bd.render(ctx)
+    assert '<div class="nota">' not in html
+    assert 'class="historial"' in html
+    assert "DATO_FALTANTE:ultimos_niveles_ts" in html
+    assert ">14:10<" in html and ">14:20<" in html
+    assert "resuelto" in html
+    assert ">Revisar<" not in html
+
+
+def test_dato_faltante_reciente_en_la_ventana_pide_revisar(tmp_path):
+    eventos(tmp_path,
+            *_rechequeos_recientes(),
+            _bloqueo("2026-09-18T14:58:30Z", "AAA", "DATO_FALTANTE:ultimos_niveles_ts", "niveles_rancios"))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "alerta"
+    assert "revisar: DATO_FALTANTE:ultimos_niveles_ts" in riesgo["detalle"]
+    html = bd.render(ctx)
+    assert ">Revisar<" in html
+    assert "<b>revisar:</b> DATO_FALTANTE:ultimos_niveles_ts" in html
+    assert "Activo ahora" in html
+
+
+def test_mercado_cerrado_solo_es_informativo_y_no_pide_revisar(tmp_path):
+    lineas = list(_rechequeos_recientes())
+    for ts in ("2026-09-18T14:57:05Z", "2026-09-18T14:58:05Z", "2026-09-18T14:59:05Z"):
+        lineas.append({"ts": ts, "tipo": "capacidad_llena", "codigo": "MERCADO_CERRADO",
+                       "limite": "mercado_cerrado", "motivo": "el mercado está cerrado"})
+    eventos(tmp_path, *lineas)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "info"
+    assert ctx["riesgo"]["revisar"] is False
+    assert ctx["riesgo"]["capacidad"] == []
+    assert ctx["riesgo"]["informativos"][0]["activo"] is True
+    assert "mercado cerrado desde 14:57 hasta 14:59 (3 corridas)" in riesgo["detalle"]
+    assert "capacidad llena" not in riesgo["detalle"]
+    assert "revisar" not in riesgo["detalle"]
+    html = bd.render(ctx)
+    assert 'class="punto info"' in html
+    assert ">Info<" in html
+    assert ">Revisar<" not in html
+    assert "Capacidad llena" not in html
+    assert '<div class="nota">' not in html
+    assert '<div class="nota-info">Mercado cerrado · <b>MERCADO_CERRADO</b>' in html
+    assert "desde 14:57 hasta 14:59 (3 corridas)" in html
+
+
+def test_maximo_posiciones_terminado_muestra_hasta_y_no_esta_activo(tmp_path):
+    lineas = list(_rechequeos_recientes())
+    for m in (20, 30, 40):
+        lineas.append({"ts": f"2026-09-18T14:{m:02d}:05Z", "tipo": "capacidad_llena",
+                       "codigo": "MAXIMO_POSICIONES", "limite": "maximo_posiciones",
+                       "motivo": "5 posiciones"})
+    eventos(tmp_path, *lineas)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "ok"
+    cap = ctx["riesgo"]["capacidad"]
+    assert len(cap) == 1 and cap[0]["activo"] is False
+    assert "historial: MAXIMO_POSICIONES desde 14:20 hasta 14:40 (3 corridas)" in riesgo["detalle"]
+    html = bd.render(ctx)
+    assert "desde 14:20 hasta 14:40 (3 corridas)" in html
+    assert "nota-historial" in html and "resuelto" in html
+    assert "Capacidad llena: <b>MAXIMO_POSICIONES</b>" not in html
+    assert '<div class="nota">' not in html
+
+
+def test_maximo_posiciones_aun_en_ventana_esta_activo_y_no_es_rojo(tmp_path):
+    lineas = list(_rechequeos_recientes())
+    lineas.append({"ts": "2026-09-18T14:59:05Z", "tipo": "capacidad_llena", "codigo": "MAXIMO_POSICIONES",
+                   "limite": "maximo_posiciones", "motivo": "5 posiciones"})
+    eventos(tmp_path, *lineas)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert _etapas(ctx)["Riesgo"]["estado"] == "ok"
+    cap = ctx["riesgo"]["capacidad"][0]
+    assert cap["activo"] is True
+    assert "capacidad llena: MAXIMO_POSICIONES desde 14:59 hasta 14:59 (1 corridas)" in _etapas(ctx)["Riesgo"]["detalle"]
+    html = bd.render(ctx)
+    assert '<div class="nota-info">Capacidad llena: <b>MAXIMO_POSICIONES</b>' in html
+    assert "desde 14:59 hasta 14:59 (1 corridas)" in html
+    assert '<div class="nota">' not in html
+
+
+def test_sin_log_de_eventos_dice_sin_datos_recientes_y_no_verde(tmp_path):
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "sin-datos"
+    assert riesgo["estado"] != "ok"
+    assert "sin datos recientes" in riesgo["detalle"]
+    html = bd.render(ctx)
+    assert "Sin datos recientes" in html
+    assert "Ningún límite ha bloqueado" not in html
+
+
+def test_mismo_ticker_y_codigo_con_distinto_creado_en_cuenta_una_fila(tmp_path):
+    # Dos TRIGGERED del mismo símbolo (distinto creado_en) en el mismo
+    # ciclo no son dos bloqueos: la sombra no duplica la fila.
+    eventos(tmp_path,
+            *_rechequeos_recientes(),
+            {**_bloqueo("2026-09-18T14:58:30Z", "AAA", "CONCENTRACION", "concentracion"),
+             "creado_en": "2026-09-18T10:00:00+00:00"},
+            {**_bloqueo("2026-09-18T14:58:31Z", "AAA", "CONCENTRACION", "concentracion"),
+             "creado_en": "2026-09-18T12:30:00+00:00"})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    unicos = ctx["riesgo"]["unicos"]
+    assert len(unicos) == 1
+    assert unicos[0]["ticker"] == "AAA" and unicos[0]["codigo"] == "CONCENTRACION"
+    assert unicos[0]["veces"] == 1
+    assert ctx["riesgo"]["eventos"] == 1
+    assert _etapas(ctx)["Riesgo"]["detalle"] == "1 bloqueos únicos (1 eventos) hoy"
 
 
 def test_github_actions_atrasado_no_pinta_el_hunter_en_rojo_ni_es_problema(tmp_path):
