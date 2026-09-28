@@ -967,7 +967,7 @@ def _svg_velas(html, ticker):
 def test_sin_posiciones_ni_ordenes_lo_dice(tmp_path):
     ctx = bd.construir(AHORA, cfg(tmp_path), get=alpaca_falso({"equity": "5000"}), velas=velas_ok)
     assert ctx["operaciones"] == []
-    assert "Sin posiciones abiertas ni órdenes hoy." in bd.render(ctx)
+    assert "Sin posiciones abiertas ni órdenes pendientes." in bd.render(ctx)
 
 
 def test_alpaca_caido_operaciones_es_sin_datos_no_vacio(tmp_path):
@@ -1043,7 +1043,11 @@ def test_stop_de_una_orden_abierta_de_otro_dia_si_cuenta(tmp_path):
 
     ctx = bd.construir(AHORA, cfg(tmp_path), get=get_con_abiertas, velas=velas_ok)
     assert ctx["operaciones"][0]["marcas"]["stop"] == 4.80
-    assert any(p.get("nested") == "true" and p.get("status") == "all" for r, p in llamadas if r == "/v2/orders")
+    pedidos = [p for r, p in llamadas if r == "/v2/orders" and p]
+    assert any(p.get("nested") == "true" and p.get("status") == "all" for p in pedidos)
+    # El stop `held` del bracket lleno solo viaja en `legs` (MNST, 28/9).
+    assert any(p.get("nested") == "true" and p.get("status") == "open" for p in pedidos)
+    assert any(p.get("nested") == "true" and p.get("status") == "closed" for p in pedidos)
 
 
 def test_marca_fuera_de_rango_se_anota_en_el_borde_sin_aplastar_las_velas(tmp_path):
@@ -1067,8 +1071,260 @@ def test_tope_de_tickers_por_corrida(tmp_path):
     assert "Sin graficar por el tope" in bd.render(ctx)
 
 
-def test_tickers_en_operacion_posiciones_primero_sin_duplicados():
-    assert bd.tickers_en_operacion([_posicion("BBB")], [_compra("AAA"), _compra("BBB")]) == ["BBB", "AAA"]
+def test_tickers_en_operacion_abiertas_luego_pendientes_sin_cerradas():
+    # Una compra ya llena no es "en operación": el 28/9 DLB/NBIS/TWST
+    # seguían en el gráfico porque cualquier orden de hoy contaba.
+    pendiente = _compra("ACN", stop=None)
+    pendiente["status"] = "accepted"
+    pendiente["filled_avg_price"] = None
+    pendiente["filled_at"] = None
+    assert bd.tickers_en_operacion(
+        [_posicion("MNST")], [pendiente, _compra("DLB"), _compra("MNST")],
+    ) == [("MNST", "abierta"), ("ACN", "pendiente")]
+
+
+def _posicion_llena(ticker="MNST", qty="20", entrada="40.10", actual="41.00", pnl="18.00", plpc="0.0224"):
+    return {"symbol": ticker, "qty": qty, "avg_entry_price": entrada, "current_price": actual,
+            "unrealized_pl": pnl, "unrealized_plpc": plpc, "side": "long"}
+
+
+def _bracket_pendiente(ticker="ACN", limite="250.00", stop="245.00", objetivo="260.00"):
+    """Entrada sin llenar. Las patas siguen `held` y Alpaca no las manda sueltas."""
+    return {
+        "id": f"buy-{ticker}", "symbol": ticker, "side": "buy", "type": "limit", "status": "accepted",
+        "qty": "4", "limit_price": limite, "submitted_at": "2026-09-18T14:40:00Z",
+        "order_class": "bracket",
+        "legs": [
+            {"id": f"tp-{ticker}", "side": "sell", "type": "limit", "status": "held",
+             "limit_price": objetivo, "submitted_at": "2026-09-18T14:40:01Z"},
+            {"id": f"sl-{ticker}", "side": "sell", "type": "stop", "status": "held",
+             "stop_price": stop, "submitted_at": "2026-09-18T14:40:01Z"},
+        ],
+    }
+
+
+def _tp_con_stop_held(ticker="MNST", stop="41.62", objetivo="48.00"):
+    """Forma real del 28/9: en `status=open` solo está el take-profit; el
+    stop va en `legs`, `held`, y a veces sin `symbol`."""
+    return {
+        "id": f"tp-{ticker}", "symbol": ticker, "side": "sell", "type": "limit", "status": "new",
+        "qty": "20", "limit_price": objetivo, "submitted_at": "2026-09-18T14:10:00Z",
+        "order_class": "oco",
+        "legs": [{
+            "id": "f2d920f1-stop", "side": "sell", "type": "stop", "status": "held",
+            "stop_price": stop, "submitted_at": "2026-09-18T14:10:00Z",
+        }],
+    }
+
+
+def _revision_viva(ticker, resultado="abierta"):
+    return {
+        "ticker": ticker, "creado_en": "2026-09-18T14:00:00+00:00", "entro": True, "confianza": 7,
+        "razonamiento": "x", "timestamp": "2026-09-18T14:01:00+00:00", "order_id": f"ord-{ticker}",
+        "resultado": resultado, "cantidad": 20, "precio_entrada": 40.1, "stop": 41.62, "objetivo": 48.0,
+    }
+
+
+def _libro(tmp_path, *filas):
+    ruta = tmp_path / "revisiones.json"
+    ruta.write_text(json.dumps({"revisiones": list(filas)}), encoding="utf-8")
+    return ruta
+
+
+def test_el_panel_sigue_al_broker_y_no_grafica_lo_cerrado_hoy(tmp_path):
+    # MNST llena, ACN/NTAP brackets sin llenar, DLB cerrada hoy (entrada de ayer).
+    # El contador de posiciones ya era 1; los gráficos tienen que coincidir.
+    dlb_compra = {"id": "buy-dlb", "symbol": "DLB", "side": "buy", "type": "limit", "status": "filled",
+                  "qty": "10", "filled_qty": "10", "filled_avg_price": "12.00",
+                  "filled_at": "2026-09-17T15:00:00Z", "submitted_at": "2026-09-17T14:50:00Z"}
+    dlb_venta = {"id": "sell-dlb", "symbol": "DLB", "side": "sell", "type": "market", "status": "filled",
+                 "qty": "10", "filled_qty": "10", "filled_avg_price": "11.50",
+                 "filled_at": "2026-09-18T14:53:00Z", "submitted_at": "2026-09-18T14:53:00Z"}
+    ordenes = [_tp_con_stop_held(), _bracket_pendiente("ACN"), _bracket_pendiente("NTAP", "115", "110", "125"),
+               dlb_compra, dlb_venta]
+    get = alpaca_falso(
+        {"equity": "5000"},
+        **{"/v2/positions": [_posicion_llena()], "/v2/orders": ordenes},
+    )
+    ctx = bd.construir(AHORA, cfg(tmp_path, revisiones=_libro(tmp_path, _revision_viva("MNST"))),
+                       get=get, velas=velas_ok)
+    assert ctx["n_pos"] == 1
+    assert [(op["ticker"], op["rol"]) for op in ctx["operaciones"]] == [
+        ("MNST", "abierta"), ("ACN", "pendiente"), ("NTAP", "pendiente")]
+    fila = ctx["posiciones_broker"][0]
+    assert fila["qty"] == 20 and fila["entrada"] == 40.10 and fila["actual"] == 41.00
+    assert fila["pnl"] == 18.00 and fila["pnl_pct"] == pytest.approx(2.24)
+    assert fila["stop"]["precio"] == 41.62 and fila["stop"]["estado"] == "held"
+    assert fila["tp"]["precio"] == 48.00
+    assert [p["ticker"] for p in ctx["pendientes_broker"]] == ["ACN", "NTAP"]
+    assert ctx["pendientes_broker"][0]["limite"] == 250.00
+    assert ctx["pendientes_broker"][0]["stop"]["precio"] == 245.00
+    assert ctx["pendientes_broker"][0]["stop"]["estado"] == "held"
+    cierre = ctx["cerradas_hoy"]
+    assert [c["ticker"] for c in cierre] == ["DLB"]
+    assert cierre[0]["qty"] == 10 and cierre[0]["entrada"] == 12.0 and cierre[0]["salida"] == 11.5
+    assert cierre[0]["pnl"] == -5.0
+    assert ctx["avisos_broker"] == []
+    html = bd.render(ctx)
+    assert 'class="badge">pendiente</span>' in html
+    assert "Cerradas hoy" in html and "DLB" in html and "−$5.00" in html
+    assert "$41.62 · held" in html
+    assert "no tiene stop" not in html and "no hay una revisión viva" not in html
+    # El gráfico de la cerrada no está. El de la pendiente sí, marcado.
+    assert _svg_velas(html, "DLB") is None
+    assert _svg_velas(html, "MNST") is not None
+    assert "Orden de entrada sin llenar" in html
+
+
+def test_cierre_por_la_pata_filled_del_bracket_tiene_pnl(tmp_path):
+    # Con nested=true la venta no es una fila propia: es la pata del padre.
+    padre = {
+        "id": "buy-twst", "symbol": "TWST", "side": "buy", "type": "limit", "status": "filled",
+        "qty": "5", "filled_qty": "5", "filled_avg_price": "10.00",
+        "filled_at": "2026-09-18T14:00:00Z", "submitted_at": "2026-09-18T13:50:00Z",
+        "legs": [
+            {"id": "sl-twst", "side": "sell", "type": "stop", "status": "filled",
+             "filled_qty": "5", "filled_avg_price": "9.50", "filled_at": "2026-09-18T14:53:00Z"},
+            {"id": "tp-twst", "side": "sell", "type": "limit", "status": "canceled", "limit_price": "12"},
+        ],
+    }
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [], "/v2/orders": [padre]})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)
+    assert ctx["operaciones"] == []
+    cierre = ctx["cerradas_hoy"]
+    assert len(cierre) == 1 and cierre[0]["ticker"] == "TWST"
+    assert cierre[0]["qty"] == 5 and cierre[0]["entrada"] == 10.0 and cierre[0]["salida"] == 9.5
+    assert cierre[0]["pnl"] == -2.5
+
+
+def test_cierre_sin_entrada_en_el_historial_no_inventa_el_pnl(tmp_path):
+    venta = {"id": "sell-nbis", "symbol": "NBIS", "side": "sell", "type": "market", "status": "filled",
+             "qty": "8", "filled_qty": "8", "filled_avg_price": "9.40",
+             "filled_at": "2026-09-18T14:53:00Z", "submitted_at": "2026-09-18T14:53:00Z"}
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [], "/v2/orders": [venta]})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)
+    assert ctx["operaciones"] == []
+    cierre = ctx["cerradas_hoy"][0]
+    assert cierre["ticker"] == "NBIS" and cierre["salida"] == 9.40
+    assert cierre["entrada"] is None and cierre["pnl"] is None
+    html = bd.render(ctx)
+    assert "NBIS" in html and "$9.40" in html
+    # El P&L que no se pudo emparejar no se rellena con cero.
+    fila = html.split("NBIS", 1)[1]
+    assert "+$0.00" not in fila and "−$0.00" not in fila
+
+
+def test_stop_held_anidado_cuenta_como_proteccion(tmp_path):
+    # La reconciliación de la PR #183 no mira `legs`. El panel aplana la
+    # pata `held` antes de llamarla: MNST con ese stop no es "sin stop".
+    get = alpaca_falso(
+        {"equity": "5000"},
+        **{"/v2/positions": [_posicion_llena()], "/v2/orders": [_tp_con_stop_held()]},
+    )
+    ctx = bd.construir(AHORA, cfg(tmp_path, revisiones=_libro(tmp_path, _revision_viva("MNST"))),
+                       get=get, velas=velas_ok)
+    assert ctx["avisos_broker"] == []
+    assert "El broker no cuadra" not in bd.render(ctx)
+
+
+def test_posicion_sin_revision_viva_avisa_aunque_tenga_stop_held(tmp_path):
+    get = alpaca_falso(
+        {"equity": "5000"},
+        **{"/v2/positions": [_posicion_llena("CTAS")], "/v2/orders": [_tp_con_stop_held("CTAS")]},
+    )
+    # El libro la da por cerrada: el broker todavía la tiene.
+    ctx = bd.construir(AHORA, cfg(tmp_path, revisiones=_libro(tmp_path, _revision_viva("CTAS", "cerrada"))),
+                       get=get, velas=velas_ok)
+    assert ctx["avisos_broker"] == [{"ticker": "CTAS", "sin_seguimiento": True, "sin_stop": False}]
+    html = bd.render(ctx)
+    assert "no hay una revisión viva que la siga" in html
+    assert "no tiene stop" not in html
+    assert 'role="alert"' in html and "El broker no cuadra" in html
+
+
+def test_posicion_seguida_sin_stop_vivo_avisa(tmp_path):
+    # Solo el take-profit, y la pata de stop ya cancelada: no es protección.
+    orden = _tp_con_stop_held("MNST")
+    orden["legs"][0]["status"] = "canceled"
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion_llena()], "/v2/orders": [orden]})
+    ctx = bd.construir(AHORA, cfg(tmp_path, revisiones=_libro(tmp_path, _revision_viva("MNST"))),
+                       get=get, velas=velas_ok)
+    assert ctx["avisos_broker"] == [{"ticker": "MNST", "sin_seguimiento": False, "sin_stop": True}]
+    assert "no tiene stop de venta abierto" in bd.render(ctx)
+    assert "no hay una revisión viva" not in bd.render(ctx)
+
+
+def test_sin_ordenes_legibles_no_afirma_que_falta_el_stop(tmp_path):
+    def get(ruta, params=None):
+        if ruta == "/v2/positions":
+            return [_posicion_llena()], None
+        if ruta == "/v2/account":
+            return {"equity": "5000"}, None
+        if ruta == bd.RUTA_HISTORIAL:
+            return None, "sin historial (prueba)"
+        return None, "sin órdenes (prueba)"
+
+    ctx = bd.construir(AHORA, cfg(tmp_path, revisiones=_libro(tmp_path, _revision_viva("MNST"))),
+                       get=get, velas=velas_ok)
+    assert ctx["avisos_broker"] == []
+    assert ctx["posiciones_broker"][0]["salidas_conocidas"] is False
+    html = bd.render(ctx)
+    assert "no tiene stop" not in html
+    assert "sin datos" in html  # stop y objetivo de la fila, no un "—" que parece "no hay"
+
+
+def test_venta_a_mercado_en_curso_no_se_trata_como_desprotegida(tmp_path):
+    mercado = {"id": "mkt", "symbol": "MNST", "side": "sell", "type": "market", "status": "accepted",
+               "qty": "20", "submitted_at": "2026-09-18T14:55:00Z"}
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion_llena()], "/v2/orders": [mercado]})
+    ctx = bd.construir(AHORA, cfg(tmp_path, revisiones=_libro(tmp_path, _revision_viva("MNST"))),
+                       get=get, velas=velas_ok)
+    assert ctx["avisos_broker"] == []
+    assert "venta a mercado" in bd.render(ctx)
+
+
+def test_fuente_de_datos_sale_si_la_telemetria_la_trae_y_no_se_inventa(tmp_path):
+    # Sin el bloque `datos` (corrida vieja): ninguna píldora, ni "Yahoo" por defecto.
+    # `fuente: vps` es el escritor del JSONL, no el feed de precios.
+    escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 50, tzinfo=timezone.utc))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert ctx["fuente_datos"] is None
+    assert "Fuente de datos:" not in bd.render(ctx)
+
+    ruta = tmp_path / "telem" / "2026-09-18" / "vps" / "events.jsonl"
+    with ruta.open("a", encoding="utf-8") as f:
+        f.write(json.dumps({"timestamp": "2026-09-18T14:40:00+00:00", "modo": "escaneo",
+                            "datos": {"configurada": "yahoo", "fuente": "yahoo", "feed": None}}) + "\n")
+        f.write(json.dumps({"timestamp": "2026-09-18T14:55:00+00:00", "modo": "watchlist",
+                            "fuente": "vps", "datos": {"fuente": None, "feed": None}}) + "\n")
+    # El tick de las 14:55 no pidió barras (`fuente` vacía). Sigue valiendo
+    # la medición anterior, no un "Yahoo" inventado ni el escritor `vps`.
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert ctx["fuente_datos"] == "Yahoo"
+    assert "Fuente de datos: Yahoo" in bd.render(ctx)
+    assert "misma fuente que el hunter" in bd.render(ctx)
+
+    with ruta.open("a", encoding="utf-8") as f:
+        f.write(json.dumps({"timestamp": "2026-09-18T14:58:00+00:00", "modo": "escaneo",
+                            "datos": {"configurada": "alpaca", "fuente": "alpaca", "feed": "sip"}}) + "\n")
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert ctx["fuente_datos"] == "Alpaca SIP"
+    html = bd.render(ctx)
+    assert "Fuente de datos: Alpaca SIP" in html
+    assert "el hunter reporta Alpaca SIP" in html
+    assert "misma fuente que el hunter" not in html
+
+    with ruta.open("a", encoding="utf-8") as f:
+        f.write(json.dumps({"timestamp": "2026-09-18T14:58:30+00:00", "modo": "watchlist",
+                            "datos": {"configurada": "alpaca", "fuente": "mixto", "feed": "sip",
+                                      "fallbacks": 2}}) + "\n")
+    assert bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)["fuente_datos"] == "Alpaca SIP + Yahoo"
+
+    # IEX no se etiqueta como SIP.
+    with ruta.open("a", encoding="utf-8") as f:
+        f.write(json.dumps({"timestamp": "2026-09-18T14:58:40+00:00", "modo": "escaneo",
+                            "datos": {"fuente": "alpaca", "feed": "iex"}}) + "\n")
+    assert bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)["fuente_datos"] == "Alpaca IEX"
 
 
 # ───────────────────────── caché de velas ─────────────────────────

@@ -2,10 +2,13 @@
 """Genera el panel del bot como una página HTML estática. Solo lectura.
 
 Fuentes:
-  - watchlist.json            salida del hunter
+  - watchlist.json            salida del hunter (solo la marca de ruptura)
   - logs/events.jsonl         eventos escritos con dashboard.events.log_event
-  - API de Alpaca PAPER       solo peticiones GET, endpoint fijo
+  - API de Alpaca PAPER       solo peticiones GET, endpoint fijo.
+                              Posiciones, pendientes y cerradas hoy salen de aquí.
+  - revisiones.json           solo el aviso de reconciliación, no qué se grafica
   - velas de 1 min            misma fuente que el hunter, con caché (dashboard/velas.py)
+  - telemetría del hunter     la píldora de fuente de datos, si el campo existe
 
 Regla del panel: un dato que falta se muestra como "—", nunca como 0.
 
@@ -63,6 +66,7 @@ def _env_float(nombre: str, defecto: float | None = None) -> float | None:
 
 
 def cargar_config() -> dict:
+    revisiones = os.environ.get("DASH_REVISIONES", "").strip()
     return {
         # Canónico (lo escribe GHA) y overlay de estado del VPS (fuera de git).
         "watchlist": Path(os.environ.get("DASH_WATCHLIST", "momentum_hunter/watchlist.json")),
@@ -95,6 +99,12 @@ def cargar_config() -> dict:
         "telem_hunter": Path(os.environ.get("DASH_TELEM_HUNTER", "momentum_hunter/telemetria")),
         # Archivo de pausa del BOT ante un 429 de Yahoo (solo lectura).
         "pausa_bot": (Path(os.environ["DASH_YAHOO_PAUSA_BOT"]) if os.environ.get("DASH_YAHOO_PAUSA_BOT") else None),
+        # Libro del ejecutor, SOLO para el aviso de reconciliación (¿el
+        # broker tiene algo que nadie sigue?). No decide qué está abierto:
+        # eso lo dice Alpaca. Ruta del paquete, no del cwd: el servicio y
+        # un `python -m` lanzado desde otro directorio leen el mismo archivo
+        # que escribe `estado.guardar`.
+        "revisiones": Path(revisiones) if revisiones else REPO / "momentum_paper_trader" / "revisiones.json",
     }
 
 
@@ -476,7 +486,7 @@ def _detalle_riesgo(riesgo: dict, hay_eventos: bool, conteos_validos: bool) -> s
 ESTADOS_ORDEN = {
     "filled": "ejecutada", "partially_filled": "parcial", "rejected": "rechazada",
     "canceled": "cancelada", "expired": "expirada", "new": "abierta", "accepted": "abierta",
-    "pending_new": "abierta",
+    "pending_new": "abierta", "held": "en espera",
 }
 
 
@@ -519,9 +529,17 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         "after": desde.astimezone(timezone.utc).isoformat(),
     })
     # Órdenes abiertas sin filtro de fecha: el stop de una posición abierta
-    # ayer no aparece entre las órdenes de hoy. Solo GET.
+    # ayer no aparece entre las órdenes de hoy. `nested=true` es obligatorio:
+    # con el bracket ya lleno Alpaca deja el stop en `held` dentro de `legs`
+    # del take-profit y no lo manda como fila de `status=open` (MNST, 28/9).
     abiertas, err_a = get("/v2/orders", {"status": "open", "limit": 500, "nested": "true"})
-    for e in (err_c, err_p, err_o, err_a):
+    # Cerradas sin filtro de fecha: el fill de entrada de lo que se cerró
+    # hoy puede ser de otro día. Sin ese precio el P&L realizado queda "—".
+    # 500 es el tope de Alpaca; si la entrada queda más atrás, no se inventa.
+    historicas, err_h = get("/v2/orders", {
+        "status": "closed", "limit": 500, "direction": "desc", "nested": "true",
+    })
+    for e in (err_c, err_p, err_o, err_a, err_h):
         if e and e not in problemas:
             problemas.append(e)
     alpaca_ok = not (err_c or err_p or err_o)
@@ -704,25 +722,62 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
     ][:6]
 
     lista_posiciones = posiciones if isinstance(posiciones, list) else []
-    todas_ordenes = _unir_ordenes(lista_ordenes or [], abiertas if isinstance(abiertas, list) else [])
+    abiertas_lista = abiertas if isinstance(abiertas, list) else []
+    # Marcas (fill, stop): hoy + abiertas. El historial cerrado NO entra
+    # aquí: un stop ya filled de un trade viejo no es el stop de ahora.
+    todas_ordenes = _unir_ordenes(lista_ordenes or [], abiertas_lista)
     if velas is None:
         def velas(ticker):
             return dv.obtener(ticker, ahora, cache_dir, cfg.get("velas_ttl_seg", 120.0),
                               pausa_seg=cfg.get("velas_pausa_seg", 900.0),
                               pausa_bot=cfg.get("pausa_bot"))
-    tickers_op = tickers_en_operacion(lista_posiciones, lista_ordenes or [])
+    # Gráficos solo de lo que sigue vivo. El 28/9 DLB, NBIS y TWST se
+    # pintaban "en operación" porque tuvieron orden hoy, ya cerradas.
+    if err_p is None:
+        tickers_op = tickers_en_operacion(
+            lista_posiciones, abiertas_lista if err_a is None else [])
+    else:
+        tickers_op = []
     tope = int(cfg.get("velas_max_tickers", 6))
     operaciones = [{
         "ticker": t,
+        "rol": rol,
         "velas": velas(t),
         "marcas": marcas_de(t, lista_posiciones, todas_ordenes, watch_todas),
-    } for t in tickers_op[:tope]]
-    omitidos = tickers_op[tope:]
+    } for t, rol in tickers_op[:tope]]
+    omitidos = [t for t, _rol in tickers_op[tope:]]
+
+    vivas = None if err_a is not None else ordenes_para_detectar(abiertas_lista)
+    filas_pos = None if err_p is not None else [
+        fila_posicion(p, vivas or [], ordenes_conocidas=vivas is not None)
+        for p in lista_posiciones if isinstance(p, dict) and p.get("symbol")]
+    filas_pend = None if err_a is not None else filas_pendientes(abiertas_lista, _simbolos(lista_posiciones))
+    if err_p is not None or (err_o is not None and err_h is not None):
+        filas_cerradas = None
+    else:
+        fuentes_cierre = []
+        if isinstance(ordenes, list):
+            fuentes_cierre.append(ordenes)
+        if isinstance(historicas, list):
+            fuentes_cierre.append(historicas)
+        filas_cerradas = cierres_de_hoy(
+            _unir_aplanadas(*fuentes_cierre), _simbolos(lista_posiciones), desde)
+    avisos, nota_seguimiento = contrastar_broker(
+        lista_posiciones if err_p is None else None,
+        vivas,
+        cfg.get("revisiones"),
+    )
 
     return {
         "ahora": ahora, "tz": cfg["tz"], "en_sesion": en_sesion, "alpaca_ok": alpaca_ok,
         "operaciones": operaciones, "operaciones_omitidas": omitidos,
-        "hay_alpaca_operaciones": err_p is None and err_o is None,
+        "hay_alpaca_operaciones": err_p is None,
+        "posiciones_broker": filas_pos,
+        "pendientes_broker": filas_pend,
+        "cerradas_hoy": filas_cerradas,
+        "avisos_broker": avisos,
+        "nota_seguimiento": nota_seguimiento,
+        "fuente_datos": fuente_datos_activa(cfg.get("telem_hunter"), ahora),
         "problemas": problemas, "etapas": etapas,
         "equity": equity, "pnl": pnl, "pnl_pct": pnl_pct, "cuenta_numero": cuenta_numero,
         "desajuste_equity": _desajuste_equity(equity_mes, equity, last_equity),
@@ -974,14 +1029,489 @@ def cache_velas_segura(ruta: Path | None, problemas: list) -> Path:
     return ruta
 
 
-def tickers_en_operacion(posiciones: list, ordenes_hoy: list) -> list[str]:
-    """Posiciones abiertas primero, luego tickers con orden hoy. Sin duplicados."""
-    out: list[str] = []
-    for fuente in (posiciones, ordenes_hoy):
-        for x in fuente:
-            simbolo = x.get("symbol") if isinstance(x, dict) else None
-            if simbolo and simbolo not in out:
-                out.append(str(simbolo))
+# Una pata `held` no está muerta: es el stop del bracket esperando
+# (MNST, 2026-09-28). Estos estados sí: no protegen y no son un cierre.
+_ESTADOS_TERMINALES = frozenset({
+    "filled", "canceled", "cancelled", "expired", "rejected",
+    "replaced", "done_for_day", "suspended",
+})
+
+# Claves que un proveedor de barras podría dejar en la telemetría del
+# hunter. El PR que suma Alpaca SIP todavía no está en main: si ninguna
+# está, no se afirma "Yahoo". `fuente` NO entra: en este repo es el
+# escritor (vps/gha), no el feed de precios.
+_CLAVES_FUENTE = (
+    "proveedor", "proveedor_datos", "proveedor_barras", "proveedor_velas",
+    "fuente_datos", "fuente_velas", "data_provider", "feed",
+)
+_AUSENTE = object()
+
+
+def _terminal(orden: dict) -> bool:
+    """Sin status no se da por muerta: un ausente no es evidencia."""
+    status = orden.get("status")
+    if status is None:
+        return False
+    return str(status).lower() in _ESTADOS_TERMINALES
+
+
+def _aplanar(ordenes) -> list[dict]:
+    """Fila de arriba y, un nivel más, sus `legs`. Copia: no muta el
+    payload. La pata hereda el símbolo del padre si ella no lo trae
+    (el stop `held` de MNST a veces no repite `symbol`)."""
+    if not isinstance(ordenes, list):
+        return []
+    salida: list[dict] = []
+    for orden in ordenes:
+        if not isinstance(orden, dict):
+            continue
+        padre = orden.get("symbol") if isinstance(orden.get("symbol"), str) else None
+        fila = dict(orden)
+        if padre:
+            fila["symbol"] = padre
+        salida.append(fila)
+        legs = orden.get("legs")
+        if not isinstance(legs, list):
+            continue
+        for leg in legs:
+            if not isinstance(leg, dict):
+                continue
+            pata = dict(leg)
+            simbolo = pata.get("symbol") if isinstance(pata.get("symbol"), str) and pata.get("symbol") else padre
+            if simbolo:
+                pata["symbol"] = simbolo
+            salida.append(pata)
+    return salida
+
+
+def _unir_aplanadas(*listas: list) -> list[dict]:
+    """Aplana y quita duplicados por id. La misma orden viene en 'hoy'
+    y en 'closed'; contarla dos veces doblaría el P&L."""
+    vistos: set[str] = set()
+    out: list[dict] = []
+    for lista in listas:
+        for o in _aplanar(lista):
+            oid = o.get("id")
+            if oid:
+                if oid in vistos:
+                    continue
+                vistos.add(str(oid))
+            out.append(o)
+    return out
+
+
+def ordenes_para_detectar(abiertas: list) -> list[dict]:
+    """Lo que `reconciliacion.detectar` sabe leer: filas planas.
+
+    El detector de la PR #183 mira `symbol`/`side`/`type` de la fila de
+    arriba y no entra a `legs`. El stop `held` vive ahí. Se aplana antes
+    de llamarlo, y se tiran las patas ya terminales: si no, un stop
+    `canceled` contaría como protección (el detector no filtra status)."""
+    return [o for o in _aplanar(abiertas) if not _terminal(o)]
+
+
+def _simbolos(posiciones: list) -> set[str]:
+    return {
+        p.get("symbol") for p in posiciones
+        if isinstance(p, dict) and isinstance(p.get("symbol"), str) and p.get("symbol")
+    }
+
+
+def _mas_reciente(candidatas: list[dict]) -> dict | None:
+    if not candidatas:
+        return None
+    minimo = datetime.min.replace(tzinfo=timezone.utc)
+
+    def clave(o):
+        return parse_ts(o.get("submitted_at")) or parse_ts(o.get("created_at")) or minimo
+
+    return max(candidatas, key=clave)
+
+
+def _nivel_de(orden: dict | None, precio_clave: str) -> dict | None:
+    if orden is None:
+        return None
+    status = orden.get("status")
+    return {
+        "precio": num(orden.get(precio_clave)),
+        "estado": str(status).lower() if status else None,
+    }
+
+
+def salidas_de(ticker: str, ordenes_vivas: list) -> dict:
+    """Stop, take-profit y venta a mercado todavía vivos de `ticker`.
+
+    El take-profit es un `limit` de venta: no es protección (igual que
+    la reconciliación). El stop `held` anidado sí. Una venta a mercado
+    viva es el cierre en curso, no un stop, pero tampoco es "sin salida"."""
+    stops, limites, mercados = [], [], []
+    for o in ordenes_vivas:
+        if not isinstance(o, dict) or o.get("symbol") != ticker:
+            continue
+        if str(o.get("side") or "").lower() != "sell":
+            continue
+        tipo = str(o.get("type") or "").lower()
+        if tipo in TIPOS_STOP:
+            stops.append(o)
+        elif tipo == "limit":
+            limites.append(o)
+        elif tipo == "market":
+            mercados.append(o)
+    return {
+        "stop": _nivel_de(_mas_reciente(stops), "stop_price"),
+        "tp": _nivel_de(_mas_reciente(limites), "limit_price"),
+        "mercado": _mas_reciente(mercados) is not None,
+    }
+
+
+def fila_posicion(p: dict, ordenes_vivas: list, ordenes_conocidas: bool = True) -> dict:
+    """Una posición tal como la manda Alpaca. El P&L abierto es el campo
+    `unrealized_pl`; si falta, es None, no un cálculo con un precio que
+    no vino. `unrealized_plpc` es fracción (0,0125 = 1,25 %), igual que
+    lo lee `cierre.py`. Si las órdenes no se pudieron leer, stop y
+    objetivo quedan desconocidos: un "—" ahí se leería como que no hay."""
+    salidas = salidas_de(str(p.get("symbol")), ordenes_vivas) if ordenes_conocidas else {
+        "stop": None, "tp": None, "mercado": False}
+    plpc = num(p.get("unrealized_plpc"))
+    return {
+        "ticker": p.get("symbol"),
+        "qty": num(p.get("qty")),
+        "entrada": num(p.get("avg_entry_price")),
+        "actual": num(p.get("current_price")),
+        "pnl": num(p.get("unrealized_pl")),
+        "pnl_pct": None if plpc is None else plpc * 100,
+        "stop": salidas["stop"],
+        "tp": salidas["tp"],
+        "mercado": salidas["mercado"],
+        "salidas_conocidas": ordenes_conocidas,
+    }
+
+
+def filas_pendientes(abiertas: list, simbolos_abiertos: set[str]) -> list[dict]:
+    """Compras de entrada todavía vivas, y cualquier orden de arriba cuyo
+    símbolo no esté abierto (no es la pata de salida de una posición).
+
+    Las patas `held` no son filas propias: se muestran como stop y
+    objetivo de la orden padre. El take-profit `new` de una posición
+    abierta tampoco: va en la fila de esa posición."""
+    filas = []
+    for o in abiertas:
+        if not isinstance(o, dict) or _terminal(o):
+            continue
+        simbolo = o.get("symbol")
+        if not isinstance(simbolo, str) or not simbolo:
+            continue
+        lado = str(o.get("side") or "").lower()
+        if lado != "buy" and simbolo in simbolos_abiertos:
+            continue
+        if lado not in ("buy", "sell"):
+            continue
+        salidas = salidas_de(simbolo, ordenes_para_detectar([o]))
+        status = o.get("status")
+        filas.append({
+            "ticker": simbolo,
+            "lado": lado,
+            "qty": num(o.get("qty")),
+            "limite": num(o.get("limit_price")),
+            "stop": salidas["stop"],
+            "tp": salidas["tp"],
+            "mercado": salidas["mercado"],
+            "estado": str(status).lower() if status else None,
+        })
+    return filas
+
+
+def _qty_fill(orden: dict) -> float | None:
+    """Cantidad que de verdad se ejecutó. `filled_qty` manda. Si falta y
+    el estado es `filled`, `qty` es el tamaño de esa orden ya llena. Si
+    faltan los dos, None: no se usa 0."""
+    q = num(orden.get("filled_qty"))
+    if q is not None:
+        return q
+    if str(orden.get("status") or "").lower() == "filled":
+        return num(orden.get("qty"))
+    return None
+
+
+def cierres_de_hoy(ordenes: list, simbolos_abiertos: set[str], desde: datetime) -> list[dict]:
+    """Posiciones que ya no están abiertas y tuvieron una venta llena
+    hoy (día de Nueva York, el mismo corte que las órdenes de hoy).
+
+    El P&L es FIFO sobre los fills que alcanzamos a ver: (salida −
+    entrada) × cantidad, de un largo. Este bot no abre cortos. Si el
+    historial no alcanza para emparejar toda la venta, entrada y P&L
+    quedan en None; la salida sí se muestra si el fill de hoy la trae.
+    Un símbolo que sigue en `posiciones` no entra aquí aunque haya
+    vendido una parte: la posición abierta manda."""
+    fills = [
+        o for o in ordenes
+        if isinstance(o, dict) and str(o.get("status") or "").lower() == "filled" and parse_ts(o.get("filled_at"))
+    ]
+    fills.sort(key=lambda o: parse_ts(o.get("filled_at")) or datetime.min.replace(tzinfo=timezone.utc))
+    por: dict[str, list] = {}
+    for o in fills:
+        simbolo = o.get("symbol")
+        if isinstance(simbolo, str) and simbolo:
+            por.setdefault(simbolo, []).append(o)
+
+    filas = []
+    for simbolo, serie in por.items():
+        if simbolo in simbolos_abiertos:
+            continue
+        lots: list = []
+        qty_hoy = 0.0
+        qty_hoy_ok = True
+        notional_salida = 0.0
+        qty_salida_preciada = 0.0
+        notional_entrada = 0.0
+        qty_emparejada = 0.0
+        pnl_ok = True
+        ultima = None
+        ventas_hoy = 0
+        for o in serie:
+            ts = parse_ts(o.get("filled_at"))
+            lado = str(o.get("side") or "").lower()
+            qty = _qty_fill(o)
+            precio = num(o.get("filled_avg_price"))
+            hoy = ts is not None and ts >= desde
+            usable = qty is not None and precio is not None and qty > 0
+            if lado == "buy":
+                lots.append([qty, precio] if usable else None)
+                continue
+            if lado != "sell":
+                continue
+            if hoy:
+                ventas_hoy += 1
+                ultima = ts
+                if qty is None or qty <= 0:
+                    qty_hoy_ok = False
+                    pnl_ok = False
+                else:
+                    qty_hoy += qty
+                if usable:
+                    notional_salida += precio * qty
+                    qty_salida_preciada += qty
+                else:
+                    pnl_ok = False
+            if not usable:
+                # Un hueco en el FIFO invalida lo que se empareje después:
+                # no sabemos qué lote quedaba.
+                lots.clear()
+                lots.append(None)
+                if hoy:
+                    pnl_ok = False
+                continue
+            restante = qty
+            while restante > 1e-8 and lots:
+                lot = lots[0]
+                if lot is None:
+                    pnl_ok = False
+                    lots.pop(0)
+                    break
+                tomar = min(restante, lot[0])
+                if hoy:
+                    notional_entrada += tomar * lot[1]
+                    qty_emparejada += tomar
+                lot[0] -= tomar
+                restante -= tomar
+                if lot[0] <= 1e-8:
+                    lots.pop(0)
+            if restante > 1e-8:
+                pnl_ok = False
+        if ventas_hoy == 0:
+            continue
+        salida = (notional_salida / qty_salida_preciada) if qty_salida_preciada > 0 and qty_hoy_ok else None
+        if pnl_ok and qty_emparejada > 0 and qty_hoy_ok and abs(qty_emparejada - qty_hoy) <= 1e-6:
+            entrada = notional_entrada / qty_emparejada
+            pnl = round(notional_salida - notional_entrada, 2)
+        else:
+            entrada = None
+            pnl = None
+        filas.append({
+            "ticker": simbolo,
+            "qty": qty_hoy if qty_hoy_ok and qty_hoy > 0 else None,
+            "entrada": entrada,
+            "salida": salida,
+            "pnl": pnl,
+            "hora": ultima,
+        })
+    filas.sort(key=lambda f: f["hora"] or datetime.min.replace(tzinfo=timezone.utc), reverse=True)
+    return filas
+
+
+def contrastar_broker(posiciones, ordenes_vivas, ruta_revisiones):
+    """(avisos, nota). Reusa `reconciliacion.detectar` (PR #183).
+
+    Los avisos son dicts {ticker, sin_seguimiento, sin_stop}. `None` en
+    avisos significa que no se pudo contrastar (no es "todo en orden").
+    Sin ruta de revisiones no se lee el libro del repo: las pruebas del
+    panel no lo configuran y no deben alarmar con el archivo real.
+
+    `ordenes_vivas is None` (no se pudieron leer) se le pasa tal cual al
+    detector: no afirma que falte el stop. Una lista vacía sí lo afirma."""
+    if ruta_revisiones is None or not isinstance(posiciones, list):
+        return [], None
+    try:
+        from momentum_paper_trader.estado import cargar as cargar_revisiones
+        from momentum_paper_trader.reconciliacion import detectar
+    except Exception as ex:
+        return None, (f"no se pudo cargar la reconciliación ({type(ex).__name__}); "
+                      "no se contrastó el broker con el seguimiento")
+    try:
+        revisiones = cargar_revisiones(Path(ruta_revisiones))
+    except Exception as ex:
+        return None, (f"no se pudieron leer las revisiones ({type(ex).__name__}); "
+                      "no se afirma que el seguimiento cubra lo que el broker tiene abierto")
+    problemas = detectar(posiciones, ordenes_vivas, revisiones)
+    return [
+        {"ticker": p.ticker, "sin_seguimiento": p.sin_seguimiento, "sin_stop": p.sin_stop}
+        for p in problemas
+    ], None
+
+
+def _etiqueta_fuente(valor) -> str | None:
+    """Una clave suelta (`proveedor`, `feed`…) de una telemetría que no
+    trae el bloque `datos` de la PR #185."""
+    if not isinstance(valor, str):
+        return None
+    texto = valor.strip()
+    if not texto or len(texto) > 40:
+        return None
+    clave = texto.lower().replace(" ", "_").replace("-", "_")
+    conocidas = {
+        "yahoo": "Yahoo",
+        "yfinance": "Yahoo",
+        "yahoo_chart": "Yahoo",
+        "alpaca_sip": "Alpaca SIP",
+        "sip": "Alpaca SIP",
+        "alpaca_data_sip": "Alpaca SIP",
+        "iex": "Alpaca IEX",
+        "mixto": "Mixto",
+    }
+    if clave in conocidas:
+        return conocidas[clave]
+    if clave == "alpaca":
+        return "Alpaca"
+    return texto
+
+
+def _etiqueta_medida(fuente, feed) -> str | None:
+    """Lo que contestó de verdad (`datos.fuente` + `datos.feed`).
+
+    `alpaca` + `sip` es Alpaca SIP. `mixto` es el feed más el respaldo
+    Yahoo de esa corrida. `iex` no se disfraza de SIP. Sin `fuente`
+    medible no se usa `configurada`: estar configurado no es haber
+    contestado."""
+    if not isinstance(fuente, str) or not fuente.strip():
+        return None
+    f = fuente.strip().lower()
+    feed_s = feed.strip().lower() if isinstance(feed, str) and feed.strip() else None
+    if f == "yahoo":
+        return "Yahoo"
+    if f == "alpaca":
+        if feed_s == "sip":
+            return "Alpaca SIP"
+        if feed_s == "iex":
+            return "Alpaca IEX"
+        return "Alpaca"
+    if f == "mixto":
+        if feed_s == "sip":
+            return "Alpaca SIP + Yahoo"
+        if feed_s == "iex":
+            return "Alpaca IEX + Yahoo"
+        return "Mixto"
+    return _etiqueta_fuente(fuente)
+
+
+def _valor_fuente_suelto(registro: dict):
+    """Claves de un PR que todavía no usa el bloque `datos`. `fuente` a
+    secas no entra: en la raíz del JSONL es el escritor (vps/gha)."""
+    def en(d):
+        if not isinstance(d, dict):
+            return _AUSENTE
+        for clave in _CLAVES_FUENTE:
+            if clave in d and isinstance(d.get(clave), str) and str(d.get(clave)).strip():
+                return d[clave]
+        return _AUSENTE
+
+    hallado = en(registro)
+    if hallado is not _AUSENTE:
+        return hallado
+    for caja in ("embudo", "mercado"):
+        hallado = en(registro.get(caja))
+        if hallado is not _AUSENTE:
+            return hallado
+    return _AUSENTE
+
+
+def fuente_datos_activa(dir_telemetria, ahora: datetime) -> str | None:
+    """Yahoo o Alpaca SIP, si la telemetría de hoy del VPS lo midió.
+
+    El esquema que escribe el hunter es `datos.fuente` / `datos.feed`
+    (`yahoo`, `alpaca`, `mixto`, feed `sip` o `iex`). Un evento que no
+    trae el bloque, o lo trae con `fuente` vacía, no se midió: se sigue
+    hacia el anterior del mismo día. Si ninguno midió, None — no se
+    asume Yahoo. `fuente: vps` en la raíz no es el feed de precios."""
+    if dir_telemetria is None:
+        return None
+    ruta = Path(dir_telemetria) / ahora.astimezone(timezone.utc).date().isoformat() / "vps" / "events.jsonl"
+    try:
+        lineas = Path(ruta).read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+    eventos = []
+    for linea in lineas:
+        try:
+            r = json.loads(linea)
+        except ValueError:
+            continue
+        if not isinstance(r, dict):
+            continue
+        ts = parse_ts(r.get("timestamp"))
+        if ts is None:
+            continue
+        eventos.append((ts, r))
+    eventos.sort(key=lambda par: par[0], reverse=True)
+    for _ts, r in eventos:
+        datos = r.get("datos")
+        if isinstance(datos, dict) and "fuente" in datos:
+            etiqueta = _etiqueta_medida(datos.get("fuente"), datos.get("feed"))
+            if etiqueta:
+                return etiqueta
+            continue
+        suelto = _valor_fuente_suelto(r)
+        if suelto is _AUSENTE:
+            continue
+        etiqueta = _etiqueta_fuente(suelto)
+        if etiqueta:
+            return etiqueta
+    return None
+
+
+def tickers_en_operacion(posiciones: list, ordenes_abiertas: list) -> list[tuple[str, str]]:
+    """(ticker, rol) con rol 'abierta' o 'pendiente'.
+
+    Abiertas primero. Una compra ya llena o cancelada no mete al ticker
+    en el gráfico: el 28/9 las cerradas de la mañana seguían ahí porque
+    cualquier orden de hoy contaba como "en operación"."""
+    out: list[tuple[str, str]] = []
+    vistos: set[str] = set()
+    for p in posiciones or []:
+        if not isinstance(p, dict):
+            continue
+        simbolo = p.get("symbol")
+        if isinstance(simbolo, str) and simbolo and simbolo not in vistos:
+            vistos.add(simbolo)
+            out.append((simbolo, "abierta"))
+    for o in ordenes_abiertas or []:
+        if not isinstance(o, dict) or _terminal(o):
+            continue
+        if str(o.get("side") or "").lower() != "buy":
+            continue
+        simbolo = o.get("symbol")
+        if isinstance(simbolo, str) and simbolo and simbolo not in vistos:
+            vistos.add(simbolo)
+            out.append((simbolo, "pendiente"))
     return out
 
 
@@ -1283,6 +1813,8 @@ svg{width:100%;height:auto}.eje{font-family:var(--mono);font-size:10px;fill:var(
 .barra-ok{fill:var(--acento)}.barra-alta{fill:var(--rojo)}.limite{stroke:var(--rojo)}
 .nota{margin-top:auto;padding:10px 12px;background:var(--mal-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--mal-fg)}
 .nota-info{margin-top:auto;padding:10px 12px;background:var(--duda-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--gris2)}
+h3{margin:12px 0 0;font-size:13px;letter-spacing:.04em;font-weight:500}
+.badge{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--acento);color:var(--acento)}
 .scroll{overflow-x:auto}
 .operaciones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media (max-width:900px){.operaciones{grid-template-columns:1fr}}
@@ -1290,6 +1822,131 @@ svg{width:100%;height:auto}.eje{font-family:var(--mono);font-size:10px;fill:var(
 @media (max-width:900px){.c2i{grid-template-columns:1fr}}
 @media (max-width:640px){main{padding:20px 16px}.c4,.c5{grid-template-columns:1fr 1fr}.kpi .valor{font-size:22px}}
 """
+
+
+def fmt_qty(v) -> str:
+    n = num(v) if not isinstance(v, (int, float)) else (v if math.isfinite(v) else None)
+    if n is None:
+        return "—"
+    if abs(n - round(n)) < 1e-9:
+        return str(int(round(n)))
+    return f"{n:.4f}".rstrip("0").rstrip(".")
+
+
+def _html_pnl(pnl, pct=None) -> str:
+    if pnl is None:
+        return "—"
+    clase = "pos" if pnl >= 0 else "neg"
+    extra = "" if pct is None else f" ({pct:+.2f}%)"
+    return f'<span class="{clase}">{esc(fmt_dinero(pnl, signo=True) + extra)}</span>'
+
+
+def _html_nivel(nivel, mercado: bool = False, conocido: bool = True) -> str:
+    if not conocido:
+        return "sin datos"
+    if mercado and (not nivel or nivel.get("precio") is None):
+        return "venta a mercado"
+    if not nivel or nivel.get("precio") is None:
+        return "—"
+    texto = fmt_dinero(nivel["precio"])
+    if nivel.get("estado") == "held":
+        texto += " · held"
+    return esc(texto)
+
+
+def _frase_aviso(a: dict) -> str:
+    """Las mismas frases que `reconciliacion._frase`, para que el panel
+    y el Telegram digan lo mismo."""
+    partes = []
+    if a.get("sin_seguimiento"):
+        partes.append("no hay una revisión viva que la siga")
+    if a.get("sin_stop"):
+        partes.append("no tiene stop de venta abierto")
+    return f"{a.get('ticker')}: " + " y ".join(partes) + "."
+
+
+def _html_avisos(ctx: dict) -> str:
+    partes = []
+    nota = ctx.get("nota_seguimiento")
+    if nota:
+        partes.append(f'<div class="nota" role="alert">{esc(nota)}</div>')
+    avisos = ctx.get("avisos_broker") or []
+    if avisos:
+        items = " ".join(esc(_frase_aviso(a)) for a in avisos)
+        partes.append(
+            '<div class="nota" role="alert"><b>El broker no cuadra con el seguimiento.</b> '
+            f'{items} Sigue ocupando cupo y puede quedar desprotegida.</div>')
+    return "".join(partes)
+
+
+def _html_broker(ctx: dict) -> str:
+    tz = ctx["tz"]
+
+    def tabla(cabezas, filas):
+        th = "".join(f"<th>{esc(h)}</th>" for h in cabezas)
+        return f"<div class='scroll'><table><thead><tr>{th}</tr></thead><tbody>{filas}</tbody></table></div>"
+
+    def bloque(titulo, conocido, vacio, filas_html):
+        if not conocido:
+            cuerpo = '<p class="vacio">Sin datos.</p>'
+        elif not filas_html:
+            cuerpo = f'<p class="vacio">{vacio}</p>'
+        else:
+            cuerpo = filas_html
+        return f"<h3>{titulo}</h3>{cuerpo}"
+
+    pos = ctx.get("posiciones_broker")
+    if pos:
+        filas = "".join(
+            "<tr>"
+            f"<td class='tk'>{esc(p['ticker'])}</td><td>{esc(fmt_qty(p['qty']))}</td>"
+            f"<td>{esc(fmt_dinero(p['entrada']))}</td><td>{esc(fmt_dinero(p['actual']))}</td>"
+            f"<td>{_html_pnl(p['pnl'], p.get('pnl_pct'))}</td>"
+            f"<td>{_html_nivel(p.get('stop'), p.get('mercado'), p.get('salidas_conocidas', True))}</td>"
+            f"<td>{_html_nivel(p.get('tp'), conocido=p.get('salidas_conocidas', True))}</td>"
+            "</tr>" for p in pos)
+        pos_html = tabla(("Ticker", "Cant.", "Entrada", "Actual", "P&L abierto", "Stop", "Objetivo"), filas)
+    else:
+        pos_html = ""
+
+    pend = ctx.get("pendientes_broker")
+    if pend:
+        filas = "".join(
+            "<tr>"
+            f"<td class='tk'>{esc(p['ticker'])}</td>"
+            f"<td>{esc({'buy': 'compra', 'sell': 'venta'}.get(p.get('lado'), p.get('lado') or '—'))}</td>"
+            f"<td>{esc(fmt_qty(p['qty']))}</td><td>{esc(fmt_dinero(p.get('limite')))}</td>"
+            f"<td>{_html_nivel(p.get('stop'), p.get('mercado'))}</td>"
+            f"<td>{_html_nivel(p.get('tp'))}</td>"
+            f"<td>{esc(ESTADOS_ORDEN.get(p.get('estado'), p.get('estado') or '—'))}</td>"
+            "</tr>" for p in pend)
+        pend_html = tabla(("Ticker", "Lado", "Cant.", "Límite", "Stop", "Objetivo", "Estado"), filas)
+    else:
+        pend_html = ""
+
+    cerr = ctx.get("cerradas_hoy")
+    if cerr:
+        filas = "".join(
+            "<tr>"
+            f"<td class='tk'>{esc(c['ticker'])}</td><td>{esc(fmt_qty(c['qty']))}</td>"
+            f"<td>{esc(fmt_dinero(c['entrada']))}</td><td>{esc(fmt_dinero(c['salida']))}</td>"
+            f"<td>{_html_pnl(c['pnl'])}</td>"
+            f"<td>{esc(_hora(c.get('hora'), tz, ahora=ctx['ahora']))}</td>"
+            "</tr>" for c in cerr)
+        cerr_html = tabla(("Ticker", "Cant.", "Entrada", "Salida", "P&L realizado", "Hora"), filas)
+    else:
+        cerr_html = ""
+
+    return (
+        '<section class="panel" aria-label="Cuenta en el broker">'
+        '<div class="titulo"><h2>Cuenta en el broker</h2>'
+        '<span class="mono">Alpaca paper · posiciones, pendientes y cerradas hoy</span></div>'
+        f'{_html_avisos(ctx)}'
+        f'{bloque("Posiciones abiertas", pos is not None, "Sin posiciones abiertas.", pos_html)}'
+        f'{bloque("Órdenes pendientes", pend is not None, "Sin órdenes pendientes.", pend_html)}'
+        f'{bloque("Cerradas hoy", cerr is not None, "Ninguna posición cerrada hoy.", cerr_html)}'
+        '</section>'
+    )
 
 
 def render(ctx: dict) -> str:
@@ -1400,22 +2057,40 @@ def render(ctx: dict) -> str:
         + '</div>')
 
     if ctx["operaciones"]:
-        tarjetas = "".join(
-            f'<div class="panel"><div class="titulo"><h2>{esc(op["ticker"])}</h2>'
-            f'<span class="mono">{esc(_subtitulo_velas(op["velas"], tz, ctx["ahora"]))}</span></div>'
-            f'{_grafico_velas(op["velas"], op["marcas"], tz, ctx["ahora"])}'
-            + (f'<div class="nota">{esc(op["velas"]["error"])}</div>' if op["velas"].get("error") and op["velas"].get("velas") else "")
-            + f'{_pie_marcas(op["marcas"], tz, ctx["ahora"])}</div>'
-            for op in ctx["operaciones"])
+        def _tarjeta(op):
+            marca_pendiente = '<span class="badge">pendiente</span>' if op.get("rol") == "pendiente" else ""
+            nota_velas = (f'<div class="nota">{esc(op["velas"]["error"])}</div>'
+                          if op["velas"].get("error") and op["velas"].get("velas") else "")
+            nota_pendiente = ('<p class="vacio">Orden de entrada sin llenar. La entrada se marca cuando hay fill.</p>'
+                              if op.get("rol") == "pendiente" else "")
+            return (
+                f'<div class="panel"><div class="titulo"><h2>{esc(op["ticker"])}</h2>'
+                f'<span class="mono">{esc(_subtitulo_velas(op["velas"], tz, ctx["ahora"]))} {marca_pendiente}</span></div>'
+                f'{_grafico_velas(op["velas"], op["marcas"], tz, ctx["ahora"])}'
+                f'{nota_velas}{nota_pendiente}{_pie_marcas(op["marcas"], tz, ctx["ahora"])}</div>'
+            )
+
+        tarjetas = "".join(_tarjeta(op) for op in ctx["operaciones"])
         if ctx["operaciones_omitidas"]:
             tarjetas += (f'<p class="vacio">Sin graficar por el tope de tickers por corrida: '
                          f'{esc(", ".join(ctx["operaciones_omitidas"]))}.</p>')
         operaciones = f'<div class="operaciones">{tarjetas}</div>'
     elif ctx["hay_alpaca_operaciones"]:
-        operaciones = '<p class="vacio">Sin posiciones abiertas ni órdenes hoy.</p>'
+        if ctx.get("pendientes_broker") is None:
+            operaciones = '<p class="vacio">Sin posiciones abiertas. Las órdenes pendientes no se pudieron leer.</p>'
+        else:
+            operaciones = '<p class="vacio">Sin posiciones abiertas ni órdenes pendientes.</p>'
     else:
         operaciones = '<p class="vacio">Sin datos: Alpaca no respondió posiciones u órdenes.</p>'
 
+    fuente = ctx.get("fuente_datos")
+    if fuente and fuente != "Yahoo":
+        sub_velas = (f"1 min · el gráfico pide a Yahoo · el hunter reporta {fuente} · pendiente va marcado")
+    else:
+        sub_velas = "1 min · misma fuente que el hunter · ruptura, entrada (fill), stop · pendiente va marcado"
+
+    fuente_datos = (f'<span class="pildora">Fuente de datos: {esc(ctx["fuente_datos"])}</span>'
+                    if ctx.get("fuente_datos") else "")
     sesion = '<span class="pildora ok">Sesión US abierta</span>' if ctx["en_sesion"] else '<span class="pildora">Sesión US cerrada</span>'
     alpaca = "" if ctx["alpaca_ok"] else '<span class="pildora mal">Alpaca sin conexión</span>'
     persist = ""
@@ -1455,7 +2130,7 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
     <div><h1>MOMENTUM</h1><div class="sub">hernan-portafolio · hunter → watchlist.json → ejecutor</div></div>
   </div>
   <div class="pildoras">
-    <span class="pildora paper">PAPER · ALPACA</span>{sesion}{alpaca}{persist}{ia}
+    <span class="pildora paper">PAPER · ALPACA</span>{fuente_datos}{sesion}{alpaca}{persist}{ia}
     <span class="pildora">Actualizado {_hora(ctx['ahora'], tz, segundos=True)} {esc(etiqueta_tz)}</span>
     <span class="pildora">Solo lectura</span>
     <button class="pildora" id="tema-toggle" type="button" aria-label="Cambiar entre tema claro y oscuro" title="Cambiar tema claro/oscuro">Tema</button>
@@ -1465,8 +2140,9 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
 <section class="fila c4" aria-label="Etapas del sistema">{etapas}</section>
 <section class="fila c5" aria-label="Cifras clave">{kpis_html}</section>
 <section class="fila c2i" aria-label="Curva de equity">{equity_html}</section>
-<section class="panel" aria-label="Velas del ticker en operación">
-  <div class="titulo"><h2>Velas del ticker en operación</h2><span class="mono">1 min · misma fuente que el hunter · ruptura, entrada (fill), stop</span></div>
+{_html_broker(ctx)}
+<section class="panel" aria-label="Velas de posiciones abiertas">
+  <div class="titulo"><h2>Velas de posiciones abiertas</h2><span class="mono">{sub_velas}</span></div>
   {operaciones}
 </section>
 <section class="fila c2">
