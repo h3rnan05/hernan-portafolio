@@ -1,0 +1,13 @@
+[Unit]
+Description=Timer sombra B2 screener (cada 5 min en sesión). NO se instala solo.
+Requires=momentum-shadow-screener.service
+
+[Timer]
+# :04, :09, ... para no coincidir con el rechequeo (:00/:05), el escaneo
+# (:01/:31) ni la sombra de movers del hunter (:02/:07). Persistent=false.
+OnCalendar=Mon..Fri *-*-* 13..20:4/5:00 UTC
+Persistent=false
+Unit=momentum-shadow-screener.service
+
+[Install]
+WantedBy=timers.target

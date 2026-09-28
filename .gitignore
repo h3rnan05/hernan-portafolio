@@ -38,6 +38,10 @@ paper.env
 *.log
 logs/
 
+# Salida local de shadow_alpaca (no entra al hunter ni se commitea).
+shadow_alpaca/salida/
+shadow_alpaca/almacen/
+
 # Local data
 *.db
 *.sqlite
