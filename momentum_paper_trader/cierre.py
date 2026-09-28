@@ -278,13 +278,15 @@ def _liquidar(
 
     Cancelar primero es obligatorio: con las patas del bracket vivas el
     DELETE ve cantidad disponible 0 y Alpaca responde 403. La pata de
-    stop suele estar `held` y solo aparece en `legs`; `cancelar_ordenes_de`
-    la incluye. El DELETE igual lleva `cancel_orders=true`: es Alpaca
-    quien cancela, antes de liquidar, las órdenes que retienen la
-    cantidad -- también la `held` que este listado no haya visto. Si el
-    rechazo se repite, la venta a mercado usa la qty del broker. Un
-    error que no es 4xx no dispara esa venta -- el DELETE pudo haber
-    llegado igual y una segunda orden abriría un corto."""
+    stop suele estar `held` bajo el padre ya `filled`, que `status=open`
+    no devuelve; el listado tiene que ser el de `ordenes_de_simbolos`
+    para que `cancelar_ordenes_de` vea ese id. El DELETE igual lleva
+    `cancel_orders=true`: es Alpaca quien cancela, antes de liquidar,
+    las órdenes que retienen la cantidad -- también la `held` que este
+    listado no haya visto. Si el rechazo se repite, se vuelve a pedir
+    ese mismo listado y, si sigue el 4xx, la venta a mercado usa la qty
+    del broker. Un error que no es 4xx no dispara esa venta -- el DELETE
+    pudo haber llegado igual y una segunda orden abriría un corto."""
     _cancelar(client, ticker, abiertas)
     ultimo_rechazo = False
     for intento in range(1, _INTENTOS_DELETE + 1):
@@ -302,10 +304,10 @@ def _liquidar(
             ultimo_rechazo = status is not None and 400 <= status < 500
             if intento < _INTENTOS_DELETE:
                 try:
-                    frescas = client.ordenes_abiertas()
+                    frescas = client.ordenes_de_simbolos([ticker])
                 except Exception as ex_leer:
                     log.warning(
-                        "%s: no se pudieron releer las órdenes abiertas (%s)",
+                        "%s: no se pudieron releer las órdenes del símbolo (%s)",
                         ticker, type(ex_leer).__name__,
                     )
                     frescas = []
@@ -373,10 +375,18 @@ def cerrar_si_toca(
         log.info("cierre diario: no hay posiciones abiertas")
         return []
 
+    simbolos = [
+        p.get("symbol") for p in posiciones
+        if isinstance(p, dict) and isinstance(p.get("symbol"), str) and p.get("symbol")
+    ]
     try:
-        abiertas = client.ordenes_abiertas()
+        # El mismo listado que la reconciliación: el stop held no está
+        # en status=open, está bajo el padre filled.
+        abiertas = client.ordenes_de_simbolos(simbolos)
     except Exception as ex:
-        log.warning("no se pudieron leer las órdenes abiertas: %s", ex)
+        log.warning("no se pudieron leer las órdenes de las posiciones: %s", type(ex).__name__)
+        abiertas = []
+    if not isinstance(abiertas, list):
         abiertas = []
 
     cerradas: list[tuple[dict, str]] = []

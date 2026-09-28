@@ -23,6 +23,14 @@ _ESTADOS_ORDEN_TERMINAL = frozenset({
 })
 
 
+# Los únicos estados en los que una pata de venta todavía protege.
+# `held` es el stop del bracket esperando a que el precio lo dispare;
+# `new` / `accepted` / `pending_new` son una orden ya aceptada y viva.
+# Cualquier otro valor (o un status ausente) no es evidencia de
+# protección: el listado `status=all` mezcla historial muerto.
+_ESTADOS_ORDEN_VIVA = frozenset({"held", "new", "accepted", "pending_new"})
+
+
 def orden_ya_terminada(orden: dict) -> bool:
     """True si el status dice que la orden ya no trabaja. Sin status no
     se inventa un terminal: el listado `open` a veces no lo trae en los
@@ -31,6 +39,15 @@ def orden_ya_terminada(orden: dict) -> bool:
     if status is None:
         return False
     return str(status).lower() in _ESTADOS_ORDEN_TERMINAL
+
+
+def orden_sigue_viva(orden: dict) -> bool:
+    """True solo con un status que Alpaca usa para una orden que todavía
+    trabaja. Un campo ausente no cuenta: no es lo mismo que `held`."""
+    status = orden.get("status")
+    if not isinstance(status, str) or not status.strip():
+        return False
+    return status.strip().lower() in _ESTADOS_ORDEN_VIVA
 
 
 def ordenes_con_patas(ordenes: list) -> list[dict]:
@@ -115,16 +132,54 @@ class AlpacaPaperClient:
         Complementa `posiciones()`: una orden límite de entrada que aún
         no se llenó no es una posición, pero SÍ compromete el ticker.
 
-        `nested=true` no es cosmético. Con el bracket ya lleno, Alpaca
-        deja el stop en `held` y NO lo devuelve en `status=open`: solo
-        el take-profit (`new`) sale en la lista, y el stop va en su
-        `legs` si se pide anidado. Sin eso, el 2026-09-28 la
-        reconciliación avisó que MNST no tenía stop teniendo la pata
-        `f2d920f1` en `held` a $41.62. Quien busque protección tiene
-        que mirar `legs`, no solo la fila de arriba."""
+        No sirve para ver el stop de un bracket ya lleno. Tras el fill
+        del padre, `status=open` devuelve solo el take-profit (`new`) y
+        ese objeto trae `legs: null`. El stop `held` cuelga del padre,
+        que ya no está en `open`. Para eso está `ordenes_de_simbolos`."""
         r = requests.get(
             f"{_BASE_URL}/orders",
             params={"status": "open", "limit": 100, "nested": "true"},
+            headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        return r.json()
+
+    def ordenes_de_simbolos(self, simbolos: list[str]) -> list[dict]:
+        """Órdenes de esos símbolos, padre filled incluido
+        (`GET /v2/orders?status=all&nested=true&symbols=...`).
+
+        El 2026-09-28 MNST tenía el take-profit `bb5baab2` (limit 42.36,
+        `new`) como única fila de `status=open`, con `legs` vacío. El
+        stop `f2d920f1` (stop 41.62, `held`) solo aparecía anidado bajo
+        la compra ya `filled` `265e093f`, o como fila propia en
+        `status=all`. Sin este listado la reconciliación decía que no
+        había stop y el cierre no podía cancelar esa pata por id.
+
+        `direction=desc` y `limit=500` (el tope de Alpaca) se quedan con
+        lo más reciente. Una orden más vieja que esas 500, en esos
+        símbolos, no entra: en esta cuenta no se acerca, y preferimos
+        no paginar a ciegas. Sin símbolos no se llama: `status=all` sin
+        filtro vaciaría el historial de la cuenta en el chequeo."""
+        limpios: list[str] = []
+        vistos: set[str] = set()
+        for simbolo in simbolos:
+            if not isinstance(simbolo, str):
+                continue
+            texto = simbolo.strip()
+            if not texto or texto in vistos:
+                continue
+            vistos.add(texto)
+            limpios.append(texto)
+        if not limpios:
+            return []
+        r = requests.get(
+            f"{_BASE_URL}/orders",
+            params={
+                "status": "all",
+                "nested": "true",
+                "symbols": ",".join(limpios),
+                "limit": 500,
+                "direction": "desc",
+            },
             headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         return r.json()
@@ -244,11 +299,12 @@ class AlpacaPaperClient:
 
         Necesario antes de reemplazar las salidas: las patas del bracket
         siguen vivas y colocar otra venta encima rebota por cantidad
-        insuficiente. El stop de un bracket lleno está en `held` y no
-        aparece como fila propia de `status=open`: vive en `legs` del
-        take-profit. Cancelar solo la fila de arriba alcanza cuando
-        Alpaca tira la pata hermana (OCO), pero si esa fila no está y
-        la pata sí, hay que cancelar el id de la pata.
+        insuficiente. Tras el fill, el stop `held` no es una fila de
+        `status=open`: va en `legs` del padre `filled` (o como fila de
+        `status=all`). El listado que hay que pasar es el de
+        `ordenes_de_simbolos`. El padre ya `filled` no se cancela; sus
+        patas vivas sí, por id, porque cancelar solo el take-profit de
+        la lista `open` deja el stop fuera de este bucle.
 
         El cierre además manda `cancel_orders=true` en el DELETE de la
         posición. Ese flag es el que cancela en el servidor lo que este

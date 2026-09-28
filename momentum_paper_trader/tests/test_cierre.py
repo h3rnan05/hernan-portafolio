@@ -46,7 +46,7 @@ class _FakeClient:
             raise RuntimeError("Alpaca caído")
         return self._posiciones
 
-    def ordenes_abiertas(self):
+    def ordenes_de_simbolos(self, simbolos):
         return []
 
     def cancelar_ordenes_de(self, ticker, abiertas):
@@ -549,8 +549,8 @@ class _CierreConPatas:
     def posiciones(self):
         return [{"symbol": "CTAS", "qty": "3"}]
 
-    def ordenes_abiertas(self):
-        self.llamadas.append("abiertas")
+    def ordenes_de_simbolos(self, simbolos):
+        self.llamadas.append(("anidadas", tuple(simbolos)))
         return list(self._abiertas)
 
     def cancelar_ordenes_de(self, ticker, abiertas):
@@ -572,6 +572,70 @@ class _CierreConPatas:
 
 def _nombres(llamadas: list) -> list[str]:
     return [ll if isinstance(ll, str) else ll[0] for ll in llamadas]
+
+
+def test_el_cierre_cancela_con_el_padre_filled_no_con_la_lista_open(monkeypatch, tmp_path):
+    """El stop held no está en status=open. El cierre tiene que pasar a
+    cancelar el padre filled (265e093f) con la pata f2d920f1."""
+    _parchear(monkeypatch)
+    _revisiones_en_tmp(monkeypatch, tmp_path, [])
+    padre = {
+        "id": "265e093f",
+        "symbol": "MNST",
+        "side": "buy",
+        "type": "limit",
+        "order_class": "bracket",
+        "status": "filled",
+        "legs": [
+            {
+                "id": "bb5baab2",
+                "symbol": "MNST",
+                "side": "sell",
+                "type": "limit",
+                "limit_price": "42.36",
+                "status": "new",
+                "legs": None,
+            },
+            {
+                "id": "f2d920f1",
+                "symbol": "MNST",
+                "side": "sell",
+                "type": "stop",
+                "stop_price": "41.62",
+                "status": "held",
+                "legs": None,
+            },
+        ],
+    }
+
+    class _Client(_FakeClient):
+        def __init__(self):
+            super().__init__([{"symbol": "MNST", "qty": "8", "current_price": "42.00",
+                               "avg_entry_price": "41.90", "unrealized_pl": "0.80"}])
+            self.pedido = None
+            self.canceladas = None
+
+        def ordenes_de_simbolos(self, simbolos):
+            self.pedido = list(simbolos)
+            return [padre]
+
+        def cancelar_ordenes_de(self, ticker, ordenes):
+            self.canceladas = (ticker, ordenes)
+            return 0
+
+    client = _Client()
+    cerradas = cierre.cerrar_si_toca(client, CFG, _t(19, 50))
+
+    assert [c.get("symbol") for c in cerradas] == ["MNST"]
+    assert client.pedido == ["MNST"]
+    assert client.canceladas[0] == "MNST"
+    assert client.canceladas[1][0]["id"] == "265e093f"
+    assert client.canceladas[1][0]["status"] == "filled"
+    patas = client.canceladas[1][0]["legs"]
+    assert {p["id"]: p["status"] for p in patas} == {
+        "bb5baab2": "new",
+        "f2d920f1": "held",
+    }
 
 
 def test_delete_403_cancela_reintenta_y_vende_la_qty_del_broker(monkeypatch, tmp_path):

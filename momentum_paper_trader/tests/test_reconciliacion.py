@@ -33,7 +33,8 @@ def _parchear(monkeypatch, revisiones, posiciones, ordenes):
                 raise posiciones
             return posiciones
 
-        def ordenes_abiertas(self):
+        def ordenes_de_simbolos(self, simbolos):
+            self.simbolos = list(simbolos)
             if isinstance(ordenes, Exception):
                 raise ordenes
             return ordenes
@@ -64,7 +65,7 @@ def test_posicion_seguida_con_stop_no_avisa(monkeypatch):
     client, enviados = _parchear(
         monkeypatch, [_revision("abierta")],
         [{"symbol": "CTAS", "qty": "3"}],
-        [{"symbol": "CTAS", "side": "sell", "type": "stop", "id": "sl"}],
+        [{"symbol": "CTAS", "side": "sell", "type": "stop", "status": "held", "id": "sl"}],
     )
     assert reconciliacion.revisar(client, _VIERNES) == []
     assert enviados == []
@@ -86,7 +87,7 @@ def test_venta_a_mercado_en_curso_no_se_trata_como_desprotegida(monkeypatch):
     client, enviados = _parchear(
         monkeypatch, [_revision("abierta")],
         [{"symbol": "CTAS", "qty": "3"}],
-        [{"symbol": "CTAS", "side": "sell", "type": "market", "id": "mkt"}],
+        [{"symbol": "CTAS", "side": "sell", "type": "market", "status": "accepted", "id": "mkt"}],
     )
     assert reconciliacion.revisar(client, _VIERNES) == []
     assert enviados == []
@@ -109,53 +110,57 @@ def test_posiciones_ilegibles_no_alertan_un_vacio_falso(monkeypatch):
     assert enviados == []
 
 
-# Lo que devolvió Alpaca el 2026-09-28 para MNST, en la forma de
-# `GET /v2/orders?status=open&nested=true`: el take-profit es la fila
-# (status new) y el stop va en `legs` con status held. Sin anidar, esa
-# pata no está en la lista y el chequeo veía solo un limit de venta.
-_BRACKET_MNST = {
-    "id": "b7c1e0aa-11d4-4f2a-9c33-0a1b2c3d4e5f",
-    "client_order_id": "eb9e2aaa-f71a-4f51-b5b4-52a6a7d2c1c1",
-    "created_at": "2026-09-28T14:30:22.224183Z",
-    "updated_at": "2026-09-28T15:17:01.102000Z",
-    "submitted_at": "2026-09-28T14:30:22.222565Z",
-    "filled_at": None,
-    "expired_at": None,
-    "canceled_at": None,
-    "failed_at": None,
-    "asset_id": "b0b6dd9d-8b9b-48a9-ba46-b9d54906e415",
+# Forma viva del 2026-09-28, MNST. `status=open&nested=true` devolvía
+# solo el take-profit bb5baab2 (limit 42.36, new) con legs null. El stop
+# f2d920f1 (stop 41.62, held) iba anidado en la compra ya filled
+# 265e093f, o como fila propia de status=all.
+_TAKE_PROFIT_ABIERTO_MNST = {
+    "id": "bb5baab2",
     "symbol": "MNST",
-    "asset_class": "us_equity",
-    "qty": "8",
-    "filled_qty": "0",
-    "filled_avg_price": None,
-    "order_class": "oco",
-    "type": "limit",
     "side": "sell",
+    "type": "limit",
+    "order_class": "bracket",
     "time_in_force": "day",
-    "limit_price": "44.10",
+    "limit_price": "42.36",
     "stop_price": None,
     "status": "new",
-    "extended_hours": False,
+    "legs": None,
+}
+
+_PADRE_FILLED_MNST = {
+    "id": "265e093f",
+    "symbol": "MNST",
+    "side": "buy",
+    "type": "limit",
+    "order_class": "bracket",
+    "time_in_force": "day",
+    "qty": "8",
+    "status": "filled",
     "legs": [
         {
-            "id": "f2d920f1-7a3e-4d11-9c2b-1e8a0b5c6d70",
-            "client_order_id": "fb472043-1f4e-4445-b5f2-174d1535a118",
-            "created_at": "2026-09-28T14:30:22.224232Z",
+            "id": "bb5baab2",
             "symbol": "MNST",
-            "qty": "8",
-            "filled_qty": "0",
-            "filled_avg_price": None,
-            "order_class": "bracket",
-            "type": "stop",
             "side": "sell",
+            "type": "limit",
+            "order_class": "bracket",
+            "time_in_force": "day",
+            "limit_price": "42.36",
+            "stop_price": None,
+            "status": "new",
+            "legs": None,
+        },
+        {
+            "id": "f2d920f1",
+            "symbol": "MNST",
+            "side": "sell",
+            "type": "stop",
+            "order_class": "bracket",
             "time_in_force": "day",
             "limit_price": None,
             "stop_price": "41.62",
             "status": "held",
-            "extended_hours": False,
             "legs": None,
-        }
+        },
     ],
 }
 
@@ -166,39 +171,68 @@ def _revision_mnst() -> RevisionIA:
     return r
 
 
-def test_stop_held_anidado_no_dispara_falso_sin_stop(monkeypatch):
-    """MNST a las 10:17 MTY: el stop held a 41.62 estaba en `legs` y el
-    ERROR decía que no había stop. Con la posición seguida, silencio."""
+def test_el_take_profit_abierto_sin_patas_no_es_un_stop():
+    """Lo que devolvió status=open&nested=true: solo bb5baab2, legs null.
+    Eso es justo el falso 'sin stop' si no se mira el padre filled."""
+    problemas = reconciliacion.detectar(
+        [{"symbol": "MNST", "qty": "8"}],
+        [_TAKE_PROFIT_ABIERTO_MNST],
+        [_revision_mnst()],
+    )
+    assert problemas == [reconciliacion.Problema("MNST", False, True)]
+
+
+def test_stop_held_bajo_el_padre_filled_no_dispara_falso_sin_stop(monkeypatch):
+    """MNST a las 10:17 MTY: el stop held a 41.62 estaba en las patas de
+    la compra ya filled, no en la lista open. Con la posición seguida,
+    silencio. La búsqueda es status=all de los símbolos en posición."""
     client, enviados = _parchear(
         monkeypatch, [_revision_mnst()],
         [{"symbol": "MNST", "qty": "8"}],
-        [_BRACKET_MNST],
+        [_PADRE_FILLED_MNST],
     )
     assert reconciliacion.revisar(client, _VIERNES) == []
     assert enviados == []
+    assert client.simbolos == ["MNST"]
     assert reconciliacion.detectar(
-        [{"symbol": "MNST", "qty": "8"}], [_BRACKET_MNST], [_revision_mnst()],
+        [{"symbol": "MNST", "qty": "8"}], [_PADRE_FILLED_MNST], [_revision_mnst()],
+    ) == []
+    # La misma pata, como fila propia de status=all (sin anidar).
+    fila = {
+        "id": "f2d920f1",
+        "symbol": "MNST",
+        "side": "sell",
+        "type": "stop",
+        "stop_price": "41.62",
+        "status": "held",
+    }
+    assert reconciliacion.detectar(
+        [{"symbol": "MNST", "qty": "8"}], [fila], [_revision_mnst()],
     ) == []
     # Un OCO a veces manda la pata como stop_limit, también en held.
-    pata = dict(_BRACKET_MNST["legs"][0])
+    pata = dict(_PADRE_FILLED_MNST["legs"][1])
     pata["type"] = "stop_limit"
-    oco = dict(_BRACKET_MNST)
-    oco["legs"] = [pata]
+    oco = dict(_PADRE_FILLED_MNST)
+    oco["legs"] = [_PADRE_FILLED_MNST["legs"][0], pata]
     assert reconciliacion.detectar(
         [{"symbol": "MNST", "qty": "8"}], [oco], [_revision_mnst()],
     ) == []
+    for status in ("new", "accepted", "pending_new"):
+        viva = dict(pata)
+        viva["status"] = status
+        padre = dict(_PADRE_FILLED_MNST)
+        padre["legs"] = [_PADRE_FILLED_MNST["legs"][0], viva]
+        assert reconciliacion.detectar(
+            [{"symbol": "MNST", "qty": "8"}], [padre], [_revision_mnst()],
+        ) == []
 
 
 def test_pata_stop_ya_cancelada_no_cuenta_como_proteccion(monkeypatch):
-    muerta = {
-        "id": "tp-muerta",
-        "symbol": "MNST",
-        "side": "sell",
-        "type": "limit",
-        "status": "new",
-        "order_class": "oco",
-        "legs": [{
-            "id": "f2d920f1-7a3e-4d11-9c2b-1e8a0b5c6d70",
+    muerta = dict(_PADRE_FILLED_MNST)
+    muerta["legs"] = [
+        _PADRE_FILLED_MNST["legs"][0],
+        {
+            "id": "f2d920f1",
             "symbol": "MNST",
             "side": "sell",
             "type": "stop",
@@ -206,8 +240,8 @@ def test_pata_stop_ya_cancelada_no_cuenta_como_proteccion(monkeypatch):
             "stop_price": "41.62",
             "status": "canceled",
             "legs": None,
-        }],
-    }
+        },
+    ]
     client, enviados = _parchear(
         monkeypatch, [_revision_mnst()],
         [{"symbol": "MNST", "qty": "8"}],
@@ -215,3 +249,12 @@ def test_pata_stop_ya_cancelada_no_cuenta_como_proteccion(monkeypatch):
     )
     assert reconciliacion.revisar(client, _VIERNES) == ["MNST"]
     assert "no tiene stop" in enviados[0]
+
+
+def test_stop_sin_status_no_se_inventa_como_proteccion():
+    problemas = reconciliacion.detectar(
+        [{"symbol": "CTAS", "qty": "3"}],
+        [{"symbol": "CTAS", "side": "sell", "type": "stop", "id": "sl"}],
+        [_revision("abierta")],
+    )
+    assert problemas == [reconciliacion.Problema("CTAS", False, True)]

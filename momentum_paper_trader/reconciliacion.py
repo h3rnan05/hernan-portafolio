@@ -7,16 +7,21 @@ seguían abiertas en el broker, sin stop, ocupando 4 de los 5 cupos.
 
 Esto corre en cada pasada de `run.py` (cada tick del vigía: incluye el
 arranque de la sesión y el momento posterior al cierre). Compara
-`GET /v2/positions` con las revisiones vivas y con las órdenes abiertas.
+`GET /v2/positions` con las revisiones vivas y con las órdenes de esos
+símbolos (`status=all`, padre filled incluido).
 Una posición del broker que nadie sigue, o que no tiene un stop de
 venta abierto, dispara un Telegram ERROR. Una venta a mercado viva
 (el cierre en curso) no es un stop, pero tampoco es "desprotegida":
 hay una salida pendiente y no se alarma el cierre que está funcionando.
 
-El stop de un bracket ya lleno no sale en la fila de `status=open`:
-queda `held` dentro de `legs` del take-profit (MNST, 2026-09-28, pata
-`f2d920f1` a $41.62). Contar solo la fila de arriba daba un falso
-"sin stop" con la protección puesta. `legs` forma parte del chequeo.
+El stop de un bracket ya lleno no sale en `status=open`. Ese listado
+trae solo el take-profit (`new`) y con `legs` vacío. El stop queda
+`held` bajo la compra ya `filled`, o como fila propia de `status=all`
+(MNST, 2026-09-28: padre `265e093f`, stop `f2d920f1` a $41.62, límite
+`bb5baab2` a $42.36). El chequeo pide
+`status=all&nested=true&symbols=<posiciones>` y cuenta una venta
+`stop` / `stop_limit` solo si su status es `held`, `new`, `accepted`
+o `pending_new`. Un status ausente no es un stop.
 
 No coloca órdenes ni cambia umbrales. Si no se pueden leer las
 posiciones, no alerta y no inventa un "todo bien". Si no se pueden
@@ -33,7 +38,7 @@ from datetime import UTC, datetime
 from momentum_paper_trader import dedupe_avisos, estado, notify
 from momentum_paper_trader.alpaca_client import (
     AlpacaPaperClient,
-    orden_ya_terminada,
+    orden_sigue_viva,
     ordenes_con_patas,
 )
 
@@ -64,9 +69,12 @@ def _cobertura(ordenes: list[dict] | None) -> tuple[set[str], set[str]] | None:
     """(símbolos con stop de venta, símbolos con venta a mercado).
     None si no hay listado: no se puede afirmar que falte el stop.
 
-    Mira también `legs`. Con el bracket lleno, `status=open` trae el
-    take-profit y el stop va anidado en `held` (MNST, 2026-09-28). Un
-    limit de take-profit no es un stop. Una pata ya terminal tampoco."""
+    Mira la fila y sus `legs`. El padre de un bracket lleno es una
+    compra `filled`: no protege, pero sus patas sí pueden. Cuenta un
+    `stop` / `stop_limit` / `trailing_stop` de venta, o una venta a
+    mercado en curso, solo con status `held`, `new`, `accepted` o
+    `pending_new`. El take-profit es un `limit` y no entra. Una pata
+    `canceled` / `filled` / `expired` tampoco, aunque cuelgue del padre."""
     if ordenes is None:
         return None
     stops: set[str] = set()
@@ -75,7 +83,7 @@ def _cobertura(ordenes: list[dict] | None) -> tuple[set[str], set[str]] | None:
         simbolo = o.get("_symbol")
         if not isinstance(simbolo, str) or not simbolo:
             continue
-        if orden_ya_terminada(o):
+        if not orden_sigue_viva(o):
             continue
         if str(o.get("side") or "").lower() != "sell":
             continue
@@ -147,19 +155,37 @@ def _revisar(client: AlpacaPaperClient, ahora: datetime) -> list[str]:
         log.warning("reconciliación: el listado de posiciones no es una lista; no se alerta")
         return []
 
+    simbolos: list[str] = []
+    vistos_simbolos: set[str] = set()
+    for p in posiciones:
+        if not isinstance(p, dict):
+            continue
+        simbolo = p.get("symbol")
+        if isinstance(simbolo, str) and simbolo and simbolo not in vistos_simbolos:
+            vistos_simbolos.add(simbolo)
+            simbolos.append(simbolo)
+
     ordenes: list[dict] | None
-    try:
-        crudas = client.ordenes_abiertas()
-    except Exception as ex:
-        log.warning(
-            "reconciliación: no se pudieron leer las órdenes (%s); no se afirma que falte el stop",
-            type(ex).__name__,
-        )
-        ordenes = None
+    if not simbolos:
+        ordenes = []
     else:
-        ordenes = crudas if isinstance(crudas, list) else None
-        if ordenes is None:
-            log.warning("reconciliación: las órdenes abiertas no son una lista; no se afirma que falte el stop")
+        try:
+            # status=open no trae al padre filled, y el stop held vive
+            # en sus legs. Hace falta status=all de estos símbolos.
+            crudas = client.ordenes_de_simbolos(simbolos)
+        except Exception as ex:
+            log.warning(
+                "reconciliación: no se pudieron leer las órdenes (%s); no se afirma que falte el stop",
+                type(ex).__name__,
+            )
+            ordenes = None
+        else:
+            ordenes = crudas if isinstance(crudas, list) else None
+            if ordenes is None:
+                log.warning(
+                    "reconciliación: las órdenes de los símbolos en posición no son una lista; "
+                    "no se afirma que falte el stop"
+                )
 
     try:
         revisiones = estado.cargar()
