@@ -1,0 +1,11 @@
+{
+ "url": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001900001/dei/EntityCommonStockSharesOutstanding.json",
+ "params": {},
+ "status": 200,
+ "headers": {
+  "Content-Type": "application/json"
+ },
+ "texto": "{\"cik\": 1900001, \"taxonomy\": \"dei\", \"tag\": \"EntityCommonStockSharesOutstanding\", \"label\": \"Entity Common Stock, Shares Outstanding\", \"description\": \"...\", \"entityName\": \"Ficticia A Corp\", \"units\": {\"shares\": [{\"end\": \"2026-02-20\", \"val\": 40000000, \"accn\": \"0001900001-26-000010\", \"fy\": 2025, \"fp\": \"FY\", \"form\": \"10-K\", \"filed\": \"2026-03-02\", \"frame\": \"CY2025Q4I\"}, {\"end\": \"2026-05-01\", \"val\": 41000000, \"accn\": \"0001900001-26-000020\", \"fy\": 2026, \"fp\": \"Q1\", \"form\": \"10-Q\", \"filed\": \"2026-05-08\"}, {\"end\": \"2026-07-31\", \"val\": 52000000, \"accn\": \"0001900001-26-000030\", \"fy\": 2026, \"fp\": \"Q2\", \"form\": \"10-Q\", \"filed\": \"2026-08-05\"}, {\"end\": \"2026-07-31\", \"val\": null, \"accn\": \"x\", \"fy\": 2026, \"fp\": \"Q2\", \"form\": \"10-Q\", \"filed\": \"2026-08-05\"}]}}",
+ "ficticio": true,
+ "nota": "FICTICIO: el entorno de desarrollo no llega a sec.gov. Formato público de companyconcept (dei/EntityCommonStockSharesOutstanding) de un emisor inventado. Reemplazar con `python -m fuentes grabar edgar_acciones <TICKER>` desde el VPS."
+}
