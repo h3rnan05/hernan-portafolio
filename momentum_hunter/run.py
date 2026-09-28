@@ -73,6 +73,7 @@ from momentum_hunter.catalysts.ancla import ancla_ok
 from momentum_hunter.catalysts.detector import YahooNewsProvider, detectar_catalizador, minutos_desde_catalizador
 from momentum_hunter.catalysts.keyword_rechazos import explicar_rechazos_keyword
 from momentum_hunter.config import CONFIG, MomentumConfig
+from momentum_hunter.data.fuente import informe_de, proveedor_configurado
 from momentum_hunter.data.provider import DataProvider, YahooProvider
 from momentum_hunter.factors import intradia as fi
 from momentum_hunter.factors import momentum as mom
@@ -81,6 +82,44 @@ from momentum_hunter.scoring import puntuar
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("momentum_hunter.run")
+
+
+def _proveedor_de_datos():
+    """`YahooProvider` se resuelve en este módulo para que un test que lo
+    parchea acá siga inyectando el doble. La variable de entorno decide
+    si ese objeto es la fuente o solo el respaldo; el default no la cambia."""
+    return proveedor_configurado(construir_yahoo=YahooProvider)
+
+
+def _anotar_fuente_datos(metricas, provider) -> None:
+    """Copia la foto de precios a la telemetría. Si el proveedor no mide
+    (un doble de prueba), no inventa una fuente."""
+    datos = informe_de(provider) if provider is not None else None
+    if datos is None or metricas is None:
+        return
+    metricas.fuente_datos_configurada = datos["configurada"]
+    metricas.fuente_datos = datos["fuente"]
+    metricas.feed_datos = datos["feed"]
+    metricas.fallbacks_datos = datos["fallbacks"]
+    metricas.latencia_datos_ms = datos["latencia_ms"]
+    if datos["fuente"] is not None:
+        log.info(
+            "datos del ciclo: configurada=%s fuente=%s feed=%s fallbacks=%s latencia_ms=%s",
+            datos["configurada"], datos["fuente"], datos["feed"],
+            datos["fallbacks"], datos["latencia_ms"],
+        )
+
+
+def _registrar_fuente_watchlist(provider, dry_run: bool) -> None:
+    """Un renglón por rechequeo. `modo=watchlist` para que el reporte
+    semanal no lo sume al embudo del escaneo."""
+    if dry_run:
+        return
+    if informe_de(provider) is None:
+        return
+    metricas = telemetria.Metricas(modo="watchlist")
+    _anotar_fuente_datos(metricas, provider)
+    telemetria.registrar_corrida(metricas)
 
 
 def _volumen_promedio(b: Barras, ventana: int = 20) -> float | None:
@@ -571,7 +610,7 @@ def _modo_actualizar_resultados(cfg: MomentumConfig) -> None:
     if not alertas:
         log.info("no hay alertas registradas todavía")
         return
-    outcomes.actualizar_resultados(alertas, YahooProvider(), cfg)
+    outcomes.actualizar_resultados(alertas, _proveedor_de_datos(), cfg)
     # Punto 9 ("Head Trader"): cada alerta recién resuelta genera su
     # página de aprendizaje -- una sola vez (diario_escrito).
     rutas = diario.escribir_nuevas(alertas)
@@ -994,19 +1033,22 @@ def revisar_watchlist(
 
     En VPS (flag ON) la guardia canónica está activa durante toda la
     corrida: cualquier `watchlist.guardar()` contra PATH explota."""
+    if provider is None:
+        provider = _proveedor_de_datos()
     if watchlist.vps_state_habilitado():
         watchlist.activar_prohibicion_canonica()
     try:
         _revisar_watchlist_cuerpo(cfg, provider, dry_run, ahora)
     finally:
         watchlist.desactivar_prohibicion_canonica()
+        _registrar_fuente_watchlist(provider, dry_run)
 
 
 def _revisar_watchlist_cuerpo(
     cfg: MomentumConfig, provider: DataProvider | None, dry_run: bool,
     ahora: datetime | None,
 ) -> None:
-    provider = provider or YahooProvider()
+    provider = provider or _proveedor_de_datos()
     ahora = ahora or datetime.now(UTC)
     entradas = watchlist.cargar()
     if watchlist.vps_state_habilitado():
@@ -1273,10 +1315,11 @@ def main() -> None:
         return
 
     if args.solo_watchlist:
-        revisar_watchlist(CONFIG, YahooProvider(), args.dry_run)
+        revisar_watchlist(CONFIG, _proveedor_de_datos(), args.dry_run)
         return
 
     metricas = telemetria.Metricas(modo="escaneo")
+    provider = None
     # Un solo reloj para inicio, ventana y slot: `timestamp` es el FIN de
     # la corrida, y sin el inicio no se sabe qué slot se miró.
     inicio = datetime.now(UTC)
@@ -1298,7 +1341,7 @@ def main() -> None:
                 metricas.slot, metricas.n_slots = ranura
         log.info("universo candidato: %d tickers", len(tickers))
 
-        provider = YahooProvider()
+        provider = _proveedor_de_datos()
         barras = provider.barras(tickers, dias=280)
         # Tickers pedidos que NO volvieron con barras (2026-09-14). Hasta
         # hoy desaparecían sin rastro: `_barras_una` se traga la excepción
@@ -1312,7 +1355,7 @@ def main() -> None:
         sin_barras = len(tickers) - len(barras)
         if sin_barras > 0:
             metricas.rechazos_universo["sin_barras"] += sin_barras
-            log.warning("barras: %d/%d tickers sin datos -- no se evalúan (Yahoo no respondió o falló)",
+            log.warning("barras: %d/%d tickers sin datos -- no se evalúan (el proveedor no respondió o falló)",
                         sin_barras, len(tickers))
         bandas: dict[str, str] = {}
         for t, b in barras.items():
@@ -1467,6 +1510,7 @@ def main() -> None:
     finally:
         # Telemetría de la foto que haya -- también en silencio temprano
         # o si el resto del pipeline revienta. En dry-run no se persiste.
+        _anotar_fuente_datos(metricas, provider)
         _persistir_telemetria_escaneo(metricas, args.dry_run)
 
 

@@ -26,10 +26,12 @@ conoce la palabra "Yahoo". `factors/intradia.py`, `classification.py`,
 `early_opportunity.py` y `evaluator.py` solo importan `BarraIntradia`
 (genérica, en `models.py`). Conectar Polygon/Alpaca/Tradier más adelante
 es escribir OTRA clase que herede de `DataProvider`, nunca tocar esos
-cuatro módulos. `intervalo`/`periodo` son strings genéricos ("1m"/"5m",
-"1d"/"5d") que cada implementación traduce a su propia API -- Yahoo los
-usa tal cual porque así los espera su endpoint de chart, pero eso es un
-detalle de `YahooProvider`, no del contrato."""
+cuatro módulos. Esa clase es `alpaca_datos.AlpacaProvider`; quién la
+enciende está en `fuente.py` (`MOMENTUM_DATA_PROVIDER`, default yahoo).
+`intervalo`/`periodo` son strings genéricos ("1m"/"5m", "1d"/"5d") que
+cada implementación traduce a su propia API -- Yahoo los usa tal cual
+porque así los espera su endpoint de chart, pero eso es un detalle de
+`YahooProvider`, no del contrato."""
 
 from __future__ import annotations
 

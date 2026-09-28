@@ -29,10 +29,13 @@ overlay, regla 2 (este módulo vive en el paper trader, no en el hunter).
 Fail-closed por tick: si un paso falla o se cuelga (timeout), se registra
 y el siguiente tick vuelve a intentar; nunca se "compensa" nada.
 
-Datos: Yahoo a 60 s (decisión del dueño, 2026-09-22: se prueba hasta el
-viernes; si no alcanza, feed de Alpaca en tiempo real). Con ~10 tickers en
-vigilancia son ~12 peticiones por minuto; un 429 activa la pausa del bot
-de 15 min (`data/provider.py`) y los ticks salen vacíos hasta que pase.
+Datos: el rechequeo no elige la fuente; la hereda del entorno del
+proceso (`MOMENTUM_DATA_PROVIDER`, default yahoo, igual que el escaneo).
+Con yahoo, ~10 tickers en vigilancia son ~12 peticiones por minuto; un
+429 activa la pausa del bot de 15 min (`data/provider.py`) y los ticks
+salen vacíos hasta que pase. Con el feed de pago, esa pausa no aplica:
+un fallo del feed en un símbolo o en el ciclo cae a Yahoo para ese
+pedido y queda anotado en la telemetría del rechequeo.
 
 Vuelta atrás: parar `momentum-vigia.service` y reactivar
 `momentum-watchlist.timer`. Ver infra/systemd/README.md."""

@@ -133,6 +133,17 @@ class Metricas:
     # nos costó semanas (ver `config.score_minimo_alerta`).
     score_maximo: float = 0.0
 
+    # Fuente de PRECIO de este ciclo (2026-09-28). None = no se midió
+    # (corrida vieja, o este proceso no pidió barras). `fallbacks` en
+    # None es lo mismo: un 0 solo se escribe cuando de verdad se contó.
+    # El rechequeo usa modo="watchlist" para no mezclarse con el embudo
+    # del escaneo: un tick por minuto inflaría "corridas registradas".
+    fuente_datos_configurada: str | None = None
+    fuente_datos: str | None = None
+    feed_datos: str | None = None
+    fallbacks_datos: int | None = None
+    latencia_datos_ms: float | None = None
+
     def registrar_error(self, origen: str, ex: BaseException) -> None:
         self.errores[f"{origen}:{type(ex).__name__}"] += 1
 
@@ -196,6 +207,13 @@ class Metricas:
             },
             "score_maximo": round(self.score_maximo, 1),
             "errores": dict(self.errores),
+            "datos": {
+                "configurada": self.fuente_datos_configurada,
+                "fuente": self.fuente_datos,
+                "feed": self.feed_datos,
+                "fallbacks": self.fallbacks_datos,
+                "latencia_ms": self.latencia_datos_ms,
+            },
         }
 
 

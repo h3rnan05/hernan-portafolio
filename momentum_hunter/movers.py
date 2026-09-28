@@ -42,6 +42,7 @@ from momentum_hunter import telemetria
 from momentum_hunter.catalysts.ancla import ancla_ok
 from momentum_hunter.catalysts.detector import NewsProvider, YahooNewsProvider, detectar_catalizador
 from momentum_hunter.config import CONFIG, MomentumConfig
+from momentum_hunter.data.fuente import proveedor_configurado
 from momentum_hunter.data.provider import DataProvider, YahooProvider
 from momentum_hunter.factors import intradia as fi
 from momentum_hunter.models import BarraIntradia, Barras
@@ -369,7 +370,7 @@ def correr_sombra(cfg: MomentumConfig = CONFIG, provider: DataProvider | None = 
         corrida.error = corrida.error or "screener_vacio"
 
     if movers:
-        provider = provider or YahooProvider()
+        provider = provider or proveedor_configurado(construir_yahoo=YahooProvider)
         tickers = [m.ticker for m in movers]
         try:
             intradia = provider.barras_intradia(tickers, cfg.intervalo_intradia, cfg.periodo_intradia)
