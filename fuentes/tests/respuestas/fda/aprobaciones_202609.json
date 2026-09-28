@@ -1,0 +1,15 @@
+{
+ "url": "https://api.fda.gov/drug/drugsfda.json",
+ "params": {
+  "search": "submissions.submission_status_date:[20260901 TO 20260930] AND submissions.submission_status:AP",
+  "limit": 100,
+  "skip": 0
+ },
+ "status": 200,
+ "headers": {
+  "Content-Type": "application/json"
+ },
+ "texto": "{\"meta\": {\"disclaimer\": \"...\", \"results\": {\"skip\": 0, \"limit\": 100, \"total\": 3}}, \"results\": [{\"application_number\": \"BLA761999\", \"sponsor_name\": \"FICTICIA C BIOPHARMA INC\", \"openfda\": {\"application_number\": [\"BLA761999\"], \"brand_name\": [\"FICTIMAB\"], \"manufacturer_name\": [\"FICTICIA C BIOPHARMA INC\"]}, \"products\": [{\"product_number\": \"001\", \"brand_name\": \"FICTIMAB\", \"dosage_form\": \"INJECTABLE\", \"marketing_status\": \"Prescription\"}], \"submissions\": [{\"submission_type\": \"BLA\", \"submission_number\": \"1\", \"submission_status\": \"AP\", \"submission_status_date\": \"20260924\", \"submission_class_code\": \"TYPE 1\", \"review_priority\": \"STANDARD\"}, {\"submission_type\": \"SUPPL\", \"submission_number\": \"2\", \"submission_status\": \"TA\", \"submission_status_date\": \"20260101\", \"submission_class_code\": \"TYPE 1\", \"review_priority\": \"STANDARD\"}]}, {\"application_number\": \"NDA219999\", \"sponsor_name\": \"Ficticia D Therapeutics\", \"openfda\": {\"application_number\": [\"NDA219999\"], \"brand_name\": [\"FICTIMAB\"], \"manufacturer_name\": [\"Ficticia D Therapeutics\"]}, \"products\": [{\"product_number\": \"001\", \"brand_name\": \"FICTIMAB\", \"dosage_form\": \"INJECTABLE\", \"marketing_status\": \"Prescription\"}], \"submissions\": [{\"submission_type\": \"NDA\", \"submission_number\": \"1\", \"submission_status\": \"AP\", \"submission_status_date\": \"20260925\", \"submission_class_code\": \"TYPE 1\", \"review_priority\": \"STANDARD\"}]}, {\"application_number\": \"ANDA209999\", \"sponsor_name\": \"GENERICOS FICTICIOS SA\", \"openfda\": {\"application_number\": [\"ANDA209999\"], \"brand_name\": [\"FICTIMAB\"], \"manufacturer_name\": [\"GENERICOS FICTICIOS SA\"]}, \"products\": [{\"product_number\": \"001\", \"brand_name\": \"FICTIMAB\", \"dosage_form\": \"INJECTABLE\", \"marketing_status\": \"Prescription\"}], \"submissions\": [{\"submission_type\": \"ANDA\", \"submission_number\": \"1\", \"submission_status\": \"AP\", \"submission_status_date\": \"20260910\", \"submission_class_code\": \"TYPE 1\", \"review_priority\": \"STANDARD\"}, {\"submission_type\": \"SUPPL\", \"submission_number\": \"2\", \"submission_status\": \"AP\", \"submission_status_date\": \"20260925\", \"submission_class_code\": \"TYPE 1\", \"review_priority\": \"STANDARD\"}]}]}",
+ "ficticio": true,
+ "nota": "FICTICIO: el entorno de desarrollo no llega a api.fda.gov. Formato público de /drug/drugsfda.json con laboratorios inventados. Reemplazar con `python -m fuentes grabar fda 2026-09` desde el VPS."
+}

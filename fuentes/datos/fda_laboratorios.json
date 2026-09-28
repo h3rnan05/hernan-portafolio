@@ -1,0 +1,8 @@
+{
+  "_nota": "Mapa a mano sponsor FDA -> ticker. Se completa con `python -m fuentes grabar fda AAAA-MM` (lista los sponsors del mes). `confianza`: alta = el sponsor ES el emisor cotizado; dudosa = subsidiaria, licenciante o fusión y la columna vale FALTANTE. Los tres de abajo son FICTICIOS, para las pruebas.",
+  "laboratorios": {
+    "Ficticia C Biopharma, Inc.": {"ticker": "FICC", "confianza": "alta"},
+    "Ficticia C Pharmaceuticals LLC": {"ticker": "FICC", "confianza": "alta"},
+    "Ficticia D Therapeutics": {"ticker": "FICD", "confianza": "dudosa"}
+  }
+}

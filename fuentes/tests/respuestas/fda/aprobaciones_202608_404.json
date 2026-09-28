@@ -1,0 +1,15 @@
+{
+ "url": "https://api.fda.gov/drug/drugsfda.json",
+ "params": {
+  "search": "submissions.submission_status_date:[20260801 TO 20260831] AND submissions.submission_status:AP",
+  "limit": 100,
+  "skip": 0
+ },
+ "status": 404,
+ "headers": {
+  "Content-Type": "application/json"
+ },
+ "texto": "{\"error\": {\"code\": \"NOT_FOUND\", \"message\": \"No matches found!\"}}",
+ "ficticio": true,
+ "nota": "FICTICIO: el entorno de desarrollo no llega a api.fda.gov. Formato público de /drug/drugsfda.json con laboratorios inventados. Reemplazar con `python -m fuentes grabar fda 2026-09` desde el VPS. openFDA responde 404 cuando la búsqueda no tiene resultados."
+}
