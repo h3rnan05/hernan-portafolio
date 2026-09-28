@@ -85,3 +85,22 @@ def test_el_script_se_niega_en_sesion_salvo_que_se_fuerce(tmp_path):
 def test_el_readme_documenta_el_despliegue_desde_actions():
     texto = README.read_text(encoding="utf-8")
     assert "deploy_vps.yml" in texto and "VPS_SSH_KEY" in texto and "VPS_HOST" in texto
+
+
+def test_preparar_merge_borra_el_estado_y_no_fuerza():
+    """main sigue trackeando telemetría. El script la saca del índice
+    para que el PR deje de estar dirty. No es el deploy del VPS."""
+    path = ROOT / "scripts" / "preparar_merge_200.sh"
+    assert subprocess.run(["bash", "-n", str(path)], capture_output=True).returncode == 0
+    assert path.stat().st_mode & stat.S_IXUSR
+    texto = path.read_text(encoding="utf-8")
+    assert "git fetch origin main" in texto
+    assert "git merge origin/main" in texto
+    assert "git rm -f" in texto
+    assert "checkout --theirs" in texto
+    for p in ("momentum_hunter/telemetria", "momentum_hunter/watchlist.json",
+              "momentum_paper_trader/revisiones.json", "momentum_paper_trader/telemetria"):
+        assert p in texto, p
+    codigo = "\n".join(l for l in texto.splitlines() if not l.lstrip().startswith("#"))
+    for prohibido in ("--force", "reset --hard", "systemctl stop", "systemctl restart"):
+        assert prohibido not in codigo, prohibido
