@@ -78,6 +78,36 @@ def ordenes_con_patas(ordenes: list) -> list[dict]:
             salida.append(pata)
     return salida
 
+
+def parametros_ordenes_de_simbolos(simbolos: list[str]) -> dict | None:
+    """Query de `AlpacaPaperClient.ordenes_de_simbolos`.
+
+    None si no hay símbolos: `status=all` sin filtro vaciaría el
+    historial de la cuenta. El panel arma el GET con este dict para
+    pedir lo mismo que la reconciliación y el cierre, sin copiar el
+    filtro. `status=open` no sirve: tras el fill, el stop `held` no
+    está en esa lista."""
+    limpios: list[str] = []
+    vistos: set[str] = set()
+    for simbolo in simbolos:
+        if not isinstance(simbolo, str):
+            continue
+        texto = simbolo.strip()
+        if not texto or texto in vistos:
+            continue
+        vistos.add(texto)
+        limpios.append(texto)
+    if not limpios:
+        return None
+    return {
+        "status": "all",
+        "nested": "true",
+        "symbols": ",".join(limpios),
+        "limit": 500,
+        "direction": "desc",
+    }
+
+
 # NUNCA "https://api.alpaca.markets" (esa es la cuenta real) -- ver
 # docstring del módulo.
 _BASE_URL = "https://paper-api.alpaca.markets/v2"
@@ -159,27 +189,12 @@ class AlpacaPaperClient:
         símbolos, no entra: en esta cuenta no se acerca, y preferimos
         no paginar a ciegas. Sin símbolos no se llama: `status=all` sin
         filtro vaciaría el historial de la cuenta en el chequeo."""
-        limpios: list[str] = []
-        vistos: set[str] = set()
-        for simbolo in simbolos:
-            if not isinstance(simbolo, str):
-                continue
-            texto = simbolo.strip()
-            if not texto or texto in vistos:
-                continue
-            vistos.add(texto)
-            limpios.append(texto)
-        if not limpios:
+        params = parametros_ordenes_de_simbolos(simbolos)
+        if params is None:
             return []
         r = requests.get(
             f"{_BASE_URL}/orders",
-            params={
-                "status": "all",
-                "nested": "true",
-                "symbols": ",".join(limpios),
-                "limit": 500,
-                "direction": "desc",
-            },
+            params=params,
             headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         return r.json()

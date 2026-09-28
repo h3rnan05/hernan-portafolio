@@ -1037,15 +1037,22 @@ def test_stop_de_una_orden_abierta_de_otro_dia_si_cuenta(tmp_path):
 
     def get_con_abiertas(ruta, params=None):
         llamadas.append((ruta, params))
+        # La columna Stop no mira `status=open`: pide el listado de
+        # `ordenes_de_simbolos`. Un stop `new` de ayer sí está ahí.
+        if ruta == "/v2/orders" and params and params.get("symbols"):
+            return [abierta], None
         if ruta == "/v2/orders" and params and params.get("status") == "open":
             return [abierta], None
         return get(ruta, params)
 
     ctx = bd.construir(AHORA, cfg(tmp_path), get=get_con_abiertas, velas=velas_ok)
     assert ctx["operaciones"][0]["marcas"]["stop"] == 4.80
+    assert ctx["posiciones_broker"][0]["stop"]["precio"] == 4.80
+    assert ctx["posiciones_broker"][0]["stop"]["estado"] == "new"
     pedidos = [p for r, p in llamadas if r == "/v2/orders" and p]
     assert any(p.get("nested") == "true" and p.get("status") == "all" for p in pedidos)
-    # El stop `held` del bracket lleno solo viaja en `legs` (MNST, 28/9).
+    assert bd._parametros_ordenes_de_simbolos(["AAA"]) in pedidos
+    # `status=open` sigue pidiéndose para pendientes y el gráfico.
     assert any(p.get("nested") == "true" and p.get("status") == "open" for p in pedidos)
     assert any(p.get("nested") == "true" and p.get("status") == "closed" for p in pedidos)
 
@@ -1104,8 +1111,9 @@ def _bracket_pendiente(ticker="ACN", limite="250.00", stop="245.00", objetivo="2
 
 
 def _tp_con_stop_held(ticker="MNST", stop="41.62", objetivo="48.00"):
-    """Forma real del 28/9: en `status=open` solo está el take-profit; el
-    stop va en `legs`, `held`, y a veces sin `symbol`."""
+    """Take-profit con el stop en `legs`. No es lo que `status=open`
+    devolvió el 28/9 (ahí `legs` venía null): cubre una fila viva cuyas
+    patas sí vienen anidadas, a veces sin `symbol` en la pata."""
     return {
         "id": f"tp-{ticker}", "symbol": ticker, "side": "sell", "type": "limit", "status": "new",
         "qty": "20", "limit_price": objetivo, "submitted_at": "2026-09-18T14:10:00Z",
@@ -1215,8 +1223,8 @@ def test_cierre_sin_entrada_en_el_historial_no_inventa_el_pnl(tmp_path):
 
 
 def test_stop_held_anidado_cuenta_como_proteccion(tmp_path):
-    # La reconciliación de la PR #183 no mira `legs`. El panel aplana la
-    # pata `held` antes de llamarla: MNST con ese stop no es "sin stop".
+    # El stop `held` en `legs` (aunque cuelgue del take-profit) es
+    # protección para el aviso y para la columna. No es "sin stop".
     get = alpaca_falso(
         {"equity": "5000"},
         **{"/v2/positions": [_posicion_llena()], "/v2/orders": [_tp_con_stop_held()]},
@@ -1281,6 +1289,233 @@ def test_venta_a_mercado_en_curso_no_se_trata_como_desprotegida(tmp_path):
                        get=get, velas=velas_ok)
     assert ctx["avisos_broker"] == []
     assert "venta a mercado" in bd.render(ctx)
+
+
+def _posicion_mnst_viva():
+    """MNST el 2026-09-28: 17 acciones a $41.87, bracket ya lleno."""
+    return {
+        "symbol": "MNST", "qty": "17", "avg_entry_price": "41.87", "current_price": "42.10",
+        "unrealized_pl": "3.91", "unrealized_plpc": "0.0055", "side": "long",
+    }
+
+
+def _tp_abierto_mnst():
+    """Lo que devolvió `status=open&nested=true`: solo bb5baab2, legs null."""
+    return {
+        "id": "bb5baab2", "symbol": "MNST", "side": "sell", "type": "limit",
+        "order_class": "bracket", "time_in_force": "day", "qty": "17",
+        "limit_price": "42.36", "stop_price": None, "status": "new", "legs": None,
+        "submitted_at": "2026-09-28T14:30:22Z",
+    }
+
+
+def _pata_stop_mnst(tipo="stop", status="held"):
+    return {
+        "id": "f2d920f1", "symbol": "MNST", "side": "sell", "type": tipo,
+        "order_class": "bracket", "time_in_force": "day", "limit_price": None,
+        "stop_price": "41.62", "status": status, "legs": None,
+        "submitted_at": "2026-09-28T14:30:23Z",
+    }
+
+
+def _padre_filled_mnst(legs=None):
+    """Compra 265e093f ya filled. El stop held no está en `status=open`."""
+    if legs is None:
+        legs = [_tp_abierto_mnst(), _pata_stop_mnst()]
+    return {
+        "id": "265e093f", "symbol": "MNST", "side": "buy", "type": "limit",
+        "order_class": "bracket", "time_in_force": "day", "qty": "17",
+        "filled_qty": "17", "filled_avg_price": "41.87", "status": "filled",
+        "submitted_at": "2026-09-28T14:30:22Z", "legs": legs,
+    }
+
+
+def _get_mnst(ordenes_simbolo, fallo_simbolos=None):
+    """`status=open` siempre miente: solo el take-profit con legs null.
+    La protección tiene que salir de la consulta por símbolo."""
+    llamadas = []
+
+    def get(ruta, params=None):
+        llamadas.append((ruta, params))
+        if ruta == "/v2/account":
+            return {"equity": "5000", "last_equity": "5000"}, None
+        if ruta == "/v2/positions":
+            return [_posicion_mnst_viva()], None
+        if ruta == bd.RUTA_HISTORIAL:
+            return None, "sin historial (prueba)"
+        if ruta == "/v2/orders" and params and params.get("symbols"):
+            if fallo_simbolos is not None:
+                return fallo_simbolos
+            return list(ordenes_simbolo), None
+        if ruta == "/v2/orders" and params and params.get("status") == "open":
+            return [_tp_abierto_mnst()], None
+        if ruta == "/v2/orders":
+            return [], None
+        return None, f"sin datos en {ruta} (prueba)"
+
+    return get, llamadas
+
+
+def _panel_mnst(tmp_path, ordenes_simbolo, fallo_simbolos=None):
+    get, llamadas = _get_mnst(ordenes_simbolo, fallo_simbolos=fallo_simbolos)
+    ctx = bd.construir(
+        AHORA, cfg(tmp_path, revisiones=_libro(tmp_path, _revision_viva("MNST"))),
+        get=get, velas=velas_ok)
+    return ctx, llamadas
+
+
+def test_stop_held_del_padre_filled_no_dispara_falso_sin_stop(tmp_path):
+    # MNST 28/9. status=open es solo bb5baab2 (limit 42.36, new, legs
+    # null). El stop f2d920f1 (41.62, held) cuelga de la compra filled
+    # 265e093f. Ese listado es el de ordenes_de_simbolos.
+    ctx, llamadas = _panel_mnst(tmp_path, [_padre_filled_mnst()])
+    assert ctx["avisos_broker"] == []
+    fila = ctx["posiciones_broker"][0]
+    assert fila["qty"] == 17 and fila["entrada"] == 41.87
+    assert fila["stop"] == {"precio": 41.62, "estado": "held"}
+    assert fila["tp"] == {"precio": 42.36, "estado": "new"}
+    html = bd.render(ctx)
+    assert "no tiene stop de venta abierto" not in html
+    assert "<td>$41.62 · held</td><td>$42.36</td>" in html
+    pedidos = [p for _r, p in llamadas if p and p.get("symbols")]
+    assert pedidos == [bd._parametros_ordenes_de_simbolos(["MNST"])]
+
+
+def test_stop_held_como_fila_propia_tambien_llena_la_columna(tmp_path):
+    # La misma pata, suelta, como fila de status=all (sin anidar).
+    ctx, _llamadas = _panel_mnst(tmp_path, [_pata_stop_mnst(), _tp_abierto_mnst()])
+    assert ctx["avisos_broker"] == []
+    assert ctx["posiciones_broker"][0]["stop"] == {"precio": 41.62, "estado": "held"}
+    assert "no tiene stop de venta abierto" not in bd.render(ctx)
+
+
+def test_el_take_profit_abierto_sin_patas_no_es_el_stop(tmp_path):
+    # status=all tampoco trae el padre ni el stop. El limit 42.36 no
+    # cuenta. Ahí el aviso sí es verdadero y la columna es "—".
+    ctx, _llamadas = _panel_mnst(tmp_path, [_tp_abierto_mnst()])
+    assert ctx["avisos_broker"] == [{"ticker": "MNST", "sin_seguimiento": False, "sin_stop": True}]
+    assert ctx["posiciones_broker"][0]["stop"] is None
+    assert ctx["posiciones_broker"][0]["tp"]["precio"] == 42.36
+    html = bd.render(ctx)
+    assert "MNST: no tiene stop de venta abierto." in html
+    assert "<td>—</td><td>$42.36</td>" in html
+
+
+def test_si_no_se_leen_las_ordenes_del_simbolo_no_se_afirma_que_falta_el_stop(tmp_path):
+    # status=open sigue siendo solo el take-profit. Si la consulta de
+    # símbolos falla o no es una lista, no se usa esa fila para decir
+    # que no hay stop.
+    libro = _libro(tmp_path, _revision_viva("MNST"))
+    fallos = (
+        (None, "Alpaca no respondió en /v2/orders: timeout"),
+        ({"message": "no"}, None),
+    )
+    for fallo in fallos:
+        get, _llamadas = _get_mnst([], fallo_simbolos=fallo)
+        ctx = bd.construir(AHORA, cfg(tmp_path, revisiones=libro), get=get, velas=velas_ok)
+        assert ctx["avisos_broker"] == [], fallo
+        fila = ctx["posiciones_broker"][0]
+        assert fila["salidas_conocidas"] is False and fila["stop"] is None
+        html = bd.render(ctx)
+        assert "no tiene stop" not in html
+        bloque = html.split("Posiciones abiertas", 1)[1].split("Órdenes pendientes", 1)[0]
+        assert "sin datos" in bloque and "$41.62" not in bloque
+        if fallo[1]:
+            assert fallo[1] in ctx["problemas"]
+        else:
+            assert any("no se afirma que falte el stop" in p for p in ctx["problemas"])
+
+
+def test_aviso_y_columna_siguen_la_regla_de_proteccion(tmp_path):
+    # Misma forma del padre filled. Cambia el tipo o el status de la
+    # pata de venta: stop_limit / trailing_stop y new / accepted /
+    # pending_new protegen; canceled, status ausente y un limit no.
+    libro = _libro(tmp_path, _revision_viva("MNST"))
+    casos = [
+        ("stop", "held", False),
+        ("stop_limit", "new", False),
+        ("trailing_stop", "accepted", False),
+        ("stop", "pending_new", False),
+        ("stop", "canceled", True),
+        ("stop", None, True),
+    ]
+    for tipo, status, sin_stop in casos:
+        get, _llamadas = _get_mnst([_padre_filled_mnst(legs=[
+            _tp_abierto_mnst(), _pata_stop_mnst(tipo, status),
+        ])])
+        ctx = bd.construir(AHORA, cfg(tmp_path, revisiones=libro), get=get, velas=velas_ok)
+        stop = ctx["posiciones_broker"][0]["stop"]
+        if sin_stop:
+            assert ctx["avisos_broker"] == [{"ticker": "MNST", "sin_seguimiento": False, "sin_stop": True}]
+            assert stop is None
+        else:
+            assert ctx["avisos_broker"] == [], (tipo, status)
+            assert stop == {"precio": 41.62, "estado": status}
+
+    get, _llamadas = _get_mnst([_padre_filled_mnst(legs=[_tp_abierto_mnst()])])
+    ctx = bd.construir(AHORA, cfg(tmp_path, revisiones=libro), get=get, velas=velas_ok)
+    assert ctx["avisos_broker"] == [{"ticker": "MNST", "sin_seguimiento": False, "sin_stop": True}]
+    assert ctx["posiciones_broker"][0]["stop"] is None
+    assert ctx["posiciones_broker"][0]["tp"]["precio"] == 42.36
+
+    mercado = {"id": "mkt", "symbol": "MNST", "side": "sell", "type": "market", "status": "accepted",
+               "qty": "17", "submitted_at": "2026-09-28T15:00:00Z"}
+    get, _llamadas = _get_mnst([_padre_filled_mnst(legs=[_tp_abierto_mnst()]), mercado])
+    ctx = bd.construir(AHORA, cfg(tmp_path, revisiones=libro), get=get, velas=velas_ok)
+    assert ctx["avisos_broker"] == []
+    assert ctx["posiciones_broker"][0]["mercado"] is True
+    assert ctx["posiciones_broker"][0]["stop"] is None
+    assert "venta a mercado" in bd.render(ctx)
+
+
+def test_sin_simbolos_no_pide_status_all_sin_filtro(tmp_path):
+    llamadas = []
+
+    def get(ruta, params=None):
+        llamadas.append((ruta, params))
+        if ruta == "/v2/account":
+            return {"equity": "5000"}, None
+        if ruta == "/v2/positions":
+            return [], None
+        if ruta == bd.RUTA_HISTORIAL:
+            return None, "sin historial (prueba)"
+        return [], None
+
+    bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)
+    assert [p for _r, p in llamadas if p and "symbols" in p] == []
+
+    visto = []
+
+    def get_directo(ruta, params=None):
+        visto.append(params)
+        return [{"id": "no-debio-pedirse"}], None
+
+    assert bd.leer_ordenes_de_simbolos(get_directo, []) == ([], None)
+    assert bd.leer_ordenes_de_simbolos(get_directo, ["", "  "]) == ([], None)
+    assert visto == []
+
+
+def test_la_consulta_junta_los_simbolos_en_posicion(tmp_path):
+    llamadas = []
+
+    def get(ruta, params=None):
+        llamadas.append((ruta, params))
+        if ruta == "/v2/account":
+            return {"equity": "5000"}, None
+        if ruta == "/v2/positions":
+            return [_posicion_mnst_viva(),
+                    {"symbol": "CTAS", "qty": "3", "avg_entry_price": "190", "side": "long"}], None
+        if ruta == bd.RUTA_HISTORIAL:
+            return None, "sin historial (prueba)"
+        if ruta == "/v2/orders":
+            return [], None
+        return None, f"sin datos en {ruta} (prueba)"
+
+    bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)
+    pedidos = [p for _r, p in llamadas if p and p.get("symbols")]
+    assert pedidos == [bd._parametros_ordenes_de_simbolos(["MNST", "CTAS"])]
+    assert pedidos[0]["symbols"] == "MNST,CTAS"
+    assert pedidos[0]["status"] == "all" and pedidos[0]["nested"] == "true"
 
 
 def test_fuente_de_datos_sale_si_la_telemetria_la_trae_y_no_se_inventa(tmp_path):

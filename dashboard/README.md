@@ -89,9 +89,16 @@ Tres bloques, todos de GET:
 
 - **Posiciones abiertas**: cantidad, entrada (`avg_entry_price`), precio actual,
   P&L abierto (`unrealized_pl`, y el porcentaje si vino `unrealized_plpc`), stop
-  y objetivo. El stop de un bracket ya lleno no viene suelto: Alpaca lo deja
-  `held` en `legs` del take-profit y solo aparece con `nested=true`. Una pata
-  `held` se muestra y cuenta como protección.
+  y objetivo. El stop de un bracket ya lleno no está en `status=open`: esa
+  lista trae solo el take-profit (`new`) con `legs` vacío. El stop queda
+  `held` bajo la compra ya `filled` (MNST, 28/9: padre `265e093f`, stop
+  `f2d920f1` a $41.62, límite `bb5baab2` a $42.36). La columna y el aviso
+  piden `ordenes_de_simbolos` (`status=all&nested=true&symbols=...`) y usan
+  la regla de `reconciliacion.detectar`: venta `stop` / `stop_limit` /
+  `trailing_stop` con status `held`, `new`, `accepted` o `pending_new`, en
+  la fila o en una pata, o una venta a mercado en curso. Un límite de
+  take-profit no es el stop. Si esas órdenes no se pueden leer, no se
+  afirma que falte.
 - **Órdenes pendientes**: compras de entrada que todavía no llenan (ACN, NTAP),
   con sus patas. No se mezclan con la posición.
 - **Cerradas hoy**: ventas llenas de hoy de un símbolo que ya no está abierto,
@@ -101,9 +108,9 @@ Tres bloques, todos de GET:
 
 Un aviso rojo si el broker tiene una posición que ninguna revisión viva sigue,
 o una sin stop de venta (ni venta a mercado en curso). Es `reconciliacion.detectar`
-de la PR #183; las patas `held` se aplanan antes de llamarlo, porque ese detector
-mira la fila de arriba. Si las órdenes no se pudieron leer, no se afirma que
-falte el stop. `DASH_REVISIONES` apunta al libro; por defecto es el
+con el listado anidado de `ordenes_de_simbolos`: el detector mira la fila y
+sus `legs`, y solo cuenta una pata viva. Si esas órdenes no se pudieron leer,
+no se afirma que falte el stop. `DASH_REVISIONES` apunta al libro; por defecto es el
 `revisiones.json` del paquete.
 
 La píldora "Fuente de datos" sale de la telemetría de hoy del VPS, bloque
