@@ -198,6 +198,6 @@ def _grabar(argv: list[str]) -> int:
     return 0
 
 
-from fuentes import __main__ as _cli  # noqa: E402  (registro al final, como en edgar.py)
+from fuentes import cli as _cli  # noqa: E402  (registro al final, como en edgar.py)
 
 _cli.registrar("edgar_form4", _grabar)

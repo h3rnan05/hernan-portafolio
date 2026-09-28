@@ -3,12 +3,17 @@
 Fuente: FINRA API Query, dataset público `otcMarket/consolidatedShortInterest`
 (`POST https://api.finra.org/data/group/otcMarket/name/consolidatedShortInterest`
 con `{"limit", "offset", "compareFilters": [{"fieldName": "settlementDate",
-"compareType": "EQUAL", "fieldValue": "AAAA-MM-DD"}]}` y `Accept: text/csv`).
-Sin credenciales para los datasets públicos; se paginan 5.000 filas por
-pedido y se cachea la fecha de corte entera (no cambia una vez publicada).
-Columnas del CSV: settlementDate, symbolCode, issueName, marketClassCode,
+"compareType": "EQUAL", "fieldValue": "AAAA-MM-DD"}]}` y
+`Accept: application/json`: el dataset NO entrega CSV, responde 400
+"Dataset does not support user requested text/csv format" — verificado
+el 2026-09-28). Sin credenciales; 5.000 filas por página; un corte
+inexistente responde 204 sin cuerpo, que aquí es "sin datos" (FALTANTE),
+nunca cero. Se cachea el corte entero (no cambia una vez publicado).
+Campos del JSON: settlementDate, symbolCode, issueName, marketClassCode,
 currentShortPositionQuantity, previousShortPositionQuantity, changePercent,
-averageDailyVolumeQuantity, daysToCoverQuantity, stockSplitFlag, revisionFlag.
+changePreviousNumber, averageDailyVolumeQuantity, daysToCoverQuantity,
+accountingYearMonthNumber, issuerServicesGroupExchangeCode, stockSplitFlag,
+revisionFlag.
 
 FECHA DE PUBLICACIÓN, NO DE CORTE (decisión 2026-09-28). El corte es el
 15 y el último día hábil del mes, pero el mercado ve el dato ~8 días
@@ -17,11 +22,11 @@ reporte cuya PUBLICACIÓN (día de publicación a las 16:00 NY) es anterior
 al instante. Usar la fecha de corte sería mirar el futuro.
 
 Cómo se calcula la publicación: `fuentes/datos/finra_calendario.json`
-(corte -> publicación, copiado del calendario que FINRA publica) manda;
-si un corte no está ahí, corte + 8 días hábiles (lunes a viernes, SIN
-feriados: en semana con feriado la publicación real cae un día después
-y el dato se consideraría visible un día antes de tiempo; por eso el
-calendario del archivo tiene prioridad y `grabar` recuerda completarlo).
+(corte -> publicación, la tabla oficial de FINRA; 2026 completo) manda;
+si un corte no está ahí, corte + 8 días hábiles (lunes a viernes, sin
+feriados), que no siempre acierta (2026-09-15: oficial 09-24, estimado
+09-25; 2026-07-15: oficial 07-24, estimado 07-27). Por eso el archivo
+tiene prioridad y `grabar` avisa cuando un corte no está en él.
 
 COLUMNAS:
     short_interest_acciones     posición corta reportada | None (el símbolo
@@ -37,8 +42,6 @@ COLUMNAS:
 from __future__ import annotations
 
 import argparse
-import csv
-import io
 import json
 import logging
 from dataclasses import dataclass
@@ -46,7 +49,7 @@ from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Callable
 
-from fuentes import __main__ as cli
+from fuentes import cli
 from fuentes.cache import Cache
 from fuentes.columnas import todas_faltantes
 from fuentes.comun import FALTANTE, ErrorFuente, numero
@@ -75,7 +78,7 @@ class Reporte:
 def cliente_finra(transport=None, transport_post=None, dormir=None) -> Cliente:
     kw = {"dormir": dormir} if dormir is not None else {}
     return Cliente("finra", "hernan-portafolio fuentes", limitador=Limitador(10, 60.0, **kw), transport=transport,
-                   transport_post=transport_post, headers={"Accept": "text/csv"}, **kw)
+                   transport_post=transport_post, headers={"Accept": "application/json"}, **kw)
 
 
 def cortes_entre(desde: date, hasta: date) -> list[date]:
@@ -109,18 +112,26 @@ def publicacion_de(corte: date, calendario: dict[date, date]) -> date:
     return calendario.get(corte) or dias_habiles_despues(corte, DIAS_HABILES_PUBLICACION)
 
 
-def leer_csv(texto: str, corte: date) -> dict[str, tuple[float, float | None, float | None]]:
-    """símbolo -> (posición, días para cubrir, cambio %). Una fila sin
-    posición legible se descarta; si el CSV no tiene las columnas, levanta."""
-    lector = csv.DictReader(io.StringIO(texto))
-    if not lector.fieldnames or "symbolCode" not in lector.fieldnames or "currentShortPositionQuantity" not in lector.fieldnames:
+def leer_json(texto: str, corte: date) -> dict[str, tuple[float, float | None, float | None]]:
+    """símbolo -> (posición, días para cubrir, cambio %). Un cuerpo vacío
+    (204) o que no sea un arreglo levanta; una fila sin posición legible
+    se descarta."""
+    if not texto.strip():
+        raise ErrorFuente("sin_datos", "finra")
+    try:
+        filas = json.loads(texto)
+    except ValueError:
+        raise ErrorFuente("cuerpo", "finra") from None
+    if not isinstance(filas, list):
         raise ErrorFuente("cuerpo", "finra")
     out = {}
-    for fila in lector:
+    for fila in filas:
+        if not isinstance(fila, dict):
+            continue
         f = leer_fecha(fila.get("settlementDate"))
         if f is not None and f != corte:
             continue
-        sim = (fila.get("symbolCode") or "").strip().upper()
+        sim = str(fila.get("symbolCode") or "").strip().upper()
         pos = _num(fila.get("currentShortPositionQuantity"))
         if not sim or pos is None:
             continue
@@ -128,13 +139,13 @@ def leer_csv(texto: str, corte: date) -> dict[str, tuple[float, float | None, fl
     return out
 
 
-def _num(texto: object) -> float | None:
-    if not isinstance(texto, str) or not texto.strip():
-        return None
-    try:
-        return numero(float(texto.replace(",", "")))
-    except ValueError:
-        return None
+def _num(valor: object) -> float | None:
+    if isinstance(valor, str):
+        try:
+            return numero(float(valor.replace(",", "")))
+        except ValueError:
+            return None
+    return numero(valor)
 
 
 class ShortInterestFinra:
@@ -169,7 +180,9 @@ class ShortInterestFinra:
                 cuerpo = {"limit": LIMITE, "offset": offset, "compareFilters": [
                     {"fieldName": "settlementDate", "compareType": "EQUAL", "fieldValue": corte.isoformat()}]}
                 r = self.cliente().post(URL, cuerpo)
-                filas = leer_csv(r.texto, corte)
+                if r.status == 204:
+                    raise ErrorFuente("sin_datos", "finra")
+                filas = leer_json(r.texto, corte)
                 textos.append(r.texto)
                 if len(filas) < LIMITE:
                     return textos
@@ -180,7 +193,7 @@ class ShortInterestFinra:
             textos = self.cache.obtener("finra_short", clave, pedir)
             out: dict = {}
             for t in textos:
-                out.update(leer_csv(t, corte))
+                out.update(leer_json(t, corte))
             self._cortes[corte] = out
         except ErrorFuente as ex:
             log.warning("finra_short: %s (corte %s)", ex.codigo, corte)
@@ -231,10 +244,13 @@ def _grabar(argv: list[str]) -> int:
     r = cliente_finra().post(URL, cuerpo)
     guardar("finra_short", f"corte_{args.corte:%Y%m%d}", URL, cuerpo, r.status, r.headers, r.texto, ficticio=False,
             directorio=args.dir, metodo="POST")
-    filas = leer_csv(r.texto, args.corte)
+    if r.status == 204:
+        print(f"{args.corte}: 204 sin cuerpo (no es un corte publicado)")
+        return 3
+    filas = leer_json(r.texto, args.corte)
     cal = cargar_calendario()
-    print(f"{args.corte}: {len(filas)} símbolos; publicación estimada {publicacion_de(args.corte, cal)}"
-          f" ({'del calendario' if args.corte in cal else 'corte + 8 días hábiles; anotar la real en finra_calendario.json'})")
+    print(f"{args.corte}: {len(filas)} símbolos en la primera página; publicación {publicacion_de(args.corte, cal)}"
+          f" ({'del calendario oficial' if args.corte in cal else 'ESTIMADA corte + 8 días hábiles: anotar la oficial en finra_calendario.json'})")
     return 0
 
 

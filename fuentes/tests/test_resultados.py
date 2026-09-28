@@ -9,7 +9,7 @@ import pytest
 from fuentes import FALTANTE, ErrorFuente, edgar, resultados
 from fuentes.cache import Cache
 from fuentes.grabar import TransporteGrabado, cargar, transporte_desde
-from fuentes.tests.test_edgar import TODAS
+from fuentes.tests.test_edgar import DESDE, TODAS
 
 
 def _finnhub(tmp_path, monkeypatch, token="clave-secreta"):
@@ -88,13 +88,17 @@ def test_sin_token_es_faltante(tmp_path, monkeypatch):
 def test_respaldo_8k_202(tmp_path, monkeypatch):
     monkeypatch.setenv(edgar.ENV_USER_AGENT, "hernan-portafolio pruebas@example.com")
     t = transporte_desde("edgar", TODAS)
-    lector = edgar.LectorEdgar(Cache(tmp_path / "c"), edgar.cliente_edgar(transport=t, dormir=lambda s: None))
+    lector = edgar.LectorEdgar(Cache(tmp_path / "c"), edgar.cliente_edgar(transport=t, dormir=lambda s: None), DESDE)
     f = resultados.ResultadosEdgar(lector)
     assert f.nombres() == resultados.ResultadosFinnhub._NOMBRES
-    fila = f.columnas("FICA", datetime(2026, 9, 25, 13, 40, tzinfo=UTC))
-    assert fila == {"resultados_reciente": True, "resultados_fecha": "2026-09-24", "resultados_hora": "amc",
+    # AAPL 8-K 2.02 aceptado 2026-07-30 20:30:28 UTC = 16:30 ET (tras el cierre): amc.
+    fila = f.columnas("AAPL", datetime(2026, 7, 31, 13, 40, tzinfo=UTC))
+    assert fila == {"resultados_reciente": True, "resultados_fecha": "2026-07-30", "resultados_hora": "amc",
                     "resultados_proximo_dias": FALTANTE, "resultados_fuente": "8k_2.02"}
-    # El 8-K 8.01 del 25 no es resultados.
-    fila = f.columnas("FICA", datetime(2026, 9, 26, 14, 0, tzinfo=UTC))
+    # NTLA 8-K 2.02 aceptado 2026-08-06 11:45:16 UTC = 07:45 ET (antes de abrir): bmo.
+    fila = f.columnas("NTLA", datetime(2026, 8, 6, 13, 40, tzinfo=UTC))
+    assert fila["resultados_reciente"] is True and fila["resultados_hora"] == "bmo"
+    # El 8-K 7.01/8.01 de NTLA del 8/9 no es resultados.
+    fila = f.columnas("NTLA", datetime(2026, 9, 9, 14, 0, tzinfo=UTC))
     assert fila["resultados_reciente"] is False and fila["resultados_proximo_dias"] is FALTANTE
     assert all(v is FALTANTE for v in f.columnas("NOEXISTE", datetime(2026, 9, 26, 14, 0, tzinfo=UTC)).values())
