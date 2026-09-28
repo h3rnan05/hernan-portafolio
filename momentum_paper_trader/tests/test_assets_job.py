@@ -271,7 +271,14 @@ def test_el_json_esta_en_gitignore_y_la_ruta_es_la_que_lee_el_hunter(monkeypatch
     texto = (REPO / ".gitignore").read_text(encoding="utf-8")
     assert "momentum_hunter/datos/alpaca_assets.json" in texto
     monkeypatch.delenv("MOMENTUM_CATALOGO_ACTIVOS", raising=False)
-    assert assets_job.ruta_por_defecto() == REPO / "momentum_hunter" / "datos" / "alpaca_assets.json"
+    monkeypatch.delenv("MOMENTUM_ESTADO_DIR", raising=False)
+    defecto = assets_job.ruta_por_defecto()
+    assert defecto == Path("/var/lib/momentum/estado/datos/alpaca_assets.json")
+    assert REPO not in defecto.parents
+    monkeypatch.setenv("MOMENTUM_ESTADO_DIR", "/tmp/estado-momentum")
+    assert assets_job.ruta_por_defecto() == Path("/tmp/estado-momentum/datos/alpaca_assets.json")
+    monkeypatch.setenv("MOMENTUM_CATALOGO_ACTIVOS", "/tmp/otro.json")
+    assert assets_job.ruta_por_defecto() == Path("/tmp/otro.json")
 
 
 def test_timer_diario_1205_utc_y_el_readme_dice_como_habilitarlo():
@@ -283,9 +290,15 @@ def test_timer_diario_1205_utc_y_el_readme_dice_como_habilitarlo():
     assert "NO se habilita solo" in timer
     assert "ExecStart=/opt/momentum/bin/run_assets.sh" in servicio
     assert "EnvironmentFile=/etc/momentum/paper.env" in servicio
+    assert "StateDirectory=momentum/estado/datos" in servicio
+    assert "ReadWritePaths=/var/lib/momentum/estado" in servicio
+    assert "Environment=MOMENTUM_ESTADO_DIR=/var/lib/momentum/estado" in servicio
     readme = (raiz / "README.md").read_text(encoding="utf-8")
     assert "systemctl enable --now momentum-assets.timer" in readme
     assert "NO se habilita solo" in readme
+    assert "mkdir -p /var/lib/momentum/estado/datos" in readme
+    assert "chown momentum:momentum" in readme
     wrapper = (raiz / "bin" / "run_assets.sh").read_text(encoding="utf-8")
     assert "momentum_paper_trader.assets_job" in wrapper
+    assert 'MOMENTUM_ESTADO_DIR="${MOMENTUM_ESTADO_DIR:-/var/lib/momentum/estado}"' in wrapper
     assert os.access(raiz / "bin" / "run_assets.sh", os.X_OK)

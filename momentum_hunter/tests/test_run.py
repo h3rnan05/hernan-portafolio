@@ -606,6 +606,7 @@ def test_main_sin_catalogo_no_filtra_y_marca_desconocido(monkeypatch, tmp_path):
     run_mod.main()
     _, lineas = _jsonl_de_escaneo(tmp_path)
     assert lineas[0]["assets_desconocido"] is True
+    assert lineas[0]["assets_motivo"] == "ausente"
     assert lineas[0]["descartados_catalogo"] is None
     assert pedidos == [["OK", "HALT"]]
     assert lineas[0]["universo_escaneado"] == 2
@@ -617,14 +618,21 @@ def test_main_catalogo_fresco_no_pide_el_simbolo_no_tradable(monkeypatch, tmp_pa
         "HALT": _barras("HALT", precio=5.0, vol_prom=500_000.0),
     }
     path = tmp_path / "activos.json"
+    from momentum_hunter.catalogo_activos import MINIMO_SIMBOLOS
+    assets = [
+        {"symbol": "OK", "exchange": "NYSE", "tradable": True,
+         "fractionable": False, "status": "active", "name": "Ok"},
+        {"symbol": "HALT", "exchange": "NASDAQ", "tradable": False,
+         "fractionable": False, "status": "active", "name": "Halt"},
+    ]
+    assets.extend(
+        {"symbol": f"ZZ{i:05d}", "exchange": "NASDAQ", "tradable": True,
+         "fractionable": False, "status": "active", "name": f"ZZ{i:05d}"}
+        for i in range(MINIMO_SIMBOLOS - len(assets))
+    )
     path.write_text(json.dumps({
         "fecha_generacion": datetime.now(UTC).isoformat(timespec="seconds"),
-        "assets": [
-            {"symbol": "OK", "exchange": "NYSE", "tradable": True,
-             "fractionable": False, "status": "active", "name": "Ok"},
-            {"symbol": "HALT", "exchange": "NASDAQ", "tradable": False,
-             "fractionable": False, "status": "active", "name": "Halt"},
-        ],
+        "assets": assets,
     }), encoding="utf-8")
     monkeypatch.setenv("MOMENTUM_CATALOGO_ACTIVOS", str(path))
     pedidos = []
@@ -646,11 +654,49 @@ def test_main_catalogo_fresco_no_pide_el_simbolo_no_tradable(monkeypatch, tmp_pa
     _, lineas = _jsonl_de_escaneo(tmp_path)
     assert pedidos == [["OK"]]
     assert lineas[0]["assets_desconocido"] is False
+    assert lineas[0]["assets_motivo"] is None
     assert lineas[0]["descartados_catalogo"] == 1
     assert lineas[0]["universo_escaneado"] == 1
     embudo = lineas[0]["embudo"]
     total = sum(embudo["operables"].values()) + sum(embudo["rechazos_universo"].values())
     assert total == 1
+
+
+def test_main_catalogo_corto_no_filtra_y_marca_pocos(monkeypatch, tmp_path):
+    barras = {
+        "OK": _barras("OK", precio=5.0, vol_prom=500_000.0),
+        "HALT": _barras("HALT", precio=5.0, vol_prom=500_000.0),
+    }
+    path = tmp_path / "corto.json"
+    path.write_text(json.dumps({
+        "fecha_generacion": datetime.now(UTC).isoformat(timespec="seconds"),
+        "assets": [
+            {"symbol": "OK", "exchange": "NYSE", "tradable": True,
+             "fractionable": False, "status": "active", "name": "Ok"},
+            {"symbol": "HALT", "exchange": "NASDAQ", "tradable": False,
+             "fractionable": False, "status": "active", "name": "Halt"},
+        ],
+    }), encoding="utf-8")
+    monkeypatch.setenv("MOMENTUM_CATALOGO_ACTIVOS", str(path))
+    pedidos = []
+
+    class _Rec(_FakeProviderEscaneo):
+        def barras(self, tickers, dias=280):
+            pedidos.append(list(tickers))
+            return super().barras(tickers, dias)
+
+    def _diarios(validos, barras, provider, cfg, con_cat, bandas=None, metricas=None, ahora=None):
+        return []
+
+    _preparar_main_escaneo(monkeypatch, tmp_path, barras, diarios=_diarios)
+    monkeypatch.setattr(run_mod, "YahooProvider", lambda: _Rec(barras))
+    run_mod.main()
+    _, lineas = _jsonl_de_escaneo(tmp_path)
+    assert pedidos == [["OK", "HALT"]]
+    assert lineas[0]["assets_desconocido"] is True
+    assert lineas[0]["assets_motivo"] == "pocos"
+    assert lineas[0]["descartados_catalogo"] is None
+    assert lineas[0]["universo_escaneado"] == 2
 
 
 def test_main_sin_rotacion_no_inventa_slot(monkeypatch, tmp_path):

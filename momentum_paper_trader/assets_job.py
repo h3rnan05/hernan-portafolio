@@ -10,6 +10,14 @@ HOST. Se usa `alpaca_client._BASE_URL`, que ya está fijo en
 `https://paper-api.alpaca.markets/v2`. No hay variable ni argumento
 para cambiarlo: el mismo candado que el resto del paper trader.
 
+DÓNDE ESCRIBE. La misma ruta que lee el hunter
+(`catalogo_activos.ruta_catalogo`): por omisión
+`/var/lib/momentum/estado/datos/alpaca_assets.json`, o
+`$MOMENTUM_ESTADO_DIR/datos/alpaca_assets.json`. El archivo no vive
+en el árbol git. Si el directorio no existe, este job lo crea. El
+hunter no. Un catálogo corto se escribe igual (es lo que devolvió el
+host); quien decide no filtrar con él es el lector.
+
 FALLO. Un HTTP que no sea 200, un cuerpo que no se entiende, una
 paginación que no termina o una lista vacía NO tocan el archivo
 anterior. Una foto a medias haría que el hunter diera por no listados
@@ -187,7 +195,11 @@ def descargar() -> list[dict]:
 
 def escribir_atomico(path: Path, payload: dict) -> None:
     """Reemplaza `path` de un golpe. Si algo falla antes del `replace`,
-    el archivo anterior sigue igual y no queda un temporal."""
+    el archivo anterior sigue igual y no queda un temporal.
+
+    El directorio lo crea este job, no el hunter: un lector que no
+    encuentra el archivo tiene que seguir sin filtrar, no inventar
+    la carpeta."""
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_name = tempfile.mkstemp(
         prefix=".alpaca_assets.", suffix=".tmp", dir=path.parent,
@@ -233,7 +245,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Catálogo de activos del host paper (solo escritura local)")
     parser.add_argument(
         "--salida", type=Path, default=None,
-        help="ruta del JSON (por omisión, momentum_hunter/datos/alpaca_assets.json)",
+        help="ruta del JSON (por omisión, $MOMENTUM_ESTADO_DIR/datos/alpaca_assets.json)",
     )
     args = parser.parse_args(argv)
     try:

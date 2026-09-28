@@ -7,6 +7,7 @@ from __future__ import annotations
 import inspect
 import json
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
 from momentum_hunter import catalogo_activos as cat
 from momentum_hunter.config import MomentumConfig
@@ -39,6 +40,26 @@ def _fila(symbol, **extra):
     return base
 
 
+def _rellenar(filas):
+    """Un catálogo usable tiene al menos MINIMO_SIMBOLOS. El relleno
+    no pisa los símbolos del caso."""
+    vistos = {
+        f["symbol"].upper()
+        for f in filas
+        if isinstance(f, dict) and isinstance(f.get("symbol"), str)
+    }
+    out = list(filas)
+    i = 0
+    while len(out) < cat.MINIMO_SIMBOLOS:
+        sym = f"ZZ{i:05d}"
+        i += 1
+        if sym in vistos:
+            continue
+        vistos.add(sym)
+        out.append(_fila(sym))
+    return out
+
+
 def _barras(ticker: str) -> Barras:
     n = 25
     fechas = [str(1_700_000_000 + i * 86_400) for i in range(n)]
@@ -65,6 +86,9 @@ def test_el_modulo_no_llama_a_ningun_endpoint():
     for palabra in ("requests", "paper-api", "api.alpaca.markets", "ALPACA_PAPER", "urllib"):
         assert palabra not in fuente
     assert cat.EDAD_MAXIMA == timedelta(hours=36)
+    assert cat.MINIMO_SIMBOLOS == 5000
+    # El lector no crea directorios. Eso es del job.
+    assert ".mkdir" not in fuente
 
 
 def test_archivo_ausente_es_desconocido_y_no_filtra(tmp_path):
@@ -79,6 +103,7 @@ def test_archivo_ausente_es_desconocido_y_no_filtra(tmp_path):
     assert informe.tickers == ["AAA", "HALT"]
     assert informe.descartados is None
     assert informe.motivos is None
+    assert informe.motivo == "ausente"
     veredicto = cat.resolver_simbolo("BRK-B", path=path, ahora=AHORA)
     assert veredicto.catalogo_fresco is False
     assert veredicto.simbolo_feed is None
@@ -90,6 +115,7 @@ def test_archivo_viejo_o_de_otro_dia_tampoco_filtra(tmp_path):
     _escribir(path, [_fila("HALT", tradable=False)], fecha=AHORA - timedelta(hours=40))
     informe = cat.filtrar_por_catalogo(["HALT", "AAA"], path=path, ahora=AHORA)
     assert informe.desconocido is True
+    assert informe.motivo == "viejo"
     assert informe.tickers == ["HALT", "AAA"]
     assert cat.consultar("HALT", path=path, ahora=AHORA).tradable is None
 
@@ -99,6 +125,7 @@ def test_archivo_viejo_o_de_otro_dia_tampoco_filtra(tmp_path):
     _escribir(path, [_fila("HALT", tradable=False)], fecha=ayer)
     informe = cat.filtrar_por_catalogo(["HALT"], path=path, ahora=hoy_temprano)
     assert informe.desconocido is True
+    assert informe.motivo == "viejo"
     assert informe.descartados is None
     assert (hoy_temprano - ayer) < cat.EDAD_MAXIMA
 
@@ -106,29 +133,35 @@ def test_archivo_viejo_o_de_otro_dia_tampoco_filtra(tmp_path):
 def test_archivo_ilegible_o_vacio_es_desconocido(tmp_path):
     path = tmp_path / "activos.json"
     path.write_text("{no es json", encoding="utf-8")
-    assert cat.filtrar_por_catalogo(["AAA"], path=path, ahora=AHORA).desconocido is True
+    ilegible = cat.filtrar_por_catalogo(["AAA"], path=path, ahora=AHORA)
+    assert ilegible.desconocido is True
+    assert ilegible.motivo == "ausente"
     _escribir(path, [], fecha=AHORA)
-    assert cat.filtrar_por_catalogo(["AAA"], path=path, ahora=AHORA).desconocido is True
+    vacio = cat.filtrar_por_catalogo(["AAA"], path=path, ahora=AHORA)
+    assert vacio.desconocido is True
+    assert vacio.motivo == "ausente"
     path.write_text(json.dumps({"assets": [_fila("AAA")]}), encoding="utf-8")
     # Sin fecha_generacion no se puede saber si cubre hoy.
     assert cat.consultar("AAA", path=path, ahora=AHORA).catalogo_fresco is False
+    assert cat.filtrar_por_catalogo(["AAA"], path=path, ahora=AHORA).motivo == "viejo"
 
 
 def test_archivo_fresco_saca_no_tradable_y_conserva_el_exchange(tmp_path):
     path = tmp_path / "activos.json"
-    _escribir(path, [
+    _escribir(path, _rellenar([
         _fila("OK", exchange="NYSE", name="Ok Corp"),
         _fila("HALT", tradable=False, exchange="NASDAQ"),
         _fila("RARO", tradable=None, exchange="AMEX", name="Raro"),
         _fila("DUERME", status="inactive"),
         _fila("FRACC", fractionable=False),
-    ])
+    ]))
     informe = cat.filtrar_por_catalogo(
         ["OK", "HALT", "RARO", "DUERME", "FRACC", "NO_ESTA"], path=path, ahora=AHORA,
     )
     assert informe.desconocido is False
     assert informe.tickers == ["OK", "RARO", "FRACC"]
     assert informe.descartados == 3
+    assert informe.motivo is None
     assert informe.motivos == {"no_tradable": 1, "status": 1, "no_listado": 1}
     halt = cat.consultar("HALT", path=path, ahora=AHORA)
     assert halt.tradable is False
@@ -145,7 +178,7 @@ def test_archivo_fresco_saca_no_tradable_y_conserva_el_exchange(tmp_path):
 
 def test_brk_con_guion_y_con_punto_son_el_mismo_simbolo_del_archivo(tmp_path):
     path = tmp_path / "activos.json"
-    _escribir(path, [_fila("BRK.B", exchange="NYSE", name="Berkshire Hathaway Inc.")])
+    _escribir(path, _rellenar([_fila("BRK.B", exchange="NYSE", name="Berkshire Hathaway Inc.")]))
     for pedido in ("BRK-B", "BRK.B", "brk-b"):
         ficha = cat.consultar(pedido, path=path, ahora=AHORA)
         assert ficha.catalogo_fresco is True
@@ -163,7 +196,7 @@ def test_brk_con_guion_y_con_punto_son_el_mismo_simbolo_del_archivo(tmp_path):
 
 def test_un_tradable_en_texto_no_se_lee_como_false(tmp_path):
     path = tmp_path / "activos.json"
-    _escribir(path, [_fila("AAA", tradable="false")])
+    _escribir(path, _rellenar([_fila("AAA", tradable="false")]))
     ficha = cat.consultar("AAA", path=path, ahora=AHORA)
     assert ficha.tradable is None
     assert cat.filtrar_por_catalogo(["AAA"], path=path, ahora=AHORA).tickers == ["AAA"]
@@ -171,7 +204,7 @@ def test_un_tradable_en_texto_no_se_lee_como_false(tmp_path):
 
 def test_el_exchange_fresco_queda_en_la_metadata_y_el_viejo_no(tmp_path):
     path = tmp_path / "activos.json"
-    _escribir(path, [_fila("AAA", exchange="NYSE", name="Desde el archivo")])
+    _escribir(path, _rellenar([_fila("AAA", exchange="NYSE", name="Desde el archivo")]))
     meta = Metadata(ticker="AAA", bolsa="OTRO", nombre="Ya tenia nombre")
     cat.anotar_exchange(meta, path=path, ahora=AHORA)
     assert meta.bolsa == "NYSE"
@@ -189,7 +222,7 @@ def test_el_exchange_fresco_queda_en_la_metadata_y_el_viejo_no(tmp_path):
 
 def test_construir_candidatos_usa_el_exchange_cuando_el_archivo_esta_fresco(monkeypatch, tmp_path):
     path = tmp_path / "activos.json"
-    _escribir(path, [_fila("AAA", exchange="NYSE")])
+    _escribir(path, _rellenar([_fila("AAA", exchange="NYSE")]))
     barras = {"AAA": _barras("AAA")}
     meta = {"AAA": Metadata(ticker="AAA", bolsa="OTRO", market_cap=50_000_000.0, nombre="Yahoo")}
     # El autouse deja el archivo ausente: la bolsa que ya traía la metadata se queda.
@@ -207,3 +240,47 @@ def test_construir_candidatos_usa_el_exchange_cuando_el_archivo_esta_fresco(monk
     assert len(con_archivo) == 1
     assert con_archivo[0].meta.bolsa == "NYSE"
     assert con_archivo[0].meta.nombre == "Yahoo"
+
+
+def test_catalogo_corto_aunque_sea_de_hoy_es_desconocido(tmp_path):
+    path = tmp_path / "corto.json"
+    corto = [_fila("HALT", tradable=False)] + [
+        _fila(f"ZZ{i:05d}") for i in range(cat.MINIMO_SIMBOLOS - 2)
+    ]
+    assert len(corto) == cat.MINIMO_SIMBOLOS - 1
+    _escribir(path, corto)
+    informe = cat.filtrar_por_catalogo(["HALT", "AAA"], path=path, ahora=AHORA)
+    assert informe.desconocido is True
+    assert informe.motivo == "pocos"
+    assert informe.tickers == ["HALT", "AAA"]
+    assert informe.descartados is None
+    assert informe.motivos is None
+    assert cat.consultar("HALT", path=path, ahora=AHORA).tradable is None
+    assert cat.resolver_simbolo("BRK-B", path=path, ahora=AHORA).catalogo_fresco is False
+
+    largo = corto + [_fila("AAA", exchange="NYSE")]
+    assert len(largo) == cat.MINIMO_SIMBOLOS
+    _escribir(path, largo)
+    usable = cat.filtrar_por_catalogo(["HALT", "AAA"], path=path, ahora=AHORA)
+    assert usable.desconocido is False
+    assert usable.motivo is None
+    assert usable.tickers == ["AAA"]
+    assert cat.consultar("HALT", path=path, ahora=AHORA).tradable is False
+
+
+def test_leer_no_crea_el_directorio(tmp_path):
+    path = tmp_path / "anidado" / "que" / "no" / "existe" / "activos.json"
+    cat.consultar("AAA", path=path, ahora=AHORA)
+    cat.filtrar_por_catalogo(["AAA"], path=path, ahora=AHORA)
+    assert not path.parent.exists()
+
+
+def test_la_ruta_por_defecto_esta_fuera_del_repo(monkeypatch, tmp_path):
+    monkeypatch.delenv("MOMENTUM_CATALOGO_ACTIVOS", raising=False)
+    monkeypatch.delenv("MOMENTUM_ESTADO_DIR", raising=False)
+    assert cat.ruta_catalogo() == Path("/var/lib/momentum/estado/datos/alpaca_assets.json")
+    monkeypatch.setenv("MOMENTUM_ESTADO_DIR", str(tmp_path / "estado"))
+    assert cat.ruta_catalogo() == tmp_path / "estado" / "datos" / "alpaca_assets.json"
+    explicito = tmp_path / "explicito.json"
+    monkeypatch.setenv("MOMENTUM_CATALOGO_ACTIVOS", str(explicito))
+    assert cat.ruta_catalogo() == explicito

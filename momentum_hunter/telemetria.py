@@ -145,11 +145,14 @@ class Metricas:
     latencia_datos_ms: float | None = None
 
     # Catálogo local de activos (lo escribe otro proceso; acá solo se
-    # lee). None = esta corrida no lo consultó. True = ausente, viejo
-    # o ilegible: no se filtró. False = se usó. Un 0 en
-    # `descartados_catalogo` solo aparece cuando de verdad se contó;
-    # si el archivo no sirvió, el conteo queda en None.
+    # lee). None = esta corrida no lo consultó. True = ausente, viejo,
+    # ilegible o con sospechosamente pocos símbolos: no se filtró.
+    # False = se usó. Un 0 en `descartados_catalogo` solo aparece
+    # cuando de verdad se contó; si el archivo no sirvió, el conteo
+    # queda en None. `assets_motivo` dice cuál de esos casos fue
+    # (`ausente`, `viejo`, `pocos`) y queda en None si se filtró.
     assets_desconocido: bool | None = None
+    assets_motivo: str | None = None
     descartados_catalogo: int | None = None
 
     def registrar_error(self, origen: str, ex: BaseException) -> None:
@@ -195,6 +198,7 @@ class Metricas:
             "universo_total": self.universo_total,
             "universo_escaneado": self.universo_escaneado,
             "assets_desconocido": self.assets_desconocido,
+            "assets_motivo": self.assets_motivo,
             "descartados_catalogo": self.descartados_catalogo,
             "embudo": {
                 "operables": dict(self.operables),

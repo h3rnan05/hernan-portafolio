@@ -1340,8 +1340,12 @@ def main() -> None:
         # y la telemetría lo marca desconocido: no es un cero.
         informe_catalogo = filtrar_por_catalogo(tickers, ahora=inicio)
         metricas.assets_desconocido = informe_catalogo.desconocido
+        metricas.assets_motivo = informe_catalogo.motivo
         if informe_catalogo.desconocido:
-            log.info("catálogo de activos desconocido: no se filtra por él")
+            log.info(
+                "catálogo de activos desconocido (%s): no se filtra por él",
+                informe_catalogo.motivo,
+            )
         else:
             metricas.descartados_catalogo = informe_catalogo.descartados
             tickers = informe_catalogo.tickers
