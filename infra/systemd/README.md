@@ -38,6 +38,9 @@ Alpaca.
 | `shadow/momentum-shadow-screener.service` / `.timer` | **NO se instala solo** | sombra B2: most-actives y movers cada 5 min; no filtra market cap |
 | `bin/run_shadow_noticias.sh`, `bin/run_shadow_screener.sh` | `/opt/momentum/bin/` (solo si se instala la sombra Alpaca) | no-op salvo `SHADOW_ALPACA=1`; no hacen git ni tocan la watchlist |
 | `momentum-assets.service` / `.timer` | **NO se habilita solo** | diario 12:05 UTC: `GET /v2/assets` del host paper → `/var/lib/momentum/estado/datos/alpaca_assets.json` (fuera del repo). El hunter solo lee ese archivo |
+| `bin/run_assets.sh` | `/opt/momentum/bin/` (solo si se habilita el catálogo) | wrapper del job de activos; no filtra ni coloca órdenes |
+| `momentum-sip-stream.service` | **NO se instala solo** | proceso permanente: UNA conexión websocket SIP de barras de minuto, modo sombra (`momentum_hunter/data/sip_stream.py`). No decide |
+| `bin/run_sip_stream.sh` | `/opt/momentum/bin/` (solo si se instala el stream) | wrapper: fuerza `MOMENTUM_SIP_STREAM=sombra`; no coloca órdenes |
 
 **No versionado a propósito:** `/etc/momentum/paper.env` (credenciales;
 viven en el VPS y en GitHub Secrets, nunca en el repo).
@@ -66,6 +69,8 @@ Desde `/opt/hernan-portafolio` con `main` al día:
 
 ```bash
 # El glob no entra en shadow/: esas unidades no son del camino operativo.
+# Copia momentum-sip-stream.service al disco y no lo habilita. Encenderlo
+# es la sección "Stream SIP en sombra", a mano, y nunca con primario.
 sudo cp infra/systemd/*.service infra/systemd/*.timer /etc/systemd/system/
 sudo mkdir -p /etc/systemd/system/momentum-watchlist.service.d
 sudo cp infra/systemd/momentum-watchlist.service.d/*.conf \
@@ -267,6 +272,65 @@ anterior no se toca.
 Apagar: `sudo systemctl disable --now momentum-assets.timer`. El hunter
 vuelve solo al comportamiento de antes (no filtra por este dato). No
 hace falta revertir código.
+
+## Stream SIP en sombra (2026-09-28): NO se instala solo
+
+Un proceso dueño del websocket de datos `wss://stream.data.alpaca.markets/v2/sip`
+(barras de minuto de la watchlist viva y de las posiciones abiertas que ya
+están en `revisiones.json`). No llama a `/v2/orders` ni a `/v2/positions`.
+Alpaca deja una sola conexión a ese endpoint en este plan: el candado del
+almacén impide un segundo proceso, y no se suscribe al wildcard `*`.
+
+**Sombra durante 3 sesiones.** `MOMENTUM_SIP_STREAM` queda en `sombra` (es
+el default del código y lo fuerza el wrapper). El hunter y el ejecutor no
+leen este almacén para decidir. `primario` está implementado —si el
+almacén está viejo, caído o incompleto, el minuto sigue por REST y un dato
+ausente no cuenta como cero— y no se enciende acá. El proceso no se
+promociona solo al tercer día.
+
+Escribe fuera del repo, en `$MOMENTUM_ESTADO_DIR/sip_stream/`
+(default `/var/lib/momentum/estado/sip_stream/`): `barras/YYYY-MM-DD.jsonl`,
+`estado.json` (atómico) y `telemetria/YYYY-MM-DD.jsonl` del comparador.
+Nada de eso entra al árbol git.
+
+Comparar un día (no opera):
+
+```bash
+.venv/bin/python -m momentum_hunter.data.sip_stream_comparar --dia YYYY-MM-DD --pedir-rest
+```
+
+Instalar, a mano, desde `/opt/hernan-portafolio` con `main` al día:
+
+```bash
+cd /opt/hernan-portafolio
+git pull --rebase origin main
+.venv/bin/pip install -r momentum_hunter/requirements.txt
+sudo install -m 755 infra/systemd/bin/run_sip_stream.sh /opt/momentum/bin/
+sudo cp infra/systemd/momentum-sip-stream.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now momentum-sip-stream.service
+sudo systemctl status momentum-sip-stream.service
+```
+
+No hace falta reiniciar el vigía: con el flag en sombra el minuto sigue
+saliendo del REST. No poner `MOMENTUM_SIP_STREAM=primario` en
+`/etc/momentum/paper.env` en estas sesiones.
+
+Apagar:
+
+```bash
+sudo systemctl disable --now momentum-sip-stream.service
+```
+
+El directorio de estado no se borra al apagar. Un rollback del código
+deja el REST como estaba; las barras acumuladas se quedan en
+`/var/lib/momentum/estado/sip_stream/`.
+
+La watchlist y las revisiones que suscribe son las de #200:
+`$MOMENTUM_ESTADO_DIR/momentum_hunter/watchlist.json` y
+`$MOMENTUM_ESTADO_DIR/momentum_paper_trader/revisiones.json`. Si el
+destino no existe y el legado del repo sí, se copia una vez. Un
+archivo ausente no se trata como cero símbolos.
 
 ## Vigía (2026-09-22): rechequeo + paper cada 60 s, sin timer
 
