@@ -183,9 +183,15 @@ def test_la_guardia_del_dia_hereda_lo_que_dejo_la_historia():
 # ------------------------------------------------ verificar y ajustar historia
 
 
+def _epoch_diario(d: date) -> str:
+    """Mismo sello que la vela diaria del feed: 00:00 ET (04:00 UTC)."""
+    return str(int(datetime(d.year, d.month, d.day, 4, 0, tzinfo=UTC).timestamp()))
+
+
 def _serie(ticker, cierres, aperturas=None):
+    # Contrato real de `Barras.fechas`: epoch en texto, no ISO.
     n = len(cierres)
-    fechas = [(date(2026, 9, 1) + timedelta(days=i)).isoformat() for i in range(n)]
+    fechas = [_epoch_diario(date(2026, 9, 1) + timedelta(days=i)) for i in range(n)]
     aperturas = aperturas or cierres
     return Barras(ticker, fechas, list(aperturas), list(cierres),
                   [c * 1.01 for c in cierres], [c * 0.99 for c in cierres], [1000.0] * n)
@@ -330,3 +336,27 @@ def test_el_bloqueo_accionable_queda_en_el_registro_fuera_de_git(monkeypatch, tm
     assert [c.ticker for c in quedan] == ["OTRA"]
     lineas = ruta.read_text().splitlines()
     assert len(lineas) == 1 and '"bloqueo_disparo"' in lineas[0] and "forward_split" in lineas[0]
+
+
+def test_fecha_de_barra_lee_el_epoch_de_los_dos_proveedores():
+    # Feed: 04:00 UTC; Yahoo: 13:30 UTC. Los dos son el 4 de septiembre.
+    assert ac.fecha_de_barra(_epoch_diario(date(2026, 9, 4))) == date(2026, 9, 4)
+    yahoo = str(int(datetime(2026, 9, 4, 13, 30, tzinfo=UTC).timestamp()))
+    assert ac.fecha_de_barra(yahoo) == date(2026, 9, 4)
+    assert ac.fecha_de_barra("2026-09-04") == date(2026, 9, 4)
+    assert ac.fecha_de_barra("mañana") is None
+
+
+def test_historia_con_epoch_real_no_bloquea_por_fecha_ilegible():
+    # Regresión: con fechas epoch la primera versión leía "fecha ilegible"
+    # y, por fail-closed, bloqueaba TODOS los disparos.
+    out, g = ac.verificar_historia({"X": _serie("X", [1.0, 1.0, 1.0])}, MEDIODIA, _cliente())
+    assert g.disponible and g.motivo("X") is None
+
+
+def test_una_serie_con_fecha_ilegible_y_split_en_la_ventana_no_se_ajusta_a_ciegas():
+    b = _serie("MULN", [0.50, 0.51, 0.50, 5.0, 5.1])
+    b.fechas[2] = "basura"
+    out, g = ac.verificar_historia({"MULN": b}, MEDIODIA, _cliente(_reverse()))
+    assert out["MULN"] is b
+    assert g.motivo("MULN") == "split_sin_verificar:reverse_split:ambigua"

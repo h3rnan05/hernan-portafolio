@@ -371,6 +371,28 @@ def consultar(
 # ---------------------------------------------------- verificar y ajustar
 
 
+def fecha_de_barra(valor: object) -> date | None:
+    """Día de sesión de una barra diaria. El contrato de `Barras.fechas`
+    es epoch en segundos como texto (Yahoo y el feed; `run._cierre_
+    anterior` hace `int(...)`), no ISO. Se lee en la fecha de Nueva
+    York: la vela diaria del feed está sellada a las 00:00 ET (04:00
+    UTC) y la de Yahoo a la apertura; las dos caen en su propio día.
+    Un ISO también se acepta (pruebas, datos viejos). Ilegible -> None."""
+    if not isinstance(valor, str) or not valor.strip():
+        return None
+    texto = valor.strip()
+    if texto.isdigit():
+        try:
+            return datetime.fromtimestamp(int(texto), tz=UTC).astimezone(NY).date()
+        except (OverflowError, OSError, ValueError):
+            return None
+    return _fecha(texto)
+
+
+def _fechas_de(b: Barras) -> list[date | None]:
+    return [fecha_de_barra(f) for f in b.fechas]
+
+
 def verificar_escala(b: Barras, accion: AccionCorporativa) -> str:
     """'ajustada' | 'cruda' | 'ambigua' | 'fuera_de_rango' | 'sin_factor'.
     Compara el cierre previo a la ex-date con la apertura de la ex-date."""
@@ -379,8 +401,12 @@ def verificar_escala(b: Barras, accion: AccionCorporativa) -> str:
     ex = accion.ex_date or accion.effective_date
     if ex is None or not b.fechas:
         return "fuera_de_rango"
-    ex_iso = ex.isoformat()
-    i = next((k for k, f in enumerate(b.fechas) if f[:10] >= ex_iso), None)
+    fechas = _fechas_de(b)
+    if any(f is None for f in fechas):
+        # Una fecha ilegible impide saber de qué lado del split cae cada
+        # vela: no se ajusta a ciegas.
+        return "ambigua"
+    i = next((k for k, f in enumerate(fechas) if f >= ex), None)
     if i is None or i == 0:
         # La ex-date cae antes de la primera vela o después de la última:
         # no hay salto que medir dentro de esta serie.
@@ -403,9 +429,9 @@ def verificar_escala(b: Barras, accion: AccionCorporativa) -> str:
 def ajustar(b: Barras, accion: AccionCorporativa) -> Barras:
     """Lleva la parte previa a la ex-date a la escala de hoy. Solo se
     llama con un veredicto 'cruda'."""
-    ex_iso = (accion.ex_date or accion.effective_date).isoformat()
+    ex = accion.ex_date or accion.effective_date
     f = accion.factor
-    antes = [fecha[:10] < ex_iso for fecha in b.fechas]
+    antes = [d is not None and d < ex for d in _fechas_de(b)]
     return replace(
         b,
         open=[v / f if a else v for v, a in zip(b.open, antes, strict=True)],
@@ -430,14 +456,13 @@ def verificar_historia(
     if not encendida():
         guardia.apagada = True
         return barras, guardia
-    primeras = [b.fechas[0][:10] for b in barras.values() if b.fechas]
-    if not primeras:
+    primeras = [fecha_de_barra(b.fechas[0]) for b in barras.values() if b.fechas]
+    legibles = [d for d in primeras if d is not None]
+    if not legibles:
         return barras, guardia
-    try:
-        desde = date.fromisoformat(min(primeras))
-    except ValueError:
-        guardia.disponible, guardia.codigo = False, "historia:fecha_ilegible"
-        return barras, guardia
+    # Una serie con la primera fecha ilegible queda "ambigua" en
+    # `verificar_escala` si tiene un split; no tumba a las demás.
+    desde = min(legibles)
     try:
         cliente = cliente or ClienteAcciones()
         acciones, _ = cliente.pedir(desde, fecha + timedelta(days=DIAS_ATRAS_GUARDIA), tipos=TIPOS_ESCALA)
@@ -463,10 +488,19 @@ def verificar_historia(
         # Se verifican todas contra la serie ORIGINAL: ajustar una no
         # cambia el salto de otra (las dos mitades se escalan igual).
         veredictos = [(a, verificar_escala(b, a)) for a in propias]
-        dudosas = [(a, v) for a, v in veredictos if v in ("ambigua", "sin_factor")
-                   and (a.ex_date or a.effective_date) is not None
-                   and b.fechas and b.fechas[0][:10] < (a.ex_date or a.effective_date).isoformat()
-                   <= b.fechas[-1][:10]]
+        fechas = _fechas_de(b)
+        primera, ultima = (fechas[0], fechas[-1]) if fechas else (None, None)
+
+        def _en_rango(a: AccionCorporativa) -> bool:
+            ex = a.ex_date or a.effective_date
+            if ex is None:
+                return False
+            if primera is None or ultima is None:
+                return True   # serie ilegible: no se puede descartar
+            return primera < ex <= ultima
+
+        dudosas = [(a, v) for a, v in veredictos
+                   if v in ("ambigua", "sin_factor") and _en_rango(a)]
         if dudosas:
             a, v = dudosas[0]
             guardia.sin_verificar[normalizar(ticker)] = f"{a.tipo}:{v}"
@@ -511,3 +545,41 @@ def registrar(evento: str, ticker: str, motivo: str, ahora: datetime | None = No
             fh.write(json.dumps(fila, ensure_ascii=False) + "\n")
     except OSError as ex:
         log.debug("acciones corporativas: no se pudo escribir el registro (%s)", type(ex).__name__)
+
+
+# ------------------------------------------------------------ verificación
+
+
+def _probar(argv: list[str] | None = None) -> int:
+    """`python -m momentum_hunter.data.acciones_corporativas AAPL NVDA`
+
+    Para correr UNA vez en el VPS antes de confiar en la guardia: hace
+    los dos pedidos reales (guardia del día y splits del último año) e
+    imprime conteos, sin tocar la watchlist. Si algún parámetro del
+    endpoint no fuera el que este módulo supone, sale aquí como
+    `no disponible (http_400)`, y no como un día entero sin disparos."""
+    import sys
+    tickers = list(argv if argv is not None else sys.argv[1:]) or ["AAPL"]
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    ahora = datetime.now(UTC)
+    guardia = consultar(tickers, ahora)
+    print(f"fecha NY: {guardia.fecha}  disponible: {guardia.disponible}  código: {guardia.codigo}")
+    for t in tickers:
+        print(f"  {t}: {guardia.motivo(t) or 'puede disparar'}")
+    cliente = ClienteAcciones()
+    try:
+        acciones, sin_simbolo = cliente.pedir(
+            hoy_ny(ahora) - timedelta(days=365), hoy_ny(ahora), tipos=TIPOS_ESCALA)
+    except ErrorDatosAlpaca as ex:
+        print(f"historia de splits: NO disponible ({ex.codigo})")
+        return 1
+    por_tipo: dict[str, int] = {}
+    for a in acciones:
+        por_tipo[a.tipo] = por_tipo.get(a.tipo, 0) + 1
+    print(f"historia de splits (365 d, todo el mercado): {len(acciones)} en {cliente.pedidos} página(s) "
+          f"{por_tipo}  sin símbolo: {sin_simbolo}")
+    return 0 if guardia.disponible else 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(_probar())
