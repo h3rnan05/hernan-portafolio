@@ -7245,13 +7245,42 @@
       },
       "capacidad_llena": null,
       "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-28T17:07:49+00:00",
+      "triggered_nuevos": 28,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 28
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
     }
   ],
   "sesion": {
-    "triggered_nuevos": 6952,
+    "triggered_nuevos": 6980,
     "revisiones": 7,
     "ordenes_colocadas": 5,
-    "paper_step_success_zero_orders": 243,
+    "paper_step_success_zero_orders": 244,
     "muestras_latencia": {
       "descubrimiento": 7,
       "alerta": 7,
@@ -7277,7 +7306,7 @@
     "version_medicion": 2,
     "bloqueos": {
       "MERCADO_CERRADO": 30,
-      "DATO_FALTANTE:ultimos_niveles_ts": 5964,
+      "DATO_FALTANTE:ultimos_niveles_ts": 5992,
       "PRECIO_FUERA_DE_ALCANCE": 1,
       "MAXIMO_POSICIONES": 5
     },
