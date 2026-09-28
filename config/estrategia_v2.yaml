@@ -1,0 +1,129 @@
+# Estrategia v2 del hunter -- ÚNICA fuente de sus parámetros.
+#
+# Se activa con MOMENTUM_ESTRATEGIA=v2 (default v1). La v1 no lee este
+# archivo. Con la bandera en v1, la v2 corre en SOMBRA (registra lo que
+# habría hecho, no ordena nada).
+#
+# Reglas del archivo (las hace cumplir `estrategia_v2/config.py`):
+#   - Todo campo es obligatorio. Un campo que falta, sobra o tiene un
+#     tipo o rango imposible invalida el archivo entero: la v2 no opera
+#     y se avisa. Nunca se rellena con un valor por defecto.
+#   - Cambiar un número aquí es una decisión de estrategia: pasa por PR
+#     y cambia la prueba `test_estrategia_v2_config.py`, que fija los
+#     valores aprobados el 2026-09-28.
+#   - Lo que NO está aquí porque no es un parámetro sino una invariante
+#     del repo (CLAUDE.md): paper only, sin margen (nunca más que el
+#     efectivo), fail-closed, dato faltante nunca es cero.
+#
+# Horas: America/New_York. 09:30 NY = 13:30 UTC en verano / 14:30 UTC en
+# invierno = 07:30 Monterrey (UTC−6).
+
+version: 1
+
+universo:
+  exchanges: [NYSE, NASDAQ, AMEX]      # del archivo de assets (#199)
+  excluir_otc: true
+  excluir_etf: true
+  excluir_spac: true
+  precio_min: 2.0                      # USD
+  precio_max: 50.0
+  float_min: 5000000                   # acciones; caché diaria de Yahoo (#195)
+  float_max: 150000000
+  float_faltante: excluir              # un float ausente no es cero
+  minutos_sin_halt: 30
+  # En la v2 la guardia de acciones corporativas (#201) bloquea siempre,
+  # aunque la v1 siga en modo observación.
+  accion_corporativa_hoy: bloquear
+
+catalizador:
+  fuente: benzinga                     # /v1beta1/news
+  horas_maximas: 24
+  modelo: claude-sonnet-5              # mismo modelo que el ejecutor hoy
+  prompt_version: 1
+  # La IA solo CLASIFICA. Entrada: titular + resumen. Salida JSON
+  # {nivel: 0|1|2, tipo, direccion, confianza}. No decide entradas.
+  niveles:
+    1:
+      - resultados mejores de lo esperado
+      - guía al alza
+      - aprobación de la FDA
+      - adquisición confirmada, la empresa es el objetivo
+      - contrato con cifra
+    2:
+      - upgrade con precio objetivo
+      - inclusión en un índice
+      - recompra grande
+    0:
+      - opinión
+      - "\"infravalorada\" o similar"
+      - resúmenes y notas sin hecho nuevo
+  niveles_operables: [1, 2]
+  direcciones_operables: [alcista]     # solo largos
+  # VETO: nunca entrar, lo diga o no la IA. Filtro fijo sobre titular +
+  # resumen (en minúsculas), además de la clasificación.
+  veto:
+    oferta_de_acciones:
+      - public offering
+      - registered direct offering
+      - priced offering
+      - proposed offering
+      - secondary offering
+      - at-the-market offering
+      - atm offering
+      - private placement
+    dilucion:
+      - dilution
+      - dilutive
+    going_concern:
+      - going concern
+      - substantial doubt
+    investigacion_regulatoria:
+      - sec investigation
+      - doj investigation
+      - ftc investigation
+      - regulatory investigation
+      - regulatory probe
+      - subpoena
+      - wells notice
+
+senal:
+  zona_horaria: America/New_York
+  gap_min_pct: 0.04                    # vs apertura oficial de subasta (#202)
+  rvol_min: 3.0                        # acumulado hoy vs promedio a la misma hora
+  rvol_dias: 20
+  precio_sobre_vwap: true
+  rango_apertura_inicio: "09:30"
+  rango_apertura_fin: "09:35"
+  vela_ruptura_vol_min_x: 1.5          # vs volumen promedio de 1 min del día
+  spread_max_pct: 0.003                # quotes de Alpaca
+  indice_referencia: SPY
+  indice_sobre_vwap: true
+  ventana_inicio: "09:36"
+  ventana_fin: "11:00"
+  minutos_maximos_niveles: 5
+
+riesgo:
+  riesgo_pct_equity: 0.005
+  tope_posicion_pct_equity: 0.25       # y nunca más que el efectivo (invariante)
+  stop_origen: minimo_rango_apertura
+  stop_min_pct: 0.015
+  stop_max_pct: 0.04
+  stop_si_excede_max: no_entrar
+  objetivo_r: 2.0
+  breakeven_en_r: 1.0                  # stop a precio de llenado, reemplazando la pata
+  stop_tiempo_minutos: 30
+  stop_tiempo_r_minimo: 0.5            # "llegar" = el máximo desde el llenado lo tocó
+  max_posiciones: 4
+  max_entradas_dia: 6
+  freno_diario_pct: -0.015             # vs equity de la apertura de hoy; se reactiva la sesión siguiente
+  freno_semanal_pct: -0.04             # vs equity de la apertura del lunes; se reactiva el lunes siguiente
+  tamano_por_nivel:
+    1: 1.0
+    2: 0.5                             # nivel 2 opera a medio tamaño
+  solo_largos: true
+  ia_decide_entradas: false            # la IA solo clasifica el catalizador
+  cierre_fin_de_dia: como_v1
+
+sombra:
+  activa_con_v1: true
+  directorio: /var/lib/momentum/v2_sombra   # fuera de git

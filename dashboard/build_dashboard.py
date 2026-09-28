@@ -28,7 +28,7 @@ import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, time, timezone
+from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -440,72 +440,233 @@ def _codigo_de(evento: dict) -> str:
     return str(codigo).upper()
 
 
-def resumir_bloqueos(bloqueos: list[dict], capacidad: list[dict], tz, ahora: datetime) -> dict:
-    """Bloqueos únicos por (ticker, código) con veces y última hora, la
-    capacidad llena por código con primera/última hora y corridas, y el
-    veredicto: `revisar` solo con un DATO_FALTANTE o un código nuevo.
+def _es_dato_faltante(codigo: str) -> bool:
+    if _catalogo_bloqueos is not None:
+        return _catalogo_bloqueos.es_dato_faltante(codigo)
+    return codigo.startswith("DATO_FALTANTE:")
 
-    Por qué (2026-09-23): 942 eventos crudos contra 7 decisiones eran 8
-    señales × 120 ticks contra UN tope de posiciones lleno. El panel
-    contaba repeticiones y pedía revisar un sistema que funcionaba."""
+
+def _es_mercado_cerrado(codigo: str) -> bool:
+    """El mercado cerrado no es un límite lleno ni un fallo de riesgo:
+    es el ejecutor negándose a encolar una orden para mañana."""
+    if _catalogo_bloqueos is not None:
+        return codigo == _catalogo_bloqueos.MERCADO_CERRADO
+    return codigo == "MERCADO_CERRADO"
+
+
+def _ticker_de(evento: dict) -> str:
+    """Ticker del evento. `creado_en` no entra: dos TRIGGERED del mismo
+    símbolo (la sombra y la viva, o un reingreso) son la misma fila."""
+    bruto = evento.get("ticker")
+    if bruto in (None, ""):
+        bruto = evento.get("symbol")
+    texto = str(bruto).strip() if bruto not in (None, "") else ""
+    return texto or "—"
+
+
+# El vigía dispara un rechequeo cada 60 s. "Activo ahora" son los últimos
+# tres de esos ciclos. Sin ninguna marca no hay cadencia que medir y la
+# ventana cae a esos mismos ~3 minutos: un bloqueo de la mañana no puede
+# seguir pintando la tarjeta en rojo por la tarde.
+_CICLOS_ACTIVOS = 3
+_CICLO_NOMINAL = timedelta(seconds=60)
+# Un hueco mayor que esto es una pausa (cierre, caída), no la cadencia.
+_HUECO_MAX_CICLO_SEG = 300.0
+
+
+def _marcas_rechequeo(rechequeos: list[dict]) -> list[datetime]:
+    return sorted(e["_ts"] for e in rechequeos if e.get("_ts") is not None)
+
+
+def _duracion_ciclo(marcas: list[datetime]) -> timedelta:
+    if len(marcas) < 2:
+        return _CICLO_NOMINAL
+    huecos = [(b - a).total_seconds() for a, b in zip(marcas, marcas[1:])]
+    plausibles = [h for h in huecos if 1 <= h <= _HUECO_MAX_CICLO_SEG]
+    if not plausibles:
+        return _CICLO_NOMINAL
+    return timedelta(seconds=statistics.median(plausibles[-_CICLOS_ACTIVOS:]))
+
+
+def _inicio_ventana_activa(rechequeos: list[dict], ahora: datetime) -> datetime:
+    """Inicio de lo que sigue pasando ahora.
+
+    Con rechequeos, el borde es la marca que abre el más antiguo de los
+    últimos tres ciclos. Si la última marca ya quedó detrás de esa
+    ventana (el vigía no está ciclando), se ancla a ahora − 3 ciclos:
+    los ciclos de la mañana no cuentan como activos. Sin ninguna marca,
+    los últimos ~3 minutos.
+    """
+    marcas = _marcas_rechequeo(rechequeos)
+    ciclo = _duracion_ciclo(marcas)
+    ancla = ahora - _CICLOS_ACTIVOS * ciclo
+    if not marcas:
+        return ancla
+    if marcas[-1] < ancla:
+        return ancla
+    if len(marcas) >= _CICLOS_ACTIVOS:
+        return marcas[-_CICLOS_ACTIVOS]
+    return marcas[0]
+
+
+def _cubeta_de(ts: datetime, marcas: list[datetime], ciclo: timedelta):
+    """Identidad del ciclo al que pertenece `ts`.
+
+    Dos eventos del mismo ticker y código dentro del mismo ciclo (las
+    dos TRIGGERED con distinto `creado_en`) cuentan una vez. Sin una
+    marca de rechequeo previa, el ciclo es el minuto nominal: ticks a
+    un minuto de distancia siguen siendo corridas distintas.
+    """
+    previas = [m for m in marcas if m <= ts]
+    if previas:
+        return previas[-1]
+    ancho = ciclo.total_seconds()
+    if ancho <= 0:
+        return ts
+    return int(ts.timestamp() // ancho)
+
+
+def resumir_bloqueos(bloqueos: list[dict], capacidad: list[dict], tz, ahora: datetime,
+                     rechequeos: list[dict] | None = None) -> dict:
+    """Bloqueos únicos por (ticker, código) y capacidad por código.
+
+    `revisar` mira SOLO lo que cayó en la ventana activa (últimos 3
+    ciclos del vigía). El resto del día es historial: se conserva con
+    desde/hasta y veces, pero no pinta la tarjeta.
+
+    Por qué (2026-09-23, y el rojo eterno del 2026-09-28): 942 eventos
+    crudos eran un tope repetido, y 6468 `DATO_FALTANTE` que pararon a
+    media tarde seguían en rojo porque el veredicto sumaba el día
+    entero. Una fila es (ticker, código): el `creado_en` de una segunda
+    TRIGGERED del mismo símbolo no abre otra fila.
+    """
     conocidos = set(_catalogo_bloqueos.CODIGOS_CONOCIDOS) if _catalogo_bloqueos is not None else set()
-
-    def _es_dato_faltante(codigo: str) -> bool:
-        if _catalogo_bloqueos is not None:
-            return _catalogo_bloqueos.es_dato_faltante(codigo)
-        return codigo.startswith("DATO_FALTANTE:")
+    marcas = _marcas_rechequeo(rechequeos or [])
+    ciclo = _duracion_ciclo(marcas)
+    inicio = _inicio_ventana_activa(rechequeos or [], ahora)
 
     unicos: dict[tuple[str, str], dict] = {}
     for b in bloqueos:
         codigo = _codigo_de(b)
-        clave = (str(b.get("ticker") or "—"), codigo)
-        fila = unicos.setdefault(clave, {"ticker": clave[0], "codigo": codigo, "veces": 0, "ultimo": None,
-                                         "motivo": str(b.get("motivo") or "")})
-        fila["veces"] += 1
+        clave = (_ticker_de(b), codigo)
+        fila = unicos.setdefault(clave, {
+            "ticker": clave[0], "codigo": codigo, "veces": 0, "ultimo": None, "primero": None,
+            "motivo": str(b.get("motivo") or ""), "_cubetas": set(),
+        })
+        cubeta = _cubeta_de(b["_ts"], marcas, ciclo)
+        if cubeta not in fila["_cubetas"]:
+            fila["_cubetas"].add(cubeta)
+            fila["veces"] += 1
+        if fila["primero"] is None or b["_ts"] < fila["primero"]:
+            fila["primero"] = b["_ts"]
         if fila["ultimo"] is None or b["_ts"] > fila["ultimo"]:
             fila["ultimo"] = b["_ts"]
     filas = sorted(unicos.values(), key=lambda f: (-f["veces"], f["ticker"]))
     for f in filas:
+        f.pop("_cubetas", None)
         f["hora"] = _hora(f["ultimo"], tz, ahora=ahora)
+        f["desde"] = _hora(f["primero"], tz, ahora=ahora)
+        f["hasta"] = _hora(f["ultimo"], tz, ahora=ahora)
+        # Activo solo si la ÚLTIMA vez cae en la ventana. Si paró antes,
+        # ya se resolvió aunque se haya repetido miles de veces.
+        f["activo"] = f["ultimo"] is not None and f["ultimo"] >= inicio
 
     por_codigo_cap: dict[str, dict] = {}
     for c in capacidad:
         codigo = _codigo_de(c)
-        fila = por_codigo_cap.setdefault(codigo, {"codigo": codigo, "corridas": 0, "primero": None, "ultimo": None,
-                                                  "motivo": str(c.get("motivo") or "")})
+        fila = por_codigo_cap.setdefault(codigo, {
+            "codigo": codigo, "corridas": 0, "primero": None, "ultimo": None,
+            "motivo": str(c.get("motivo") or ""),
+        })
         fila["corridas"] += 1
         if fila["primero"] is None or c["_ts"] < fila["primero"]:
             fila["primero"] = c["_ts"]
         if fila["ultimo"] is None or c["_ts"] > fila["ultimo"]:
             fila["ultimo"] = c["_ts"]
-    capacidad_filas = sorted(por_codigo_cap.values(), key=lambda f: -f["corridas"])
-    for f in capacidad_filas:
+    capacidad_todas = sorted(por_codigo_cap.values(), key=lambda f: -f["corridas"])
+    informativos: list[dict] = []
+    capacidad_filas: list[dict] = []
+    for f in capacidad_todas:
         f["desde"] = _hora(f["primero"], tz, ahora=ahora)
         f["hasta"] = _hora(f["ultimo"], tz, ahora=ahora)
+        f["activo"] = f["ultimo"] is not None and f["ultimo"] >= inicio
+        # MERCADO_CERRADO no es capacidad llena: informativo, aparte.
+        if _es_mercado_cerrado(f["codigo"]):
+            informativos.append(f)
+        else:
+            capacidad_filas.append(f)
 
-    codigos = {f["codigo"] for f in filas} | {f["codigo"] for f in capacidad_filas}
-    dato_faltante = sorted(c for c in codigos if _es_dato_faltante(c))
-    nuevos = sorted(c for c in codigos if c not in conocidos and not _es_dato_faltante(c))
+    codigos_activos = {f["codigo"] for f in filas if f["activo"]}
+    codigos_activos |= {f["codigo"] for f in capacidad_filas if f["activo"]}
+    dato_faltante = sorted(c for c in codigos_activos if _es_dato_faltante(c))
+    nuevos = sorted(
+        c for c in codigos_activos
+        if c not in conocidos and not _es_dato_faltante(c) and not _es_mercado_cerrado(c)
+    )
     return {
-        "eventos": len(bloqueos), "unicos": filas, "capacidad": capacidad_filas,
-        "dato_faltante": dato_faltante, "codigos_nuevos": nuevos,
+        "eventos": sum(f["veces"] for f in filas),
+        "unicos": filas,
+        "capacidad": capacidad_filas,
+        "informativos": informativos,
+        "dato_faltante": dato_faltante,
+        "codigos_nuevos": nuevos,
         "revisar": bool(dato_faltante or nuevos),
         "sin_catalogo": _catalogo_bloqueos is None,
+        "inicio_activos": inicio,
     }
 
 
-def _detalle_riesgo(riesgo: dict, hay_eventos: bool, conteos_validos: bool) -> str:
-    """Una línea: únicos (eventos), capacidad llena, y por qué "Revisar"."""
-    if not hay_eventos or not (riesgo["unicos"] or riesgo["capacidad"] or conteos_validos):
+def _frase_intervalo(fila: dict, n: int, unidad: str) -> str:
+    return f"{fila['codigo']} desde {fila['desde']} hasta {fila['hasta']} ({n} {unidad})"
+
+
+def _detalle_riesgo(riesgo: dict, hay_eventos: bool, conteos_validos: bool, en_sesion: bool) -> str:
+    """Una línea para la tarjeta. El color lo decide el llamador con el
+    conjunto activo; aquí solo se nombra. Sin ciclo reciente en sesión
+    (o sin log) no se finge un conteo vigente: "sin datos recientes".
+    """
+    sin_recientes = (not hay_eventos) or (en_sesion and not conteos_validos)
+    if sin_recientes and not riesgo["revisar"]:
+        return "— sin datos recientes"
+    if not (riesgo["unicos"] or riesgo["capacidad"] or riesgo["informativos"] or conteos_validos):
         return "— bloqueos hoy"
     partes = [f"{len(riesgo['unicos'])} bloqueos únicos ({riesgo['eventos']} eventos) hoy"]
     for c in riesgo["capacidad"]:
-        partes.append(f"capacidad llena: {c['codigo']} desde {c['desde']} ({c['corridas']} corridas)")
+        frase = _frase_intervalo(c, c["corridas"], "corridas")
+        # "capacidad llena" en presente solo si la última corrida sigue
+        # dentro de la ventana. Si no, es historial y lleva el hasta.
+        partes.append(("capacidad llena: " if c.get("activo") else "historial: ") + frase)
+    for c in riesgo["informativos"]:
+        partes.append(
+            f"mercado cerrado desde {c['desde']} hasta {c['hasta']} ({c['corridas']} corridas)"
+        )
     if riesgo["dato_faltante"]:
         partes.append("revisar: " + ", ".join(riesgo["dato_faltante"]))
     if riesgo["codigos_nuevos"]:
         partes.append("motivo nuevo: " + ", ".join(riesgo["codigos_nuevos"]))
     return " · ".join(partes)
+
+
+def _estado_riesgo(riesgo: dict, sin_datos_recientes: bool, conteos_validos: bool) -> str:
+    """Color de la tarjeta. `revisar` ya está filtrado a la ventana activa.
+
+    Orden: un dato faltante o un código nuevo activo manda (rojo). Si no
+    se puede saber qué pasa ahora, no se pinta verde. Mercado cerrado
+    como único hecho activo es neutro. Un límite conocido haciendo su
+    trabajo, o un historial ya resuelto con el vigía fresco, es OK.
+    """
+    if riesgo["revisar"]:
+        return "alerta"
+    if sin_datos_recientes:
+        return "sin-datos"
+    activos = any(f.get("activo") for f in riesgo["unicos"]) or any(
+        c.get("activo") for c in riesgo["capacidad"])
+    mercado_activo = any(c.get("activo") for c in riesgo["informativos"])
+    if mercado_activo and not activos:
+        return "info"
+    if conteos_validos or riesgo["unicos"] or riesgo["capacidad"] or riesgo["informativos"]:
+        return "ok"
+    return "sin-datos"
 
 
 ESTADOS_ORDEN = {
@@ -630,8 +791,10 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
     # bloqueo por DATO faltante/nulo/viejo (`DATO_FALTANTE:<campo>`) o un
     # código que el catálogo no conoce; un límite conocido haciendo su
     # trabajo es "OK", por muchas veces que se repita.
-    riesgo = resumir_bloqueos(bloqueos, [e for e in eventos if e.get("tipo") == "capacidad_llena"],
-                              cfg["tz"], ahora)
+    riesgo = resumir_bloqueos(
+        bloqueos, [e for e in eventos if e.get("tipo") == "capacidad_llena"],
+        cfg["tz"], ahora, rechequeos=rechequeos,
+    )
     if riesgo["sin_catalogo"]:
         problemas.append("No se pudo cargar el catálogo de códigos de bloqueo (momentum_paper_trader.bloqueos): "
                          "todo código se trata como nuevo.")
@@ -642,6 +805,9 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
     conteos_validos = hay_eventos and estado_rechequeo == "ok"
     motivo_sin_datos = ("no hay log de eventos" if not hay_eventos
                         else "no hay un rechequeo reciente")
+    # Fail-closed de la tarjeta: sin log, o sesión abierta y ni un ciclo
+    # reciente, no hay con qué decir que "ahora" está limpio. No es verde.
+    sin_datos_recientes = (not hay_eventos) or (en_sesion and not conteos_validos)
 
     # Última corrida de GitHub Actions, SOLO para mostrarla como dato al
     # lado (respaldo del escaneo desde el 21/9): ya no decide el estado del
@@ -720,13 +886,13 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         {
             "nombre": "Riesgo", "donde": "Código",
             "rol": "Límites deterministas. Sin margen. Fail-closed.",
-            # "Revisar" solo con un DATO_FALTANTE o un código nuevo (2026-09-23).
-            # Un límite conocido bloqueando es el sistema funcionando: "OK"
-            # si los conteos son válidos. Un bloqueo registrado sigue siendo
-            # un hecho aunque el rechequeo esté viejo: se muestra igual.
-            "estado": ("alerta" if riesgo["revisar"]
-                       else ("ok" if conteos_validos or bloqueos or riesgo["capacidad"] else "sin-datos")),
-            "detalle": _detalle_riesgo(riesgo, hay_eventos, conteos_validos),
+            # El color sale SOLO de lo activo (últimos 3 ciclos). Un
+            # DATO_FALTANTE de la mañana, ya parado, no deja la tarjeta
+            # en rojo el resto del día (2026-09-28). MERCADO_CERRADO
+            # activo y nada más es informativo, no "Revisar" ni capacidad
+            # llena. Sin ciclo reciente en sesión: "sin datos", nunca verde.
+            "estado": _estado_riesgo(riesgo, sin_datos_recientes, conteos_validos),
+            "detalle": _detalle_riesgo(riesgo, hay_eventos, conteos_validos, en_sesion),
         },
     ]
 
@@ -831,6 +997,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         "ia_fallos": ia_fallos,
         "hay_eventos": hay_eventos,
         "conteos_validos": conteos_validos, "motivo_sin_datos": motivo_sin_datos,
+        "sin_datos_recientes": sin_datos_recientes,
         "ult_bloqueo": bloqueos[-1] if bloqueos else None,
     }
 
@@ -1826,7 +1993,7 @@ button.pildora:hover{border-color:var(--acento)}
 .etapa .pie{display:flex;justify-content:space-between;padding-top:10px;border-top:1px dashed var(--linea)}
 .punto{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px}
 .punto::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
-.ok{color:var(--verde)}.alerta{color:var(--rojo)}.sin-datos{color:var(--gris)}
+.ok{color:var(--verde)}.alerta{color:var(--rojo)}.sin-datos{color:var(--gris)}.info{color:var(--gris2)}
 .kpi .valor{font-family:var(--mono);font-size:30px;font-weight:500}
 .pos{color:var(--verde)}.neg{color:var(--rojo)}
 table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px}
@@ -1851,6 +2018,9 @@ svg{width:100%;height:auto}.eje{font-family:var(--mono);font-size:10px;fill:var(
 .barra-ok{fill:var(--acento)}.barra-alta{fill:var(--rojo)}.limite{stroke:var(--rojo)}
 .nota{margin-top:auto;padding:10px 12px;background:var(--mal-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--mal-fg)}
 .nota-info{margin-top:auto;padding:10px 12px;background:var(--duda-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--gris2)}
+/* Historial del día: ya no está pasando. Gris, nunca el rojo de Revisar. */
+.nota-historial{margin-top:auto;padding:10px 12px;border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--gris)}
+tr.historial td,tr.historial td.tk,h3.historial{color:var(--gris);font-weight:400}
 h3{margin:12px 0 0;font-size:13px;letter-spacing:.04em;font-weight:500}
 .badge{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--acento);color:var(--acento)}
 .scroll{overflow-x:auto}
@@ -1987,6 +2157,102 @@ def _html_broker(ctx: dict) -> str:
     )
 
 
+def _html_intervalo(fila: dict, n: int, unidad: str) -> str:
+    return f"desde {esc(fila['desde'])} hasta {esc(fila['hasta'])} ({n} {unidad})"
+
+
+def _html_riesgo(ctx: dict) -> str:
+    """Panel de límites. Lo activo va en su sección; el día, en gris,
+    con desde/hasta y cuándo se vio por última vez. El rojo (`nota`)
+    solo si la ventana activa pide revisar. MERCADO_CERRADO no se
+    presenta como capacidad llena."""
+    r = ctx.get("riesgo") or {}
+    unicos = r.get("unicos") or []
+    capacidad = r.get("capacidad") or []
+    informativos = r.get("informativos") or []
+    hay_filas = bool(unicos or capacidad or informativos)
+    sin_recientes = bool(ctx.get("sin_datos_recientes"))
+
+    if not hay_filas:
+        if ctx.get("conteos_validos") and not sin_recientes:
+            return '<p class="vacio">Ningún límite ha bloqueado operaciones hoy.</p>'
+        # Sin log, o sesión abierta sin un ciclo reciente: explícito, y
+        # no un cero que parezca "no pasó nada". Fuera de sesión, sin
+        # ciclo, se queda el "Sin datos" de siempre.
+        if sin_recientes:
+            return f'<p class="vacio">Sin datos recientes: {esc(ctx.get("motivo_sin_datos"))}.</p>'
+        return f'<p class="vacio">Sin datos: {esc(ctx.get("motivo_sin_datos"))}.</p>'
+
+    partes: list[str] = []
+    if sin_recientes and not r.get("revisar"):
+        partes.append(
+            f'<p class="vacio">Sin datos recientes: {esc(ctx.get("motivo_sin_datos"))}.</p>'
+        )
+
+    for c in informativos:
+        frase = _html_intervalo(c, c["corridas"], "corridas")
+        if c.get("activo"):
+            partes.append(
+                f'<div class="nota-info">Mercado cerrado · <b>{esc(c["codigo"])}</b> · {frase}</div>'
+            )
+        else:
+            partes.append(
+                f'<div class="nota-historial">Historial: <b>{esc(c["codigo"])}</b> · {frase}'
+                f' · última {esc(c["hasta"])} · resuelto</div>'
+            )
+
+    for c in capacidad:
+        frase = _html_intervalo(c, c["corridas"], "corridas")
+        if c.get("activo"):
+            # Tope lleno AHORA: el control funciona, no es alarma.
+            partes.append(
+                f'<div class="nota-info">Capacidad llena: <b>{esc(c["codigo"])}</b> · {frase}'
+                f' · {esc(c["motivo"])}</div>'
+            )
+        else:
+            partes.append(
+                f'<div class="nota-historial">Historial: <b>{esc(c["codigo"])}</b> · {frase}'
+                f' · última {esc(c["hasta"])} · resuelto</div>'
+            )
+
+    activos = [f for f in unicos if f.get("activo")]
+    historial = [f for f in unicos if not f.get("activo")]
+
+    def _tabla(filas: list[dict], es_historial: bool) -> str:
+        cuerpo = []
+        for f in filas[:20]:
+            cls = ' class="historial"' if es_historial else ""
+            ultima = esc(f["hora"]) + (" · resuelto" if es_historial else "")
+            cuerpo.append(
+                f"<tr{cls}><td class='tk'>{esc(f['ticker'])}</td><td>{esc(f['codigo'])}</td>"
+                f"<td>{f['veces']}</td><td>{esc(f['desde'])}</td><td>{esc(f['hasta'])}</td>"
+                f"<td>{ultima}</td></tr>"
+            )
+        return (
+            "<div class='scroll'><table><thead><tr><th>Ticker</th><th>Código</th><th>Veces</th>"
+            "<th>Desde</th><th>Hasta</th><th>Última</th></tr></thead><tbody>"
+            + "".join(cuerpo) + "</tbody></table></div>"
+        )
+
+    if activos:
+        partes.append('<h3>Activo ahora</h3>')
+        partes.append(_tabla(activos, False))
+    if historial:
+        partes.append('<h3 class="historial">Historial del día</h3>')
+        partes.append(_tabla(historial, True))
+
+    # El resumen va en rojo SOLO si la ventana activa pide revisar.
+    hay_revisar = bool(r.get("dato_faltante") or r.get("codigos_nuevos"))
+    partes.append(
+        f'<div class="{"nota" if hay_revisar else "nota-info"}">'
+        f'{len(unicos)} bloqueos únicos · {r.get("eventos", 0)} eventos'
+        + (f' · <b>revisar:</b> {esc(", ".join(r["dato_faltante"]))}' if r.get("dato_faltante") else "")
+        + (f' · <b>motivo nuevo:</b> {esc(", ".join(r["codigos_nuevos"]))}' if r.get("codigos_nuevos") else "")
+        + '</div>'
+    )
+    return "".join(partes)
+
+
 def render(ctx: dict) -> str:
     tz = ctx["tz"]
     etiqueta_tz = "UTC" if str(tz) == "UTC" else str(tz)
@@ -1998,7 +2264,7 @@ def render(ctx: dict) -> str:
 
     etapas = "".join(f"""
 <div class="panel etapa">
-  <div class="titulo"><span class="mono">{esc(e['donde'])}</span><span class="punto {e['estado']}">{ {'ok':'OK','alerta':'Revisar','sin-datos':'Sin datos'}[e['estado']] }</span></div>
+  <div class="titulo"><span class="mono">{esc(e['donde'])}</span><span class="punto {e['estado']}">{ {'ok':'OK','alerta':'Revisar','sin-datos':'Sin datos','info':'Info'}[e['estado']] }</span></div>
   <div class="nombre">{esc(e['nombre'])}</div>
   <div class="rol">{esc(e['rol'])}</div>
   <div class="pie mono"><span>{esc(e['detalle'])}</span></div>
@@ -2044,35 +2310,7 @@ def render(ctx: dict) -> str:
         dudas = ('<p class="vacio">El ejecutor no ha rechazado entradas hoy.</p>' if ctx["conteos_validos"]
                  else f'<p class="vacio">Sin datos: {esc(ctx["motivo_sin_datos"])}.</p>')
 
-    r = ctx.get("riesgo") or {}
-    if r.get("unicos") or r.get("capacidad"):
-        # Bloqueos únicos por (ticker, código) con veces y última hora; la
-        # capacidad llena aparte, con desde/hasta y corridas (2026-09-23).
-        riesgo = ""
-        if r.get("capacidad"):
-            # Capacidad llena (mercado cerrado, tope de posiciones) NO es un
-            # error: es el control de riesgo funcionando. Va en estilo
-            # informativo neutro, no en el rojo de alarma (2026-09-24).
-            riesgo += "".join(
-                f'<div class="nota-info">Capacidad llena: <b>{esc(c["codigo"])}</b> · desde {esc(c["desde"])} '
-                f'hasta {esc(c["hasta"])} · {c["corridas"]} corridas · {esc(c["motivo"])}</div>'
-                for c in r["capacidad"])
-        if r.get("unicos"):
-            filas = "".join(
-                f"<tr><td class='tk'>{esc(f['ticker'])}</td><td>{esc(f['codigo'])}</td>"
-                f"<td>{f['veces']}</td><td>{esc(f['hora'])}</td></tr>" for f in r["unicos"][:20])
-            riesgo += (f"<div class='scroll'><table><thead><tr><th>Ticker</th><th>Código</th><th>Veces</th>"
-                       f"<th>Último</th></tr></thead><tbody>{filas}</tbody></table></div>")
-        # El resumen va en rojo SOLO si hay algo que revisar (dato faltante o
-        # motivo nuevo); si no, es informativo y va en neutro.
-        hay_revisar = bool(r.get("dato_faltante") or r.get("codigos_nuevos"))
-        riesgo += (f'<div class="{"nota" if hay_revisar else "nota-info"}">{len(r["unicos"])} bloqueos únicos · {r["eventos"]} eventos'
-                   + (f' · <b>revisar:</b> {esc(", ".join(r["dato_faltante"]))}' if r.get("dato_faltante") else "")
-                   + (f' · <b>motivo nuevo:</b> {esc(", ".join(r["codigos_nuevos"]))}' if r.get("codigos_nuevos") else "")
-                   + '</div>')
-    else:
-        riesgo = ('<p class="vacio">Ningún límite ha bloqueado operaciones hoy.</p>' if ctx["conteos_validos"]
-                  else f'<p class="vacio">Sin datos: {esc(ctx["motivo_sin_datos"])}.</p>')
+    riesgo = _html_riesgo(ctx)
 
     # El título dice de qué sesión son los puntos. Antes de la apertura
     # Alpaca manda la sesión anterior completa: eso no es "hoy" y se avisa.

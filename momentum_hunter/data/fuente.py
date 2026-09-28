@@ -130,9 +130,11 @@ class ProveedorConRespaldo(DataProvider):
             except ErrorDatosAlpaca as ex:
                 # Ciclo caído (auth, red, 429 agotado, paginación): no se
                 # queda una serie a medias. Todo el pedido va a Yahoo.
+                nombres = [str(t) for t in tickers if isinstance(t, str) and t.strip()]
                 log.warning(
-                    "datos: el ciclo del feed falló (%s); este pedido entero va al respaldo",
+                    "datos: el ciclo del feed falló (%s); este pedido entero va al respaldo (%s)",
                     ex.codigo,
+                    ", ".join(nombres[:8]),
                 )
                 self._fallbacks += len([t for t in tickers if isinstance(t, str) and t.strip()])
                 self._uso_respaldo = True
@@ -141,9 +143,14 @@ class ProveedorConRespaldo(DataProvider):
             if fallidos:
                 # Se cuentan aunque el respaldo tampoco tenga vela: el
                 # intento existió y es lo que hay que poder ver después.
+                # El código vive en el log, no en el dict de telemetría:
+                # esa forma ya la leen el reporte y las pruebas.
+                codigo = getattr(self._primario, "ultimo_codigo", None)
+                if not isinstance(codigo, str) or not codigo:
+                    codigo = "sin_codigo"
                 log.warning(
-                    "datos: %d símbolo(s) del feed no respondieron; se piden al respaldo (%s)",
-                    len(fallidos), ", ".join(str(t) for t in fallidos[:8]),
+                    "datos: %d símbolo(s) del feed no respondieron (%s); se piden al respaldo (%s)",
+                    len(fallidos), codigo, ", ".join(str(t) for t in fallidos[:8]),
                 )
                 self._fallbacks += len(fallidos)
                 self._uso_respaldo = True
