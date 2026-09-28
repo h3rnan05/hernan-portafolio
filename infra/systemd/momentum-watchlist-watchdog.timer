@@ -1,7 +1,9 @@
 [Unit]
 Description=PAPER watchdog timer (Mon-Fri US hours, every 10m)
 [Timer]
+# Misma tapa ancha que el resto: hasta las 21:30 UTC, no hasta las 20:00.
 OnCalendar=Mon..Fri 13..20:0/10:00 UTC
+OnCalendar=Mon..Fri 21:00,10,20,30:00 UTC
 Persistent=true
 Unit=momentum-watchlist-watchdog.service
 [Install]

@@ -3,7 +3,10 @@ Description=Timer for momentum watchlist+paper during US market hours (UTC)
 Requires=momentum-watchlist.service
 
 [Timer]
+# Tramo ancho 13:00–21:30 UTC (verano e invierno). Apagado: lo reemplaza
+# el vigía. Si se vuelve a encender, el código igual gatea con el calendario.
 OnCalendar=Mon..Fri *-*-* 13..20:0/5:00 UTC
+OnCalendar=Mon..Fri *-*-* 21:00,05,10,15,20,25,30:00 UTC
 Persistent=false
 Unit=momentum-watchlist.service
 

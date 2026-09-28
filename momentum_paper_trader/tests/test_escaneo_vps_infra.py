@@ -37,7 +37,9 @@ def test_scripts_del_vps_pasan_bash_n_y_son_ejecutables():
 
 def test_timer_del_escaneo_cada_30_min_en_sesion_sin_pisar_al_rechequeo():
     texto = SCAN_TIMER.read_text(encoding="utf-8")
-    assert "OnCalendar=Mon..Fri *-*-* 13..20:01,31:00 UTC" in texto
+    # :20, no :00: el pre-pull no puede seguir vivo cuando el vigía escribe a los :05.
+    assert "OnCalendar=Mon..Fri *-*-* 13..20:01,31:20 UTC" in texto
+    assert "OnCalendar=Mon..Fri *-*-* 21:01:20 UTC" in texto
     assert "Persistent=false" in texto
     assert "Unit=momentum-scan.service" in texto
     servicio = SCAN_SERVICE.read_text(encoding="utf-8")
@@ -45,23 +47,24 @@ def test_timer_del_escaneo_cada_30_min_en_sesion_sin_pisar_al_rechequeo():
     assert "User=momentum" in servicio and "EnvironmentFile=/etc/momentum/paper.env" in servicio
 
 
-def test_el_escaneo_corre_sin_candado_y_solo_se_bloquea_para_git():
-    """Regla del dueño: candado solo en las escrituras y el commit, nunca
-    durante los ~9 min de escaneo."""
+def test_el_escaneo_no_toca_git():
+    """El único pull es el del wrapper que llama el proceso permanente."""
+    texto = SCAN_SH.read_text(encoding="utf-8")
+    assert "git " not in texto
+    assert "git_pull_con_estado_local.sh" not in texto
+    assert "--materializar-overlay" in texto
+
+
+def test_el_escaneo_corre_sin_candado_de_versionado():
+    """Regla del dueño: candado nunca durante los ~9 min de escaneo.
+    El paso paper sí comparte el candado corto con el proceso permanente."""
     texto = SCAN_SH.read_text(encoding="utf-8")
     escaneo = texto.index("momentum_hunter.run --limit")
-    persist = texto.index("persistir_estado()")
-    # El comando de escaneo está fuera de cualquier subshell con flock:
-    # ninguna llamada a flock antes del escaneo sigue abierta al llegar a él.
     antes = texto[:escaneo]
     assert antes.count("(") == antes.count(")"), "el escaneo quedó dentro de un bloque abierto"
     assert "flock" not in texto[antes.rfind(")"):escaneo]
-    # El paper también corre sin candado, y el commit sí lleva flock.
-    assert texto.index("momentum_paper_trader.run") < persist
-    bloque_commit = texto[texto.index("persistir_estado\n) 9>") - 400:texto.index("persistir_estado\n) 9>")]
-    assert "flock -w 180 9" in bloque_commit
-    # Nunca --force.
-    assert "git push --force" not in texto and "force-with-lease" not in texto
+    assert texto.index("momentum_paper_trader.run") > escaneo
+    assert "flock -w 120" in texto[escaneo:]
 
 
 def test_el_rechequeo_nunca_se_salta_por_el_escaneo():
@@ -72,16 +75,17 @@ def test_el_rechequeo_nunca_se_salta_por_el_escaneo():
         assert "momentum_hunter.run --solo-watchlist" in texto
 
 
-def test_el_vps_es_el_dueno_de_watchlist_y_auditoria_y_materializa_antes_de_commitear():
-    for path in (SCAN_SH, WL_SH, WL_SH_TREE):
+def test_el_vps_materializa_y_solo_el_rechequeo_sube_el_latido():
+    for path in (WL_SH, WL_SH_TREE):
         texto = path.read_text(encoding="utf-8")
-        inicio = texto.index("paths=(")
-        bloque = texto[inicio:texto.index(")", inicio)]
-        assert "momentum_hunter/watchlist.json" in bloque, path
-        assert "momentum_hunter/auditoria" in bloque, path
-        assert "momentum_hunter/telemetria" in bloque, path
-        assert "momentum_paper_trader/revisiones.json" in bloque, path
-        assert "--materializar-overlay" in texto[:inicio], path   # antes del git add
+        assert "--materializar-overlay" in texto, path
+        assert "vps_latido.json" in texto, path
+        assert "git add -- vps_latido.json" in texto, path
+        assert "momentum_hunter/watchlist.json" not in texto, path
+        assert "momentum_paper_trader/revisiones.json" not in texto, path
+    scan = SCAN_SH.read_text(encoding="utf-8")
+    assert "--materializar-overlay" in scan
+    assert "git add" not in scan
 
 
 def test_yahoo_pausa_del_bot_distinta_de_la_del_panel():
@@ -97,9 +101,7 @@ def test_yahoo_pausa_del_bot_distinta_de_la_del_panel():
 def test_vuelta_atras_sin_tocar_codigo():
     texto = SCAN_SH.read_text(encoding="utf-8")
     assert 'if [ "${MOMENTUM_SCAN_VPS:-1}" = "0" ]' in texto
-    # El pull (helper) queda detrás del kill switch: con SCAN_VPS=0
-    # el script sale antes de tocar git.
-    assert texto.index("MOMENTUM_SCAN_VPS") < texto.index("git_pull_con_estado_local.sh")
+    assert texto.index("MOMENTUM_SCAN_VPS") < texto.index("momentum_hunter.run --limit")
 
 
 # ───────────── compuertas de GitHub ─────────────
@@ -168,3 +170,8 @@ def test_ultimo_latido_lee_las_dos_telemetrias_del_vps_de_hoy(tmp_path, monkeypa
     (ayer / "events.jsonl").write_text('{"timestamp": "2026-09-20T19:55:00+00:00"}\n')
     assert r.ultimo_latido_vps(ahora, (tmp_path / "nada",)) is None
     assert r.ultimo_latido_vps(ahora - timedelta(days=1), (tmp_path / "paper",)) == datetime(2026, 9, 20, 19, 55, tzinfo=UTC)
+    # La voz que queda en el repo es el archivo de latido, no la telemetría.
+    marca = tmp_path / "vps_latido.json"
+    marca.write_text('{"ts": "2026-09-21T14:58:00+00:00"}\n', encoding="utf-8")
+    assert r.ultimo_latido_vps(ahora, raices=(), latido=marca) == datetime(2026, 9, 21, 14, 58, tzinfo=UTC)
+    assert r.leer_latido_archivo(tmp_path / "no.json") is None

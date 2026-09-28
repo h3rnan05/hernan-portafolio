@@ -14,12 +14,15 @@ timer es el escaneo de las 20:31 -- llevaba callado desde las 20:45 como
 corresponde. Sin cierre, ese silencio normal se leía como caída y GitHub
 escaneaba con el mercado cerrado.
 
-La "voz" del VPS es la telemetría que él mismo commitea cada 5 min:
-`momentum_paper_trader/telemetria/<hoy>/vps/events.jsonl` (el rechequeo) y
-`momentum_hunter/telemetria/<hoy>/vps/events.jsonl` (el escaneo). Se lee
-del checkout, sin git log ni secrets. Un archivo ilegible o sin
-timestamps cuenta como silencio: ante la duda, GitHub respalda (un
-escaneo de más es barato; una sesión sin escaneos no).
+La "voz" del VPS ya no es la telemetría (salió del repo el 2026-09-28).
+Es `vps_latido.json` en la raíz del checkout, un timestamp que solo el
+proceso de persistencia sube. Si ese archivo no está, se miran todavía
+los events.jsonl de hoy por si un checkout viejo los trae. Un archivo
+ilegible o sin timestamps cuenta como silencio: ante la duda, GitHub
+respalda (un escaneo de más es barato; una sesión sin escaneos no).
+Limitación: el respaldo ya no entrega watchlist al VPS. Hunter y
+ejecutor comparten disco ahí; cuando el VPS está caído, el ejecutor
+también.
 
 Uso: python .github/scripts/respaldo_gha.py  → imprime `respaldo=true|false`
 y la razón; con GITHUB_OUTPUT definido escribe ahí `respaldo=...`.
@@ -42,6 +45,7 @@ RUTAS = (
     Path("momentum_paper_trader/telemetria"),
     Path("momentum_hunter/telemetria"),
 )
+LATIDO = Path("vps_latido.json")
 
 
 def _parse_ts(valor) -> datetime | None:
@@ -54,8 +58,30 @@ def _parse_ts(valor) -> datetime | None:
     return d if d.tzinfo is not None else d.replace(tzinfo=UTC)
 
 
-def ultimo_latido_vps(ahora: datetime, raices=RUTAS) -> datetime | None:
-    """Timestamp más reciente de la telemetría del VPS de hoy (fecha UTC)."""
+def leer_latido_archivo(path: Path) -> datetime | None:
+    """`{"ts": "<iso>"}`. Cualquier otra forma es silencio, no un cero."""
+    try:
+        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    return _parse_ts(data.get("ts"))
+
+
+def ultimo_latido_vps(ahora: datetime, raices=None, latido=None) -> datetime | None:
+    """Timestamp más reciente de la voz del VPS.
+
+    Con `raices` explícito y sin `latido` solo mira events.jsonl (las
+    pruebas de cuando la telemetría viajaba en el repo). Sin argumentos,
+    mira esos JSONL si todavía están en el checkout Y `vps_latido.json`.
+    Gana el más nuevo.
+    """
+    if raices is None and latido is None:
+        raices = RUTAS
+        latido = LATIDO
+    elif raices is None:
+        raices = ()
     fecha = ahora.astimezone(UTC).date().isoformat()
     ultimo = None
     for raiz in raices:
@@ -72,6 +98,10 @@ def ultimo_latido_vps(ahora: datetime, raices=RUTAS) -> datetime | None:
             ts = _parse_ts(r.get("timestamp")) if isinstance(r, dict) else None
             if ts is not None and (ultimo is None or ts > ultimo):
                 ultimo = ts
+    if latido is not None:
+        marca = leer_latido_archivo(latido)
+        if marca is not None and (ultimo is None or marca > ultimo):
+            ultimo = marca
     return ultimo
 
 

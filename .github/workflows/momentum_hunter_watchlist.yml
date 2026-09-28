@@ -70,6 +70,14 @@ jobs:
         if: steps.vps.outputs.respaldo == 'true'
         env:
           MOMENTUM_TELEGRAM_PREFIJO: "[RESPALDO GITHUB]"
+          # Host de DATOS (acciones corporativas + barras alpaca/sip).
+          # Sin claves, la guardia corp en enforce bloquearía disparos
+          # y fuente.py caería a Yahoo. Van en este env, no en el job:
+          # persistir y el chequeo de respaldo no las necesitan.
+          MOMENTUM_DATA_PROVIDER: alpaca
+          ALPACA_DATA_FEED: sip
+          ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
           MOMENTUM_TELEGRAM_BOT_TOKEN: ${{ secrets.MOMENTUM_TELEGRAM_BOT_TOKEN }}
           MOMENTUM_TELEGRAM_CHAT_ID: ${{ secrets.MOMENTUM_TELEGRAM_CHAT_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -103,25 +111,8 @@ jobs:
           pip install -q -r momentum_paper_trader/requirements.txt
           python -m momentum_paper_trader.run
 
-      - name: Persistir watchlist/tracker/auditoría
+      - name: El estado no se versiona
         if: steps.vps.outputs.respaldo == 'true'
         run: |
-          # Escritor de RESPALDO (2026-09-21): el dueño de watchlist.json,
-          # auditoria y telemetría del hunter es el VPS. Este paso solo corre
-          # cuando el VPS está callado. revisiones.json NO: único escritor VPS.
-          git config user.name "momentum-opportunity-hunter"
-          git config user.email "momentum-opportunity-hunter@users.noreply.github.com"
-          for f in momentum_hunter/watchlist.json momentum_hunter/alertas_enviadas.json \
-                   momentum_paper_trader/archivo_triggered.jsonl; do
-            [ -f "$f" ] && git add "$f" || true
-          done
-          [ -d momentum_hunter/auditoria ] && git add momentum_hunter/auditoria || true
-          # Telemetría del hunter. Paper telem la persiste el VPS, no GHA
-          # (conflicto rebase sobre el JSON diario, run 34624961161).
-          [ -d momentum_hunter/telemetria ] && git add momentum_hunter/telemetria || true
-          if git diff --cached --quiet; then
-            echo "INFO: nothing to persist"
-          else
-            git commit -m "momentum_hunter: re-chequeo de watchlist [skip ci]"
-            PERSIST_BRANCH=main bash scripts/git_persist_rebase_push.sh
-          fi
+          echo "INFO: watchlist, auditoría y telemetría viven en MOMENTUM_ESTADO_DIR."
+          echo "INFO: este job no los sube. La voz del VPS es vps_latido.json."

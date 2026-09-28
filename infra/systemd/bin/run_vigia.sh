@@ -2,7 +2,7 @@
 # PAPER ONLY. Wrapper del vigía (2026-09-22): proceso permanente que
 # reemplaza al timer de 5 min del rechequeo. Mismo entorno que
 # run_watchlist_paper.sh; el bucle vive en momentum_paper_trader/vigia.py.
-# Vive en /opt/momentum/bin/ como el resto (un git pull no lo actualiza:
+# Vive en /opt/momentum/bin/ como el resto (un pull del checkout no lo actualiza:
 # cada cambio exige volver a hacer `install`).
 set -u
 ROOT="${MOMENTUM_ROOT:-/opt/hernan-portafolio}"

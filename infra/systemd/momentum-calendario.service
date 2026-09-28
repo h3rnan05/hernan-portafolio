@@ -1,0 +1,16 @@
+[Unit]
+Description=Refresco del calendario de sesión Alpaca paper (PAPER ONLY, solo lectura)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+EnvironmentFile=/etc/momentum/paper.env
+ExecStart=/opt/momentum/bin/run_calendario.sh
+
+[Install]
+WantedBy=multi-user.target

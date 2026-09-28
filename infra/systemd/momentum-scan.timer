@@ -3,11 +3,17 @@ Description=Timer del escaneo completo en el VPS (cada 30 min, Lun-Vie 13-20 UTC
 Requires=momentum-scan.service
 
 [Timer]
-# :01 y :31 para no arrancar encima del rechequeo de :00 y :30. El slot
-# del universo se deriva del reloj en tramos de 30 min, así que un minuto
-# de corrimiento no cambia qué se escanea. Persistent=false a propósito:
+# :01:20 y :31:20. El pre-pull no puede seguir vivo a los :05: el vigía
+# escribe estado en ese segundo y, si cae entre el stash y el pop, el
+# pop aborta (2026-09-28). El segundo 20 queda después de ese tick y
+# antes del siguiente. El slot del universo se deriva del reloj en tramos
+# de 30 min: 20 s no cambian qué se escanea. Persistent=false a propósito:
 # un escaneo atrasado no sirve, la ventana ya pasó.
-OnCalendar=Mon..Fri *-*-* 13..20:01,31:00 UTC
+# 13:00–20:31 más las 21:01 UTC. El tramo llega hasta después del cierre
+# de invierno (21:00 UTC). Quién opera de verdad lo decide el calendario
+# en el código: un feriado no entra aunque el timer haya disparado.
+OnCalendar=Mon..Fri *-*-* 13..20:01,31:20 UTC
+OnCalendar=Mon..Fri *-*-* 21:01:20 UTC
 Persistent=false
 Unit=momentum-scan.service
 

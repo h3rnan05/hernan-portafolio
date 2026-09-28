@@ -1,63 +1,55 @@
-"""Horario de la sesión regular del mercado de EE.UU. -- puro calendario,
-sin red y sin bróker.
+"""Horario de la sesión regular -- lee el calendario local, sin red.
 
-POR QUÉ EXISTE (2026-08-27). El resto del proyecto deduce el horario de
-dos constantes en horario de VERANO (`factors/intradia.HORA_APERTURA_UTC`
-/ `HORA_CIERRE_UTC`). En invierno la sesión se corre una hora entera
-(14:30-21:00 UTC) y esas constantes se equivocan en las dos puntas.
+El archivo lo refresca el paper trader (`calendario_job`) desde el
+calendario de Alpaca. Este módulo solo lo consulta, igual que el
+ejecutor, el cierre, el vigía y el panel. Así el cambio de horario, los
+feriados y las medias sesiones salen de un solo lugar.
 
-Peor: los cron corren `13-20`, y esa hora `20` abarca hasta las 20:55,
-o sea que la última hora de escaneo de cada día ocurre ENTERA con el
-mercado cerrado. Medido el 2026-08-27 sobre el estado real: 4 de las 6
-señales TRIGGERED vivas habían disparado fuera de sesión (20:23, 20:31,
-20:42, 20:50 UTC). Ninguna se pudo operar nunca -- el ejecutor las
-rechazaba con razón, y para cuando el mercado reabría sus precios ya
-estaban rancios.
+Si el archivo no está o no cubre hoy, no hay sesión para entrar (el
+ejecutor no abre nada) y el cierre de fin de día usa las 13:00 de
+Nueva York. Un finde o un feriado que SÍ están dentro del rango del
+archivo son "cerrado de verdad": no hay ventana y no hay cierre.
 
-Se resuelve con la zona horaria real (`America/New_York`) en vez de un
-desplazamiento fijo: así el cambio de horario se aplica solo, sin que
-nadie tenga que acordarse de editar una constante dos veces al año.
-
-LO QUE NO SABE, dicho sin maquillar: feriados y medias sesiones. Un 4 de
-julio esto dice "abierto". Por eso es un filtro BARATO y no la autoridad:
-el ejecutor pregunta el reloj de verdad a Alpaca (`GET /v2/clock`, ver
-`momentum_paper_trader.executor._mercado_cerrado`), que sí conoce el
-calendario. Este módulo existe para que el buscador deje de FABRICAR
-señales imposibles, no para autorizar órdenes."""
+La zona `America/New_York` sigue haciendo el cambio de horario solo.
+Lo que antes era un 9:30–16:00 fijo, sin feriados, ya no es la
+autoridad.
+"""
 
 from __future__ import annotations
 
-from datetime import datetime, time
-from zoneinfo import ZoneInfo
+from datetime import datetime
 
-_NY = ZoneInfo("America/New_York")
-APERTURA_ET = time(9, 30)
-CIERRE_ET = time(16, 0)
-
-
-def _en_nueva_york(ahora: datetime) -> datetime:
-    return ahora.astimezone(_NY)
+from momentum_hunter import calendario
 
 
 def en_sesion(ahora: datetime) -> bool:
-    """¿Está abierta la sesión regular en este instante? (Sin feriados --
-    ver el docstring del módulo.)"""
-    ny = _en_nueva_york(ahora)
-    if ny.weekday() >= 5:   # sábado, domingo
-        return False
-    return APERTURA_ET <= ny.time() < CIERRE_ET
+    """¿Está abierta la sesión regular en este instante?"""
+    return calendario.en_sesion(ahora)
 
 
 def minutos_hasta_el_cierre(ahora: datetime) -> float:
-    """Minutos que faltan para el cierre regular. Negativo si ya cerró,
-    y también negativo fuera de un día hábil -- quien llame solo tiene
-    que preguntar "¿queda tiempo?", sin distinguir los casos."""
-    ny = _en_nueva_york(ahora)
-    cierre = ny.replace(hour=CIERRE_ET.hour, minute=CIERRE_ET.minute,
-                        second=0, microsecond=0)
-    if ny.weekday() >= 5:
-        return -1.0
-    return (cierre - ny).total_seconds() / 60.0
+    """Minutos hasta el cierre, para decidir si se puede entrar.
+
+    Negativo si ya cerró, si el día no tiene sesión, o si no hay
+    calendario para hoy. Antes de la apertura de un día conocido sigue
+    siendo positivo: no alcanza con "falta mucho" si todavía no abrió.
+    """
+    return calendario.minutos_hasta_el_cierre(ahora)
+
+
+def minutos_para_liquidar(ahora: datetime) -> float:
+    """Minutos hasta el cierre que usa el cierre de fin de día.
+
+    Con calendario: el cierre de ese día (13:00 ET en una media sesión).
+    Sin calendario para hoy: las 13:00 de Nueva York. Si el día se sabe
+    cerrado (feriado), negativo: no hay liquidación que disparar.
+    """
+    return calendario.minutos_para_liquidar(ahora)
+
+
+def calendario_desconocido(ahora: datetime) -> bool:
+    """True si no hay archivo, no se puede leer, o no cubre el día de hoy."""
+    return calendario.consultar(ahora).desconocido
 
 
 def hay_tiempo_para_operar(ahora: datetime, minutos_minimos: float) -> bool:
@@ -68,5 +60,7 @@ def hay_tiempo_para_operar(ahora: datetime, minutos_minimos: float) -> bool:
     puede comprar. Y a cinco minutos del cierre tampoco tiene sentido
     empezar: una entrada que llegara a llenarse dejaría una posición que
     hay que liquidar en la misma vela, y las patas de salida del bracket
-    (órdenes "del día") morirían al cerrar."""
+    (órdenes "del día") morirían al cerrar. Sin calendario para hoy esto
+    es False: no se fabrica una señal que nadie puede tomar.
+    """
     return en_sesion(ahora) and minutos_hasta_el_cierre(ahora) >= minutos_minimos

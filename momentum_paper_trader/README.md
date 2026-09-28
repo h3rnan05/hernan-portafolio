@@ -470,6 +470,28 @@ ya se bloqueaba; ningún umbral, límite ni criterio de entrada se movió.
   (`momentum_hunter.yml`, el respaldo) lleva más de 45 min sin correr en
   sesión (`DASH_GHA_MAX_MIN`).
 
+## Catálogo de activos (job aparte)
+
+`python -m momentum_paper_trader.assets_job` lee `GET /v2/assets` del
+mismo host paper que `_BASE_URL` (`status=active`,
+`asset_class=us_equity`) y escribe, de forma atómica,
+`/var/lib/momentum/estado/datos/alpaca_assets.json` (o
+`$MOMENTUM_ESTADO_DIR/datos/alpaca_assets.json`). Si el directorio no
+existe, este job lo crea. El hunter solo lee ese archivo: no llama al
+endpoint y no crea la carpeta. Si el archivo falta, tiene más de 36 h,
+no cubre el día UTC o trae menos de 5000 símbolos, no filtra por él
+(`assets_desconocido` y `assets_motivo` en la telemetría) y el escaneo
+sigue igual que antes. El job igual escribe un catálogo corto: es la
+respuesta del host.
+
+El archivo no vive en el árbol git. shortable, marginable y
+easy_to_borrow no se guardan. Un campo que no vino queda en null, no
+en false.
+
+El timer `momentum-assets.timer` (12:05 UTC, todos los días) **no se
+habilita solo**. Instalación en el VPS: `infra/systemd/README.md`,
+sección "Catálogo de activos paper".
+
 ## Uso
 
 ```bash

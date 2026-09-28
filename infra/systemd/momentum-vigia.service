@@ -1,5 +1,8 @@
 [Unit]
 Description=Momentum vigía: rechequeo + paper cada 60 s en sesión (PAPER ONLY, proceso permanente)
+# No hay corte a las 20:01 UTC. El proceso queda vivo; vigia.py abre la
+# ventana según el calendario, dentro del tramo 13:00-21:30 UTC que cubre
+# el horario de verano (cierre 20:00 UTC) y el de invierno (cierre 21:00).
 After=network-online.target
 Wants=network-online.target
 # Nunca junto al timer de 5 min: los dos ejecutarían la misma señal.
@@ -12,6 +15,11 @@ Group=momentum
 WorkingDirectory=/opt/hernan-portafolio
 Environment=PYTHONPATH=/opt/hernan-portafolio
 EnvironmentFile=/etc/momentum/paper.env
+# Crea /var/lib/momentum si falta. ReadWritePaths no restringe nada
+# mientras no se active ProtectSystem estricto: eso rompería el pull
+# (escribe el checkout y .git) y los candados de /tmp.
+StateDirectory=momentum
+ReadWritePaths=/var/lib/momentum
 ExecStart=/opt/momentum/bin/run_vigia.sh
 Restart=always
 RestartSec=15
