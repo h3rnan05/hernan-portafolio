@@ -65,9 +65,11 @@ from pathlib import Path
 
 import requests
 
+from momentum_hunter.rutas_estado import RutaEstado
+
 log = logging.getLogger("momentum_hunter.universe")
 
-CACHE = Path(__file__).resolve().parent / "universo_cache.json"
+CACHE = RutaEstado("momentum_hunter/universo_cache.json")
 NASDAQ_LISTED = "https://www.nasdaqtrader.com/dynamic/SymDirectory/nasdaqlisted.txt"
 OTHER_LISTED = "https://www.nasdaqtrader.com/dynamic/SymDirectory/otherlisted.txt"
 

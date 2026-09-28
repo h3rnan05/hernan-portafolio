@@ -1,0 +1,14 @@
+[Unit]
+Description=Timer sombra B1 noticias (cada slot de escaneo). NO se instala solo.
+Requires=momentum-shadow-noticias.service
+
+[Timer]
+# El escaneo arranca a :01 y :31 y tarda ~10 min. :18 y :48 leen el
+# events.jsonl de ESA corrida, no la anterior. Persistent=false: una
+# corrida atrasada ya no corresponde a ese slot.
+OnCalendar=Mon..Fri *-*-* 13..20:18,48:00 UTC
+Persistent=false
+Unit=momentum-shadow-noticias.service
+
+[Install]
+WantedBy=timers.target

@@ -10,6 +10,9 @@ Group=momentum
 WorkingDirectory=/opt/hernan-portafolio
 Environment=PYTHONPATH=/opt/hernan-portafolio
 EnvironmentFile=/etc/momentum/paper.env
+# Ver momentum-vigia.service: StateDirectory, sin ProtectSystem estricto.
+StateDirectory=momentum
+ReadWritePaths=/var/lib/momentum
 ExecStart=/opt/hernan-portafolio/scripts/run_watchlist_paper.sh
 Nice=10
 TimeoutStartSec=600

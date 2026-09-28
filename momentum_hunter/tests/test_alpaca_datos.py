@@ -802,3 +802,47 @@ def test_la_telemetria_guarda_la_fuente_y_el_reporte_ignora_el_rechequeo(tmp_pat
     texto = reporte_semanal.construir("2026-09-28", "2026-09-28", tmp_path)
     assert "Corridas registradas: 1" in texto
     assert "500" not in texto
+
+
+def test_metadata_de_alpaca_reusa_el_cache_diario_de_yahoo(monkeypatch, tmp_path):
+    """El feed no trae float ni nombre: AlpacaProvider.metadata delega en
+    Yahoo, y ese cache diario también vale por este camino."""
+    import sys
+
+    from momentum_hunter.data.provider import ENV_CACHE_METADATA
+    from momentum_hunter.models import Metadata
+
+    class _Ticker:
+        def __init__(self, info):
+            self._info = info
+
+        @property
+        def info(self):
+            return self._info
+
+    class _YF:
+        def __init__(self):
+            self.llamadas: list[str] = []
+
+        def Ticker(self, ticker):
+            self.llamadas.append(ticker)
+            return _Ticker({
+                "longName": "Acme Corp",
+                "quoteType": "EQUITY",
+                "exchange": "NMS",
+                "marketCap": 2_000_000,
+                "floatShares": 10_000,
+            })
+
+    yf = _YF()
+    monkeypatch.setitem(sys.modules, "yfinance", yf)
+    monkeypatch.setenv(ENV_CACHE_METADATA, str(tmp_path / "cache.json"))
+    p = _provider()
+    primera = p.metadata(["ACME"])["ACME"]
+    segunda = p.metadata(["ACME"])["ACME"]
+    assert yf.llamadas == ["ACME"]
+    assert isinstance(primera, Metadata)
+    assert segunda.market_cap == 2_000_000
+    assert segunda.shares_float == 10_000
+    assert segunda.nombre == "Acme Corp"
+    assert segunda == primera

@@ -48,9 +48,11 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
+from momentum_hunter.rutas_estado import RutaEstado
+
 log = logging.getLogger("momentum_hunter.telemetria")
 
-DIR_TELEMETRIA = Path(__file__).resolve().parent / "telemetria"
+DIR_TELEMETRIA = RutaEstado("momentum_hunter/telemetria", es_dir=True)
 
 FUENTES_VALIDAS = ("vps", "gha", "local")
 _RE_FECHA = re.compile(r"^\d{4}-\d{2}-\d{2}$")

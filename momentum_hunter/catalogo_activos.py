@@ -45,24 +45,23 @@ EDAD_MAXIMA = timedelta(hours=36)
 MINIMO_SIMBOLOS = 5000
 
 _NOMBRE = "alpaca_assets.json"
-DIR_ESTADO_DEFAULT = Path("/var/lib/momentum/estado")
 
 
 def ruta_catalogo() -> Path:
     """Un solo camino para el job y para el hunter.
 
     `MOMENTUM_CATALOGO_ACTIVOS` es la ruta completa del archivo y gana
-    siempre (las pruebas la usan). Si no está, el archivo vive en
-    `$MOMENTUM_ESTADO_DIR/datos/`, fuera del repo. Sin ninguna de las
-    dos variables, el default es `/var/lib/momentum/estado/datos/`.
-    No hay otro helper de estado en el repo: cada proceso elige su
-    propio archivo bajo `/var/lib/momentum`."""
+    siempre (las pruebas la usan). Si no está, el archivo es
+    `rutas_estado.raiz() / datos / alpaca_assets.json`. La raíz es
+    `MOMENTUM_ESTADO_DIR` (default `/var/lib/momentum/estado`), el
+    mismo helper que el resto del estado. No se usa `resolver()`:
+    ese camino crea el directorio, y este módulo solo lee."""
     explicita = os.environ.get("MOMENTUM_CATALOGO_ACTIVOS", "").strip()
     if explicita:
         return Path(explicita)
-    base = os.environ.get("MOMENTUM_ESTADO_DIR", "").strip()
-    raiz = Path(base) if base else DIR_ESTADO_DEFAULT
-    return raiz / "datos" / _NOMBRE
+    from momentum_hunter.rutas_estado import raiz
+
+    return raiz() / "datos" / _NOMBRE
 
 
 def _texto(valor: object) -> str | None:
