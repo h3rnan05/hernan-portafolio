@@ -7,7 +7,7 @@ Fuentes:
   - API de Alpaca PAPER       solo peticiones GET, endpoint fijo.
                               Posiciones, pendientes y cerradas hoy salen de aquí.
   - revisiones.json           solo el aviso de reconciliación, no qué se grafica
-  - velas de 1 min            misma fuente que el hunter, con caché (dashboard/velas.py)
+  - velas de 1 min            SIP en data.alpaca.markets; Yahoo solo de respaldo (dashboard/velas.py)
   - telemetría del hunter     la píldora de fuente de datos, si el campo existe
 
 Regla del panel: un dato que falta se muestra como "—", nunca como 0.
@@ -1862,12 +1862,34 @@ def _pie_marcas(marcas: dict, tz, ahora: datetime) -> str:
             f'<div><span class="mono">Stop</span><b>{esc(dinero(marcas["stop"]))}</b></div></div>')
 
 
+def _marca_fuente_velas(origen_fuente) -> str | None:
+    """Lo que se lee en el gráfico. `alpaca-sip` es SIP; el respaldo se
+    nombra entero para que no se confunda con una vela del feed. Otro
+    feed (iex) se muestra tal cual, no disfrazado de SIP."""
+    if origen_fuente == "yahoo (respaldo)":
+        return "Yahoo (respaldo)"
+    if origen_fuente == "alpaca-sip":
+        return "SIP"
+    if isinstance(origen_fuente, str) and origen_fuente.startswith("alpaca-") and len(origen_fuente) > len("alpaca-"):
+        return origen_fuente.split("-", 1)[1].upper()
+    return None
+
+
 def _subtitulo_velas(res: dict, tz, ahora: datetime) -> str:
     velas = res.get("velas")
     if not velas:
-        return "sin velas"
-    origen = {"fuente": "Yahoo", "cache": "caché", "cache vencida": "caché vencida"}.get(res.get("origen"), "—")
-    return f"{len(velas['close'])} velas · {origen} {_hora(res.get('obtenido'), tz, ahora=ahora)}"
+        return "Sin datos"
+    frescura = {"fuente": "Yahoo", "cache": "caché", "cache vencida": "caché vencida"}.get(res.get("origen"), "—")
+    hora = _hora(res.get("obtenido"), tz, ahora=ahora)
+    n = len(velas["close"])
+    marca = _marca_fuente_velas(res.get("origen_fuente"))
+    # Sin marca (copia vieja de antes de anotar la fuente, o un doble de
+    # prueba): se conserva el texto de siempre.
+    if marca is None:
+        return f"{n} velas · {frescura} {hora}"
+    if res.get("origen") == "fuente":
+        return f"{n} velas · {marca} {hora}"
+    return f"{n} velas · {frescura} {hora} · {marca}"
 
 
 # ───────────────────────── render ─────────────────────────
@@ -2360,10 +2382,15 @@ def render(ctx: dict) -> str:
         operaciones = '<p class="vacio">Sin datos: Alpaca no respondió posiciones u órdenes.</p>'
 
     fuente = ctx.get("fuente_datos")
-    if fuente and fuente != "Yahoo":
-        sub_velas = (f"1 min · el gráfico pide a Yahoo · el hunter reporta {fuente} · pendiente va marcado")
+    # La telemetría dice qué contestó el hunter. El gráfico pide SIP por
+    # su cuenta y solo cae a Yahoo si el feed no deja velas de hoy: no se
+    # afirma que sean la misma fuente.
+    if fuente:
+        sub_velas = (f"1 min · SIP, o Yahoo (respaldo) si el feed no alcanza · "
+                     f"el hunter reporta {fuente} · pendiente va marcado")
     else:
-        sub_velas = "1 min · misma fuente que el hunter · ruptura, entrada (fill), stop · pendiente va marcado"
+        sub_velas = ("1 min · SIP, o Yahoo (respaldo) si el feed no alcanza · "
+                     "ruptura, entrada (fill), stop · pendiente va marcado")
 
     fuente_datos = (f'<span class="pildora">Fuente de datos: {esc(ctx["fuente_datos"])}</span>'
                     if ctx.get("fuente_datos") else "")
