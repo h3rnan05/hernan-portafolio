@@ -234,6 +234,98 @@ def test_un_lote_caido_marca_solo_esos_simbolos(monkeypatch):
     assert p.fallidos == ["BBB"]
 
 
+def _catalogo(tmp_path, filas, *, usable=True):
+    from momentum_hunter.catalogo_activos import MINIMO_SIMBOLOS
+
+    assets = list(filas)
+    if usable:
+        vistos = {a.get("symbol") for a in assets if isinstance(a, dict)}
+        i = 0
+        while len(assets) < MINIMO_SIMBOLOS:
+            sym = f"ZZ{i:05d}"
+            i += 1
+            if sym in vistos:
+                continue
+            vistos.add(sym)
+            assets.append({
+                "symbol": sym, "exchange": "NASDAQ", "tradable": True,
+                "fractionable": False, "status": "active", "name": sym,
+            })
+    path = tmp_path / "alpaca_assets.json"
+    path.write_text(json.dumps({
+        "fecha_generacion": datetime.now(UTC).isoformat(timespec="seconds"),
+        "assets": assets,
+    }), encoding="utf-8")
+    return path
+
+
+def test_catalogo_fresco_pide_brk_como_esta_en_el_archivo(monkeypatch, tmp_path):
+    # BRK-B y BRK.B son la misma fila. Se pide una vez, con el símbolo
+    # del archivo, y las dos claves pedidas reciben la serie.
+    path = _catalogo(tmp_path, [{
+        "symbol": "BRK.B", "exchange": "NYSE", "tradable": True,
+        "fractionable": False, "status": "active", "name": "Berkshire",
+    }])
+    monkeypatch.setenv("MOMENTUM_CATALOGO_ACTIVOS", str(path))
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        syms = params["symbols"].split(",")
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    out = _provider().barras(["BRK-B", "BRK.B"])
+    assert vistos == ["BRK.B"]
+    assert set(out) == {"BRK-B", "BRK.B"}
+
+
+def test_catalogo_fresco_no_pide_un_guion_que_el_archivo_no_tiene(monkeypatch, tmp_path):
+    # Sin archivo, BH-A se mandaría como BH.A. Con el archivo fresco y
+    # sin esa fila, no se adivina: va a fallidos y el lote de al lado
+    # sigue saliendo.
+    path = _catalogo(tmp_path, [{
+        "symbol": "AAA", "exchange": "NASDAQ", "tradable": True,
+        "fractionable": True, "status": "active", "name": "Aaa",
+    }])
+    monkeypatch.setenv("MOMENTUM_CATALOGO_ACTIVOS", str(path))
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        syms = params["symbols"].split(",")
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    p = _provider()
+    out = p.barras(["BH-A", "AAA"])
+    assert vistos == ["AAA"]
+    assert "BH.A" not in (vistos[0] if vistos else "")
+    assert p.fallidos == ["BH-A"]
+    assert set(out) == {"AAA"}
+
+
+def test_catalogo_corto_no_apaga_la_traduccion_de_clase(monkeypatch, tmp_path):
+    # Menos de 5000 filas, aunque sean de hoy: el archivo no se usa.
+    # BH-A sigue pidiéndose con la traducción de siempre (BH.A).
+    path = _catalogo(tmp_path, [{
+        "symbol": "AAA", "exchange": "NASDAQ", "tradable": True,
+        "fractionable": True, "status": "active", "name": "Aaa",
+    }], usable=False)
+    monkeypatch.setenv("MOMENTUM_CATALOGO_ACTIVOS", str(path))
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        syms = params["symbols"].split(",")
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    out = _provider().barras(["BH-A", "AAA"])
+    assert vistos == ["BH.A,AAA"]
+    assert set(out) == {"BH-A", "AAA"}
+
+
 def test_simbolos_con_guion_se_piden_con_punto_y_vuelven_con_la_clave_pedida(monkeypatch):
     # La traducción es solo del query. La clave que busca el pipeline
     # sigue siendo la del universo (con guion).

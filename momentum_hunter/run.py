@@ -69,6 +69,7 @@ from momentum_hunter.alerts import (
     candidatos_para_etapa_intradia,
     cuota_alertas,
 )
+from momentum_hunter.catalogo_activos import anotar_exchange, filtrar_por_catalogo
 from momentum_hunter.catalysts.ancla import ancla_ok
 from momentum_hunter.catalysts.detector import YahooNewsProvider, detectar_catalizador, minutos_desde_catalizador
 from momentum_hunter.catalysts.keyword_rechazos import explicar_rechazos_keyword
@@ -259,8 +260,9 @@ def _banda_de_universo(b: Barras, cfg: MomentumConfig) -> str | None:
 
 def construir_candidatos_diarios(
     tickers_validos: list[str], barras: dict[str, Barras], provider: DataProvider,
-    cfg: MomentumConfig, con_catalizadores: bool, bandas: dict[str, str] | None = None,
+    cfg: MomentumConfig, con_catalizadores: bool,     bandas: dict[str, str] | None = None,
     metricas: telemetria.Metricas | None = None,
+    ahora: datetime | None = None,
 ) -> list[CandidatoDiario]:
     """Etapa 1 -- núcleo puro y testeable: recibe todo ya inyectado
     (barras, metadata, catalizadores), nunca llama red directamente. Un
@@ -284,6 +286,9 @@ def construir_candidatos_diarios(
             meta = metadata.get(t)
             if meta is None:
                 continue
+            # Bolsa del catálogo local cuando el archivo está fresco.
+            # Si no lo está, anotar no toca la metadata.
+            anotar_exchange(meta, ahora=ahora)
             es_large_cap = bandas.get(t) == "large"
             if meta.es_etf or (cfg.excluir_spac and meta.es_spac) or (cfg.excluir_cef and meta.es_cef):
                 continue
@@ -1391,6 +1396,24 @@ def main() -> None:
     # en `nothing to persist` con embudo 1000→758→34→0 y sin JSONL.
     try:
         tickers = _cargar_tickers(args, ahora=inicio)
+        # El catálogo local, si está fresco, saca lo que no es tradable
+        # o no está listado. Si falta o está viejo, la lista no cambia
+        # y la telemetría lo marca desconocido: no es un cero.
+        informe_catalogo = filtrar_por_catalogo(tickers, ahora=inicio)
+        metricas.assets_desconocido = informe_catalogo.desconocido
+        metricas.assets_motivo = informe_catalogo.motivo
+        if informe_catalogo.desconocido:
+            log.info(
+                "catálogo de activos desconocido (%s): no se filtra por él",
+                informe_catalogo.motivo,
+            )
+        else:
+            metricas.descartados_catalogo = informe_catalogo.descartados
+            tickers = informe_catalogo.tickers
+            log.info(
+                "catálogo de activos en uso: %d símbolo(s) fuera (%s)",
+                informe_catalogo.descartados, informe_catalogo.motivos,
+            )
         metricas.universo_escaneado = len(tickers)
         try:
             metricas.universo_total = len(universe.tickers()) if not args.universo else len(tickers)
@@ -1438,7 +1461,8 @@ def main() -> None:
             return
 
         candidatos_diarios = construir_candidatos_diarios(
-            validos, barras, provider, CONFIG, not args.no_catalizadores, bandas, metricas)
+            validos, barras, provider, CONFIG, not args.no_catalizadores, bandas, metricas,
+            ahora=inicio)
         shortlist = candidatos_para_etapa_intradia(candidatos_diarios, CONFIG)
         log.info("etapa 1 -- candidatos con catalizador confirmado: %d -- pasan a intradía: %d",
                   sum(1 for c in candidatos_diarios if c.catalizador is not None), len(shortlist))
