@@ -397,7 +397,7 @@ def test_rechequeo_viejo_en_sesion_ejecutor_y_riesgo_sin_datos(tmp_path):
     assert et["Rechequeo"]["estado"] == "alerta"
     assert et["Ejecutor"]["estado"] == "sin-datos"
     assert et["Riesgo"]["estado"] == "sin-datos"
-    assert et["Riesgo"]["detalle"] == "— bloqueos hoy"
+    assert et["Riesgo"]["detalle"] == "— sin datos recientes"
 
 
 def test_persist_fallido_se_ve_en_rojo_en_cabecera_y_en_rechequeo(tmp_path):
@@ -477,16 +477,21 @@ def test_ia_fallo_de_ayer_no_cuenta_hoy(tmp_path):
 
 
 def test_rechequeo_viejo_no_oculta_un_bloqueo_real(tmp_path):
-    # Un bloqueo registrado es un hecho: sigue en alerta y con su conteo.
+    # Un bloqueo registrado es un hecho: sigue en el historial. Sin un
+    # ciclo reciente la tarjeta no se pone verde (no sabemos si sigue)
+    # ni roja (el límite conocido no pide Revisar).
     eventos(tmp_path,
             {"ts": "2026-09-18T14:00:00Z", "tipo": "rechequeo"},
             {"ts": "2026-09-18T14:01:00Z", "tipo": "bloqueo_riesgo", "ticker": "AAA",
              "limite": "maximo_posiciones"})
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     riesgo = _etapas(ctx)["Riesgo"]
-    # (2026-09-23) Un límite conocido bloqueando es el sistema funcionando:
-    # se muestra con su conteo, pero ya no pide "Revisar" por sí solo.
-    assert riesgo["estado"] == "ok" and riesgo["detalle"] == "1 bloqueos únicos (1 eventos) hoy"
+    assert riesgo["estado"] == "sin-datos"
+    assert riesgo["detalle"] == "— sin datos recientes"
+    assert ctx["riesgo"]["revisar"] is False
+    html = bd.render(ctx)
+    assert "MAXIMO_POSICIONES" in html and "historial" in html and "resuelto" in html
+    assert '<div class="nota">' not in html
 
 
 def test_con_rechequeo_reciente_ejecutor_con_cero_decisiones_es_ok(tmp_path):
@@ -919,6 +924,18 @@ def test_equity_error_de_alpaca_queda_en_problemas_una_vez(tmp_path):
 # ───────────────────────── velas del ticker en operación ─────────────────────────
 
 from dashboard import velas as dv  # noqa: E402
+
+# Las pruebas históricas inyectan `fuente` (Yahoo) y cuentan esas
+# llamadas. `obtener` ahora pide el feed primero: sin este doble, un
+# entorno con claves saldría a data.alpaca.markets y esas cuentas
+# dejarían de cerrar. Las pruebas nuevas pasan `alpaca=` o llaman
+# `_FUENTE_ALPACA_REAL`.
+_FUENTE_ALPACA_REAL = dv.fuente_alpaca
+
+
+@pytest.fixture(autouse=True)
+def _el_panel_no_sale_al_feed_si_el_test_no_lo_pide(monkeypatch):
+    monkeypatch.setattr(dv, "fuente_alpaca", lambda ticker: None)
 
 
 def _velas(n=5, inicio=datetime(2026, 9, 18, 14, 30, tzinfo=timezone.utc), base=5.0):
@@ -1547,8 +1564,13 @@ def test_fuente_de_datos_sale_si_la_telemetria_la_trae_y_no_se_inventa(tmp_path)
     # la medición anterior, no un "Yahoo" inventado ni el escritor `vps`.
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     assert ctx["fuente_datos"] == "Yahoo"
-    assert "Fuente de datos: Yahoo" in bd.render(ctx)
-    assert "misma fuente que el hunter" in bd.render(ctx)
+    html_yahoo = bd.render(ctx)
+    assert "Fuente de datos: Yahoo" in html_yahoo
+    # El gráfico pide SIP aunque el hunter haya medido Yahoo. No se
+    # afirma que sean la misma fuente.
+    assert "Yahoo (respaldo)" in html_yahoo
+    assert "el hunter reporta Yahoo" in html_yahoo
+    assert "misma fuente que el hunter" not in html_yahoo
 
     with ruta.open("a", encoding="utf-8") as f:
         f.write(json.dumps({"timestamp": "2026-09-18T14:58:00+00:00", "modo": "escaneo",
@@ -1724,8 +1746,248 @@ def test_pausa_por_429_se_ve_en_el_panel(tmp_path):
     get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": []})
     html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas))
     assert "5 velas · caché vencida 14:50" in html
+    assert "Yahoo (respaldo)" in html
     assert "Yahoo limitó peticiones (429)" in html
     assert 'class="vela ' in html   # la copia vieja sí se dibuja
+
+
+class _RespDatos:
+    """Respuesta mínima del host de datos. Sin cuerpo de error: no hace
+    falta, y un cuerpo no se debe colar al panel."""
+
+    def __init__(self, status, cuerpo):
+        self.status_code, self._cuerpo, self.headers = status, cuerpo, {}
+
+    def json(self):
+        return self._cuerpo
+
+
+def _barras_sip(n=6, dia="2026-09-18", hora=14, minuto=30):
+    barras = []
+    for i in range(n):
+        barras.append({
+            "t": f"{dia}T{hora:02d}:{minuto + i:02d}:00Z",
+            "o": 5.0, "h": 5.2, "l": 4.9, "c": 5.1 + 0.01 * i, "v": 100 + i,
+        })
+    return barras
+
+
+def test_sip_ok_da_origen_alpaca_sip_guarda_la_fuente_y_no_toca_yahoo(monkeypatch, tmp_path, caplog):
+    import logging
+    caplog.set_level(logging.DEBUG)
+    secreto = "SECRETO-PANEL-NO-LOG"
+    monkeypatch.setenv("ALPACA_PAPER_API_KEY", "KEY-PANEL")
+    monkeypatch.setenv("ALPACA_PAPER_API_SECRET", secreto)
+    monkeypatch.delenv("ALPACA_DATA_FEED", raising=False)
+    urls = []
+
+    def get(url, params=None, headers=None, timeout=None):
+        # `requests` es un solo módulo: el feed y Yahoo comparten el get.
+        urls.append((url, params, headers))
+        if "paper-api.alpaca.markets" in url or "/v2/orders" in url:
+            raise AssertionError(url)
+        if not str(url).startswith("https://data.alpaca.markets/"):
+            raise AssertionError("SIP respondió: no se pide Yahoo")
+        # La última vela no trae volumen: no puede convertirse en 0.
+        barras = _barras_sip() + [{"t": "2026-09-18T14:36:00Z", "o": 5, "h": 5, "l": 5, "c": 5}]
+        return _RespDatos(200, {"bars": {"AAA": barras}, "next_page_token": None})
+
+    monkeypatch.setattr(dv.requests, "get", get)
+    cache = tmp_path / "cache"
+    r = dv.obtener("AAA", AHORA, cache, 120, alpaca=_FUENTE_ALPACA_REAL)
+    assert r["origen"] == "fuente" and r["origen_fuente"] == "alpaca-sip" and r["error"] is None
+    assert len(r["velas"]["close"]) == 6
+    assert all(v not in (0, 0.0) for v in r["velas"]["volume"])
+    assert None not in r["velas"]["volume"]
+    url, params, headers = urls[0]
+    assert url == "https://data.alpaca.markets/v2/stocks/bars"
+    assert params["feed"] == "sip" and params["timeframe"] == "1Min"
+    assert "paper-api" not in url and "/v2/orders" not in url
+    assert secreto not in url and secreto not in str(params)
+    assert "APCA-API-SECRET-KEY" in headers
+    assert secreto not in caplog.text
+    guardado = json.loads((cache / "velas_AAA.json").read_text(encoding="utf-8"))
+    assert guardado["origen_fuente"] == "alpaca-sip"
+    assert guardado["velas"]["close"] == r["velas"]["close"]
+    sub = bd._subtitulo_velas(r, ZoneInfo("UTC"), AHORA)
+    assert sub.startswith("6 velas · SIP ")
+    # Dentro del TTL no se vuelve a pedir.
+    r2 = dv.obtener("AAA", AHORA + timedelta(seconds=30), cache, 120, alpaca=_FUENTE_ALPACA_REAL)
+    assert len(urls) == 1 and r2["origen"] == "cache" and r2["origen_fuente"] == "alpaca-sip"
+
+
+def test_hoy_con_menos_de_5_velas_no_es_usable(monkeypatch):
+    from momentum_hunter.models import BarraIntradia
+
+    class Fake:
+        def __init__(self, feed="sip"):
+            assert feed == "sip"
+
+        def barras_intradia(self, tickers, intervalo, periodo):
+            # 2 de ayer + 3 de hoy: el provider devolvería la serie (5),
+            # pero hoy no llega al piso del gráfico.
+            ts = ["2026-09-17T19:00:00+00:00", "2026-09-17T19:01:00+00:00",
+                  "2026-09-18T14:30:00+00:00", "2026-09-18T14:31:00+00:00",
+                  "2026-09-18T14:32:00+00:00"]
+            n = len(ts)
+            return {tickers[0]: BarraIntradia(tickers[0], ts, [1.0] * n, [1.0] * n,
+                                               [1.1] * n, [0.9] * n, [10.0] * n)}
+
+    monkeypatch.setattr("momentum_hunter.data.alpaca_datos.AlpacaProvider", Fake)
+    monkeypatch.delenv("ALPACA_DATA_FEED", raising=False)
+    assert _FUENTE_ALPACA_REAL("AAA") is None
+
+
+@pytest.mark.parametrize("status", (400, 503))
+def test_sip_4xx_o_5xx_cae_a_yahoo_con_la_etiqueta(status, monkeypatch, tmp_path, caplog):
+    import logging
+    caplog.set_level(logging.DEBUG)
+    secreto = "SECRETO-PANEL-NO-LOG"
+    monkeypatch.setenv("ALPACA_PAPER_API_KEY", "KEY-PANEL")
+    monkeypatch.setenv("ALPACA_PAPER_API_SECRET", secreto)
+    monkeypatch.delenv("ALPACA_DATA_FEED", raising=False)
+    # El default `dormir=time.sleep` ya quedó atado al importar la clase.
+    # Cero de espera: un 5xx reintenta, pero el panel no tiene que dormir.
+    from momentum_hunter.data.alpaca_datos import AlpacaProvider
+    monkeypatch.setattr(AlpacaProvider, "_espera", lambda self, intento, respuesta: 0.0)
+    hosts = []
+    epochs = [_epoch(14, 30 + i) for i in range(6)]
+
+    def get(url, params=None, headers=None, timeout=None):
+        hosts.append(url)
+        if "paper-api.alpaca.markets" in str(url):
+            raise AssertionError(url)
+        if str(url).startswith("https://data.alpaca.markets/"):
+            return _RespDatos(status, {"message": secreto})
+        return _Respuesta(200, _chart_yahoo(epochs, [5.0] * 6))
+
+    monkeypatch.setattr(dv.requests, "get", get)
+    r = dv.obtener("AAA", AHORA, tmp_path / "cache", 120, alpaca=_FUENTE_ALPACA_REAL)
+    assert r["origen"] == "fuente" and r["origen_fuente"] == "yahoo (respaldo)"
+    assert len(r["velas"]["close"]) == 6
+    datos = [h for h in hosts if "data.alpaca.markets" in h]
+    assert datos and all(h.startswith("https://data.alpaca.markets/") for h in datos)
+    assert any("finance.yahoo" in h or "yahoo" in h for h in hosts)
+    assert all("paper-api" not in h for h in hosts)
+    guardado = json.loads((tmp_path / "cache" / "velas_AAA.json").read_text(encoding="utf-8"))
+    assert guardado["origen_fuente"] == "yahoo (respaldo)"
+    assert "Yahoo (respaldo)" in bd._subtitulo_velas(r, ZoneInfo("UTC"), AHORA)
+    assert secreto not in json.dumps(r, default=str) and secreto not in caplog.text
+
+
+def test_menos_de_5_velas_de_alpaca_cae_a_yahoo_y_la_cache_guarda_el_respaldo(tmp_path):
+    llamadas = []
+
+    def yahoo(ticker):
+        llamadas.append(ticker)
+        return _velas()
+
+    r = dv.obtener("AAA", AHORA, tmp_path / "cache", 120, fuente=yahoo, alpaca=lambda t: _velas(n=4))
+    assert llamadas == ["AAA"] and r["origen_fuente"] == "yahoo (respaldo)"
+    guardado = json.loads((tmp_path / "cache" / "velas_AAA.json").read_text(encoding="utf-8"))
+    assert guardado["origen_fuente"] == "yahoo (respaldo)"
+    assert len(guardado["velas"]["close"]) == 5
+
+
+def test_un_429_del_feed_no_enciende_la_pausa_de_yahoo(tmp_path):
+    from momentum_hunter.data.alpaca_datos import ErrorDatosAlpaca
+
+    def alpaca(ticker):
+        raise ErrorDatosAlpaca("http_429")
+
+    r = dv.obtener("AAA", AHORA, tmp_path / "cache", 120, fuente=lambda t: _velas(), alpaca=alpaca)
+    assert r["origen_fuente"] == "yahoo (respaldo)"
+    assert dv.pausa_hasta(tmp_path / "cache") is None
+
+
+def test_la_pausa_de_yahoo_no_bloquea_el_feed(tmp_path):
+    from momentum_hunter.data.alpaca_datos import ErrorDatosAlpaca
+    cache = tmp_path / "cache"
+    yahoo_llamadas = []
+
+    def yahoo_429(ticker):
+        yahoo_llamadas.append(ticker)
+        raise dv.LimiteDePeticiones("429")
+
+    def alpaca_cae(ticker):
+        raise ErrorDatosAlpaca("http_500")
+
+    r = dv.obtener("AAA", AHORA, cache, 120, fuente=yahoo_429, alpaca=alpaca_cae)
+    assert yahoo_llamadas == ["AAA"] and r["velas"] is None and "429" in r["error"]
+    assert dv.pausa_hasta(cache) is not None
+
+    def yahoo_no(ticker):
+        raise AssertionError("con SIP en pie no se pide Yahoo")
+
+    r2 = dv.obtener("BBB", AHORA + timedelta(seconds=30), cache, 120,
+                    fuente=yahoo_no, alpaca=lambda t: _velas())
+    assert r2["origen_fuente"] == "alpaca-sip" and r2["error"] is None and r2["origen"] == "fuente"
+    assert yahoo_llamadas == ["AAA"]
+    assert "SIP" in bd._subtitulo_velas(r2, ZoneInfo("UTC"), AHORA)
+    # La pausa que anotó el bot es el mismo freno, y tampoco tapa el feed.
+    pausa_bot = tmp_path / "yahoo_pausa_bot.json"
+    pausa_bot.write_text(json.dumps({"hasta": (AHORA + timedelta(minutes=10)).isoformat()}))
+    r3 = dv.obtener("CCC", AHORA, tmp_path / "cache3", 120, fuente=yahoo_no,
+                    alpaca=lambda t: _velas(), pausa_bot=pausa_bot)
+    assert r3["origen_fuente"] == "alpaca-sip" and r3["error"] is None
+
+
+def test_ambas_fuentes_caen_es_sin_datos_y_no_hay_ceros(tmp_path):
+    from momentum_hunter.data.alpaca_datos import ErrorDatosAlpaca
+
+    def alpaca(ticker):
+        raise ErrorDatosAlpaca("http_500")
+
+    def yahoo(ticker):
+        raise dv.requests.HTTPError("HTTP 503 con cuerpo que no se registra")
+
+    r = dv.obtener("AAA", AHORA, tmp_path / "vacio", 120, fuente=yahoo, alpaca=alpaca)
+    assert r["velas"] is None and r["origen"] is None and r["origen_fuente"] is None
+    assert "HTTPError" in r["error"]
+    assert "cuerpo" not in r["error"]
+    assert not (tmp_path / "vacio" / "velas_AAA.json").exists()
+    _watchlist_con_ruptura(tmp_path)
+
+    def velas(ticker):
+        return dv.obtener(ticker, AHORA, tmp_path / "vacio2", 120, fuente=yahoo, alpaca=alpaca)
+
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": [_compra()]})
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas))
+    svg = _svg_velas(html, "AAA")
+    assert "Sin datos" in svg and "Sin datos" in html
+    assert 'class="vela ' not in svg
+    # Copia vieja de SIP: se marca vencida y se dibujan esas velas, no ceros.
+    bueno = _velas()
+    cache = tmp_path / "stale"
+    dv.obtener("AAA", AHORA - timedelta(seconds=300), cache, 120, fuente=yahoo, alpaca=lambda t: bueno)
+    r_stale = dv.obtener("AAA", AHORA, cache, 120, fuente=yahoo, alpaca=alpaca)
+    assert r_stale["origen"] == "cache vencida" and r_stale["origen_fuente"] == "alpaca-sip"
+    assert r_stale["velas"]["close"] == bueno["close"]
+    assert all(v != 0 for v in r_stale["velas"]["close"])
+    sub = bd._subtitulo_velas(r_stale, ZoneInfo("UTC"), AHORA)
+    assert "caché vencida" in sub and "SIP" in sub
+
+
+def test_el_texto_de_un_fallo_no_incluye_el_secreto(tmp_path, caplog):
+    import logging
+    caplog.set_level(logging.DEBUG)
+    secreto = "SECRETO-PANEL-NO-LOG"
+
+    def alpaca(ticker):
+        raise RuntimeError(f"https://data.alpaca.markets/v2/stocks/bars?token={secreto}")
+
+    r = dv.obtener("AAA", AHORA, tmp_path / "cache", 120, fuente=lambda t: None, alpaca=alpaca)
+    assert r["velas"] is None
+    assert secreto not in (r["error"] or "") and secreto not in caplog.text
+    assert "RuntimeError" not in (r["error"] or "")
+
+
+def test_feed_iex_no_se_etiqueta_como_sip(monkeypatch, tmp_path):
+    monkeypatch.setenv("ALPACA_DATA_FEED", "iex")
+    r = dv.obtener("AAA", AHORA, tmp_path / "cache", 120, alpaca=lambda t: _velas())
+    assert r["origen_fuente"] == "alpaca-iex"
+    sub = bd._subtitulo_velas(r, ZoneInfo("UTC"), AHORA)
+    assert "IEX" in sub and "SIP" not in sub
 
 
 def test_cache_por_defecto_nunca_dentro_del_repo(monkeypatch):
@@ -1776,10 +2038,14 @@ def test_bloqueos_se_cuentan_unicos_por_ticker_y_codigo(tmp_path):
 
 
 def test_dato_faltante_pide_revisar(tmp_path):
+    # Dentro de los últimos 3 ciclos: el rechequeo se anota antes que el
+    # bloqueo, igual que el ejecutor.
     eventos(tmp_path,
-            {"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"},
-            _bloqueo("2026-09-18T14:50:00Z", "AAA", "DATO_FALTANTE:niveles", "niveles_ausentes"),
-            _bloqueo("2026-09-18T14:51:00Z", "BBB", "TICKER_COMPROMETIDO", "ticker_comprometido"))
+            {"ts": "2026-09-18T14:57:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:58:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:59:00Z", "tipo": "rechequeo"},
+            _bloqueo("2026-09-18T14:58:30Z", "AAA", "DATO_FALTANTE:niveles", "niveles_ausentes"),
+            _bloqueo("2026-09-18T14:59:10Z", "BBB", "TICKER_COMPROMETIDO", "ticker_comprometido"))
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     riesgo = _etapas(ctx)["Riesgo"]
     assert riesgo["estado"] == "alerta"
@@ -1795,9 +2061,11 @@ def test_codigo_nuevo_pide_revisar_y_el_legado_se_mapea(tmp_path):
     # Un evento viejo solo con `limite` conocido se mapea al catálogo (no es
     # nuevo); un código que el catálogo no conoce sí pide revisar.
     eventos(tmp_path,
-            {"ts": "2026-09-18T14:55:00Z", "tipo": "rechequeo"},
-            {"ts": "2026-09-18T14:50:00Z", "tipo": "bloqueo_riesgo", "ticker": "AAA", "limite": "maximo_posiciones"},
-            _bloqueo("2026-09-18T14:51:00Z", "BBB", "LIMITE_INVENTADO", "inventado"))
+            {"ts": "2026-09-18T14:57:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:58:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:59:00Z", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:58:30Z", "tipo": "bloqueo_riesgo", "ticker": "AAA", "limite": "maximo_posiciones"},
+            _bloqueo("2026-09-18T14:59:10Z", "BBB", "LIMITE_INVENTADO", "inventado"))
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     r = ctx["riesgo"]
     assert {f["codigo"] for f in r["unicos"]} == {"MAXIMO_POSICIONES", "LIMITE_INVENTADO"}
@@ -1815,15 +2083,159 @@ def test_capacidad_llena_se_resume_una_linea_con_desde_hasta_y_corridas(tmp_path
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
     riesgo = _etapas(ctx)["Riesgo"]
     assert riesgo["estado"] == "ok"
-    assert riesgo["detalle"] == "0 bloqueos únicos (0 eventos) hoy · capacidad llena: MAXIMO_POSICIONES desde 14:30 (25 corridas)"
+    # La última corrida es 14:54 y la ventana activa arranca después: no
+    # sigue lleno. El hasta es lo que evita leer "desde 14:30" como vigente.
+    assert riesgo["detalle"] == (
+        "0 bloqueos únicos (0 eventos) hoy · "
+        "historial: MAXIMO_POSICIONES desde 14:30 hasta 14:54 (25 corridas)"
+    )
     cap = ctx["riesgo"]["capacidad"]
     assert len(cap) == 1 and cap[0]["desde"] == "14:30" and cap[0]["hasta"] == "14:54" and cap[0]["corridas"] == 25
+    assert cap[0]["activo"] is False
     html = bd.render(ctx)
-    assert "Capacidad llena: <b>MAXIMO_POSICIONES</b>" in html and "25 corridas" in html
-    # Capacidad llena no es error: va en estilo informativo neutro, no en el
-    # rojo de alarma (2026-09-24). Y el resumen, sin nada que revisar, igual.
-    assert '<div class="nota-info">Capacidad llena: <b>MAXIMO_POSICIONES</b>' in html
+    assert "desde 14:30 hasta 14:54 (25 corridas)" in html
+    assert "resuelto" in html and "nota-historial" in html
+    assert "Capacidad llena: <b>MAXIMO_POSICIONES</b>" not in html
+    assert '<div class="nota">' not in html
     assert '<div class="nota-info">0 bloqueos únicos · 0 eventos</div>' in html
+
+
+def _rechequeos_recientes():
+    """Tres ciclos del vigía pegados a AHORA (15:00). La ventana activa
+    abre en el primero."""
+    return [
+        {"ts": "2026-09-18T14:57:00Z", "tipo": "rechequeo"},
+        {"ts": "2026-09-18T14:58:00Z", "tipo": "rechequeo"},
+        {"ts": "2026-09-18T14:59:00Z", "tipo": "rechequeo"},
+    ]
+
+
+def test_dato_faltante_de_horas_antes_no_pinta_revisar_y_queda_en_gris(tmp_path):
+    # El caso del 28/9: miles de DATO_FALTANTE que pararon por la mañana
+    # y el vigía sigue ciclando. La tarjeta no se queda en rojo.
+    eventos(tmp_path,
+            *_rechequeos_recientes(),
+            _bloqueo("2026-09-18T14:10:00Z", "AAA", "DATO_FALTANTE:ultimos_niveles_ts", "niveles_rancios"),
+            _bloqueo("2026-09-18T14:20:00Z", "AAA", "DATO_FALTANTE:ultimos_niveles_ts", "niveles_rancios"))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "ok"
+    assert riesgo["estado"] != "alerta"
+    assert "revisar" not in riesgo["detalle"]
+    assert ctx["riesgo"]["revisar"] is False
+    assert ctx["riesgo"]["dato_faltante"] == []
+    assert len(ctx["riesgo"]["unicos"]) == 1
+    html = bd.render(ctx)
+    assert '<div class="nota">' not in html
+    assert 'class="historial"' in html
+    assert "DATO_FALTANTE:ultimos_niveles_ts" in html
+    assert ">14:10<" in html and ">14:20<" in html
+    assert "resuelto" in html
+    assert ">Revisar<" not in html
+
+
+def test_dato_faltante_reciente_en_la_ventana_pide_revisar(tmp_path):
+    eventos(tmp_path,
+            *_rechequeos_recientes(),
+            _bloqueo("2026-09-18T14:58:30Z", "AAA", "DATO_FALTANTE:ultimos_niveles_ts", "niveles_rancios"))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "alerta"
+    assert "revisar: DATO_FALTANTE:ultimos_niveles_ts" in riesgo["detalle"]
+    html = bd.render(ctx)
+    assert ">Revisar<" in html
+    assert "<b>revisar:</b> DATO_FALTANTE:ultimos_niveles_ts" in html
+    assert "Activo ahora" in html
+
+
+def test_mercado_cerrado_solo_es_informativo_y_no_pide_revisar(tmp_path):
+    lineas = list(_rechequeos_recientes())
+    for ts in ("2026-09-18T14:57:05Z", "2026-09-18T14:58:05Z", "2026-09-18T14:59:05Z"):
+        lineas.append({"ts": ts, "tipo": "capacidad_llena", "codigo": "MERCADO_CERRADO",
+                       "limite": "mercado_cerrado", "motivo": "el mercado está cerrado"})
+    eventos(tmp_path, *lineas)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "info"
+    assert ctx["riesgo"]["revisar"] is False
+    assert ctx["riesgo"]["capacidad"] == []
+    assert ctx["riesgo"]["informativos"][0]["activo"] is True
+    assert "mercado cerrado desde 14:57 hasta 14:59 (3 corridas)" in riesgo["detalle"]
+    assert "capacidad llena" not in riesgo["detalle"]
+    assert "revisar" not in riesgo["detalle"]
+    html = bd.render(ctx)
+    assert 'class="punto info"' in html
+    assert ">Info<" in html
+    assert ">Revisar<" not in html
+    assert "Capacidad llena" not in html
+    assert '<div class="nota">' not in html
+    assert '<div class="nota-info">Mercado cerrado · <b>MERCADO_CERRADO</b>' in html
+    assert "desde 14:57 hasta 14:59 (3 corridas)" in html
+
+
+def test_maximo_posiciones_terminado_muestra_hasta_y_no_esta_activo(tmp_path):
+    lineas = list(_rechequeos_recientes())
+    for m in (20, 30, 40):
+        lineas.append({"ts": f"2026-09-18T14:{m:02d}:05Z", "tipo": "capacidad_llena",
+                       "codigo": "MAXIMO_POSICIONES", "limite": "maximo_posiciones",
+                       "motivo": "5 posiciones"})
+    eventos(tmp_path, *lineas)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "ok"
+    cap = ctx["riesgo"]["capacidad"]
+    assert len(cap) == 1 and cap[0]["activo"] is False
+    assert "historial: MAXIMO_POSICIONES desde 14:20 hasta 14:40 (3 corridas)" in riesgo["detalle"]
+    html = bd.render(ctx)
+    assert "desde 14:20 hasta 14:40 (3 corridas)" in html
+    assert "nota-historial" in html and "resuelto" in html
+    assert "Capacidad llena: <b>MAXIMO_POSICIONES</b>" not in html
+    assert '<div class="nota">' not in html
+
+
+def test_maximo_posiciones_aun_en_ventana_esta_activo_y_no_es_rojo(tmp_path):
+    lineas = list(_rechequeos_recientes())
+    lineas.append({"ts": "2026-09-18T14:59:05Z", "tipo": "capacidad_llena", "codigo": "MAXIMO_POSICIONES",
+                   "limite": "maximo_posiciones", "motivo": "5 posiciones"})
+    eventos(tmp_path, *lineas)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert _etapas(ctx)["Riesgo"]["estado"] == "ok"
+    cap = ctx["riesgo"]["capacidad"][0]
+    assert cap["activo"] is True
+    assert "capacidad llena: MAXIMO_POSICIONES desde 14:59 hasta 14:59 (1 corridas)" in _etapas(ctx)["Riesgo"]["detalle"]
+    html = bd.render(ctx)
+    assert '<div class="nota-info">Capacidad llena: <b>MAXIMO_POSICIONES</b>' in html
+    assert "desde 14:59 hasta 14:59 (1 corridas)" in html
+    assert '<div class="nota">' not in html
+
+
+def test_sin_log_de_eventos_dice_sin_datos_recientes_y_no_verde(tmp_path):
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    riesgo = _etapas(ctx)["Riesgo"]
+    assert riesgo["estado"] == "sin-datos"
+    assert riesgo["estado"] != "ok"
+    assert "sin datos recientes" in riesgo["detalle"]
+    html = bd.render(ctx)
+    assert "Sin datos recientes" in html
+    assert "Ningún límite ha bloqueado" not in html
+
+
+def test_mismo_ticker_y_codigo_con_distinto_creado_en_cuenta_una_fila(tmp_path):
+    # Dos TRIGGERED del mismo símbolo (distinto creado_en) en el mismo
+    # ciclo no son dos bloqueos: la sombra no duplica la fila.
+    eventos(tmp_path,
+            *_rechequeos_recientes(),
+            {**_bloqueo("2026-09-18T14:58:30Z", "AAA", "CONCENTRACION", "concentracion"),
+             "creado_en": "2026-09-18T10:00:00+00:00"},
+            {**_bloqueo("2026-09-18T14:58:31Z", "AAA", "CONCENTRACION", "concentracion"),
+             "creado_en": "2026-09-18T12:30:00+00:00"})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    unicos = ctx["riesgo"]["unicos"]
+    assert len(unicos) == 1
+    assert unicos[0]["ticker"] == "AAA" and unicos[0]["codigo"] == "CONCENTRACION"
+    assert unicos[0]["veces"] == 1
+    assert ctx["riesgo"]["eventos"] == 1
+    assert _etapas(ctx)["Riesgo"]["detalle"] == "1 bloqueos únicos (1 eventos) hoy"
 
 
 def test_github_actions_atrasado_no_pinta_el_hunter_en_rojo_ni_es_problema(tmp_path):
