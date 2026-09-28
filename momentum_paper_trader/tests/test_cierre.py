@@ -995,6 +995,43 @@ def test_timeout_con_venta_viva_no_reintenta_ni_vende(monkeypatch, tmp_path):
     assert estado.cargar(path)[0].cierre_order_id == "mkt-ya"
 
 
+def test_timeout_con_venta_en_pending_cancel_aborta_sin_vender(monkeypatch):
+    """`pending_cancel` no está en la lista blanca de `orden_sigue_viva`
+    ni es un terminal. Después de un timeout eso es duda: ERROR y ni
+    un segundo DELETE ni una venta, aunque la posición fresca tenga qty."""
+    enviados = _parchear(monkeypatch)
+    client = _Carrera()
+    lecturas = {"n": 0}
+
+    def _ordenes(simbolos):
+        lecturas["n"] += 1
+        if lecturas["n"] == 1:
+            return []
+        return [{
+            "id": "mkt-duda",
+            "symbol": "MNST",
+            "side": "sell",
+            "type": "market",
+            "status": "pending_cancel",
+        }]
+
+    def _cerrar(ticker, cancel_orders=False):
+        client.deletes.append((ticker, cancel_orders))
+        if len(client.deletes) == 1:
+            raise requests.Timeout()
+        return {"id": "segundo-delete"}
+
+    client.ordenes_de_simbolos = _ordenes
+    client.cerrar_posicion = _cerrar
+    client.posicion = _posicion_vendible
+
+    assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
+    assert len(client.deletes) == 1
+    assert client.ventas == []
+    assert len(enviados) == 1
+    assert "ERROR" in enviados[0] and "CERRADA" not in enviados[0]
+
+
 def test_qty_available_ausente_no_se_vende_como_cero(monkeypatch):
     enviados = _parchear(monkeypatch)
     client = _Carrera()

@@ -87,10 +87,12 @@ from momentum_hunter import sesion
 from momentum_paper_trader import dedupe_avisos, estado, ia_decision, notify
 from momentum_paper_trader.alpaca_client import (
     AlpacaPaperClient,
+    orden_sigue_viva,
     orden_ya_terminada,
     ordenes_con_patas,
 )
 from momentum_paper_trader.config import PaperTraderConfig
+from momentum_paper_trader.reconciliacion import cobertura, ventas_vivas
 
 log = logging.getLogger("momentum_paper_trader.cierre")
 
@@ -442,32 +444,42 @@ def _venta_que_bloquea_reintento(
 ) -> tuple[str, dict | None]:
     """Sobre un listado ya leído, antes de repetir un DELETE.
 
-    'libre': no hay una venta sin terminar; se puede reintentar.
-    'ya_enviada': hay una venta a mercado (o con nuestro id eod) todavía
-    viva. Esa es la liquidación; no se manda otra ni se cancela.
-    'ocupada': hay otra venta no terminal. No se manda otra este ciclo.
-    'ilegible': una venta no trae status. No se reintenta."""
-    vivas: list[dict] = []
+    La venta viva es la de `reconciliacion.ventas_vivas` /
+    `cobertura`: la misma lista blanca (`orden_sigue_viva`: held, new,
+    accepted, pending_new). No se copia esa lista acá.
+
+    'libre': no queda una venta de este símbolo sin terminar.
+    'ya_enviada': hay una venta a mercado (o con nuestro id eod) en esa
+    lista blanca. Esa es la liquidación; no se manda otra.
+    'ocupada': hay otra venta viva (el stop, por ejemplo).
+    'ilegible': una venta no está ni viva ni terminal (`pending_cancel`,
+    status ausente o desconocido). Duda: no se reintenta y no se vende.
+    """
     for o in ordenes_con_patas(ordenes):
         if not isinstance(o, dict) or o.get("_symbol") != ticker:
             continue
         if str(o.get("side") or "").lower() != "sell":
             continue
-        status = o.get("status")
-        if not isinstance(status, str) or not status.strip():
-            # Una venta sin status no es evidencia de que ya murió.
-            log.warning("%s: una orden de venta no trae status; no se reintenta el cierre", ticker)
-            return "ilegible", None
-        if orden_ya_terminada(o):
+        if orden_ya_terminada(o) or orden_sigue_viva(o):
             continue
-        vivas.append(o)
-    for o in vivas:
+        log.warning(
+            "%s: una venta no está ni viva ni terminal; no se reintenta el cierre",
+            ticker,
+        )
+        return "ilegible", None
+    vivas = ventas_vivas(ordenes)
+    cubre = cobertura(ordenes)
+    if vivas is None or cubre is None:
+        return "ilegible", None
+    de_este = [o for o in vivas if o.get("_symbol") == ticker]
+    for o in de_este:
         tipo = str(o.get("type") or "").lower()
         coid = o.get("client_order_id")
         es_eod = isinstance(coid, str) and coid.startswith("eod-")
         if (tipo == "market" or es_eod) and o.get("id"):
             return "ya_enviada", o
-    if vivas:
+    _stops, mercados = cubre
+    if ticker in mercados or de_este:
         return "ocupada", None
     return "libre", None
 
