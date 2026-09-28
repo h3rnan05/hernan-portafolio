@@ -109,7 +109,21 @@ MOTIVO_FUERA_DE_BANDA = "fuera_de_banda"
 # bloquear cada minuto hasta que la señal muera por niveles rancios (GS
 # a $949 con $5.000: 38 bloqueos seguidos el 22/9).
 MOTIVO_PRECIO_FUERA_DE_ALCANCE = "precio_fuera_de_alcance"
-MOTIVOS_NO_OPERADA = frozenset({MOTIVO_FUERA_DE_BANDA, MOTIVO_PRECIO_FUERA_DE_ALCANCE})
+# (2026-09-28) Niveles más viejos que el tope Y la ventana en la que el
+# hunter los refresca (`watchlist.HORAS_REFRESCO_NIVELES`) ya cerró.
+# Sin este motivo la señal sigue TRIGGERED hasta la purga de 7 días y
+# el ejecutor la bloquea en cada tick: el hunter ya no recalcula esos
+# precios. Se registra UNA vez, sin consultar a la IA
+# (`ia_entraria=None`). No es un rechazo de la IA: `archivo.desenlace_paper`
+# devuelve este string, no `rechazo_ia`, porque está en
+# `MOTIVOS_NO_OPERADA`. El ejecutor no lo escribe en watchlist.json;
+# el filtro de las corridas siguientes es `ya_revisada` en este archivo.
+MOTIVO_EXPIRADA_NIVELES_RANCIOS = "expirada_niveles_rancios"
+MOTIVOS_NO_OPERADA = frozenset({
+    MOTIVO_FUERA_DE_BANDA,
+    MOTIVO_PRECIO_FUERA_DE_ALCANCE,
+    MOTIVO_EXPIRADA_NIVELES_RANCIOS,
+})
 
 
 # `resultado` que ya no puede cambiar -- `seguimiento.revisar` no vuelve a

@@ -32,7 +32,7 @@ criterio de la IA -- los límites de riesgo nunca dependen de un LLM):
 from __future__ import annotations
 
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from momentum_hunter import sesion, watchlist
 
@@ -147,6 +147,58 @@ def _niveles_rancios(e, cfg: PaperTraderConfig, ahora: datetime) -> float | None
         calculados = calculados.replace(tzinfo=UTC)
     minutos = (ahora - calculados).total_seconds() / 60.0
     return minutos if minutos > cfg.minutos_maximos_niveles else None
+
+
+def _fuera_de_ventana_de_refresco(e, ahora: datetime) -> bool:
+    """True solo si `actualizado_en` es legible y ya pasó
+    `watchlist.HORAS_REFRESCO_NIVELES`.
+
+    El hunter refresca niveles de una TRIGGERED mientras
+    `ahora - actualizado_en <=` esa ventana (`con_niveles_que_refrescar`,
+    comparación inclusiva). Pasado eso deja de pedir velas: la señal
+    sigue TRIGGERED hasta la purga de 7 días, con niveles que no van a
+    volver a ser frescos. Bloquearla en cada tick no la recupera.
+
+    Timestamp ausente, ilegible o exactamente en el borde: False. No
+    se inventa que la ventana cerró, y dentro de la ventana (o en el
+    borde, que el hunter todavía refresca) se sigue el comportamiento
+    de siempre: bloquear sin marcar revisada."""
+    raw = getattr(e, "actualizado_en", None)
+    if not raw or not isinstance(raw, str):
+        return False
+    try:
+        disparada = datetime.fromisoformat(raw)
+    except ValueError:
+        return False
+    if disparada.tzinfo is None:
+        disparada = disparada.replace(tzinfo=UTC)
+    try:
+        return (ahora - disparada) > timedelta(hours=watchlist.HORAS_REFRESCO_NIVELES)
+    except TypeError:
+        return False
+
+
+def _registrar_niveles_expirados(e, cfg: PaperTraderConfig, rancios: float,
+                                 revisiones_previas: list, executor_leido_ts: str) -> None:
+    """Una revisión terminal, sin IA y sin orden. Vive en revisiones.json.
+
+    No toca la watchlist: el ejecutor es de solo lectura sobre ese
+    archivo. La corrida siguiente no vuelve a emitir el bloqueo porque
+    `ya_revisada` filtra por (ticker, creado_en). El buscador archiva
+    después, en su propia escritura (`_archivar_triggered_ya_revisadas`)."""
+    razon = (
+        f"Los niveles tienen {rancios:.0f} min (tope {cfg.minutos_maximos_niveles:.0f}) y la "
+        f"señal lleva más de {watchlist.HORAS_REFRESCO_NIVELES:g} h desde el disparo: el hunter "
+        f"ya no refresca esos niveles. No se consultó a la IA y no se colocó orden."
+    )
+    log.info("%s: %s", e.ticker, razon)
+    sin_ia = ia_decision.DecisionIA(entrar=False, confianza=0, razonamiento=razon)
+    registro = _revision_instrumentada(
+        e, sin_ia, executor_leido_ts=executor_leido_ts, ia_decision_ts=None,
+        entro=False, motivo_no_operada=estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS,
+        ia_consultada=False)
+    revisiones_previas.append(registro)
+    estado.guardar(revisiones_previas)
 
 
 def _mercado_cerrado(client: AlpacaPaperClient) -> str | None:
@@ -500,9 +552,14 @@ def ejecutar(
                      motivo="TRIGGERED sin entrada/stop/objetivo cacheados (no se inventa un precio)")
             continue
 
-        # No se registra como revisada: la señal puede seguir siendo
-        # buena, lo que está viejo es el PRECIO. El siguiente re-chequeo
-        # (cada 5 min) recalcula los niveles y la orden se coloca ahí.
+        # Dentro de la ventana de refresco no se registra como revisada:
+        # la señal puede seguir siendo buena, lo que está viejo es el
+        # PRECIO. El siguiente re-chequeo recalcula los niveles y la
+        # orden se coloca ahí. Fuera de esa ventana el hunter ya no
+        # refresca (`HORAS_REFRESCO_NIVELES`): bloquear cada tick hasta
+        # la purga no la recupera. Se emite el bloqueo UNA vez y se
+        # registra en revisiones.json, sin orden y sin escribir la
+        # watchlist. Dry-run no persiste, igual que el resto.
         rancios = _niveles_rancios(e, cfg, ahora)
         if rancios is not None:
             log.info(
@@ -511,6 +568,9 @@ def ejecutar(
             _bloqueo(dry_run, metricas, codigo=bloqueos.DATO_FALTANTE_NIVELES_VIEJOS, ticker=e.ticker,
                      limite="niveles_rancios", motivo="niveles rancios", minutos=rancios,
                      tope=cfg.minutos_maximos_niveles)
+            if not dry_run and _fuera_de_ventana_de_refresco(e, ahora):
+                _registrar_niveles_expirados(
+                    e, cfg, rancios, revisiones_previas, executor_leido_ts)
             continue
 
         cantidad = _tamano_posicion(e.ultima_entrada, e.ultimo_stop, cfg)

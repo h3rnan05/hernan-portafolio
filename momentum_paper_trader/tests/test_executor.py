@@ -5,7 +5,8 @@ que `momentum_hunter/tests/test_run_watchlist.py`)."""
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+import json
+from datetime import UTC, datetime, timedelta
 
 from momentum_hunter import watchlist
 from momentum_hunter.alerts import CandidatoDiario
@@ -644,6 +645,161 @@ def test_niveles_viejos_no_se_marcan_como_revisados(monkeypatch, tmp_path):
     executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA)
 
     assert estado.cargar(rev_path) == []   # sin registro -> se reintenta luego
+
+
+def _eventos(ruta):
+    if not ruta.exists():
+        return []
+    return [json.loads(linea) for linea in ruta.read_text(encoding="utf-8").splitlines() if linea.strip()]
+
+
+def _prohibir_escritura_watchlist(monkeypatch):
+    """El ejecutor lee la watchlist. Si alguien la escribe, el test falla."""
+    def _boom(*_args, **_kwargs):
+        raise AssertionError("el ejecutor escribió la watchlist")
+    monkeypatch.setattr(watchlist, "guardar", _boom)
+    monkeypatch.setattr(watchlist, "guardar_vps_state", _boom)
+    monkeypatch.setattr(watchlist, "guardar_canonico_fusionado", _boom)
+
+
+def _triggered_con_disparo(minutos_niveles: float, hace: timedelta, ticker: str, ahora_corrida: datetime):
+    """TRIGGERED cuyo `actualizado_en` es `ahora_corrida - hace` y cuyos
+    niveles tienen `minutos_niveles` de antigüedad respecto de esa corrida."""
+    disparo = ahora_corrida - hace
+    e = _entrada_triggered(ticker, ahora=disparo)
+    e.ultimos_niveles_ts = (ahora_corrida - timedelta(minutes=minutos_niveles)).isoformat(timespec="seconds")
+    return e
+
+
+def test_niveles_fuera_de_ventana_se_registran_una_vez_sin_orden(monkeypatch, tmp_path):
+    """Señal de ayer, niveles con más de 8 h: no hay orden, un solo
+    bloqueo, y la revisión queda en el estado del ejecutor. La segunda
+    corrida no vuelve a emitir el bloqueo."""
+    from momentum_paper_trader import bloqueos
+    ruta = tmp_path / "ev" / "events.jsonl"
+    monkeypatch.setenv("DASH_EVENTOS", str(ruta))
+    e = _triggered_con_disparo(
+        minutos_niveles=60 * 9, hace=timedelta(days=1), ticker="ZOMB", ahora_corrida=AHORA)
+    wl_path, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
+    _prohibir_escritura_watchlist(monkeypatch)
+    antes = wl_path.read_bytes()
+    client = _FakeAlpacaClient(cash=10_000.0)
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert client.ordenes_colocadas == []
+    assert contextos == [] and enviados == []
+    assert wl_path.read_bytes() == antes
+    assert e.estado == watchlist.ESTADO_TRIGGERED
+
+    persistidas = estado.cargar(rev_path)
+    assert len(persistidas) == 1
+    r = persistidas[0]
+    assert r.entro is False and r.ia_entraria is None and r.order_id is None
+    assert r.motivo_no_operada == estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS
+    bloques = [ev for ev in _eventos(ruta) if ev["tipo"] == "bloqueo_riesgo"]
+    assert len(bloques) == 1
+    assert bloques[0]["codigo"] == bloqueos.DATO_FALTANTE_NIVELES_VIEJOS
+    assert bloques[0]["ticker"] == "ZOMB"
+
+    n = len(_eventos(ruta))
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    nuevos = _eventos(ruta)[n:]
+    assert [ev["tipo"] for ev in nuevos if ev["tipo"] != "rechequeo"] == []
+    assert not any(ev["tipo"] == "bloqueo_riesgo" for ev in nuevos)
+    assert len(estado.cargar(rev_path)) == 1
+    assert client.ordenes_colocadas == [] and contextos == [] and enviados == []
+    assert wl_path.read_bytes() == antes
+
+
+def test_niveles_de_hoy_con_20_min_se_bloquean_sin_marcar_revisados(monkeypatch, tmp_path):
+    """Control: dentro de la ventana de refresco el precio viejo no quema
+    la señal. Se bloquea, y se vuelve a bloquear en la corrida siguiente."""
+    from momentum_paper_trader import bloqueos
+    ruta = tmp_path / "ev" / "events.jsonl"
+    monkeypatch.setenv("DASH_EVENTOS", str(ruta))
+    e = _con_niveles_de_hace(20)
+    wl_path, rev_path, _, contextos = _parchear(monkeypatch, tmp_path, [e])
+    _prohibir_escritura_watchlist(monkeypatch)
+    antes = wl_path.read_bytes()
+    client = _FakeAlpacaClient(cash=10_000.0)
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+
+    assert client.ordenes_colocadas == [] and contextos == []
+    assert estado.cargar(rev_path) == []
+    assert wl_path.read_bytes() == antes
+    bloques = [ev for ev in _eventos(ruta) if ev["tipo"] == "bloqueo_riesgo"]
+    assert len(bloques) == 2
+    assert {b["codigo"] for b in bloques} == {bloqueos.DATO_FALTANTE_NIVELES_VIEJOS}
+
+
+def test_en_el_borde_de_las_8h_no_se_marca_revisada(monkeypatch, tmp_path):
+    """`con_niveles_que_refrescar` incluye el instante exacto de las 8 h
+    (`<=`). En ese borde el hunter todavía puede refrescar, así que el
+    ejecutor no quema la señal."""
+    e = _triggered_con_disparo(
+        minutos_niveles=20,
+        hace=timedelta(hours=watchlist.HORAS_REFRESCO_NIVELES),
+        ticker="BORDE", ahora_corrida=AHORA)
+    _, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e])
+    client = _FakeAlpacaClient(cash=10_000.0)
+
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
+    assert estado.cargar(rev_path) == []
+    assert client.ordenes_colocadas == []
+
+
+def test_maximo_posiciones_un_dia_y_al_dia_siguiente_no_hay_bucle(monkeypatch, tmp_path):
+    """El tope de posiciones sale antes de mirar la señal: ese día no se
+    quema. Al día siguiente, con un lugar libre y la ventana de refresco
+    ya cerrada, se registra una vez y el tick siguiente no repite el bloqueo."""
+    from momentum_paper_trader import bloqueos
+    ruta = tmp_path / "ev" / "events.jsonl"
+    monkeypatch.setenv("DASH_EVENTOS", str(ruta))
+    disparo = datetime(2026, 9, 23, 14, 30, tzinfo=UTC)
+    dia_lleno = datetime(2026, 9, 24, 14, 30, tzinfo=UTC)
+    dia_abierto = datetime(2026, 9, 25, 14, 30, tzinfo=UTC)
+    e = _entrada_triggered("ZOMB", ahora=disparo)
+    e.ultimos_niveles_ts = disparo.isoformat(timespec="seconds")
+    wl_path, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
+    _prohibir_escritura_watchlist(monkeypatch)
+    antes = wl_path.read_bytes()
+    ocupadas = [{"symbol": s} for s in ("AAA", "BBB", "CCC", "DDD", "EEE")]
+    lleno = _FakeAlpacaClient(cash=10_000.0, posiciones=ocupadas)
+
+    assert executor.ejecutar(lleno, CFG, dry_run=False, ahora=dia_lleno) == []
+    assert estado.cargar(rev_path) == [] and lleno.ordenes_colocadas == []
+    assert [ev["tipo"] for ev in _eventos(ruta) if ev["tipo"] == "bloqueo_riesgo"] == []
+    assert any(ev["tipo"] == "capacidad_llena" and ev["codigo"] == bloqueos.MAXIMO_POSICIONES
+               for ev in _eventos(ruta))
+
+    libre = _FakeAlpacaClient(cash=10_000.0)
+    assert executor.ejecutar(libre, CFG, dry_run=False, ahora=dia_abierto) == []
+    persistidas = estado.cargar(rev_path)
+    assert len(persistidas) == 1
+    assert persistidas[0].motivo_no_operada == estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS
+    assert persistidas[0].entro is False and persistidas[0].ia_entraria is None
+    assert libre.ordenes_colocadas == [] and contextos == [] and enviados == []
+    bloques = [ev for ev in _eventos(ruta) if ev["tipo"] == "bloqueo_riesgo"]
+    assert len(bloques) == 1 and bloques[0]["codigo"] == bloqueos.DATO_FALTANTE_NIVELES_VIEJOS
+
+    n = len(_eventos(ruta))
+    assert executor.ejecutar(libre, CFG, dry_run=False, ahora=dia_abierto) == []
+    assert not any(ev["tipo"] == "bloqueo_riesgo" for ev in _eventos(ruta)[n:])
+    assert len(estado.cargar(rev_path)) == 1 and libre.ordenes_colocadas == []
+    assert wl_path.read_bytes() == antes
+
+
+def test_dry_run_no_persiste_la_expiracion_de_niveles(monkeypatch, tmp_path):
+    e = _triggered_con_disparo(
+        minutos_niveles=60 * 9, hace=timedelta(days=1), ticker="ZOMB", ahora_corrida=AHORA)
+    wl_path, rev_path, _, _ = _parchear(monkeypatch, tmp_path, [e])
+    antes = wl_path.read_bytes()
+
+    assert executor.ejecutar(_FakeAlpacaClient(cash=10_000.0), CFG, dry_run=True, ahora=AHORA) == []
+    assert estado.cargar(rev_path) == []
+    assert wl_path.read_bytes() == antes
 
 
 def test_sin_timestamp_de_niveles_no_se_bloquea(monkeypatch, tmp_path):

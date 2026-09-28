@@ -159,6 +159,60 @@ def test_rechazo_ia_sin_motivo_sigue_siendo_rechazo_ia(tmp_path):
     assert archivo.desenlace_paper(r) == "rechazo_ia"
 
 
+def test_expirada_niveles_rancios_no_cuenta_como_rechazo_ia(tmp_path):
+    """Mismo `entro=False` que un rechazo de la IA, pero el desenlace es
+    el motivo nuevo: si cayera en `rechazo_ia`, la muestra de la IA
+    mezclaría señales que nunca se le consultaron."""
+    e = _triggered("ZOMB")
+    r = _revision("ZOMB", e.creado_en, entro=False)
+    r.ia_entraria = None
+    r.motivo_no_operada = estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS
+    rechazo = _revision("NTLA", e.creado_en, entro=False)
+    assert archivo.desenlace_paper(r) == estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS
+    assert archivo.desenlace_paper(rechazo) == "rechazo_ia"
+    assert sum(1 for rev in (r, rechazo) if archivo.desenlace_paper(rev) == "rechazo_ia") == 1
+
+    # El paper trader persiste la watchlist (persistir_watchlist=True).
+    # Este motivo no va por ahí: el archivo en disco queda igual y la
+    # entrada sigue TRIGGERED.
+    wl = tmp_path / "watchlist.json"
+    watchlist.guardar([e], wl)
+    antes = wl.read_bytes()
+    escritos = archivo.archivar_revisadas(
+        entradas=[e], revisiones=[r], ahora=AHORA,
+        path_watchlist=wl, path_log=tmp_path / "archivo_triggered.jsonl",
+        persistir_watchlist=True,
+    )
+    assert escritos == []
+    assert e.estado == watchlist.ESTADO_TRIGGERED
+    assert wl.read_bytes() == antes
+    assert not (tmp_path / "archivo_triggered.jsonl").exists()
+
+    # El buscador llama con persistir_watchlist=False: transiciona en
+    # memoria y deja el JSONL, sin escribir watchlist.json él mismo.
+    hunter = tmp_path / "hunter"
+    hunter.mkdir()
+    creado = AHORA - timedelta(days=1)
+    e2 = _triggered("ZOMB2", creado)
+    r2 = _revision("ZOMB2", e2.creado_en, entro=False)
+    r2.ia_entraria = None
+    r2.motivo_no_operada = estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS
+    wl2 = hunter / "watchlist.json"
+    watchlist.guardar([e2], wl2)
+    antes2 = wl2.read_bytes()
+    escritos2 = archivo.archivar_revisadas(
+        entradas=[e2], revisiones=[r2], ahora=AHORA,
+        path_watchlist=wl2, path_log=hunter / "archivo_triggered.jsonl",
+        persistir_watchlist=False,
+    )
+    assert e2.estado == watchlist.ESTADO_ARCHIVED
+    assert escritos2[0]["desenlace_paper"] == estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS
+    assert escritos2[0]["desenlace_paper"] != "rechazo_ia"
+    assert wl2.read_bytes() == antes2
+    log = [json.loads(linea) for linea in (hunter / "archivo_triggered.jsonl").read_text().splitlines() if linea.strip()]
+    assert log[0]["desenlace_paper"] == estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS
+
+
 def test_archiva_triggered_tras_stop_como_ntla(tmp_path):
     creado = datetime(2026, 9, 8, 17, 18, 33, tzinfo=UTC)
     e = _triggered("NTLA", creado)
