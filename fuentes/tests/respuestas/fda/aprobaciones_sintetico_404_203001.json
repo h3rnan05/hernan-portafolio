@@ -1,0 +1,15 @@
+{
+ "url": "https://api.fda.gov/drug/drugsfda.json",
+ "params": {
+  "search": "submissions.submission_status_date:[20300101 TO 20300131] AND submissions.submission_status:AP",
+  "limit": 100,
+  "skip": 0
+ },
+ "status": 404,
+ "headers": {
+  "Content-Type": "application/json"
+ },
+ "texto": "{\"error\": {\"code\": \"NOT_FOUND\", \"message\": \"No matches found!\"}}",
+ "ficticio": true,
+ "nota": "SINTÉTICO: openFDA responde 404 a una búsqueda sin resultados. Mes futuro (enero 2030) para que no se confunda con un mes real; agosto 2026 real trae 365 solicitudes."
+}
