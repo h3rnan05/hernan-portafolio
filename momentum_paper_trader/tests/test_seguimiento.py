@@ -61,7 +61,7 @@ def test_entrada_llenada_pasa_a_abierta_con_precio_real():
     datos = {"status": "filled", "filled_avg_price": "78.40", "filled_qty": "65", "legs": [
         {"type": "limit", "status": "new"}, {"type": "stop", "status": "held"}]}
 
-    resultado, pnl, mensaje = seguimiento._evaluar(r, datos)
+    resultado, pnl, mensaje = seguimiento._evaluar(r, datos)[:3]
 
     assert resultado == "abierta"
     assert pnl is None
@@ -78,9 +78,10 @@ def test_take_profit_llenado_es_objetivo_con_ganancia():
         {"type": "limit", "status": "filled", "filled_avg_price": "82.50"},
         {"type": "stop", "status": "canceled"}]}
 
-    resultado, pnl, mensaje = seguimiento._evaluar(r, datos)
+    resultado, pnl, mensaje, precio_salida = seguimiento._evaluar(r, datos)
 
     assert resultado == "objetivo"
+    assert precio_salida == 82.50
     assert pnl == round((82.50 - 78.40) * 65, 2)
     assert "CERRADA" in mensaje
     assert "objetivo" in mensaje
@@ -93,9 +94,10 @@ def test_stop_llenado_es_stop_con_perdida():
         {"type": "limit", "status": "canceled"},
         {"type": "stop", "status": "filled", "filled_avg_price": "76.85"}]}
 
-    resultado, pnl, mensaje = seguimiento._evaluar(r, datos)
+    resultado, pnl, mensaje, precio_salida = seguimiento._evaluar(r, datos)
 
     assert resultado == "stop"
+    assert precio_salida == 76.85
     assert pnl == round((76.85 - 78.40) * 65, 2)
     assert pnl < 0
     assert "CERRADA" in mensaje
@@ -111,7 +113,7 @@ def test_salida_en_la_misma_pasada_que_la_entrada_va_directo_al_cierre():
         {"type": "limit", "status": "filled", "filled_avg_price": "82.50"},
         {"type": "stop", "status": "canceled"}]}
 
-    resultado, _, mensaje = seguimiento._evaluar(r, datos)
+    resultado, _, mensaje = seguimiento._evaluar(r, datos)[:3]
 
     assert resultado == "objetivo"
     assert "LLENADA" not in mensaje
@@ -121,7 +123,7 @@ def test_orden_cancelada_sin_llenar_es_no_ejecutada():
     r = _revision_con_orden()
     datos = {"status": "expired", "filled_avg_price": None, "legs": []}
 
-    resultado, pnl, mensaje = seguimiento._evaluar(r, datos)
+    resultado, pnl, mensaje = seguimiento._evaluar(r, datos)[:3]
 
     assert resultado == "no_ejecutada"
     assert pnl is None
@@ -141,12 +143,42 @@ def test_abierta_sin_cambios_no_repite_el_aviso():
     assert seguimiento._evaluar(r, datos) is None
 
 
+def test_no_marca_cerrada_mientras_el_broker_tiene_la_posicion(monkeypatch, tmp_path):
+    """El camino del 25/9: patas day muertas, sin orden de liquidación, y
+    la posición sigue en Alpaca. No se persiste `cerrada` (eso la archivaba)
+    y el ERROR sale una vez por sesión."""
+    r = _revision_con_orden(resultado="abierta")
+    path, enviados = _parchear(monkeypatch, tmp_path, [r])
+
+    class _Client:
+        def estado_orden(self, oid):
+            return {
+                "status": "filled", "filled_avg_price": "78.40", "filled_qty": "65",
+                "legs": [
+                    {"type": "limit", "status": "expired"},
+                    {"type": "stop", "status": "expired"},
+                ],
+            }
+
+        def posiciones(self):
+            return [{"symbol": "RKLB", "qty": "65"}]
+
+    assert seguimiento.revisar(_Client()) == []
+    guardada = estado.cargar(path)[0]
+    assert guardada.resultado == "abierta"
+    assert guardada.pnl is None and guardada.precio_salida is None
+    assert len(enviados) == 1 and "ERROR" in enviados[0] and "RKLB" in enviados[0]
+    assert seguimiento.revisar(_Client()) == []
+    assert len(enviados) == 1
+    assert estado.cargar(path)[0].resultado == "abierta"
+
+
 def test_posicion_llena_con_patas_muertas_avisa_cerrada():
     r = _revision_con_orden(resultado="abierta")
     datos = {"status": "filled", "filled_avg_price": "78.40", "filled_qty": "65", "legs": [
         {"type": "limit", "status": "expired"}, {"type": "stop", "status": "expired"}]}
 
-    resultado, _, mensaje = seguimiento._evaluar(r, datos)
+    resultado, _, mensaje = seguimiento._evaluar(r, datos)[:3]
 
     assert resultado == "cerrada"
     assert "ERROR" in mensaje
@@ -184,6 +216,7 @@ def test_revisar_actualiza_persiste_y_avisa(monkeypatch, tmp_path):
     persistidas = estado.cargar(path)
     assert persistidas[0].resultado == "objetivo"
     assert persistidas[0].pnl == round((82.50 - 78.40) * 65, 2)
+    assert persistidas[0].precio_salida == 82.50
 
 
 def test_revisar_no_consulta_resultados_terminales(monkeypatch, tmp_path):

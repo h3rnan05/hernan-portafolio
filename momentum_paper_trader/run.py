@@ -28,7 +28,7 @@ import logging
 import os
 from datetime import UTC, datetime
 
-from momentum_paper_trader import archivo, cierre, seguimiento, telemetria
+from momentum_paper_trader import archivo, cierre, reconciliacion, seguimiento, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import CONFIG
 from momentum_paper_trader.executor import ejecutar
@@ -129,6 +129,13 @@ def main() -> None:
             cerradas = cierre.cerrar_si_toca(client, CONFIG, datetime.now(UTC), clima=_clima_de_la_watchlist())
             if cerradas:
                 log.info("%d posición(es) liquidada(s) por cierre del día", len(cerradas))
+
+            # Cada tick del vigía pasa por acá: arranque de sesión, mitad
+            # del día y el instante posterior al cierre. Si el broker
+            # tiene algo que nosotros ya dimos por cerrado, o algo sin
+            # stop, se avisa. No coloca ni cambia lo que el cierre acaba
+            # de intentar.
+            reconciliacion.revisar(client)
 
         metricas = telemetria.Metricas()
         nuevas = ejecutar(client, CONFIG, dry_run=args.dry_run, metricas=metricas)

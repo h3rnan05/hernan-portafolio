@@ -52,7 +52,21 @@ ejecutor sí consulta el calendario real de Alpaca antes de ABRIR, pero
 el cierre todavía no. Anotado, no resuelto.
 
 IDEMPOTENTE por construcción: la segunda corrida dentro de la ventana ya
-no encuentra posiciones y no hace nada. No hace falta estado persistido."""
+no encuentra posiciones y no hace nada. No hace falta estado persistido.
+
+CIERRE QUE NO SE CONCRETA (2026-09-25). `DELETE /v2/positions/{symbol}`
+sin cancelar antes las patas del bracket responde 403: esas patas
+reservan la cantidad (el mismo motivo por el que la rama de aguantar
+sí llama a `cancelar_ordenes_de`, y por el que el DELETE de TODAS las
+posiciones manda `cancel_orders=true`). El cierre de una sola posición
+no hacía ninguna de las dos cosas. El 25/9, CTAS, TWST, NBIS y DLB
+recibieron ~40 rechazos entre 19:50 y 20:00 UTC, solo como WARNING.
+No quedó `cierre_order_id`. Las patas day expiraron al cierre y
+`seguimiento.py` las marcó `cerrada` sin fill. Ahora se cancela
+primero, se reintenta el DELETE y, si Alpaca lo rechaza, se vende a
+mercado la cantidad completa. Si ni eso queda aceptado, sale un
+Telegram ERROR. Aceptar la orden no marca el trade `cerrada`: eso lo
+confirma `seguimiento.py` contra `GET /v2/positions`."""
 
 from __future__ import annotations
 
@@ -61,7 +75,7 @@ from datetime import datetime
 
 from momentum_hunter import sesion
 
-from momentum_paper_trader import estado, ia_decision, notify
+from momentum_paper_trader import dedupe_avisos, estado, ia_decision, notify
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig
 
@@ -188,6 +202,150 @@ def _anotar_orden_de_cierre_en_revisiones(ids_cierre: dict[str, str]) -> None:
             log.warning("cierre diario: no se pudo guardar el cierre en revisiones (%s)", type(ex).__name__)
 
 
+# Dos DELETE: el primero justo después de cancelar, el segundo por si
+# alguna pata seguía viva y el 403 era exactamente eso. Más intentos no
+# cambian el diagnóstico; el respaldo es la venta a mercado.
+_INTENTOS_DELETE = 2
+
+_DETALLE_FALLO = {
+    "rechazo": (
+        "Alpaca rechazó el cierre. Se cancelaron las órdenes abiertas del símbolo, "
+        "se reintentó el DELETE y la venta a mercado de la cantidad completa tampoco "
+        "quedó aceptada. La posición puede seguir abierta y sin stop."
+    ),
+    "sin_confirmar": (
+        "No se pudo confirmar la liquidación. No se mandó una venta a mercado de "
+        "respaldo porque el intento no fue un rechazo y la orden pudo haber llegado. "
+        "Revisar en Alpaca; no se da el trade por cerrado."
+    ),
+    "sin_qty": (
+        "Alpaca rechazó el cierre y la posición no trae una cantidad utilizable. "
+        "No se inventó una venta. La posición puede seguir abierta."
+    ),
+}
+
+
+def _status_http(ex: BaseException) -> int | None:
+    resp = getattr(ex, "response", None)
+    code = getattr(resp, "status_code", None)
+    return code if isinstance(code, int) else None
+
+
+def _qty_para_vender(p: dict) -> str | None:
+    """El `qty` del broker, como string, o None si no se puede usar.
+
+    No convierte un ausente en 0: vender cero no aplana nada, y vender
+    una cantidad inventada puede dejar un resto o abrir un corto."""
+    q = p.get("qty")
+    if isinstance(q, bool) or q is None:
+        return None
+    if isinstance(q, str):
+        texto = q.strip()
+        if not texto:
+            return None
+        try:
+            n = float(texto)
+        except ValueError:
+            return None
+        if not n > 0:
+            return None
+        return texto
+    try:
+        n = float(q)
+    except (TypeError, ValueError):
+        return None
+    if not n > 0:
+        return None
+    if n == int(n):
+        return str(int(n))
+    return str(n)
+
+
+def _cancelar(client: AlpacaPaperClient, ticker: str, ordenes: list) -> None:
+    try:
+        client.cancelar_ordenes_de(ticker, ordenes)
+    except Exception as ex:
+        log.warning(
+            "%s: no se pudieron cancelar las órdenes antes del cierre (%s)",
+            ticker, type(ex).__name__,
+        )
+
+
+def _liquidar(
+    client: AlpacaPaperClient, ticker: str, qty: str | None, abiertas: list,
+) -> tuple[dict | None, str | None]:
+    """(orden con id, código de fallo). El código es None si hay id.
+
+    Cancelar primero es obligatorio: con las patas del bracket vivas el
+    DELETE ve cantidad disponible 0 y Alpaca responde 403. Si ese
+    rechazo se repite, la venta a mercado usa la qty del broker. Un
+    error que no es 4xx no dispara esa venta -- el DELETE pudo haber
+    llegado igual y una segunda orden abriría un corto."""
+    _cancelar(client, ticker, abiertas)
+    ultimo_rechazo = False
+    for intento in range(1, _INTENTOS_DELETE + 1):
+        try:
+            resp = client.cerrar_posicion(ticker, cancel_orders=True)
+        except Exception as ex:
+            status = _status_http(ex)
+            # Solo el código HTTP y el tipo: el str de la excepción
+            # trae la URL, y este log termina en journald.
+            log.warning(
+                "%s: DELETE de la posición no aceptado (intento %d, %s)",
+                ticker, intento,
+                f"HTTP {status}" if status is not None else type(ex).__name__,
+            )
+            ultimo_rechazo = status is not None and 400 <= status < 500
+            if intento < _INTENTOS_DELETE:
+                try:
+                    frescas = client.ordenes_abiertas()
+                except Exception as ex_leer:
+                    log.warning(
+                        "%s: no se pudieron releer las órdenes abiertas (%s)",
+                        ticker, type(ex_leer).__name__,
+                    )
+                    frescas = []
+                if not isinstance(frescas, list):
+                    frescas = []
+                _cancelar(client, ticker, frescas)
+            continue
+        if isinstance(resp, dict) and resp.get("id"):
+            return resp, None
+        log.warning("%s: el DELETE respondió sin id de orden; no se manda otra venta", ticker)
+        return None, "sin_confirmar"
+    if not ultimo_rechazo:
+        return None, "sin_confirmar"
+    if qty is None:
+        log.warning("%s: DELETE rechazado y no hay qty utilizable; no se inventa una venta", ticker)
+        return None, "sin_qty"
+    try:
+        resp = client.vender_a_mercado(ticker, qty)
+    except Exception as ex:
+        log.warning("%s: la venta a mercado de respaldo falló (%s)", ticker, type(ex).__name__)
+        return None, "rechazo"
+    if isinstance(resp, dict) and resp.get("id"):
+        return resp, None
+    log.warning("%s: la venta a mercado de respaldo no trajo id", ticker)
+    return None, "rechazo"
+
+
+def _avisar_cierre_fallido(ticker: str, codigo: str, ahora: datetime) -> None:
+    """Telegram ERROR, una vez por símbolo y por día de sesión. El
+    WARNING del journal no bastó el 2026-09-25: nadie vio los 403."""
+    detalle = _DETALLE_FALLO.get(codigo, _DETALLE_FALLO["sin_confirmar"])
+    texto = notify.formatear_error(
+        tipo="cierre de fin de día rechazado",
+        ticker=ticker,
+        detalle=detalle,
+    )
+    marca = dedupe_avisos.clave("cierre_fallido", ticker, ahora)
+    if dedupe_avisos.ya_avisada(marca):
+        log.info("%s: el cierre fallido ya se avisó en esta sesión", ticker)
+        return
+    notify.enviar(texto)
+    dedupe_avisos.marcar(marca, ahora)
+
+
 def cerrar_si_toca(
     client: AlpacaPaperClient, cfg: PaperTraderConfig, ahora: datetime,
     clima: str | None = None,
@@ -254,17 +412,15 @@ def cerrar_si_toca(
             else:
                 log.warning("%s: no se pudo calcular un stop protector -- se cierra", ticker)
 
-        try:
-            resp = client.cerrar_posicion(ticker)
-        except Exception as ex:
-            log.warning("%s: falló el cierre de la posición: %s", ticker, ex)
+        orden, fallo = _liquidar(client, str(ticker), _qty_para_vender(p), abiertas)
+        if not orden:
+            _avisar_cierre_fallido(str(ticker), fallo or "sin_confirmar", ahora)
             continue
         cerradas.append((p, decision.razonamiento))
-        # `DELETE /v2/positions/{symbol}` devuelve la orden de liquidación;
-        # su id es lo que `seguimiento.py` vigilará para confirmar el fill.
-        oid = resp.get("id") if isinstance(resp, dict) else None
-        if oid:
-            ids_cierre[str(ticker)] = str(oid)
+        # El id -- del DELETE o de la venta a mercado de respaldo -- es
+        # lo que `seguimiento.py` vigila. Aceptar no es llenar, y llenar
+        # no es "la posición ya no está": eso se confirma contra el broker.
+        ids_cierre[str(ticker)] = str(orden["id"])
         log.info("%s: liquidación enviada al final del día", ticker)
 
     # Anotar la orden de liquidación en las revisiones ANTES de avisar:

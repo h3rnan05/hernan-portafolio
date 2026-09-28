@@ -93,6 +93,7 @@ def test_registro_viejo_sin_campos_de_seguimiento_sigue_cargando(tmp_path):
     assert len(recargadas) == 1
     assert recargadas[0].resultado is None
     assert recargadas[0].pnl is None
+    assert recargadas[0].precio_salida is None
 
 
 def test_banda_sobrevive_el_roundtrip(tmp_path):

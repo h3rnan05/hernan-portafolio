@@ -50,6 +50,11 @@ class RevisionIA:
     # cargando sin migración.
     resultado: str | None = None   # "abierta" | "objetivo" | "stop" | "cerrada" | "no_ejecutada"
     pnl: float | None = None       # ganancia/pérdida realizada en dólares (solo al cerrar)
+    # Precio real de la salida (fill de la pata o de la liquidación).
+    # Junto con `pnl`: un cierre sin estos dos números no es un cierre
+    # medible. `None` en una fila vieja no es un precio -- no se rellena
+    # a posteriori.
+    precio_salida: float | None = None
     # Id de la orden de LIQUIDACIÓN que colocó `cierre.py` al final del día
     # (no la del bracket). `seguimiento.py` la consulta para confirmar el
     # llenado real antes de dar el trade por "cerrada": una liquidación

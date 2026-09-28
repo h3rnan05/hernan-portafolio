@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
+import requests
+
 from momentum_paper_trader import cierre, ia_decision
 from momentum_paper_trader.config import PaperTraderConfig
 
@@ -32,6 +34,8 @@ class _FakeClient:
         self._falla_stop = falla_stop
         self.cerradas: list[str] = []
         self.stops: list[tuple] = []
+        self.ventas_mercado: list[tuple] = []
+        self.cancel_orders_en_delete: list[bool] = []
 
     @property
     def cerro(self) -> bool:
@@ -54,12 +58,17 @@ class _FakeClient:
         self.stops.append((ticker, cantidad, stop))
         return "stop-1"
 
-    def cerrar_posicion(self, ticker):
+    def cerrar_posicion(self, ticker, cancel_orders=False):
+        self.cancel_orders_en_delete.append(cancel_orders)
         if self._falla_cerrar:
             raise RuntimeError("rechazado")
         self.cerradas.append(ticker)
         # `DELETE /v2/positions/{symbol}` devuelve la orden de liquidación.
         return {"id": f"cierre-{ticker}"}
+
+    def vender_a_mercado(self, ticker, cantidad):
+        self.ventas_mercado.append((ticker, cantidad))
+        return {"id": f"mkt-{ticker}"}
 
 
 def _parchear(monkeypatch, cerrar=True, razon="tesis agotada"):
@@ -111,6 +120,8 @@ def test_cierra_y_avisa_dentro_de_la_ventana(monkeypatch):
 
     assert len(cerradas) == 1
     assert client.cerro is True
+    assert client.ventas_mercado == []
+    assert client.cancel_orders_en_delete == [True]
     assert len(enviados) == 1
     assert "CERRADA" in enviados[0]
     assert "fin de día" in enviados[0]
@@ -160,14 +171,18 @@ def test_fallo_al_leer_posiciones_no_lanza(monkeypatch):
     assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
 
 
-def test_fallo_al_cerrar_no_lanza_ni_avisa_en_falso(monkeypatch):
-    # Si el cierre falló, NO debe mandarse un mensaje diciendo que se
-    # liquidó -- se reintenta en la corrida siguiente de la ventana.
+def test_fallo_al_cerrar_avisa_error_y_no_anuncia_la_liquidacion(monkeypatch):
+    # Un RuntimeError no es un 403: no se manda la venta de respaldo
+    # (el DELETE pudo haber llegado). Tampoco se anuncia CERRADA.
+    # Sí sale un ERROR: el WARNING del journal no bastó el 2026-09-25.
     enviados = _parchear(monkeypatch)
     client = _FakeClient([_POSICION], falla_cerrar=True)
 
     assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
-    assert enviados == []
+    assert client.ventas_mercado == []
+    assert len(enviados) == 1
+    assert "ERROR" in enviados[0] and "CERRADA" not in enviados[0]
+    assert "RKLB" in enviados[0]
 
 
 # ------------------------- el mensaje -------------------------
@@ -447,17 +462,21 @@ def test_seguimiento_cierra_con_pnl_real_cuando_la_liquidacion_se_llena(monkeypa
                         "legs": [{"status": "canceled"}, {"status": "canceled"}]}
             return {"status": "filled", "filled_avg_price": 80.00}   # liquidación llena
 
+        def posiciones(self):
+            return []   # el broker ya no la tiene: recién ahí es cerrada
+
     cambiadas = seguimiento.revisar(_Client(), CFG)
     assert len(cambiadas) == 1
     r = estado.cargar(path)[0]
     assert r.resultado == "cerrada"
     assert r.pnl == round((80.00 - 78.10) * 65, 2)   # P&L del fill real
+    assert r.precio_salida == 80.00
     assert enviados == []
 
 
-def test_seguimiento_alerta_si_la_liquidacion_no_se_llena(monkeypatch, tmp_path):
-    """La orden de liquidación murió sin llenarse: la posición sigue
-    desprotegida y el ERROR de seguridad DEBE salir (fail-closed)."""
+def test_seguimiento_no_marca_cerrada_si_la_liquidacion_no_se_llena_y_sigue_abierta(monkeypatch, tmp_path):
+    """La orden de liquidación murió y el broker TODAVÍA tiene la posición.
+    ERROR sí; `cerrada` no -- marcarla archivaba el trade con la posición viva."""
     from momentum_paper_trader import seguimiento
     path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_con_cierre("RKLB")])
     enviados: list[str] = []
@@ -470,9 +489,17 @@ def test_seguimiento_alerta_si_la_liquidacion_no_se_llena(monkeypatch, tmp_path)
                         "legs": [{"status": "canceled"}, {"status": "canceled"}]}
             return {"status": "canceled", "filled_avg_price": None}   # liquidación NO llenada
 
-    cambiadas = seguimiento.revisar(_Client(), CFG)
-    assert len(cambiadas) == 1 and estado.cargar(path)[0].resultado == "cerrada"
+        def posiciones(self):
+            return [{"symbol": "RKLB", "qty": "65"}]
+
+    assert seguimiento.revisar(_Client(), CFG) == []
+    r = estado.cargar(path)[0]
+    assert r.resultado == "abierta" and r.pnl is None and r.precio_salida is None
     assert len(enviados) == 1 and "ERROR" in enviados[0]
+    # Misma sesión: no se repite el Telegram ni se archiva en la pasada siguiente.
+    assert seguimiento.revisar(_Client(), CFG) == []
+    assert len(enviados) == 1
+    assert estado.cargar(path)[0].resultado == "abierta"
 
 
 def test_seguimiento_espera_si_la_liquidacion_sigue_pendiente(monkeypatch, tmp_path):
@@ -492,3 +519,103 @@ def test_seguimiento_espera_si_la_liquidacion_sigue_pendiente(monkeypatch, tmp_p
 
     assert seguimiento.revisar(_Client(), CFG) == []
     assert estado.cargar(path)[0].resultado == "abierta" and enviados == []
+
+
+# ------------- 403 del DELETE: cancelar, reintentar, vender a mercado (2026-09-25) ---
+# Las patas del bracket reservan la cantidad. El DELETE de una sola
+# posición no las cancelaba (solo lo hacía la rama de aguantar) y Alpaca
+# respondía 403. Sin id de liquidación, el seguimiento daba el trade por
+# cerrado en cuanto las patas day expiraban.
+
+
+def _http(status: int) -> requests.HTTPError:
+    resp = requests.Response()
+    resp.status_code = status
+    resp.url = "https://paper-api.alpaca.markets/v2/positions/CTAS"
+    return requests.HTTPError(response=resp)
+
+
+class _CierreConPatas:
+    """Posición con las dos patas vivas. El DELETE siempre puede fallar."""
+
+    def __init__(self, falla_mercado: bool = False):
+        self.falla_mercado = falla_mercado
+        self.llamadas: list = []
+        self._abiertas = [
+            {"id": "tp", "symbol": "CTAS", "side": "sell", "type": "limit"},
+            {"id": "sl", "symbol": "CTAS", "side": "sell", "type": "stop"},
+        ]
+
+    def posiciones(self):
+        return [{"symbol": "CTAS", "qty": "3"}]
+
+    def ordenes_abiertas(self):
+        self.llamadas.append("abiertas")
+        return list(self._abiertas)
+
+    def cancelar_ordenes_de(self, ticker, abiertas):
+        ids = [o["id"] for o in abiertas if o.get("symbol") == ticker]
+        self.llamadas.append(("cancelar", ticker, tuple(ids)))
+        self._abiertas = [o for o in self._abiertas if o.get("symbol") != ticker]
+        return len(ids)
+
+    def cerrar_posicion(self, ticker, cancel_orders=False):
+        self.llamadas.append(("delete", ticker, cancel_orders))
+        raise _http(403)
+
+    def vender_a_mercado(self, ticker, cantidad):
+        self.llamadas.append(("mercado", ticker, cantidad))
+        if self.falla_mercado:
+            raise _http(403)
+        return {"id": "mkt-CTAS", "status": "accepted"}
+
+
+def _nombres(llamadas: list) -> list[str]:
+    return [ll if isinstance(ll, str) else ll[0] for ll in llamadas]
+
+
+def test_delete_403_cancela_reintenta_y_vende_la_qty_del_broker(monkeypatch, tmp_path):
+    enviados = _parchear(monkeypatch)
+    path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_abierta("CTAS")])
+    client = _CierreConPatas()
+
+    cerradas = cierre.cerrar_si_toca(client, CFG, _t(19, 50))
+
+    assert [c.get("symbol") for c in cerradas] == ["CTAS"]
+    nombres = _nombres(client.llamadas)
+    assert nombres.index("cancelar") < nombres.index("delete")
+    assert nombres.count("delete") == 2
+    ultimo_delete = max(i for i, n in enumerate(nombres) if n == "delete")
+    assert nombres.index("mercado") > ultimo_delete
+    assert ("delete", "CTAS", True) in client.llamadas
+    # La qty es la del broker, no un tamaño recalculado.
+    assert ("mercado", "CTAS", "3") in client.llamadas
+    r = estado.cargar(path)[0]
+    assert r.cierre_order_id == "mkt-CTAS"
+    assert r.resultado == "abierta" and r.pnl is None
+    assert enviados and "CERRADA" in enviados[0]
+
+
+def test_si_la_venta_de_respaldo_tambien_falla_avisa_error(monkeypatch, tmp_path):
+    enviados = _parchear(monkeypatch)
+    path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_abierta("CTAS")])
+    client = _CierreConPatas(falla_mercado=True)
+
+    assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
+    r = estado.cargar(path)[0]
+    assert r.cierre_order_id is None and r.resultado == "abierta"
+    assert len(enviados) == 1
+    assert "ERROR" in enviados[0] and "CERRADA" not in enviados[0]
+    assert "CTAS" in enviados[0] and "https://" not in enviados[0]
+    # Misma ventana, mismo símbolo: se reintenta el cierre, no el Telegram.
+    assert cierre.cerrar_si_toca(client, CFG, _t(19, 55)) == []
+    assert len(enviados) == 1
+
+
+def test_qty_ausente_no_se_vende_como_cero():
+    assert cierre._qty_para_vender({}) is None
+    assert cierre._qty_para_vender({"qty": None}) is None
+    assert cierre._qty_para_vender({"qty": ""}) is None
+    assert cierre._qty_para_vender({"qty": "0"}) is None
+    assert cierre._qty_para_vender({"qty": "3"}) == "3"
+    assert cierre._qty_para_vender({"qty": "12.5"}) == "12.5"

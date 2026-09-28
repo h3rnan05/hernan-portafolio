@@ -133,16 +133,56 @@ class AlpacaPaperClient:
         datos = r.json()
         return datos if isinstance(datos, list) else []
 
-    def cerrar_posicion(self, ticker: str) -> dict:
+    def cerrar_posicion(self, ticker: str, *, cancel_orders: bool = False) -> dict:
         """Liquida UNA posición a mercado (`DELETE /v2/positions/{symbol}`).
 
         Existe además de `cerrar_todas_las_posiciones` porque el cierre
         del día se decide posición por posición (ver `cierre.py`): la IA
-        puede querer cerrar una y aguantar otra."""
+        puede querer cerrar una y aguantar otra.
+
+        `cancel_orders=True` le pide a Alpaca que cancele las órdenes
+        vivas del símbolo ANTES de armar la venta. Sin eso el DELETE
+        responde 403: las patas del bracket ya reservan toda la cantidad
+        y la venta ve disponible 0 (CTAS, TWST, NBIS y DLB, 2026-09-25).
+        El cierre diario además cancela de forma explícita y reintenta;
+        este parámetro es la red del propio endpoint por si alguna pata
+        sigue viva. Un cuerpo que no sea la orden se devuelve vacío: no
+        se inventa un id."""
+        params = {"cancel_orders": "true"} if cancel_orders else None
         r = requests.delete(
-            f"{_BASE_URL}/positions/{ticker}", headers=self._headers, timeout=self._timeout)
+            f"{_BASE_URL}/positions/{ticker}", params=params,
+            headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
-        return r.json()
+        datos = r.json()
+        return datos if isinstance(datos, dict) else {}
+
+    def vender_a_mercado(self, ticker: str, cantidad: str) -> dict:
+        """Venta a mercado de la cantidad que el broker reporta.
+
+        Solo para SALIR, y solo cuando `DELETE /v2/positions/{symbol}`
+        fue rechazado (ver `cierre.py`). Nunca para entrar: el lado va
+        fijo en `sell`. `cantidad` es el `qty` de la posición, como
+        string, sin recortar ni recalcular -- una cantidad ausente o no
+        positiva no se convierte en cero, se rechaza acá."""
+        try:
+            n = float(cantidad)
+        except (TypeError, ValueError):
+            raise ValueError(f"{ticker}: cantidad de venta ilegible") from None
+        if not n > 0:
+            raise ValueError(f"{ticker}: cantidad de venta debe ser > 0, se recibió {cantidad!r}")
+        payload = {
+            "symbol": ticker,
+            "qty": str(cantidad),
+            "side": "sell",
+            "type": "market",
+            "time_in_force": "day",
+            "extended_hours": False,
+        }
+        r = requests.post(
+            f"{_BASE_URL}/orders", json=payload, headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        datos = r.json()
+        return datos if isinstance(datos, dict) else {}
 
     def cancelar_ordenes_de(self, ticker: str, ordenes_abiertas: list[dict]) -> int:
         """Cancela las órdenes vivas de un ticker. Devuelve cuántas
