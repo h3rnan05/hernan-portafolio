@@ -563,8 +563,12 @@ def _liquidar(
         if espera == "filled":
             return None, "pata_llena"
         if espera == "pendiente":
+            # La espera se agotó sin un terminal. Aunque la posición
+            # tenga qty vendible, vender acá es la carrera: se aborta
+            # y se avisa. El ciclo siguiente reintenta.
             return None, "patas_pendientes"
         if espera != "listas":
+            # Status ilegible o cualquier otra duda: tampoco se vende.
             return None, "sin_confirmar"
         try:
             resp = client.cerrar_posicion(ticker, cancel_orders=True)

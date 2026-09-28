@@ -846,32 +846,92 @@ def test_si_falla_la_lectura_fresca_no_vende_y_avisa(monkeypatch):
     assert "MNST" in enviados[0] and "https://" not in enviados[0]
 
 
-def test_pata_que_sigue_pending_cancel_no_vende_y_avisa(monkeypatch):
-    # Se acabó la espera y la pata no soltó la cantidad: no hay DELETE
-    # ni venta. El aviso existe para que el ciclo siguiente no sea el
-    # único que se entere.
+def _posicion_vendible(ticker):
+    """La lectura fresca SÍ daría para vender. El timeout no puede usarla."""
+    return {"symbol": ticker, "qty": "17", "qty_available": "17", "side": "long"}
+
+
+def test_si_la_espera_de_las_patas_vence_sin_terminal_no_vende_y_avisa(monkeypatch):
+    """La espera se agota (~5 s, pasos de 0,5 s) con una pata todavía en
+    `pending_cancel`. La otra ya está `canceled` y la posición fresca es
+    vendible: igual no hay DELETE ni venta. Solo un Telegram ERROR.
+
+    Un `AssertionError` dentro de `cerrar_posicion` no sirve como prueba:
+    `_liquidar` lo atrapa. Acá el DELETE, si se llamara, devolvería una
+    orden, y la venta de respaldo encontraría qty."""
     enviados = _parchear(monkeypatch)
-    monkeypatch.setattr(cierre.time, "sleep", lambda _s: None)
+    dormidos: list[float] = []
+    monkeypatch.setattr(cierre.time, "sleep", lambda s: dormidos.append(s))
     client = _Carrera()
+    lecturas: list[str] = []
 
     def _ordenes(simbolos):
-        return [{"id": "f2d920f1", "symbol": "MNST", "side": "sell",
-                 "type": "stop", "status": "pending_cancel"}]
+        return [
+            {"id": "tp", "symbol": "MNST", "side": "sell", "type": "limit",
+             "status": "pending_cancel"},
+            {"id": "sl", "symbol": "MNST", "side": "sell", "type": "stop",
+             "status": "pending_cancel"},
+        ]
 
     def _estado(order_id):
+        lecturas.append(order_id)
+        if order_id == "tp":
+            return {"id": order_id, "status": "canceled"}
         return {"id": order_id, "status": "pending_cancel"}
 
     def _cerrar(ticker, cancel_orders=False):
-        raise AssertionError("no debía borrar la posición")
+        client.deletes.append((ticker, cancel_orders))
+        return {"id": "no-debia-borrar"}
 
     client.ordenes_de_simbolos = _ordenes
     client.estado_orden = _estado
     client.cerrar_posicion = _cerrar
+    client.posicion = _posicion_vendible
 
     assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
+
+    pasos = cierre._ESPERA_PATA_PASOS
+    assert lecturas == ["tp", "sl"] * pasos
+    assert dormidos == [cierre._ESPERA_PATA_SEG] * (pasos - 1)
+    assert client.deletes == []
     assert client.ventas == []
-    assert len(enviados) == 1 and "ERROR" in enviados[0]
+    assert len(enviados) == 1
+    assert "ERROR" in enviados[0] and "CERRADA" not in enviados[0]
     assert "MNST" in enviados[0]
+    assert "no llegaron a un estado terminal" in enviados[0]
+    assert "https://" not in enviados[0]
+
+
+def test_status_ausente_durante_toda_la_espera_no_vende_y_avisa(monkeypatch):
+    """Un status que no viene no es un terminal. Se agota la espera,
+    se avisa, y no se vende aunque la posición fresca tenga qty."""
+    enviados = _parchear(monkeypatch)
+    monkeypatch.setattr(cierre.time, "sleep", lambda _s: None)
+    client = _Carrera()
+    lecturas: list[str] = []
+
+    def _ordenes(simbolos):
+        return [{"id": "sl", "symbol": "MNST", "side": "sell", "type": "stop",
+                 "status": "held"}]
+
+    def _estado(order_id):
+        lecturas.append(order_id)
+        return {"id": order_id}
+
+    def _cerrar(ticker, cancel_orders=False):
+        client.deletes.append((ticker, cancel_orders))
+        return {"id": "no-debia-borrar"}
+
+    client.ordenes_de_simbolos = _ordenes
+    client.estado_orden = _estado
+    client.cerrar_posicion = _cerrar
+    client.posicion = _posicion_vendible
+
+    assert cierre.cerrar_si_toca(client, CFG, _t(19, 50)) == []
+    assert len(lecturas) == cierre._ESPERA_PATA_PASOS
+    assert client.deletes == []
+    assert client.ventas == []
+    assert len(enviados) == 1 and "ERROR" in enviados[0] and "CERRADA" not in enviados[0]
 
 
 def test_pata_llena_durante_la_cancelacion_no_vende(monkeypatch):
