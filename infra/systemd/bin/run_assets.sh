@@ -17,4 +17,8 @@ set -a
 source "${MOMENTUM_PAPER_ENV:-/etc/momentum/paper.env}"
 set +a
 
+# Fuera del repo. paper.env puede pisarlo; si nadie lo puso, este es
+# el default. El directorio lo crea el módulo de Python al escribir.
+export MOMENTUM_ESTADO_DIR="${MOMENTUM_ESTADO_DIR:-/var/lib/momentum/estado}"
+
 exec "$PY" -m momentum_paper_trader.assets_job
