@@ -12,6 +12,11 @@ Group=momentum
 WorkingDirectory=/opt/hernan-portafolio
 Environment=PYTHONPATH=/opt/hernan-portafolio
 EnvironmentFile=/etc/momentum/paper.env
+# Crea /var/lib/momentum si falta. ReadWritePaths no restringe nada
+# mientras no se active ProtectSystem estricto: eso rompería el pull
+# (escribe el checkout y .git) y los candados de /tmp.
+StateDirectory=momentum
+ReadWritePaths=/var/lib/momentum
 ExecStart=/opt/momentum/bin/run_vigia.sh
 Restart=always
 RestartSec=15

@@ -48,6 +48,20 @@ shadow_alpaca/almacen/
 *.sqlite3
 local_data/
 
+# Estado y telemetría del bot de momentum. Viven en MOMENTUM_ESTADO_DIR
+# (default /var/lib/momentum/estado). Si vuelven al checkout, un archivo
+# sucio puede abandonar el stash del persist (2026-09-28).
+/momentum_hunter/telemetria/
+/momentum_hunter/auditoria/
+/momentum_hunter/alertas_enviadas.json
+/momentum_hunter/estado_diario.json
+/momentum_hunter/universo_cache.json
+/momentum_hunter/watchlist.json
+/momentum_hunter/diario/
+/momentum_paper_trader/telemetria/
+/momentum_paper_trader/revisiones.json
+/momentum_paper_trader/archivo_triggered.jsonl
+
 # Logs rotativos que genera el SDK de Webull al correr las sondas
 webull_trade_sdk.log*
 dashboard_site/

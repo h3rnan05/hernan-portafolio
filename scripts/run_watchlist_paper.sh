@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# PAPER ONLY: watchlist + paper + persist. Git failures must NOT fail the unit / spam Telegram.
+# PAPER ONLY. Único proceso del VPS que toca el checkout: pull bajo
+# flock y push de vps_latido.json. El estado vive en MOMENTUM_ESTADO_DIR.
+# Un fallo de esa subida no tumba la unidad ni manda Telegram en bucle.
 set -u
 ROOT=/opt/hernan-portafolio
 cd "$ROOT"
@@ -14,8 +16,8 @@ set -a
 source /etc/momentum/paper.env
 set +a
 
-# Overlay VPS: --solo-watchlist NO escribe watchlist.json. Ese PATH es
-# de GHA; suciarlo rompe `git pull --rebase` (medido 2026-09-18).
+# Overlay VPS: --solo-watchlist NO escribe el canónico. Lo escribe el
+# escaneo; el rechequeo solo muta el overlay (medido 2026-09-18).
 # Rollback: MOMENTUM_WATCHLIST_VPS_STATE=0 en paper.env.
 export MOMENTUM_WATCHLIST_VPS_STATE="${MOMENTUM_WATCHLIST_VPS_STATE:-1}"
 # Freno de Yahoo del bot (429): mismo archivo que usa el escaneo.
@@ -25,9 +27,9 @@ export MOMENTUM_YAHOO_PAUSA_ARCHIVO="${MOMENTUM_YAHOO_PAUSA_ARCHIVO:-/var/lib/mo
 bash "$ROOT/scripts/backup_watchlist_vps_state.sh" \
   || echo "WARN: backup watchlist VPS state failed"
 
-# El estado del VPS (revisiones, archivo, telemetría paper) tiene que
-# llegar a main: sin eso GHA y el panel de GitHub trabajan con datos
-# viejos. Si no llega, se deja rastro donde alguien lo va a ver: un
+# Lo único que tiene que llegar a main es vps_latido.json: sin ese
+# timestamp GitHub cree que el VPS está callado y enciende el respaldo.
+# Si no llega, se deja rastro donde alguien lo va a ver: un
 # evento en el log del panel (se pinta en rojo) y un Telegram, a lo
 # sumo uno por día por motivo para no repetir el mismo aviso cada 5
 # minutos. Nada de esto puede tumbar la unidad ni tocar una orden.
@@ -44,7 +46,7 @@ persist_fallido() {
     return 0
   fi
   if bash "$ROOT/scripts/notify_telegram.sh" \
-      "ERROR [paper][vps] persist fallido: ${motivo} (intentos=${intentos}). El estado paper del VPS no llegó a main; sigue en disco." \
+      "ERROR [paper][vps] persist fallido: ${motivo} (intentos=${intentos}). El latido del VPS no llegó a main; el estado sigue en disco." \
       >/dev/null 2>&1; then
     echo "$hoy" > "$marca" 2>/dev/null || true
   else
@@ -88,36 +90,20 @@ git config user.name "momentum-opportunity-hunter" || true
 git config user.email "momentum-opportunity-hunter@users.noreply.github.com" || true
 
 persistir_estado() {
-  # Discovery (watchlist.json + auditoria) lo commitea GHA
-  # momentum_hunter.yml. El VPS corre --solo-watchlist en local
-  # para que paper lea TRIGGERED fresco, pero no git-add esos
-  # paths: dos escritores reventaban el rebase (CONFLICT,
-  # run 34641814733). El cron GHA watchlist sigue pudiendo
-  # stagedarlos como escritor secundario (rechecks si el VPS
-  # no corre); overlap hunter↔watchlist GHA ya estaba aceptado.
-  # Ownership: GHA=writer watchlist.json+auditoria; VPS=solo paper telem.
-  # Desde el 2026-09-21 el VPS es el dueño de la watchlist y de la
-  # auditoría/telemetría del hunter (el escaneo corre acá). Antes de
-  # commitear, el overlay se vuelca al canónico (candado interno, corto)
-  # para que GitHub vea la misma verdad que el VPS.
+  # El overlay se vuelca al canónico en el directorio de estado. No se
+  # versiona. Lo único que entra al commit es el latido.
   "$PY" -m momentum_hunter.run --materializar-overlay || echo "WARN: materializar overlay falló"
-  paths=(
-    momentum_hunter/watchlist.json
-    momentum_hunter/auditoria
-    momentum_hunter/alertas_enviadas.json
-    momentum_hunter/telemetria
-    momentum_paper_trader/revisiones.json
-    momentum_paper_trader/archivo_triggered.jsonl
-    momentum_paper_trader/telemetria
-  )
-  for p in "${paths[@]}"; do
-    if [ -e "$p" ]; then git add -A "$p" || true; fi
-  done
-
+  local ts latido
+  ts="$(date -u +%Y-%m-%dT%H:%M:%S+00:00)"
+  latido="$ROOT/vps_latido.json"
+  printf '{"ts":"%s"}\n' "$ts" > "$latido" || {
+    echo "WARN: no se pudo escribir vps_latido.json"
+    persist_fallido "latido" 0
+    return 0
+  }
+  git add -- vps_latido.json || true
   if ! git diff --cached --quiet 2>/dev/null; then
-    git commit -m "momentum_hunter: re-chequeo de watchlist [skip ci]" || true
-    # Rebase + reintentos. NUNCA --force: podría borrar el JSONL del
-    # otro escritor. Un fallo de git no tumba la unidad.
+    git commit -m "momentum: latido del VPS [skip ci]" || true
     if ! PERSIST_BRANCH=main bash "$ROOT/scripts/git_persist_rebase_push.sh"; then
       echo "WARN: git persist failed. Local files kept. Not failing unit."
       persist_fallido "git persist failed" "${PERSIST_MAX_INTENTOS:-5}"
