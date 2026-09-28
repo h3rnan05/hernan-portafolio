@@ -1,7 +1,7 @@
 """`python -m fuentes grabar <fuente> [args]`: graba respuestas reales.
 
-Cada fuente registra su subcomando en `COMANDOS` al agregarse (un PR por
-fuente). Se corre desde el VPS, que sí llega a las fuentes; escribe en
+Cada fuente registra su subcomando en `fuentes.cli.COMANDOS` al
+agregarse (un PR por fuente); ver `cli.py` para por qué no vive aquí. Se corre desde el VPS, que sí llega a las fuentes; escribe en
 `fuentes/tests/respuestas/<fuente>/` con `ficticio: false` y, cuando la
 fuente tiene una verificación (zona horaria, historia disponible), la
 imprime. No toca la caché de producción ni la watchlist.
@@ -12,13 +12,8 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
-from typing import Callable
 
-COMANDOS: dict[str, Callable[[list[str]], int]] = {}
-
-
-def registrar(nombre: str, fn: Callable[[list[str]], int]) -> None:
-    COMANDOS[nombre] = fn
+from fuentes.cli import COMANDOS
 
 
 def _cargar_comandos() -> None:
