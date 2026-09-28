@@ -221,18 +221,16 @@ def ochok_en_ventana(pres: list[Presentacion], momento: datetime, horas: int = H
 # --------------------------------------------------------------- fuente
 
 
-class Edgar8K:
-    nombre = "edgar_8k"
-    _NOMBRES = ["edgar_8k_nivel", "edgar_8k_items", "edgar_8k_horas", "edgar_8k_cantidad_24h"]
+class LectorEdgar:
+    """Mapa ticker→CIK y presentaciones por emisor, compartido por las
+    columnas EDGAR (8-K, veto, Form 4, acciones). Un fallo de descarga se
+    recuerda en el proceso para no martillar a la SEC."""
 
     def __init__(self, cache: Cache | None = None, cliente: Cliente | None = None) -> None:
         self.cache = cache or Cache()
         self._cliente = cliente
         self._mapa: dict[str, int] | None = None
         self._pres: dict[int, list[Presentacion] | None] = {}
-
-    def nombres(self) -> list[str]:
-        return list(self._NOMBRES)
 
     def cliente(self) -> Cliente:
         if self._cliente is None:
@@ -245,9 +243,12 @@ class Edgar8K:
         return self._mapa.get(ticker.upper().replace("-", "").replace(".", ""))  # BRK-B/BRK.B -> BRKB
 
     def presentaciones(self, ticker: str) -> list[Presentacion] | None:
-        """None = no se pudo (sin CIK o descarga caída). Un fallo se
-        recuerda en el proceso para no martillar a la SEC."""
-        cik = self.cik(ticker)
+        """None = no se pudo (sin CIK, sin User-Agent o descarga caída)."""
+        try:
+            cik = self.cik(ticker)
+        except ErrorFuente as ex:
+            log.warning("edgar: %s (%s)", ex.codigo, ticker)
+            return None
         if cik is None:
             log.info("edgar: %s no está en el mapa de la SEC", ticker)
             return None
@@ -259,12 +260,27 @@ class Edgar8K:
                 self._pres[cik] = None
         return self._pres[cik]
 
+
+class Edgar8K:
+    nombre = "edgar_8k"
+    _NOMBRES = ["edgar_8k_nivel", "edgar_8k_items", "edgar_8k_horas", "edgar_8k_cantidad_24h"]
+
+    def __init__(self, cache: Cache | None = None, cliente: Cliente | None = None,
+                 lector: LectorEdgar | None = None) -> None:
+        self.lector = lector or LectorEdgar(cache, cliente)
+
+    @property
+    def cache(self) -> Cache:
+        return self.lector.cache
+
+    def cliente(self) -> Cliente:
+        return self.lector.cliente()
+
+    def nombres(self) -> list[str]:
+        return list(self._NOMBRES)
+
     def columnas(self, ticker: str, momento: datetime) -> dict:
-        try:
-            pres = self.presentaciones(ticker)
-        except ErrorFuente as ex:
-            log.warning("edgar: %s (%s)", ex.codigo, ticker)
-            return todas_faltantes(self._NOMBRES)
+        pres = self.lector.presentaciones(ticker)
         if pres is None:
             return todas_faltantes(self._NOMBRES)
         try:
