@@ -14,9 +14,11 @@ from momentum_hunter.data import fuente
 from momentum_hunter.data.alpaca_datos import (
     AlpacaProvider,
     ErrorDatosAlpaca,
+    incorporar_subastas,
     parsear_barra,
     parsear_snapshot,
 )
+from momentum_hunter.factors.intradia import es_sesion_regular, vwap_real
 from momentum_hunter.data.comparar_fuentes import formatear, nota_ratio, resumen_diario, resumen_intradia
 from momentum_hunter.data.fuente import ProveedorConRespaldo, proveedor_configurado
 from momentum_hunter.models import Barras, BarraIntradia
@@ -149,6 +151,8 @@ def test_paginacion_une_y_no_duplica(monkeypatch):
     llamadas = []
 
     def _get(url, params=None, headers=None, timeout=None):
+        if str(url).endswith("/auctions"):
+            return _Resp({"auctions": {}, "next_page_token": None})
         llamadas.append(params.get("page_token"))
         return _Resp(paginas[len(llamadas) - 1])
 
@@ -476,3 +480,253 @@ def test_la_telemetria_guarda_la_fuente_y_el_reporte_ignora_el_rechequeo(tmp_pat
     texto = reporte_semanal.construir("2026-09-28", "2026-09-28", tmp_path)
     assert "Corridas registradas: 1" in texto
     assert "500" not in texto
+
+
+# ------------------------- subasta de apertura y de cierre -------------------------
+
+def _serie_gapper():
+    """Cinco minutos de continuo alrededor de 80, sin el cruce. La de
+    las 13:30 es la vela donde Yahoo habría metido la apertura."""
+    marcas = [f"2026-09-28T13:{30 + i:02d}:00+00:00" for i in range(5)]
+    o = [80.0, 81.0, 81.0, 82.0, 82.0]
+    h = [82.0, 82.0, 83.0, 83.0, 84.0]
+    lo = [79.0, 80.0, 80.0, 81.0, 81.0]
+    c = [81.0, 81.0, 82.0, 82.0, 83.0]
+    vol = [1_000_000.0, 100_000.0, 100_000.0, 100_000.0, 100_000.0]
+    return marcas, o, h, lo, c, vol
+
+
+def _bi_de(listas, ticker="KOD"):
+    marcas, o, h, lo, c, vol = listas
+    return BarraIntradia(ticker, marcas, o, c, h, lo, vol)
+
+
+def _print(cond, precio, cuando, exch, size=None):
+    crudo = {"c": cond, "p": precio, "t": cuando, "x": exch}
+    if size is not None:
+        crudo["s"] = size
+    return crudo
+
+
+def _dia(o=None, c=None, fecha="2026-09-28"):
+    return {"d": fecha, "o": o or [], "c": c or []}
+
+
+def test_el_cruce_de_apertura_baja_el_vwap_y_no_se_cuenta_dos_veces():
+    # KOD, 2026-09-28: Yahoo tenía 5.47M a 61.87 dentro de las 9:30 y
+    # Alpaca no. 'O' y 'Q' del mismo sitio son ese único cruce.
+    listas = _serie_gapper()
+    antes = vwap_real(_bi_de(listas))
+    dia = _dia(o=[
+        _print("Q", 61.87, "2026-09-28T13:30:00.188390144Z", "Q"),
+        _print("O", 61.87, "2026-09-28T13:30:00.200000000Z", "Q", size=5_470_000),
+        _print("Q", 61.87, "2026-09-28T13:30:00.210000000Z", "Q", size=5_470_000),
+    ])
+    nuevas, aportes = incorporar_subastas(listas, [dia, dia])
+    bi = _bi_de(nuevas)
+    assert bi.open[0] == pytest.approx(61.87)
+    assert bi.low[0] == pytest.approx(61.87)
+    assert bi.high[0] == pytest.approx(82.0)
+    assert bi.close[0] == pytest.approx(81.0)
+    assert bi.volume[0] == pytest.approx(1_000_000 + 5_470_000)
+    assert bi.volume[1] == pytest.approx(100_000)
+    despues = vwap_real(bi)
+    assert despues is not None and antes is not None
+    assert despues < antes
+    assert aportes[0]["apertura"]["volumen"] == pytest.approx(5_470_000)
+    assert aportes[0]["apertura"]["precio"] == pytest.approx(61.87)
+    assert aportes[0]["cierre"] is None
+
+
+def test_dos_exchanges_se_suman_y_el_open_es_el_cruce_grande():
+    listas = _serie_gapper()
+    dia = _dia(o=[
+        _print("O", 61.87, "2026-09-28T13:30:00.200Z", "Q", size=5_470_000),
+        _print("O", 90.0, "2026-09-28T13:30:00.300Z", "P", size=1_000),
+    ])
+    nuevas, aportes = incorporar_subastas(listas, [dia])
+    assert nuevas[5][0] == pytest.approx(1_000_000 + 5_470_000 + 1_000)
+    assert nuevas[1][0] == pytest.approx(61.87)  # el open es el cruce grande
+    assert nuevas[3][0] == pytest.approx(61.87)
+    assert nuevas[2][0] == pytest.approx(90.0)  # el cruce chico igual abre el high
+    assert aportes[0]["apertura"]["volumen"] == pytest.approx(5_471_000)
+
+
+def test_sin_vela_de_las_9_30_el_cruce_es_la_vela_entera():
+    # Si el minuto no existe, no hay close del continuo. El close no
+    # puede quedarse en el precio del exchange que se insertó primero.
+    marcas, o, h, lo, c, vol = _serie_gapper()
+    listas = (marcas[1:], o[1:], h[1:], lo[1:], c[1:], vol[1:])
+    dia = _dia(o=[
+        _print("O", 90.0, "2026-09-28T13:30:00.100Z", "P", size=1_000),
+        _print("O", 61.87, "2026-09-28T13:30:00.200Z", "Q", size=5_470_000),
+    ])
+    nuevas, _ = incorporar_subastas(listas, [dia])
+    i = nuevas[0].index("2026-09-28T13:30:00+00:00")
+    assert nuevas[1][i] == pytest.approx(61.87)
+    assert nuevas[4][i] == pytest.approx(61.87)
+    assert nuevas[2][i] == pytest.approx(90.0)
+    assert nuevas[3][i] == pytest.approx(61.87)
+    assert nuevas[5][i] == pytest.approx(5_471_000)
+
+
+def test_un_size_cero_no_tapa_el_size_de_la_impresion_oficial():
+    listas = _serie_gapper()
+    dia = _dia(o=[
+        _print("O", 61.87, "2026-09-28T13:30:00.100Z", "Q", size=0),
+        _print("Q", 61.87, "2026-09-28T13:30:00.200Z", "Q", size=5_470_000),
+    ])
+    nuevas, aportes = incorporar_subastas(listas, [dia])
+    assert nuevas[5][0] == pytest.approx(1_000_000 + 5_470_000)
+    assert aportes[0]["apertura"]["volumen"] == pytest.approx(5_470_000)
+
+
+def test_un_print_sin_size_no_inventa_volumen_ni_mueve_el_rango():
+    listas = _serie_gapper()
+    dia = _dia(o=[_print("Q", 61.87, "2026-09-28T13:30:00.188Z", "Q")])
+    nuevas, aportes = incorporar_subastas(listas, [dia])
+    assert nuevas[5] == list(listas[5])
+    assert nuevas[1] == list(listas[1])
+    assert nuevas[3] == list(listas[3])
+    assert aportes[0]["apertura"]["volumen"] is None
+    assert aportes[0]["apertura"]["sin_size"] is True
+    assert aportes[0]["apertura"]["precio"] == pytest.approx(61.87)
+
+
+def test_una_condicion_que_no_es_del_cruce_no_se_pliega():
+    listas = _serie_gapper()
+    dia = _dia(o=[_print("Z", 61.87, "2026-09-28T13:30:00.200Z", "Q", size=9_000_000)])
+    nuevas, aportes = incorporar_subastas(listas, [dia])
+    assert nuevas[5] == list(listas[5])
+    assert aportes == []
+
+
+def test_el_cierre_de_las_16_et_entra_en_la_vela_de_las_15_59():
+    marcas, o, h, lo, c, vol = _serie_gapper()
+    marcas.append("2026-09-28T19:59:00+00:00")
+    o.append(10.0)
+    h.append(10.2)
+    lo.append(9.8)
+    c.append(10.0)
+    vol.append(100.0)
+    dia = _dia(c=[
+        _print("6", 10.5, "2026-09-28T20:00:00.120649216Z", "P", size=5_000),
+        _print("M", 10.5, "2026-09-28T20:00:00.125925888Z", "P", size=5_000),
+    ])
+    nuevas, aportes = incorporar_subastas((marcas, o, h, lo, c, vol), [dia])
+    assert "2026-09-28T20:00:00+00:00" not in nuevas[0]
+    i = nuevas[0].index("2026-09-28T19:59:00+00:00")
+    assert es_sesion_regular(nuevas[0][i])
+    assert nuevas[5][i] == pytest.approx(5_100)
+    assert nuevas[1][i] == pytest.approx(10.0)  # el open del continuo se conserva
+    assert nuevas[4][i] == pytest.approx(10.5)  # close = cruce oficial
+    assert nuevas[2][i] == pytest.approx(10.5)  # el high se abre hasta el cruce
+    assert aportes[0]["cierre"]["volumen"] == pytest.approx(5_000)
+    # '6' y 'M' no se suman.
+    assert not es_sesion_regular("2026-09-28T20:00:00+00:00")
+
+
+def test_el_cierre_de_invierno_no_se_mete_en_la_vela_de_las_15_59():
+    # 21:00 UTC es el cierre de invierno. El minuto anterior (20:59)
+    # tampoco entra en la sesión de verano: no se elige otro balde.
+    listas = _serie_gapper()
+    dia = _dia(c=[_print("6", 50.0, "2026-09-28T21:00:00.100Z", "P", size=8_000_000)])
+    nuevas, aportes = incorporar_subastas(listas, [dia])
+    assert nuevas[5] == list(listas[5])
+    assert "2026-09-28T20:59:00+00:00" not in nuevas[0]
+    assert aportes[0]["cierre"]["volumen"] is None
+    assert aportes[0]["cierre"]["sin_size"] is False
+
+
+def test_la_subasta_viaja_en_el_request_sip_y_mueve_la_vela(monkeypatch):
+    velas = [
+        _vela("2026-09-28T13:30:00Z", 1_000_000, precio=80.0),
+        _vela("2026-09-28T13:31:00Z", 100_000, precio=81.0),
+        _vela("2026-09-28T13:32:00Z", 100_000, precio=81.0),
+        _vela("2026-09-28T13:33:00Z", 100_000, precio=82.0),
+        _vela("2026-09-28T13:34:00Z", 100_000, precio=82.0),
+    ]
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append((url, dict(params)))
+        if str(url).endswith("/auctions"):
+            return _Resp({"auctions": {"ACME": [_dia(o=[
+                _print("O", 61.87, "2026-09-28T13:30:00.200Z", "Q", size=5_470_000),
+            ])]}, "next_page_token": None})
+        return _Resp({"bars": {"ACME": velas}, "next_page_token": None})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    p = _provider()
+    bi = p.barras_intradia(["acme"], "1m", "1d")["acme"]
+    urls = [u for u, _ in vistos]
+    assert any(u.endswith("/v2/stocks/auctions") for u in urls)
+    sub = next(params for u, params in vistos if u.endswith("/auctions"))
+    assert sub["feed"] == "sip"
+    assert sub["symbols"] == "ACME"
+    assert bi.volume[0] == pytest.approx(1_000_000 + 5_470_000)
+    assert bi.open[0] == pytest.approx(61.87)
+    assert bi.low[0] == pytest.approx(61.87)
+    assert p.fallidos == []
+    assert p.aportes_subasta["acme"][0]["apertura"]["volumen"] == pytest.approx(5_470_000)
+    # La misma serie sin el cruce, para ver que el VWAP de verdad baja.
+    sin = _bi_de((
+        bi.timestamps, [80.0, 81.0, 81.0, 82.0, 82.0],
+        [80.2, 81.2, 81.2, 82.2, 82.2], [79.8, 80.8, 80.8, 81.8, 81.8],
+        [80.0, 81.0, 81.0, 82.0, 82.0], [1_000_000.0, 100_000.0, 100_000.0, 100_000.0, 100_000.0],
+    ), ticker="acme")
+    assert vwap_real(bi) < vwap_real(sin)
+
+
+def test_subasta_caida_no_tira_el_ciclo_ni_marca_fallidos(monkeypatch):
+    velas = [_vela(f"2026-09-28T14:{i:02d}:00Z", 100 + i) for i in range(6)]
+
+    def _get(url, params=None, headers=None, timeout=None):
+        if str(url).endswith("/auctions"):
+            return _Resp({}, status=500)
+        return _Resp({"bars": {"ACME": velas}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    p = _provider(reintentos=1)
+    out = p.barras_intradia(["ACME"], "1m", "1d")
+    assert out["ACME"].volume[0] == pytest.approx(100)
+    assert p.fallidos == []
+    assert p.aportes_subasta == {}
+
+
+def test_iex_y_las_barras_que_no_son_de_minuto_no_piden_subasta(monkeypatch):
+    urls = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        urls.append(url)
+        if params and params.get("timeframe") == "1Day":
+            return _Resp({"bars": {"ACME": _diarias(20)}})
+        return _Resp({"bars": {"ACME": [_vela(f"2026-09-28T14:{i:02d}:00Z", 10) for i in range(6)]}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    _provider(feed="iex").barras_intradia(["ACME"], "1m", "1d")
+    _provider().barras_intradia(["ACME"], "5m", "1d")
+    _provider().barras(["ACME"])
+    assert not any(str(u).endswith("/auctions") for u in urls)
+
+
+def test_formatear_muestra_la_subasta_y_no_un_cero_inventado():
+    intra = {"ACME": _intradia()}
+    aportes = {"ACME": [{
+        "dia": "2026-09-28",
+        "apertura": {"precio": 61.87, "volumen": 5_470_000, "minuto": "2026-09-28T13:30:00+00:00", "sin_size": False},
+        "cierre": {"precio": 70.0, "volumen": None, "minuto": None, "sin_size": True},
+    }]}
+    texto = formatear(
+        ["ACME", "NADA"], intra, {}, {}, {},
+        ahora=datetime(2026, 9, 28, 15, tzinfo=UTC),
+        aportes_subasta=aportes,
+    )
+    assert "5470000" in texto
+    assert "61.8700" in texto
+    assert "sin size, no se plegó" in texto
+    assert "x 0" not in texto
+    assert "NADA: -" in texto
+    # Sin el argumento, la tabla de siempre no gana una sección de subasta.
+    sin = formatear(["ACME"], intra, {}, {}, {})
+    assert "subasta plegada" not in sin

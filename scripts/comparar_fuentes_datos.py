@@ -1,9 +1,10 @@
 """Compara el feed SIP (o el que diga ALPACA_DATA_FEED) contra Yahoo.
 
 Solo lectura: barras y, si responde, el snapshot. No coloca órdenes ni
-escribe la watchlist. Sirve para mirar, antes de exportar
-MOMENTUM_DATA_PROVIDER=alpaca en el VPS, la última vela, el volumen y el
-VWAP que el hunter calcularía con cada fuente.
+escribe la watchlist. Sirve para mirar la última vela, el volumen y el
+VWAP que el hunter calcularía con cada fuente, y cuánto de ese volumen
+y de ese VWAP es la subasta de apertura o de cierre que SIP no trae
+dentro de la vela de minuto.
 
 Uso (con las claves paper en el entorno, las mismas de /etc/momentum/paper.env):
 
@@ -60,7 +61,10 @@ def main(argv: list[str] | None = None) -> int:
         snaps = {}
     intra_y = yahoo.barras_intradia(simbolos, "1m", "5d")
     diarias_y = yahoo.barras(simbolos, dias=40)
-    print(formatear(simbolos, intra_a, intra_y, diarias_a, diarias_y, snaps, datetime.now(UTC)))
+    print(formatear(
+        simbolos, intra_a, intra_y, diarias_a, diarias_y, snaps, datetime.now(UTC),
+        aportes_subasta=alpaca.aportes_subasta,
+    ))
     return 0
 
 

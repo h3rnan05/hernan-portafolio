@@ -7,6 +7,11 @@ coinciden. Un campo ausente queda en None; no se rellena con cero.
 
 `nota_ratio` es un aviso del script (15 % de diferencia), no un umbral
 del bot. No cambia sizing, stops ni filtros.
+
+La sección de subasta, si se pasa, es lo que el feed SIP sumó a las
+velas de minuto (el cruce no viene en la vela cruda). El VWAP y el
+volumen de sesión de la tabla ya incluyen ese pliegue. Un '-' es un
+dato que no vino; no es un cruce de cero acciones.
 """
 
 from __future__ import annotations
@@ -89,6 +94,26 @@ def _fmt(valor, decimales: int = 2) -> str:
     return str(valor)
 
 
+def _fmt_lado_subasta(lado: dict | None) -> str:
+    """Precio x volumen del cruce plegado. Sin size no se imprime un 0."""
+    if not lado:
+        return "-"
+    precio = lado.get("precio")
+    volumen = lado.get("volumen")
+    if precio is None and volumen is None:
+        return "-"
+    texto = f"{_fmt(precio, 4)} x {_fmt(volumen, 0)}"
+    if volumen is None:
+        if lado.get("sin_size"):
+            texto += " (sin size, no se plegó)"
+        else:
+            texto += " (fuera de la sesión que mira el VWAP, no se plegó)"
+    minuto = lado.get("minuto")
+    if minuto:
+        texto += f" @ {minuto}"
+    return texto
+
+
 def formatear(
     simbolos: list[str],
     intradía_alpaca: dict[str, BarraIntradia],
@@ -97,6 +122,7 @@ def formatear(
     diarias_yahoo: dict[str, Barras],
     snapshots: dict[str, dict] | None = None,
     ahora: datetime | None = None,
+    aportes_subasta: dict[str, list] | None = None,
 ) -> str:
     """Texto para el operador. No decide nada."""
     snapshots = snapshots or {}
@@ -136,6 +162,30 @@ def formatear(
     else:
         lineas.append("")
         lineas.append("sin avisos de diferencia >15% en los campos que ambos devolvieron.")
+    if aportes_subasta is not None:
+        # El volumen de acá es el que YA está dentro de vol_sesion y del
+        # VWAP de la fila alpaca. Sirve para ver cuánto del día fue el
+        # cruce y no el continuo.
+        lineas.append("")
+        lineas.append(
+            "subasta plegada en las velas del feed "
+            "(apertura en su minuto; cierre de las 16:00 ET en el minuto anterior):"
+        )
+        for t in simbolos:
+            dias = aportes_subasta.get(t) or []
+            if not dias:
+                lineas.append(f"  {t}: -")
+                continue
+            for dia in dias:
+                lineas.append(
+                    f"  {t} {dia.get('dia') or '-'}: "
+                    f"apertura {_fmt_lado_subasta(dia.get('apertura'))}; "
+                    f"cierre {_fmt_lado_subasta(dia.get('cierre'))}"
+                )
+        lineas.append(
+            "Ese volumen ya entra en vol_sesion y en el vwap de alpaca. "
+            "Un '-' es un cruce que no vino; no es cero."
+        )
     lineas.append(
         "El volumen 0 o ausente no se muestra como cero inventado: un '-' es un dato que faltó."
     )

@@ -29,6 +29,19 @@ es solo la sesión regular, igual que el chart diario de Yahoo. Si un
 símbolo vuelve sin premarket, `maximo_premarket` queda en None y el
 patrón que lo necesita no dispara: no se inventa un máximo.
 
+SUBASTA. Las velas de 1 minuto de SIP no traen el cruce de apertura ni
+el de cierre: Yahoo sí los mete en la vela de las 9:30 y en la de las
+15:59. En KOD (2026-09-28) eso dejó el VWAP del bot en 78.98 contra
+75.38 de Yahoo, porque el stop se ancla al VWAP y el cruce (5.47M a
+61.87) nunca entró en el precio típico. Se leen con
+`GET /v2/stocks/auctions` (solo existe en SIP) y se pliegan en la vela
+de minuto que `vwap_real` ya consume. No se toca la fórmula del VWAP,
+ni las barras diarias: el agregado diario es otro número, y sumarle el
+cruce otra vez movería el filtro de volumen sin que se haya medido.
+El size que falta no es cero. Si el endpoint de subastas no responde,
+las velas siguen (sin el cruce); no se cae el ciclo a Yahoo, porque el
+minuto continuo sí llegó.
+
 HISTORIA DIARIA. Con `dias <= 365` se piden 365 días de calendario (el
 `range=1y` de Yahoo), no 280: el máximo de 52 semanas mira ~252 sesiones.
 Acortar esa ventana cambiaría un factor sin que nadie lo hubiera pedido.
@@ -43,6 +56,7 @@ from datetime import UTC, datetime, timedelta
 import requests
 
 from momentum_hunter.data.provider import DataProvider, _velas_finales_en_formacion
+from momentum_hunter.factors.intradia import es_sesion_regular
 from momentum_hunter.models import Barras, BarraIntradia, Metadata
 
 log = logging.getLogger("momentum_hunter.data.alpaca")
@@ -60,6 +74,17 @@ MAX_PAGINAS = 40
 LOTE_DIARIO = 100
 LOTE_INTRADIA = 15
 ESPERA_MAX_S = 8.0
+# Códigos del ejemplo oficial de GET /v2/stocks/auctions (docs Alpaca):
+# apertura 'Q' (Market Center Official Open) y 'O' (Opening Prints);
+# cierre 'M' (Market Center Official Close) y '6' (Closing Prints).
+# 'O' y 'Q' del mismo sitio son el mismo cruce dicho dos veces; igual
+# '6' y 'M'. No se suman. Sitios distintos sí son cruces distintos.
+CONDICIONES_APERTURA = frozenset({"O", "Q"})
+CONDICIONES_CIERRE = frozenset({"6", "M"})
+# La impresión de volumen y el precio oficial salen a milisegundos de
+# distancia (en el ejemplo, <1 ms). Dos segundos alcanzan para juntarlos
+# sin tragarse otro print del minuto.
+VENTANA_MISMO_CRUCE_S = 2.0
 
 _TIMEFRAMES = {
     "1m": "1Min",
@@ -214,6 +239,265 @@ def parsear_snapshot(crudo: object) -> dict:
     return out
 
 
+def _impresion(cruda: object) -> dict | None:
+    """Un print de subasta. El size no viene en el esquema obligatorio:
+    si falta, queda None. No se reemplaza por 0."""
+    if not isinstance(cruda, dict):
+        return None
+    momento = _momento(cruda.get("t"))
+    precio = _numero(cruda.get("p"))
+    cond = cruda.get("c")
+    if momento is None or precio is None or precio <= 0:
+        return None
+    if not isinstance(cond, str) or not cond.strip():
+        return None
+    exch = cruda.get("x")
+    if not isinstance(exch, str):
+        exch = ""
+    if "s" not in cruda or cruda.get("s") is None:
+        size = None
+    else:
+        size = _numero(cruda.get("s"))
+    return {"t": momento, "p": precio, "s": size, "c": cond.strip().upper(), "x": exch}
+
+
+def _impresiones(crudo: object) -> list[dict]:
+    if not isinstance(crudo, list):
+        return []
+    return [imp for item in crudo if (imp := _impresion(item)) is not None]
+
+
+def _size_util(imp: dict | None) -> float | None:
+    """Size que se puede sumar al volumen. 0 o negativo no es un cruce
+    (y un ausente tampoco): no se convierten en volumen."""
+    if imp is None:
+        return None
+    size = imp.get("s")
+    if size is None or size <= 0:
+        return None
+    return size
+
+
+def _grupos_de_cruce(prints: list[dict]) -> list[list[dict]]:
+    """Agrupa prints del mismo exchange que salen juntos. 'O'+'Q' (o
+    '6'+'M') son un solo cruce; juntarlos por exchange y por ventana
+    corta evita contar esas acciones dos veces."""
+    ordenadas = sorted(prints, key=lambda imp: (imp["x"], imp["t"]))
+    grupos: list[list[dict]] = []
+    actual: list[dict] = []
+    for imp in ordenadas:
+        if not actual:
+            actual = [imp]
+            continue
+        mismo_sitio = imp["x"] == actual[0]["x"]
+        delta = (imp["t"] - actual[0]["t"]).total_seconds()
+        if mismo_sitio and 0 <= delta <= VENTANA_MISMO_CRUCE_S:
+            actual.append(imp)
+        else:
+            grupos.append(actual)
+            actual = [imp]
+    if actual:
+        grupos.append(actual)
+    return grupos
+
+
+def _colapsar_grupo(grupo: list[dict], cond_precio: str, cond_volumen: str) -> dict:
+    """Un cruce por grupo. El precio y el size salen de la impresión que
+    trae las acciones ('O' o '6'): es el print que se negoció. Si esa no
+    trae size, se usa la oficial ('Q' o 'M'). Nunca se suman las dos."""
+    def primera(cond: str) -> dict | None:
+        for imp in grupo:
+            if imp["c"] == cond:
+                return imp
+        return None
+
+    de_volumen = primera(cond_volumen)
+    oficial = primera(cond_precio)
+    precio = None
+    size = _size_util(de_volumen)
+    if size is not None and de_volumen is not None:
+        precio = de_volumen["p"]
+    else:
+        size = _size_util(oficial)
+        if size is not None and oficial is not None:
+            precio = oficial["p"]
+        else:
+            for imp in grupo:
+                size = _size_util(imp)
+                if size is not None:
+                    precio = imp["p"]
+                    break
+            else:
+                size = None
+    if precio is None:
+        fuente = oficial or de_volumen or grupo[0]
+        precio = fuente["p"]
+    return {"p": precio, "s": size, "t": min(imp["t"] for imp in grupo), "x": grupo[0]["x"]}
+
+
+def cruces_de_lado(prints: list[dict], condiciones: frozenset[str], cond_precio: str, cond_volumen: str) -> list[dict]:
+    """Cruces de un lado (apertura o cierre), uno por exchange. Una
+    condición que no sea la del cruce oficial se ignora: no se inventa
+    una subasta a partir de otro flag."""
+    validas = [imp for imp in prints if imp["c"] in condiciones]
+    if not validas:
+        return []
+    return [_colapsar_grupo(g, cond_precio, cond_volumen) for g in _grupos_de_cruce(validas)]
+
+
+def minuto_para_vwap(momento: datetime, *, cierre: bool) -> str | None:
+    """Minuto de la vela que `vwap_real` sí mira.
+
+    La apertura cae en su propio minuto (9:30 ET entra en la sesión).
+    El cierre se imprime en el segundo 16:00:00 ET y `es_sesion_regular`
+    corta en las 20:00 UTC sin incluirlas: una vela con ese timestamp
+    no pesaría en el VWAP ni en el volumen de sesión. Se agrega al
+    minuto anterior (15:59), que es donde Yahoo mete el closing cross.
+    Si ese minuto tampoco es sesión regular —el corte está fijo en
+    horario de verano— no se elige otro balde: meterlo en la vela
+    equivocada movería el VWAP a propósito.
+    """
+    piso = momento.astimezone(UTC).replace(second=0, microsecond=0)
+    iso = piso.isoformat(timespec="seconds")
+    if es_sesion_regular(iso):
+        return iso
+    if cierre:
+        previo = (piso - timedelta(minutes=1)).isoformat(timespec="seconds")
+        if es_sesion_regular(previo):
+            return previo
+    return None
+
+
+def _resumen_lado(aplicados: list[dict], vistos: list[dict]) -> dict | None:
+    """Lo que se plegó. Si no se plegó, el volumen queda None (no 0):
+    o nadie mandó size, o el print cae fuera de la sesión que el VWAP
+    mira. `sin_size` separa esos dos casos para el script."""
+    if aplicados:
+        primario = min(aplicados, key=lambda a: (-a["s"], a["t"]))
+        return {
+            "precio": primario["p"],
+            "volumen": sum(a["s"] for a in aplicados),
+            "minuto": primario["minuto"],
+            "sin_size": False,
+        }
+    if not vistos:
+        return None
+    con_size = [c for c in vistos if c["s"] is not None and c["s"] > 0]
+    fuente = max(con_size, key=lambda c: c["s"]) if con_size else min(vistos, key=lambda c: c["t"])
+    return {"precio": fuente["p"], "volumen": None, "minuto": None, "sin_size": not con_size}
+
+
+def incorporar_subastas(listas, dias_crudos: list) -> tuple[tuple, list]:
+    """Mete los cruces en las velas de minuto ya parseadas.
+
+    El VWAP usa (H+L+C)/3 ponderado por volumen, no el open. Por eso el
+    precio del cruce entra al high y al low (si no, el volumen nuevo
+    pesaría al precio del continuo y el gapper seguiría con el VWAP
+    alto) y el open de esa vela pasa a ser el del cruce más grande, que
+    es la apertura que Yahoo muestra. El cierre oficial reemplaza el
+    close de las 15:59 por la misma razón.
+
+    Exchanges distintos se suman: son cruces distintos y el volumen
+    consolidado de Yahoo los incluye. 'O' y 'Q' del mismo exchange, no.
+
+    Devuelve las listas (marcas, o, h, low, c, vol) y un aporte por día
+    para el script de comparación. Las barras diarias no pasan por acá.
+    """
+    marcas, o, h, lo, c, vol = (list(x) for x in listas)
+    # Si el minuto no existía, la vela es solo el cruce: no hay un close
+    # del continuo que conservar. Si existía, el close de las 9:30 se
+    # queda (es el último trade del minuto, como en Yahoo).
+    originales = set(marcas)
+
+    def sumar(minuto: str, precio: float, size: float) -> None:
+        nonlocal marcas, o, h, lo, c, vol
+        if minuto in marcas:
+            i = marcas.index(minuto)
+            if precio > h[i]:
+                h[i] = precio
+            if precio < lo[i]:
+                lo[i] = precio
+            vol[i] = vol[i] + size
+            return
+        marcas.append(minuto)
+        o.append(precio)
+        h.append(precio)
+        lo.append(precio)
+        c.append(precio)
+        vol.append(float(size))
+        filas = sorted(zip(marcas, o, h, lo, c, vol, strict=True), key=lambda r: r[0])
+        marcas, o, h, lo, c, vol = (list(col) for col in zip(*filas, strict=True))
+
+    def fijar(minuto: str, precio: float, lado: str) -> None:
+        i = marcas.index(minuto)
+        if lado == "apertura":
+            o[i] = precio
+        else:
+            c[i] = precio
+
+    por_dia: dict[str, dict] = {}
+    for dia in dias_crudos:
+        if not isinstance(dia, dict):
+            continue
+        fecha = dia.get("d")
+        if not isinstance(fecha, str) or not fecha:
+            continue
+        slot = por_dia.setdefault(fecha, {"o": [], "c": []})
+        if isinstance(dia.get("o"), list):
+            slot["o"].extend(dia["o"])
+        if isinstance(dia.get("c"), list):
+            slot["c"].extend(dia["c"])
+
+    aportes = []
+    for fecha in sorted(por_dia):
+        slot = por_dia[fecha]
+        lados = {
+            "apertura": (cruces_de_lado(_impresiones(slot["o"]), CONDICIONES_APERTURA, "Q", "O"), False),
+            "cierre": (cruces_de_lado(_impresiones(slot["c"]), CONDICIONES_CIERRE, "M", "6"), True),
+        }
+        resumen = {}
+        for nombre, (cruces, es_cierre) in lados.items():
+            aplicados = []
+            for cruce in cruces:
+                size = cruce["s"]
+                if size is None or size <= 0:
+                    continue
+                minuto = minuto_para_vwap(cruce["t"], cierre=es_cierre)
+                if minuto is None:
+                    continue
+                sumar(minuto, cruce["p"], size)
+                aplicados.append({**cruce, "minuto": minuto})
+            info = _resumen_lado(aplicados, cruces)
+            if info is not None and aplicados:
+                fijar(info["minuto"], info["precio"], nombre)
+                if info["minuto"] not in originales:
+                    # Sin vela continua, open y close son el cruce grande.
+                    # Si no, el close se quedaría en el primer exchange
+                    # insertado y el precio típico no sería el del cruce.
+                    i = marcas.index(info["minuto"])
+                    o[i] = info["precio"]
+                    c[i] = info["precio"]
+            resumen[nombre] = info
+        if resumen["apertura"] is None and resumen["cierre"] is None:
+            continue
+        aportes.append({"dia": fecha, "apertura": resumen["apertura"], "cierre": resumen["cierre"]})
+    return (marcas, o, h, lo, c, vol), aportes
+
+
+def _juntar_subastas(paginas: list[dict]) -> dict[str, list]:
+    """Símbolo en mayúsculas -> días crudos, en el orden de las páginas."""
+    out: dict[str, list] = {}
+    for cuerpo in paginas:
+        auctions = cuerpo.get("auctions")
+        if not isinstance(auctions, dict):
+            raise ErrorDatosAlpaca("cuerpo")
+        for simbolo, dias in auctions.items():
+            if not isinstance(simbolo, str) or not isinstance(dias, list):
+                continue
+            out.setdefault(simbolo.upper(), []).extend(dias)
+    return out
+
+
 class AlpacaProvider(DataProvider):
     """`DataProvider` de barras contra `data.alpaca.markets`. Las claves
     se leen del entorno en cada pedido (o se inyectan en pruebas); no se
@@ -243,6 +527,10 @@ class AlpacaProvider(DataProvider):
         self._dormir = dormir
         self._ahora = ahora or (lambda: datetime.now(UTC))
         self.fallidos: list[str] = []
+        # Lo que la última `barras_intradia` plegó, por ticker pedido.
+        # Vacío si no hubo cruce o si la subasta no respondió: no es un
+        # volumen cero. El script de comparación lo imprime.
+        self.aportes_subasta: dict[str, list] = {}
         # Yahoo solo para metadata (float / ETF / nombre). No es el
         # respaldo de precios: ese lo pone `fuente.proveedor_configurado`.
         self._meta = None
@@ -409,10 +697,12 @@ class AlpacaProvider(DataProvider):
     def barras_intradia(
         self, tickers: list[str], intervalo: str = "1m", periodo: str = "5d",
     ) -> dict[str, BarraIntradia]:
+        self.aportes_subasta = {}
         ahora = self._ahora()
         inicio = ahora - timedelta(days=dias_de_periodo(periodo))
+        tf = timeframe_de(intervalo)
         params = {
-            "timeframe": timeframe_de(intervalo),
+            "timeframe": tf,
             "start": inicio.isoformat(timespec="seconds"),
             "end": ahora.isoformat(timespec="seconds"),
             "limit": LIMITE_PAGINA,
@@ -421,6 +711,16 @@ class AlpacaProvider(DataProvider):
             "sort": "asc",
         }
         crudas = self._velas_de_lotes(tickers, params, LOTE_INTRADIA, intradia=True)
+        # Solo el minuto SIP. En 5m/1h el cruce no cae en un balde que
+        # el VWAP de 1 minuto sepa leer, e IEX no tiene este endpoint.
+        # Las diarias no se tocan: ver el docstring del módulo.
+        if tf == "1Min" and self.feed == "sip" and crudas:
+            subastas = self._descargar_subastas(list(crudas), inicio, ahora)
+            for t in list(crudas):
+                nuevas, aporte = incorporar_subastas(crudas[t], subastas.get(t, []))
+                crudas[t] = nuevas
+                if aporte:
+                    self.aportes_subasta[t] = aporte
         out = {}
         for t, listas in crudas.items():
             b = self._a_intradia(t, listas)
@@ -462,6 +762,38 @@ class AlpacaProvider(DataProvider):
                     out[pedido] = parsear_snapshot(por_clave[clave])
         if ok == 0:
             raise ErrorDatosAlpaca(ultimo_codigo)
+        return out
+
+    def _descargar_subastas(self, tickers: list[str], inicio: datetime, fin: datetime) -> dict[str, list]:
+        """Ticker pedido -> días crudos de `GET /v2/stocks/auctions`.
+
+        Un lote que falla se omite y no entra en `fallidos`: las velas
+        de ese lote ya llegaron, y marcarlas caídas haría que el
+        respaldo las reemplace por Yahoo (otra cinta mezclada con SIP).
+        """
+        out: dict[str, list] = {}
+        for lote in _lotes(tickers, LOTE_INTRADIA):
+            pedido_de = {clave: pedido for clave, pedido in lote}
+            try:
+                paginas = self._paginas("/v2/stocks/auctions", {
+                    "symbols": ",".join(clave for clave, _ in lote),
+                    "start": inicio.isoformat(timespec="seconds"),
+                    "end": fin.isoformat(timespec="seconds"),
+                    "limit": LIMITE_PAGINA,
+                    "feed": "sip",
+                    "sort": "asc",
+                })
+                juntos = _juntar_subastas(paginas)
+            except ErrorDatosAlpaca as ex:
+                log.warning(
+                    "datos: subasta de %d símbolos no disponible (%s); esas velas quedan sin el cruce",
+                    len(lote), ex.codigo,
+                )
+                continue
+            for clave, dias in juntos.items():
+                pedido = pedido_de.get(clave)
+                if pedido is not None:
+                    out.setdefault(pedido, []).extend(dias)
         return out
 
     def metadata(self, tickers: list[str]) -> dict[str, Metadata]:
