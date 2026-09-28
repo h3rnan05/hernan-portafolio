@@ -4,7 +4,9 @@ estas pruebas no salen a la red ni usan claves de verdad."""
 from __future__ import annotations
 
 import json
+import re
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 import requests
@@ -713,6 +715,66 @@ def test_alpaca_en_el_entorno_arma_el_respaldo(monkeypatch):
     assert p.informe_datos().configurada == "alpaca"
     assert p.informe_datos().fuente == "alpaca"
     assert p.informe_datos().feed == "iex"
+
+
+@pytest.mark.parametrize("clave,secreto", [
+    (None, None),
+    ("", ""),
+    ("   ", "   "),
+    ("KEY", ""),
+    ("", "SECRET"),
+])
+def test_claves_ausentes_o_vacias_caen_a_yahoo_sin_romper(monkeypatch, clave, secreto):
+    # El respaldo de GitHub exporta alpaca/sip siempre. Un secret que no
+    # existe llega como cadena vacía: no es un fallo del job, es el mismo
+    # respaldo Yahoo de un ciclo que el feed no pudo atender.
+    monkeypatch.setenv("MOMENTUM_DATA_PROVIDER", "alpaca")
+    monkeypatch.setenv("ALPACA_DATA_FEED", "sip")
+    for nombre, valor in (
+        ("ALPACA_PAPER_API_KEY", clave),
+        ("ALPACA_PAPER_API_SECRET", secreto),
+    ):
+        if valor is None:
+            monkeypatch.delenv(nombre, raising=False)
+        else:
+            monkeypatch.setenv(nombre, valor)
+
+    def _boom(*a, **k):
+        raise AssertionError("sin claves no debía haber HTTP")
+
+    monkeypatch.setattr(ad.requests, "get", _boom)
+    yahoo = _Yahoo()
+    p = proveedor_configurado(construir_yahoo=lambda: yahoo)
+    assert p.barras(["AAA"])["AAA"].volume == [100.0]
+    assert p.barras_intradia(["BBB"]) == {}
+    assert yahoo.pedidos == [["AAA"], ["BBB"]]
+    info = p.informe_datos()
+    assert info.configurada == "alpaca"
+    assert info.fuente == "yahoo"
+    assert info.feed is None
+    assert info.fallbacks == 2
+
+
+def test_el_hunter_solo_habla_con_el_host_de_datos():
+    # Frontera con el ejecutor: el hunter puede leer data.alpaca.markets.
+    # Importar el cliente de órdenes, o nombrar el host de trading (paper
+    # o live), mezclaría las dos cosas. data.alpaca.markets no contiene
+    # la cadena api.alpaca.markets; paper-api sí.
+    raiz = Path(__file__).resolve().parents[1]
+    prohibido = ("alpaca_client", "place_order", "paper-api", "api.alpaca.markets")
+    hosts: set[str] = set()
+    vistos = 0
+    for path in raiz.rglob("*.py"):
+        if "tests" in path.parts or "__pycache__" in path.parts:
+            continue
+        texto = path.read_text(encoding="utf-8")
+        vistos += 1
+        for palabra in prohibido:
+            assert palabra not in texto, f"{path.relative_to(raiz)} menciona {palabra}"
+        hosts.update(re.findall(r"[\w.-]*alpaca\.markets", texto))
+    assert vistos > 0
+    assert hosts == {"data.alpaca.markets"}
+    assert ad.DATA_BASE == "https://data.alpaca.markets"
 
 
 # ------------------------- comparación (pura) -------------------------
