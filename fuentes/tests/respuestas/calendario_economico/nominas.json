@@ -1,0 +1,12 @@
+{
+ "url": "https://www.bls.gov/schedule/news_release/empsit.htm",
+ "metodo": "GET",
+ "params": {},
+ "status": 200,
+ "headers": {
+  "Content-Type": "text/html"
+ },
+ "texto": "<html><body><h1>Schedule of Releases for the Employment Situation</h1>\n<table class=\"release-list\"><thead><tr><th>Reference Month</th><th>Release Date</th><th>Release Time</th></tr></thead><tbody>\n<tr><td>August 2026</td><td>Sep. 4, 2026</td><td>08:30 AM</td></tr>\n<tr><td>September 2026</td><td>Oct. 2, 2026</td><td>08:30 AM</td></tr>\n<tr><td>October 2026</td><td>Nov. 6, 2026</td><td>08:30 AM</td></tr>\n</tbody></table></body></html>",
+ "ficticio": true,
+ "nota": "FICTICIO: el entorno de desarrollo no llega a la página. HTML con la estructura pública tal como se conoce y fechas INVENTADAS. Reemplazar con `python -m fuentes grabar calendario_economico` desde el VPS y revisar el parser."
+}

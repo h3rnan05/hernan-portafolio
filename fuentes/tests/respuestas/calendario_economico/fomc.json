@@ -1,0 +1,12 @@
+{
+ "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+ "metodo": "GET",
+ "params": {},
+ "status": 200,
+ "headers": {
+  "Content-Type": "text/html"
+ },
+ "texto": "<html><body><div class=\"panel panel-default\"><div class=\"panel-heading\"><h4>2026 FOMC Meetings</h4></div>\n<div class=\"panel-body\">\n<div class=\"row fomc-meeting\"><div class=\"fomc-meeting__month col-xs-5\"><strong>January</strong></div><div class=\"fomc-meeting__date col-xs-4 col-sm-9\">27-28</div></div>\n<div class=\"row fomc-meeting\"><div class=\"fomc-meeting__month col-xs-5\"><strong>March</strong></div><div class=\"fomc-meeting__date col-xs-4 col-sm-9\">17-18*</div></div>\n<div class=\"row fomc-meeting\"><div class=\"fomc-meeting__month col-xs-5\"><strong>April/May</strong></div><div class=\"fomc-meeting__date col-xs-4 col-sm-9\">30-1</div></div>\n<div class=\"row fomc-meeting\"><div class=\"fomc-meeting__month col-xs-5\"><strong>June</strong></div><div class=\"fomc-meeting__date col-xs-4 col-sm-9\">9 (notation vote)</div></div>\n<div class=\"row fomc-meeting\"><div class=\"fomc-meeting__month col-xs-5\"><strong>September</strong></div><div class=\"fomc-meeting__date col-xs-4 col-sm-9\">15-16*</div></div>\n</div></div>\n<div class=\"panel panel-default\"><div class=\"panel-heading\"><h4>2025 FOMC Meetings</h4></div><div class=\"panel-body\">\n<div class=\"row fomc-meeting\"><div class=\"fomc-meeting__month col-xs-5\"><strong>December</strong></div><div class=\"fomc-meeting__date col-xs-4 col-sm-9\">9-10*</div></div>\n</div></div></body></html>",
+ "ficticio": true,
+ "nota": "FICTICIO: el entorno de desarrollo no llega a la página. HTML con la estructura pública tal como se conoce y fechas INVENTADAS. Reemplazar con `python -m fuentes grabar calendario_economico` desde el VPS y revisar el parser."
+}

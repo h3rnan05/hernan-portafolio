@@ -1,0 +1,12 @@
+{
+ "url": "https://www.bea.gov/news/schedule",
+ "metodo": "GET",
+ "params": {},
+ "status": 200,
+ "headers": {
+  "Content-Type": "text/html"
+ },
+ "texto": "<html><body><table><tr><th>Date</th><th>Release</th></tr>\n<tr><td>September 25, 2026</td><td><a href=\"#\">Gross Domestic Product, 2nd Quarter 2026 (Third Estimate)</a></td><td>8:30 AM</td></tr>\n<tr><td>September 30, 2026</td><td>Personal Income and Outlays, August 2026</td><td>8:30 AM</td></tr>\n<tr><td>October 29, 2026</td><td>Gross Domestic Product, 3rd Quarter 2026 (Advance Estimate)</td><td>8:30 AM</td></tr>\n</table></body></html>",
+ "ficticio": true,
+ "nota": "FICTICIO: el entorno de desarrollo no llega a la página. HTML con la estructura pública tal como se conoce y fechas INVENTADAS. Reemplazar con `python -m fuentes grabar calendario_economico` desde el VPS y revisar el parser."
+}

@@ -62,7 +62,7 @@ class Aprobacion:
 
 def cliente_fda(transport=None, dormir=None) -> Cliente:
     kw = {"dormir": dormir} if dormir is not None else {}
-    return Cliente("fda", "hernan-portafolio fuentes", limitador=Limitador(2, 1.0), transport=transport, **kw)
+    return Cliente("fda", "hernan-portafolio fuentes", limitador=Limitador(2, 1.0, **kw), transport=transport, **kw)
 
 
 def normalizar(nombre: str) -> str:

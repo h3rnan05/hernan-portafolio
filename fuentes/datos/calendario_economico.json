@@ -1,0 +1,14 @@
+{
+  "_nota": "Fechas curadas a mano. `cobertura` dice qué años cubre cada tipo: un día de un año no cubierto vale FALTANTE. FOMC 2026 según el calendario publicado por la Fed; `python -m fuentes grabar calendario_economico` lo contrasta con la página (verificado: false hasta entonces). CPI, NOMINAS y PIB no tienen cobertura todavía: se completan con las páginas de BLS y BEA desde el VPS antes de la corrida del backtest.",
+  "cobertura": {"FOMC": [2026], "CPI": [], "NOMINAS": [], "PIB": []},
+  "eventos": [
+    {"tipo": "FOMC", "fecha": "2026-01-28", "hora": "14:00", "verificado": false},
+    {"tipo": "FOMC", "fecha": "2026-03-18", "hora": "14:00", "verificado": false},
+    {"tipo": "FOMC", "fecha": "2026-04-29", "hora": "14:00", "verificado": false},
+    {"tipo": "FOMC", "fecha": "2026-06-17", "hora": "14:00", "verificado": false},
+    {"tipo": "FOMC", "fecha": "2026-07-29", "hora": "14:00", "verificado": false},
+    {"tipo": "FOMC", "fecha": "2026-09-16", "hora": "14:00", "verificado": false},
+    {"tipo": "FOMC", "fecha": "2026-10-28", "hora": "14:00", "verificado": false},
+    {"tipo": "FOMC", "fecha": "2026-12-09", "hora": "14:00", "verificado": false}
+  ]
+}
