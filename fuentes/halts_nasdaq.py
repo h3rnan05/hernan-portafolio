@@ -1,7 +1,11 @@
 """Halts de Nasdaq Trader con código de motivo, como columnas del backtest v2.
 
-Fuente: `https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts&haltdate=MM/DD/YYYY`
-(RSS con namespace `ndaq`). Sin credenciales. Nasdaq pide como máximo
+Fuente: `https://www.nasdaqtrader.com/rss.aspx?feed=tradehalts&haltdate=MMDDYYYY`
+(RSS con namespace `ndaq`). El parámetro va SIN barras: con
+`MM/DD/YYYY` el feed responde 200 con `numItems=0` para cualquier día,
+incluido hoy (verificado el 2026-09-28), y eso se habría leído como
+"día sin halts". Por eso un canal con cero ítems en un día hábil pasado
+es FALTANTE aquí, no cero. Sin credenciales. Nasdaq pide como máximo
 UNA consulta por minuto: el limitador es 1/60 s y por eso la corrida
 histórica se hace UNA sola vez, día por día, y queda en caché para
 siempre (un día pasado no cambia). El día en curso se recachea cada
@@ -9,10 +13,17 @@ siempre (un día pasado no cambia). El día en curso se recachea cada
 en esto: `python -m fuentes grabar halts_nasdaq --precargar DESDE HASTA`
 lo deja hecho desde el VPS.
 
+La respuesta llega con BOM UTF-8 y `Content-Type: text/xml` sin charset:
+se decodifican los bytes con `utf-8-sig` (`Respuesta.texto_utf8`).
+
 Campos que se leen de cada `<item>`: IssueSymbol, ReasonCode, HaltDate +
 HaltTime, ResumptionDate + ResumptionTradeTime (hora de Nueva York).
-Un halt sin hora de reanudación sigue abierto hasta que la fuente diga
-otra cosa.
+`HaltTime` trae milisegundos, y en el histórico con espacios de relleno
+(`09:32:12                      .540`). El mercado viene como `Mkt` en
+el histórico y `Market` en el feed del día; no se usa para decidir. Un
+halt sin hora de reanudación sigue abierto hasta que la fuente diga otra
+cosa. Un halt que reanuda otro día (T3 a las 19:50 con reanudación el
+lunes) solo se ve bajo su día de inicio: limitación conocida.
 
 Códigos que importan al backtest (los demás se cuentan en `otros`):
     T1    noticia pendiente (halt regulatorio de Nasdaq)
@@ -43,7 +54,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
-from fuentes import __main__ as cli
+from fuentes import cli
 from fuentes.cache import Cache
 from fuentes.columnas import todas_faltantes
 from fuentes.comun import ErrorFuente
@@ -77,7 +88,7 @@ def _fecha_hora(fecha: str | None, hora: str | None) -> datetime | None:
     if not fecha or not hora:
         return None
     m = re.match(r"\s*(\d{1,2})/(\d{1,2})/(\d{4})\s*$", fecha)
-    h = re.match(r"\s*(\d{1,2}):(\d{2}):(\d{2})\s*$", hora)
+    h = re.match(r"\s*(\d{1,2}):(\d{2}):(\d{2})(?:\s*\.\d+)?\s*$", hora)
     if not m or not h:
         return None
     try:
@@ -87,10 +98,15 @@ def _fecha_hora(fecha: str | None, hora: str | None) -> datetime | None:
         return None
 
 
-def leer_rss(xml: str, dia: date) -> list[Halt]:
+def leer_rss(xml: str, dia: date, hoy: date | None = None) -> list[Halt]:
     """Todos los halts del RSS con inicio ese día NY. Un ítem sin símbolo,
     sin código o sin hora de inicio invalida el archivo (levanta): no se
-    sabe qué se está omitiendo."""
+    sabe qué se está omitiendo. Un canal sin ítems en un día hábil ya
+    pasado también levanta (`sin_items`): es lo que devuelve un parámetro
+    mal formado, no un día tranquilo."""
+    xml = xml.lstrip("\ufeff")
+    if xml.startswith("ï»¿"):
+        xml = xml[3:]
     try:
         raiz = ET.fromstring(xml)
     except ET.ParseError:
@@ -98,6 +114,8 @@ def leer_rss(xml: str, dia: date) -> list[Halt]:
     items = raiz.findall(".//item")
     if raiz.tag != "rss":
         raise ErrorFuente("xml_ilegible", "halts_nasdaq")
+    if not items and dia.weekday() < 5 and hoy is not None and dia < hoy:
+        raise ErrorFuente("sin_items", "halts_nasdaq")
     out = []
     for it in items:
         def campo(nombre: str) -> str | None:
@@ -136,13 +154,13 @@ class HaltsNasdaq:
     def halts_del_dia(self, dia: date) -> list[Halt] | None:
         if dia in self._dias:
             return self._dias[dia]
-        params = {"feed": "tradehalts", "haltdate": f"{dia:%m/%d/%Y}"}
+        params = {"feed": "tradehalts", "haltdate": f"{dia:%m%d%Y}"}
         clave = f"{URL}?feed=tradehalts&haltdate={dia.isoformat()}"
         hoy = self._hoy or fecha_ny(datetime.now(NY))
         edad = EDAD_HOY_S if dia >= hoy else None
         try:
-            xml = self.cache.obtener("halts_nasdaq", clave, lambda: self.cliente().get(URL, params).texto, edad)
-            self._dias[dia] = leer_rss(xml, dia)
+            xml = self.cache.obtener("halts_nasdaq", clave, lambda: self.cliente().get(URL, params).texto_utf8(), edad)
+            self._dias[dia] = leer_rss(xml, dia, hoy)
         except ErrorFuente as ex:
             log.warning("halts_nasdaq: %s (%s)", ex.codigo, dia)
             self._dias[dia] = None
@@ -193,11 +211,12 @@ def _grabar(argv: list[str]) -> int:
         return 0 if sin == 0 else 3
     if args.dia is None:
         ap.error("falta el día o --precargar")
-    params = {"feed": "tradehalts", "haltdate": f"{args.dia:%m/%d/%Y}"}
+    params = {"feed": "tradehalts", "haltdate": f"{args.dia:%m%d%Y}"}
     r = cliente_nasdaq().get(URL, params)
-    guardar("halts_nasdaq", f"halts_{args.dia:%Y%m%d}", URL, params, r.status, r.headers, r.texto, ficticio=False,
-            directorio=args.dir)
-    halts = leer_rss(r.texto, args.dia)
+    texto = r.texto_utf8()
+    guardar("halts_nasdaq", f"halts_{args.dia:%Y%m%d}", URL, params, r.status, r.headers, texto, ficticio=False,
+            directorio=args.dir, nota="texto decodificado con utf-8-sig (BOM quitado)")
+    halts = leer_rss(texto, args.dia, date.today())
     print(f"{args.dia}: {len(halts)} halts; T1={sum(h.motivo == 'T1' for h in halts)} LUDP={sum(h.motivo == 'LUDP' for h in halts)}")
     return 0
 

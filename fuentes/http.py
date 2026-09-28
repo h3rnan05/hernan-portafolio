@@ -54,11 +54,22 @@ class Limitador:
 
 
 class Respuesta:
-    def __init__(self, status: int, headers: dict, texto: str, url: str) -> None:
+    def __init__(self, status: int, headers: dict, texto: str, url: str, contenido: bytes | None = None) -> None:
         self.status = status
         self.headers = headers
         self.texto = texto
         self.url = url
+        # Bytes crudos cuando el transporte los da: `requests` decodifica
+        # `text` como ISO-8859-1 si el Content-Type no trae charset, y un
+        # BOM UTF-8 queda como "ï»¿" (Nasdaq Trader, 2026-09-28).
+        self.contenido = contenido
+
+    def texto_utf8(self) -> str:
+        """El cuerpo como UTF-8 sin BOM, decodificando los bytes si están."""
+        if isinstance(self.contenido, bytes):
+            return self.contenido.decode("utf-8-sig", errors="replace")
+        t = self.texto.lstrip("\ufeff")
+        return t[3:] if t.startswith("ï»¿") else t
 
 
 class Cliente:
@@ -129,7 +140,9 @@ class Cliente:
             if not isinstance(texto, str):
                 raise ErrorFuente("cuerpo", self.fuente)
             hdrs = getattr(respuesta, "headers", None) or {}
-            return Respuesta(status, dict(hdrs) if hasattr(hdrs, "items") else {}, texto, url)
+            contenido = getattr(respuesta, "content", None)
+            return Respuesta(status, dict(hdrs) if hasattr(hdrs, "items") else {}, texto, url,
+                             contenido if isinstance(contenido, bytes) else None)
         raise ErrorFuente(ultimo, self.fuente)
 
     def get_json(self, url: str, params: dict | None = None, headers: dict | None = None):
