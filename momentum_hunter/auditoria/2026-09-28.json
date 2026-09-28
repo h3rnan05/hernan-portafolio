@@ -10185,6 +10185,414 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-28T14:55:05+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.110000610351562,
+          "factores_intradia": {
+            "precio_actual": 17.110000610351562,
+            "vwap": 17.063094786847053,
+            "ema9": 17.139757401459843,
+            "rvol_actual": 0.42194700460829493,
+            "aceleracion_volumen": 0.396513353115727,
+            "gap_pct": -0.005586552075443297,
+            "maximo_dia": 18.0,
+            "maximo_premarket": 18.0,
+            "rango_apertura_max": 17.020000457763672,
+            "rango_apertura_min": 16.770000457763672,
+            "velas_desde_ruptura": null,
+            "macd": -0.00727009325222383,
+            "macd_signal": 0.006601276062913602
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4018.0821663,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 47.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 0.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 50.55558946397565,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 53.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T14:56:05+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.139999389648438,
+          "factores_intradia": {
+            "precio_actual": 17.139999389648438,
+            "vwap": 17.06471137016941,
+            "ema9": 17.139805799097562,
+            "rvol_actual": 2.421518264840183,
+            "aceleracion_volumen": 0.8156746378076454,
+            "gap_pct": -0.005586552075443297,
+            "maximo_dia": 18.0,
+            "maximo_premarket": 18.0,
+            "rango_apertura_max": 17.020000457763672,
+            "rango_apertura_min": 16.770000457763672,
+            "velas_desde_ruptura": 38,
+            "macd": -0.007340436113903337,
+            "macd_signal": 0.0038129336275502146
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4019.082546583333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 46.5,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 38 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 31.567463780764538,
+                "extension": 100.0,
+                "distancia_maximo_dia": 52.2221883138021,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "El patrón se activó hace 38 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 53.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "El patrón se activó hace 38 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T14:57:06+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.139999389648438,
+          "factores_intradia": {
+            "precio_actual": 17.139999389648438,
+            "vwap": 17.06471137016941,
+            "ema9": 17.139805799097562,
+            "rvol_actual": 2.421518264840183,
+            "aceleracion_volumen": 0.8156746378076454,
+            "gap_pct": -0.005586552075443297,
+            "maximo_dia": 18.0,
+            "maximo_premarket": 18.0,
+            "rango_apertura_max": 17.020000457763672,
+            "rango_apertura_min": 16.770000457763672,
+            "velas_desde_ruptura": 38,
+            "macd": -0.007340436113903337,
+            "macd_signal": 0.0038129336275502146
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4020.08310755,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 46.5,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 38 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 31.567463780764538,
+                "extension": 100.0,
+                "distancia_maximo_dia": 52.2221883138021,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "El patrón se activó hace 38 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 53.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "El patrón se activó hace 38 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T14:58:05+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.15999984741211,
+          "factores_intradia": {
+            "precio_actual": 17.15999984741211,
+            "vwap": 17.065484505884477,
+            "ema9": 17.14384460876047,
+            "rvol_actual": 0.7801910043130006,
+            "aceleracion_volumen": 1.9876592356687897,
+            "gap_pct": -0.005586552075443297,
+            "maximo_dia": 18.0,
+            "maximo_premarket": 18.0,
+            "rango_apertura_max": 17.020000457763672,
+            "rango_apertura_min": 16.770000457763672,
+            "velas_desde_ruptura": 0,
+            "macd": -0.005716418236765719,
+            "macd_signal": 0.001907063254687028
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4021.082478916667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 75.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 53.33332485622832,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 53.1,
+            "score_ajustado": 18.1,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T14:59:05+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.15999984741211,
+          "factores_intradia": {
+            "precio_actual": 17.15999984741211,
+            "vwap": 17.065484505884477,
+            "ema9": 17.14384460876047,
+            "rvol_actual": 0.7801910043130006,
+            "aceleracion_volumen": 1.9876592356687897,
+            "gap_pct": -0.005586552075443297,
+            "maximo_dia": 18.0,
+            "maximo_premarket": 18.0,
+            "rango_apertura_max": 17.020000457763672,
+            "rango_apertura_min": 16.770000457763672,
+            "velas_desde_ruptura": 0,
+            "macd": -0.005716418236765719,
+            "macd_signal": 0.001907063254687028
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4022.0819432499998,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 75.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 53.33332485622832,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 53.1,
+            "score_ajustado": 18.1,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
     }
   ]
 }
