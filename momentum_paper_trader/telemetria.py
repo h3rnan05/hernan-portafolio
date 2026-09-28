@@ -52,10 +52,11 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from momentum_hunter.config import CONFIG
+from momentum_hunter.rutas_estado import RutaEstado
 
 log = logging.getLogger("momentum_paper_trader.telemetria")
 
-DIR_TELEMETRIA = Path(__file__).resolve().parent / "telemetria"
+DIR_TELEMETRIA = RutaEstado("momentum_paper_trader/telemetria", es_dir=True)
 
 # Tres escritores posibles, tres subdirectorios. Un valor ausente o
 # desconocido NO se recategoriza como vps/gha: eso inventaría origen.

@@ -25,11 +25,12 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from momentum_hunter.rutas_estado import RutaEstado
 from momentum_hunter.tracker import AlertaRegistrada
 
 log = logging.getLogger("momentum_hunter.diario")
 
-DIR_DIARIO = Path(__file__).resolve().parent / "diario"
+DIR_DIARIO = RutaEstado("momentum_hunter/diario", es_dir=True)
 HORIZONTE_VEREDICTO = "3d"   # mismo horizonte de referencia que memoria.py
 
 

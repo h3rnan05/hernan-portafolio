@@ -90,11 +90,21 @@ def _env_float(nombre: str, defecto: float | None = None) -> float | None:
         return defecto
 
 
+def _estado(relativo: str, *, es_dir: bool = False) -> Path:
+    """Sin DASH_* el panel lee el mismo directorio que el bot
+    (`MOMENTUM_ESTADO_DIR`), no el checkout."""
+    from momentum_hunter.rutas_estado import resolver
+    return resolver(relativo, es_dir=es_dir)
+
+
 def cargar_config() -> dict:
     revisiones = os.environ.get("DASH_REVISIONES", "").strip()
+    watchlist = os.environ.get("DASH_WATCHLIST", "").strip()
+    telem = os.environ.get("DASH_TELEM_HUNTER", "").strip()
     return {
-        # Canónico (lo escribe GHA) y overlay de estado del VPS (fuera de git).
-        "watchlist": Path(os.environ.get("DASH_WATCHLIST", "momentum_hunter/watchlist.json")),
+        # Canónico en el directorio de estado (el buscador lo escribe; el
+        # ejecutor no). Overlay de runtime, también fuera de git.
+        "watchlist": Path(watchlist) if watchlist else _estado("momentum_hunter/watchlist.json"),
         "watchlist_estado": Path(os.environ.get(
             "DASH_WATCHLIST_ESTADO",
             os.environ.get("MOMENTUM_WATCHLIST_STATE", "/var/lib/momentum/watchlist_vps_state.json"))),
@@ -121,7 +131,7 @@ def cargar_config() -> dict:
         "gha_ttl_seg": _env_float("DASH_GHA_TTL_SEG", 300.0),
         # Escaneos del hunter en el VPS: telemetría JSONL por fuente
         # (momentum_hunter/telemetria/{fecha}/vps/events.jsonl).
-        "telem_hunter": Path(os.environ.get("DASH_TELEM_HUNTER", "momentum_hunter/telemetria")),
+        "telem_hunter": Path(telem) if telem else _estado("momentum_hunter/telemetria", es_dir=True),
         # Archivo de pausa del BOT ante un 429 de Yahoo (solo lectura).
         "pausa_bot": (Path(os.environ["DASH_YAHOO_PAUSA_BOT"]) if os.environ.get("DASH_YAHOO_PAUSA_BOT") else None),
         # Libro del ejecutor, SOLO para el aviso de reconciliación (¿el
@@ -129,7 +139,7 @@ def cargar_config() -> dict:
         # eso lo dice Alpaca. Ruta del paquete, no del cwd: el servicio y
         # un `python -m` lanzado desde otro directorio leen el mismo archivo
         # que escribe `estado.guardar`.
-        "revisiones": Path(revisiones) if revisiones else REPO / "momentum_paper_trader" / "revisiones.json",
+        "revisiones": Path(revisiones) if revisiones else _estado("momentum_paper_trader/revisiones.json"),
     }
 
 

@@ -7,6 +7,8 @@ git temporal; no toca el checkout de trabajo)."""
 
 from __future__ import annotations
 
+import shlex
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -71,52 +73,37 @@ def test_vps_es_escritor_primario_con_flock():
     texto = VPS.read_text(encoding="utf-8")
     assert "MOMENTUM_TELEM_FUENTE=vps" in texto
     assert "flock" in texto
-    assert "momentum_paper_trader/telemetria" in texto
+    assert "vps_latido.json" in texto
     assert "git_persist_rebase_push.sh" in texto
     assert "git push --force" not in texto
     assert "force-with-lease" not in texto
 
 
-def test_vps_es_dueno_de_watchlist_y_auditoria():
-    """Desde el 2026-09-21 el escaneo corre en el VPS y el VPS es el dueño
-    de watchlist.json + auditoria + telemetría del hunter: los commitea
-    después de volcar el overlay al canónico. GitHub solo los toca en
-    modo respaldo (ver test_escaneo_vps_infra.py)."""
+def test_vps_sube_solo_el_latido_y_no_el_estado():
+    """El estado vive fuera del repo. El wrapper solo versiona el latido
+    que usa el respaldo de GitHub."""
     texto = VPS.read_text(encoding="utf-8")
-    bloque = _vps_paths_de_persistencia(texto)
-    assert "momentum_hunter/watchlist.json" in bloque
-    assert "momentum_hunter/auditoria" in bloque
-    assert "momentum_hunter/telemetria" in bloque
-    assert "momentum_paper_trader/telemetria" in bloque
-    assert "momentum_paper_trader/revisiones.json" in bloque
-    assert "momentum_paper_trader/archivo_triggered.jsonl" in bloque
-    assert "momentum_hunter/alertas_enviadas.json" in bloque
+    assert "git add -- vps_latido.json" in texto
+    assert "momentum_hunter/watchlist.json" not in texto
+    assert "momentum_hunter/auditoria" not in texto
+    assert "momentum_paper_trader/revisiones.json" not in texto
+    assert "momentum_paper_trader/telemetria" not in texto
     assert "--solo-watchlist" in texto
     assert "MOMENTUM_WATCHLIST_VPS_STATE" in texto
     assert "backup_watchlist_vps_state.sh" in texto
+    assert "--materializar-overlay" in texto
     cron = (ROOT / "infra" / "cron" / "momentum-watchlist-state-backup").read_text(encoding="utf-8")
     assert "15 2 * * *" in cron
     assert "/opt/hernan-portafolio/scripts/backup_watchlist_vps_state.sh" in cron
 
 
-def test_gha_hunter_sigue_persistiendo_watchlist_y_auditoria():
-    """GitHub conserva sus git-add para el modo RESPALDO (VPS callado):
-    quitarlos dejaría el respaldo sin escritor."""
-    texto = HUNTER_WF.read_text(encoding="utf-8")
-    assert "momentum_hunter/watchlist.json" in texto
-    assert "momentum_paper_trader/archivo_triggered.jsonl" in texto
-    assert "git add momentum_hunter/auditoria" in texto
-    assert "git add momentum_hunter/telemetria" in texto
-
-
-def test_gha_watchlist_sigue_como_escritor_secundario():
-    """Fallback de re-chequeo: no se apaga ni se le quita el
-    git-add de watchlist/auditoria. El overlap con hunter GHA
-    ya estaba aceptado; el VPS ya no es el tercer escritor."""
-    texto = WATCHLIST_WF.read_text(encoding="utf-8")
-    assert "momentum_hunter/watchlist.json" in texto
-    assert "git add momentum_hunter/auditoria" in texto
-    assert 'cron: "*/5 13-20 * * 1-5"' in texto
+def test_gha_no_versiona_watchlist_ni_auditoria():
+    """El respaldo ya no escribe el repo. La voz del VPS es el latido."""
+    for path in (HUNTER_WF, WATCHLIST_WF):
+        texto = path.read_text(encoding="utf-8")
+        assert "git add" not in texto, path
+        assert "vps_latido.json" in texto, path
+    assert 'cron: "*/5 13-20 * * 1-5"' in WATCHLIST_WF.read_text(encoding="utf-8")
 
 
 def test_gitattributes_union_en_jsonl_de_telemetria():
@@ -126,12 +113,11 @@ def test_gitattributes_union_en_jsonl_de_telemetria():
     assert "momentum_paper_trader/archivo_triggered.jsonl merge=union" in texto
 
 
-def test_workflows_gha_no_agregan_paper_telem():
+def test_workflows_gha_no_agregan_telemetria():
     for path in (HUNTER_WF, WATCHLIST_WF):
         texto = path.read_text(encoding="utf-8")
-        assert "git add momentum_paper_trader/telemetria" not in texto
-        assert "git add momentum_hunter/telemetria" in texto
-        assert "git_persist_rebase_push.sh" in texto
+        assert "git add" not in texto
+        assert "git_persist_rebase_push.sh" not in texto
 
 
 def test_vps_deja_rastro_cuando_el_persist_falla():
@@ -177,6 +163,8 @@ def _env_git(tmp_path: Path) -> dict[str, str]:
         "GIT_AUTHOR_EMAIL": "test@example.com",
         "GIT_COMMITTER_NAME": "test",
         "GIT_COMMITTER_EMAIL": "test@example.com",
+        "LC_ALL": "C",
+        "LANG": "C",
     }
     return env
 
@@ -187,11 +175,11 @@ def _git(cwd: Path, env: dict[str, str], *args: str) -> subprocess.CompletedProc
     return r
 
 
-def _repo(tmp_path: Path) -> tuple[Path, dict[str, str]]:
+def _repo(tmp_path: Path, nombre: str = "work") -> tuple[Path, dict[str, str]]:
     """Worktree con telemetría trackeada y un origin bare un commit atrás."""
     env = _env_git(tmp_path)
-    bare = tmp_path / "origin.git"
-    work = tmp_path / "work"
+    bare = tmp_path / ("origin.git" if nombre == "work" else f"{nombre}-origin.git")
+    work = tmp_path / nombre
     _git(tmp_path, env, "init", "--bare", "-b", "main", str(bare))
     _git(tmp_path, env, "init", "-b", "main", str(work))
     _git(work, env, "config", "user.email", "test@example.com")
@@ -208,9 +196,10 @@ def _repo(tmp_path: Path) -> tuple[Path, dict[str, str]]:
     return work, env
 
 
-def _avanzar_origin(tmp_path: Path, env: dict[str, str], bare_name: str = "origin.git") -> None:
+def _avanzar_origin(tmp_path: Path, env: dict[str, str], bare_name: str = "origin.git",
+                    clon: str = "other") -> None:
     """Otro clon commitea código (no telemetría) y lo empuja a origin."""
-    other = tmp_path / "other"
+    other = tmp_path / clon
     bare = tmp_path / bare_name
     _git(tmp_path, env, "clone", "-b", "main", str(bare), str(other))
     _git(other, env, "config", "user.email", "test@example.com")
@@ -379,23 +368,32 @@ def test_helper_rechaza_force_sin_tocar_git(tmp_path):
     assert "force push is forbidden" in r.stderr
 
 
-def test_el_helper_aparta_todos_los_paths_que_los_wrappers_commitean():
+def test_el_helper_sigue_conociendo_el_estado_por_si_el_arbol_sigue_sucio():
+    """Red de seguridad del primer pull. Los wrappers ya no commitean
+    esos paths: solo el latido."""
     helper = HELPER.read_text(encoding="utf-8")
-    for wrapper in (VPS, VPS_INSTALADO, SCAN):
-        bloque = _vps_paths_de_persistencia(wrapper.read_text(encoding="utf-8"))
-        for linea in bloque.splitlines():
-            linea = linea.strip().strip('"').strip("'")
-            if linea.startswith("momentum_"):
-                assert linea in helper, (wrapper.name, linea)
+    for rel in (
+        "momentum_paper_trader/revisiones.json",
+        "momentum_hunter/alertas_enviadas.json",
+        "momentum_hunter/telemetria",
+        "momentum_paper_trader/telemetria",
+    ):
+        assert rel in helper
+    for wrapper in (VPS, VPS_INSTALADO):
+        texto = wrapper.read_text(encoding="utf-8")
+        assert "git add -- vps_latido.json" in texto
+        assert "paths=(" not in texto
+    assert "git " not in SCAN.read_text(encoding="utf-8")
 
 
 def test_los_wrappers_dejan_de_hacer_pull_rebase_a_pelo():
-    """El pull crudo anterior al git add es el que se negaba con la
-    telemetría sucia. Los tres wrappers pasan por el helper."""
-    for wrapper in (VPS, VPS_INSTALADO, SCAN):
+    """El pull crudo se negaba con la telemetría sucia. Solo el wrapper
+    del rechequeo pasa por el helper. El escaneo no toca el checkout."""
+    for wrapper in (VPS, VPS_INSTALADO):
         texto = wrapper.read_text(encoding="utf-8")
         assert "git_pull_con_estado_local.sh" in texto, wrapper
         assert "git pull --rebase origin main" not in texto, wrapper
+    assert "git_pull_con_estado_local.sh" not in SCAN.read_text(encoding="utf-8")
 
 
 def test_cli_de_eventos_escribe_el_evento_y_nunca_falla(tmp_path, monkeypatch):
@@ -417,3 +415,227 @@ def test_cli_de_eventos_escribe_el_evento_y_nunca_falla(tmp_path, monkeypatch):
     r = subprocess.run([sys.executable, "-m", "dashboard.events", "persist_fallido", "motivo=x"],
                        capture_output=True, text=True, env=env, cwd=str(tmp_path))
     assert r.returncode == 0 and "Traceback" not in r.stderr
+
+
+def _bare_de(nombre: str) -> str:
+    return "origin.git" if nombre == "work" else f"{nombre}-origin.git"
+
+
+def _trackear_estado(work: Path, env: dict[str, str]):
+    """revisiones, alertas y movers.jsonl trackeados, como en el VPS."""
+    rev = work / "momentum_paper_trader" / "revisiones.json"
+    alertas = work / "momentum_hunter" / "alertas_enviadas.json"
+    mov = work / "momentum_hunter" / "telemetria" / "2026-09-28" / "vps" / "movers.jsonl"
+    mov.parent.mkdir(parents=True, exist_ok=True)
+    rev.write_text('{"revisiones":[]}\n', encoding="utf-8")
+    alertas.write_text("{}\n", encoding="utf-8")
+    mov.write_text('{"t":"base"}\n', encoding="utf-8")
+    _git(work, env, "add",
+         "momentum_paper_trader/revisiones.json",
+         "momentum_hunter/alertas_enviadas.json",
+         "momentum_hunter/telemetria")
+    _git(work, env, "commit", "-m", "estado")
+    _git(work, env, "push", "origin", "HEAD:main")
+    return rev, alertas, mov
+
+
+def _ensuciar_estado_vivo(rev: Path, alertas: Path, mov: Path) -> None:
+    """Lo que el vigía tenía en el árbol antes del stash del 2026-09-28."""
+    rev.write_text(
+        '{"revisiones":[{"ticker":"SKHY","order_id":"783f81bc"}]}\n',
+        encoding="utf-8",
+    )
+    alertas.write_text('{"SKHY":"viva"}\n', encoding="utf-8")
+    mov.write_text('{"t":"base"}\n{"t":"stash"}\n', encoding="utf-8")
+
+
+def _git_que_ensucia(tmp_path: Path, env: dict[str, str], *, cuando: str,
+                     archivo: Path, linea: str,
+                     tambien: Path | None = None, texto_tambien: str | None = None) -> dict[str, str]:
+    """Antepone un `git` que escribe en el árbol en el primer `git pull`.
+
+    `cuando=antes` imita una escritura entre el stash y el pull (el rebase
+    se niega). `cuando=despues` imita una escritura entre el pull y el pop
+    ("would be overwritten", el stash entero se quedaba abandonado)."""
+    real = shutil.which("git")
+    assert real
+    n_bin = 0
+    while (tmp_path / f"bin-{n_bin}").exists():
+        n_bin += 1
+    bindir = tmp_path / f"bin-{n_bin}"
+    bindir.mkdir()
+    marca = bindir / "pulls"
+    wrapper = bindir / "git"
+    extra = ""
+    if tambien is not None:
+        extra = (
+            f'mkdir -p "$(dirname {shlex.quote(str(tambien))})"\n'
+            f'printf %s\\\\n {shlex.quote(texto_tambien or "")} > {shlex.quote(str(tambien))}\n'
+        )
+    wrapper.write_text(
+        "#!/bin/bash\n"
+        "set -u\n"
+        f"real={shlex.quote(real)}\n"
+        f"marca={shlex.quote(str(marca))}\n"
+        f"archivo={shlex.quote(str(archivo))}\n"
+        f"linea={shlex.quote(linea)}\n"
+        f"cuando={shlex.quote(cuando)}\n"
+        'if [ "${1:-}" = "pull" ]; then\n'
+        '  n=0\n'
+        '  if [ -f "$marca" ]; then n=$(cat "$marca"); fi\n'
+        '  n=$((n + 1))\n'
+        "  printf '%s' \"$n\" > \"$marca\"\n"
+        '  if [ "$n" = "1" ] && [ "$cuando" = "antes" ]; then\n'
+        '    mkdir -p "$(dirname "$archivo")"\n'
+        "    printf '%s\\n' \"$linea\" >> \"$archivo\"\n"
+        f"{extra}"
+        "  fi\n"
+        '  "$real" "$@"\n'
+        "  rc=$?\n"
+        '  if [ "$n" = "1" ] && [ "$cuando" = "despues" ]; then\n'
+        '    mkdir -p "$(dirname "$archivo")"\n'
+        "    printf '%s\\n' \"$linea\" >> \"$archivo\"\n"
+        f"{extra}"
+        "  fi\n"
+        '  exit "$rc"\n'
+        "fi\n"
+        'exec "$real" "$@"\n',
+        encoding="utf-8",
+    )
+    wrapper.chmod(0o755)
+    env = dict(env)
+    env["PATH"] = f"{bindir}:/usr/bin:/bin"
+    return env
+
+
+def _canal_aviso(tmp_path: Path, env: dict[str, str], nombre: str) -> tuple[dict[str, str], Path, Path]:
+    log = tmp_path / f"telegram-{nombre}.log"
+    eventos = tmp_path / f"events-{nombre}.jsonl"
+    aviso = tmp_path / f"notify-{nombre}.sh"
+    aviso.write_text(
+        "#!/bin/bash\n"
+        f"printf '%s\\n' \"$*\" >> {shlex.quote(str(log))}\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    aviso.chmod(0o755)
+    env = dict(env)
+    env["MOMENTUM_NOTIFY_SH"] = str(aviso)
+    env["MOMENTUM_AVISOS_DIR"] = str(tmp_path / "avisos")
+    env["DASH_EVENTOS"] = str(eventos)
+    env["PYTHONPATH"] = str(ROOT)
+    return env, log, eventos
+
+
+def _preparar_carrera(tmp_path: Path, nombre: str = "work"):
+    work, env = _repo(tmp_path, nombre)
+    rev, alertas, mov = _trackear_estado(work, env)
+    _avanzar_origin(tmp_path, env, _bare_de(nombre), clon=f"other-{nombre}")
+    _ensuciar_estado_vivo(rev, alertas, mov)
+    return work, env, rev, alertas, mov
+
+
+def test_escritura_entre_pull_y_pop_restaura_revisiones_y_no_pierde_lineas_jsonl(tmp_path):
+    """El caso de las 18:52 UTC: movers.jsonl cambia después del pull y
+    `stash pop` aborta sin aplicar nada. revisiones.json y las alertas
+    vuelven enteras; el JSONL queda con la línea del stash y la del otro
+    proceso, cada una una vez."""
+    work, env, rev, alertas, mov = _preparar_carrera(tmp_path)
+    env = _git_que_ensucia(
+        tmp_path, env, cuando="despues", archivo=mov, linea='{"t":"concurrente"}',
+    )
+    env, log, eventos = _canal_aviso(tmp_path, env, "ok")
+    r = _correr_helper(work, env)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "would be overwritten" in r.stderr
+    assert "archivo por archivo" in r.stdout
+    assert "ERROR:" not in r.stdout
+    assert "783f81bc" in rev.read_text(encoding="utf-8")
+    assert "SKHY" in alertas.read_text(encoding="utf-8")
+    lineas = mov.read_text(encoding="utf-8").splitlines()
+    assert lineas.count('{"t":"base"}') == 1
+    assert lineas.count('{"t":"stash"}') == 1
+    assert lineas.count('{"t":"concurrente"}') == 1
+    assert "codigo nuevo" in (work / "README.md").read_text(encoding="utf-8")
+    assert _git(work, env, "stash", "list").stdout.strip() == ""
+    assert not log.exists()
+    assert not eventos.exists()
+
+
+def test_escritura_durante_el_pull_no_pierde_el_estado(tmp_path):
+    """Escritura entre el stash y el pull: el rebase se niega. El pop
+    también aborta, pero el estado vuelve al árbol (el reintento del
+    wrapper puede volver a stashar sin anidar un stash abandonado)."""
+    work, env, rev, alertas, mov = _preparar_carrera(tmp_path, "durante")
+    env = _git_que_ensucia(
+        tmp_path, env, cuando="antes", archivo=mov, linea='{"t":"concurrente"}',
+    )
+    r = _correr_helper(work, env)
+    assert r.returncode in (0, 1), r.stdout + r.stderr
+    assert "783f81bc" in rev.read_text(encoding="utf-8")
+    assert "viva" in alertas.read_text(encoding="utf-8")
+    texto = mov.read_text(encoding="utf-8")
+    assert texto.count('{"t":"stash"}') == 1
+    assert texto.count('{"t":"concurrente"}') == 1
+    assert texto.count('{"t":"base"}') == 1
+    assert _git(work, env, "stash", "list").stdout.strip() == ""
+
+
+def test_pop_incompleto_no_pisa_revisiones_ajenas_conserva_el_stash_y_avisa_una_vez(tmp_path):
+    """Si el otro proceso reescribió revisiones.json (no es JSONL), no se
+    pisa. La copia viva sigue en el stash, el JSONL no pierde líneas, y
+    el Telegram sale una sola vez aunque el fallo se repita."""
+    import json
+
+    def _una(nombre: str) -> subprocess.CompletedProcess[str]:
+        work, env, rev, _alertas, mov = _preparar_carrera(tmp_path, nombre)
+        env = _git_que_ensucia(
+            tmp_path, env, cuando="despues", archivo=mov, linea='{"t":"concurrente"}',
+            tambien=rev, texto_tambien='{"concurrente":"no-pisar"}',
+        )
+        env, _log, _eventos = _canal_aviso(tmp_path, env, "compartido")
+        # El canal comparte marca, log y eventos entre las dos corridas.
+        env["MOMENTUM_AVISOS_DIR"] = str(tmp_path / "avisos")
+        env["DASH_EVENTOS"] = str(tmp_path / "events-compartido.jsonl")
+        env["MOMENTUM_NOTIFY_SH"] = str(tmp_path / "notify-compartido.sh")
+        r = _correr_helper(work, env)
+        assert "no-pisar" in rev.read_text(encoding="utf-8")
+        assert "783f81bc" not in rev.read_text(encoding="utf-8")
+        blob = _git(work, env, "show", "stash@{0}:momentum_paper_trader/revisiones.json")
+        assert "783f81bc" in blob.stdout
+        texto = mov.read_text(encoding="utf-8")
+        assert texto.count('{"t":"stash"}') == 1
+        assert texto.count('{"t":"concurrente"}') == 1
+        return r
+
+    aviso = tmp_path / "notify-compartido.sh"
+    aviso.write_text(
+        "#!/bin/bash\n"
+        f"printf '%s\\n' \"$*\" >> {shlex.quote(str(tmp_path / 'telegram-compartido.log'))}\n"
+        "exit 0\n",
+        encoding="utf-8",
+    )
+    aviso.chmod(0o755)
+
+    r1 = _una("incompleto1")
+    assert r1.returncode == 3, r1.stdout + r1.stderr
+    assert "ERROR: persist_fallido motivo=stash pop incompleto" in r1.stdout
+    log = (tmp_path / "telegram-compartido.log").read_text(encoding="utf-8")
+    assert log.count("stash pop incompleto") == 1
+    eventos = [
+        json.loads(linea)
+        for linea in (tmp_path / "events-compartido.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert eventos[-1]["tipo"] == "persist_fallido"
+    assert eventos[-1]["motivo"] == "stash pop incompleto"
+
+    r2 = _una("incompleto2")
+    assert r2.returncode == 3, r2.stdout + r2.stderr
+    assert "ya avisado hoy por Telegram" in r2.stdout
+    log2 = (tmp_path / "telegram-compartido.log").read_text(encoding="utf-8")
+    assert log2.count("stash pop incompleto") == 1
+    eventos2 = [
+        json.loads(linea)
+        for linea in (tmp_path / "events-compartido.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    assert len(eventos2) == 2 and all(e["tipo"] == "persist_fallido" for e in eventos2)

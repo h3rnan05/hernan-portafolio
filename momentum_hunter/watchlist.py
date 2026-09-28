@@ -72,14 +72,19 @@ from pathlib import Path
 
 from momentum_hunter.catalysts.detector import Catalizador, dentro_de_ventana
 from momentum_hunter.models import Metadata
+from momentum_hunter.rutas_estado import RutaEstado
 
 log = logging.getLogger("momentum_hunter.watchlist")
 
-PATH = Path(__file__).resolve().parent / "watchlist.json"
+# Canónico fuera del checkout (MOMENTUM_ESTADO_DIR). En el VPS el
+# buscador y el ejecutor comparten disco, así que este archivo ya no
+# viaja por git. Lo escribe el buscador (escaneo / materializar). El
+# ejecutor no lo toca: sus mutaciones van al overlay de abajo.
+PATH = RutaEstado("momentum_hunter/watchlist.json")
 
 # Estado runtime del VPS -- FUERA del repo a propósito. Escribir PATH
-# desde `--solo-watchlist` sucia el worktree y rompe `git pull --rebase`
-# (medido 2026-09-18). GHA sigue siendo el único escritor del canónico.
+# desde `--solo-watchlist` pisaría el canónico que acaba de calcular el
+# escaneo (medido 2026-09-18, cuando además rompía el pull).
 STATE_PATH_DEFAULT = Path("/var/lib/momentum/watchlist_vps_state.json")
 ENV_VPS_STATE = "MOMENTUM_WATCHLIST_VPS_STATE"
 ENV_STATE_PATH = "MOMENTUM_WATCHLIST_STATE"
