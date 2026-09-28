@@ -13408,9 +13408,9 @@
     {
       "ticker": "DAKT",
       "nombre": "Daktronics, Inc.",
-      "estado": "watching",
+      "estado": "expired",
       "creado_en": "2026-09-28T13:12:04+00:00",
-      "actualizado_en": "2026-09-28T13:12:04+00:00",
+      "actualizado_en": "2026-09-28T15:12:05+00:00",
       "transiciones": [
         {
           "estado": "watching",
@@ -13418,6 +13418,18 @@
           "motivo": "Catalizador confirmado -- en observación.",
           "deteccion_ts": "2026-09-28T13:12:04+00:00",
           "evaluacion_ts": "2026-09-28T13:12:04+00:00",
+          "mensaje_generado_ts": null,
+          "telegram_enviado_ts": null,
+          "latencia_desde_deteccion_ms": null,
+          "latencia_desde_evaluacion_ms": null,
+          "latencia_desde_transicion_ms": null
+        },
+        {
+          "estado": "expired",
+          "timestamp": "2026-09-28T15:12:05+00:00",
+          "motivo": "Llevaba más de 120 minutos en observación sin confirmar nada.",
+          "deteccion_ts": null,
+          "evaluacion_ts": null,
           "mensaje_generado_ts": null,
           "telegram_enviado_ts": null,
           "latencia_desde_deteccion_ms": null,
