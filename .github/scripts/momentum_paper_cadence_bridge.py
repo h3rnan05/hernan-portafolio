@@ -44,20 +44,12 @@ ESPERA_PRE_VENTANA_MAX_MIN = 20
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-ARCHIVOS_A_PERSISTIR = (
-    "momentum_hunter/watchlist.json",
-    "momentum_hunter/alertas_enviadas.json",
-    "momentum_paper_trader/revisiones.json",
-    "momentum_paper_trader/archivo_triggered.jsonl",
-)
-DIRS_A_PERSISTIR = (
-    "momentum_hunter/auditoria",
-    "momentum_hunter/telemetria",
-    # Paper telem: el VPS es el escritor primario. GHA no la commitea
-    # -- dos escritores sobre el JSON diario reventaban el rebase.
-)
-
-COMMIT_MSG = "momentum_hunter: re-chequeo de watchlist [skip ci]"
+# Antes se subían al checkout: watchlist.json, alertas_enviadas.json,
+# revisiones.json, archivo_triggered.jsonl, auditoria/ y telemetria/.
+# Desde el 2026-09-28 viven en MOMENTUM_ESTADO_DIR. Este puente no
+# versiona nada: el único pull es el del proceso de persistencia del VPS.
+# Sin revisiones.json en ese directorio no se corre paper (un runner
+# vacío trataría cada TRIGGERED como nueva).
 
 
 def _env_int(nombre: str, default: int) -> int:
@@ -154,50 +146,36 @@ def _correr(cmd: list[str], *, check: bool = False) -> int:
     return completed.returncode
 
 
-def _persistir() -> None:
-    """Mismos archivos que `momentum_hunter_watchlist.yml`. Un fallo
-    de git no tumba el loop: la siguiente iteración reintenta sobre
-    el working tree que quede."""
-    _correr(["git", "config", "user.name", "momentum-opportunity-hunter"])
-    _correr(["git", "config", "user.email",
-             "momentum-opportunity-hunter@users.noreply.github.com"])
-    for rel in ARCHIVOS_A_PERSISTIR:
-        path = REPO_ROOT / rel
-        if path.is_file():
-            _correr(["git", "add", rel])
-    for rel in DIRS_A_PERSISTIR:
-        path = REPO_ROOT / rel
-        if path.is_dir():
-            _correr(["git", "add", rel])
-    staged = subprocess.run(
-        ["git", "diff", "--cached", "--quiet"], cwd=REPO_ROOT
-    )
-    if staged.returncode == 0:
-        return
-    _correr(["git", "commit", "-m", COMMIT_MSG])
-    # Rebase + reintentos; nunca --force. Si falla, la siguiente
-    # iteración reintenta sobre el working tree que quede.
-    rc = _correr(["bash", str(REPO_ROOT / "scripts" / "git_persist_rebase_push.sh")])
-    if rc != 0:
-        print("WARN: persist rebase/push failed -- next iteration retries",
-              flush=True)
+def _libro_presente() -> bool:
+    """Sin el libro no se abre paper. Un archivo ausente en el runner
+    no es 'no hay revisiones': es que el libro no viaja en el checkout."""
+    from momentum_paper_trader.estado import PATH, RevisionesIlegibles, cargar
+
+    try:
+        cargar()
+    except RevisionesIlegibles as exc:
+        print(f"WARN: revisiones ilegibles ({exc.origen}) -- no se corre paper", flush=True)
+        return False
+    concreto = PATH.resolver() if hasattr(PATH, "resolver") else PATH
+    if not Path(concreto).is_file():
+        print("WARN: no hay revisiones.json en el directorio de estado -- no se corre paper", flush=True)
+        return False
+    return True
 
 
 def _una_iteracion() -> None:
-    # Traer lo que el hunter completo haya commiteado (WATCHING nuevos)
-    # antes de re-evaluar. Si el rebase falla se sigue con lo que hay:
-    # mejor un ciclo sobre estado viejo que abortar 5 h de vigilancia.
-    _correr(["git", "pull", "--rebase", "origin", "main"])
     rc_watch = _correr([sys.executable, "-m", "momentum_hunter.run",
                         "--solo-watchlist"])
     if rc_watch != 0:
-        print(f"watchlist salió {rc_watch} -- se sigue con paper (continue-on-error)",
+        print(f"watchlist salió {rc_watch} -- se sigue con paper si hay libro (continue-on-error)",
               flush=True)
+    if not _libro_presente():
+        print("paper omitido (fail-closed sin libro)", flush=True)
+        return
     rc_paper = _correr([sys.executable, "-m", "momentum_paper_trader.run"])
     if rc_paper != 0:
         print(f"paper trader salió {rc_paper} -- el loop no se corta",
               flush=True)
-    _persistir()
 
 
 def main(argv: list[str] | None = None) -> int:

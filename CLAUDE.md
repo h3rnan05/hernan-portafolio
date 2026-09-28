@@ -125,9 +125,11 @@ ronda los $15-35. Ese $100 es un techo, no una meta.
 - **Comentarios en español**, explicando el POR QUÉ y no el QUÉ. Las
   limitaciones conocidas se documentan sin maquillar — este repo prefiere una
   limitación anotada honestamente a una promesa que no se cumple.
-- **Los workflows committean solos** (`[skip ci]`) los archivos de estado:
-  `watchlist.json`, `revisiones.json`, `auditoria/`, `telemetria/`. Antes de
-  trabajar conviene `git fetch origin main && git reset --hard origin/main`.
+- **El estado no vive en el checkout.** Watchlist, revisiones, auditoría
+  y telemetría van a `MOMENTUM_ESTADO_DIR` (default `/var/lib/momentum/estado`).
+  El único commit automático de momentum es `vps_latido.json` (`[skip ci]`),
+  lo sube el wrapper del rechequeo. Antes de trabajar conviene
+  `git fetch origin main && git reset --hard origin/main`.
 
 ## Datos operativos útiles
 

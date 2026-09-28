@@ -7,7 +7,7 @@ Fuentes:
   - API de Alpaca PAPER       solo peticiones GET, endpoint fijo.
                               Posiciones, pendientes y cerradas hoy salen de aquí.
   - revisiones.json           solo el aviso de reconciliación, no qué se grafica
-  - velas de 1 min            misma fuente que el hunter, con caché (dashboard/velas.py)
+  - velas de 1 min            SIP en data.alpaca.markets; Yahoo solo de respaldo (dashboard/velas.py)
   - telemetría del hunter     la píldora de fuente de datos, si el campo existe
 
 Regla del panel: un dato que falta se muestra como "—", nunca como 0.
@@ -90,11 +90,21 @@ def _env_float(nombre: str, defecto: float | None = None) -> float | None:
         return defecto
 
 
+def _estado(relativo: str, *, es_dir: bool = False) -> Path:
+    """Sin DASH_* el panel lee el mismo directorio que el bot
+    (`MOMENTUM_ESTADO_DIR`), no el checkout."""
+    from momentum_hunter.rutas_estado import resolver
+    return resolver(relativo, es_dir=es_dir)
+
+
 def cargar_config() -> dict:
     revisiones = os.environ.get("DASH_REVISIONES", "").strip()
+    watchlist = os.environ.get("DASH_WATCHLIST", "").strip()
+    telem = os.environ.get("DASH_TELEM_HUNTER", "").strip()
     return {
-        # Canónico (lo escribe GHA) y overlay de estado del VPS (fuera de git).
-        "watchlist": Path(os.environ.get("DASH_WATCHLIST", "momentum_hunter/watchlist.json")),
+        # Canónico en el directorio de estado (el buscador lo escribe; el
+        # ejecutor no). Overlay de runtime, también fuera de git.
+        "watchlist": Path(watchlist) if watchlist else _estado("momentum_hunter/watchlist.json"),
         "watchlist_estado": Path(os.environ.get(
             "DASH_WATCHLIST_ESTADO",
             os.environ.get("MOMENTUM_WATCHLIST_STATE", "/var/lib/momentum/watchlist_vps_state.json"))),
@@ -121,7 +131,7 @@ def cargar_config() -> dict:
         "gha_ttl_seg": _env_float("DASH_GHA_TTL_SEG", 300.0),
         # Escaneos del hunter en el VPS: telemetría JSONL por fuente
         # (momentum_hunter/telemetria/{fecha}/vps/events.jsonl).
-        "telem_hunter": Path(os.environ.get("DASH_TELEM_HUNTER", "momentum_hunter/telemetria")),
+        "telem_hunter": Path(telem) if telem else _estado("momentum_hunter/telemetria", es_dir=True),
         # Archivo de pausa del BOT ante un 429 de Yahoo (solo lectura).
         "pausa_bot": (Path(os.environ["DASH_YAHOO_PAUSA_BOT"]) if os.environ.get("DASH_YAHOO_PAUSA_BOT") else None),
         # Libro del ejecutor, SOLO para el aviso de reconciliación (¿el
@@ -129,7 +139,7 @@ def cargar_config() -> dict:
         # eso lo dice Alpaca. Ruta del paquete, no del cwd: el servicio y
         # un `python -m` lanzado desde otro directorio leen el mismo archivo
         # que escribe `estado.guardar`.
-        "revisiones": Path(revisiones) if revisiones else REPO / "momentum_paper_trader" / "revisiones.json",
+        "revisiones": Path(revisiones) if revisiones else _estado("momentum_paper_trader/revisiones.json"),
     }
 
 
@@ -1874,12 +1884,34 @@ def _pie_marcas(marcas: dict, tz, ahora: datetime) -> str:
             f'<div><span class="mono">Stop</span><b>{esc(dinero(marcas["stop"]))}</b></div></div>')
 
 
+def _marca_fuente_velas(origen_fuente) -> str | None:
+    """Lo que se lee en el gráfico. `alpaca-sip` es SIP; el respaldo se
+    nombra entero para que no se confunda con una vela del feed. Otro
+    feed (iex) se muestra tal cual, no disfrazado de SIP."""
+    if origen_fuente == "yahoo (respaldo)":
+        return "Yahoo (respaldo)"
+    if origen_fuente == "alpaca-sip":
+        return "SIP"
+    if isinstance(origen_fuente, str) and origen_fuente.startswith("alpaca-") and len(origen_fuente) > len("alpaca-"):
+        return origen_fuente.split("-", 1)[1].upper()
+    return None
+
+
 def _subtitulo_velas(res: dict, tz, ahora: datetime) -> str:
     velas = res.get("velas")
     if not velas:
-        return "sin velas"
-    origen = {"fuente": "Yahoo", "cache": "caché", "cache vencida": "caché vencida"}.get(res.get("origen"), "—")
-    return f"{len(velas['close'])} velas · {origen} {_hora(res.get('obtenido'), tz, ahora=ahora)}"
+        return "Sin datos"
+    frescura = {"fuente": "Yahoo", "cache": "caché", "cache vencida": "caché vencida"}.get(res.get("origen"), "—")
+    hora = _hora(res.get("obtenido"), tz, ahora=ahora)
+    n = len(velas["close"])
+    marca = _marca_fuente_velas(res.get("origen_fuente"))
+    # Sin marca (copia vieja de antes de anotar la fuente, o un doble de
+    # prueba): se conserva el texto de siempre.
+    if marca is None:
+        return f"{n} velas · {frescura} {hora}"
+    if res.get("origen") == "fuente":
+        return f"{n} velas · {marca} {hora}"
+    return f"{n} velas · {frescura} {hora} · {marca}"
 
 
 # ───────────────────────── render ─────────────────────────
@@ -2372,10 +2404,15 @@ def render(ctx: dict) -> str:
         operaciones = '<p class="vacio">Sin datos: Alpaca no respondió posiciones u órdenes.</p>'
 
     fuente = ctx.get("fuente_datos")
-    if fuente and fuente != "Yahoo":
-        sub_velas = (f"1 min · el gráfico pide a Yahoo · el hunter reporta {fuente} · pendiente va marcado")
+    # La telemetría dice qué contestó el hunter. El gráfico pide SIP por
+    # su cuenta y solo cae a Yahoo si el feed no deja velas de hoy: no se
+    # afirma que sean la misma fuente.
+    if fuente:
+        sub_velas = (f"1 min · SIP, o Yahoo (respaldo) si el feed no alcanza · "
+                     f"el hunter reporta {fuente} · pendiente va marcado")
     else:
-        sub_velas = "1 min · misma fuente que el hunter · ruptura, entrada (fill), stop · pendiente va marcado"
+        sub_velas = ("1 min · SIP, o Yahoo (respaldo) si el feed no alcanza · "
+                     "ruptura, entrada (fill), stop · pendiente va marcado")
 
     fuente_datos = (f'<span class="pildora">Fuente de datos: {esc(ctx["fuente_datos"])}</span>'
                     if ctx.get("fuente_datos") else "")

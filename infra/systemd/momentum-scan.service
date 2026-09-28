@@ -10,6 +10,9 @@ Group=momentum
 WorkingDirectory=/opt/hernan-portafolio
 Environment=PYTHONPATH=/opt/hernan-portafolio
 EnvironmentFile=/etc/momentum/paper.env
+# Ver momentum-vigia.service: StateDirectory, sin ProtectSystem estricto.
+StateDirectory=momentum
+ReadWritePaths=/var/lib/momentum
 ExecStart=/opt/momentum/bin/run_scan_paper.sh
 Nice=10
 # 1.000 tickers con pausa de 0,15 s tardan ~9 min. 25 min es el mismo

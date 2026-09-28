@@ -29,8 +29,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from momentum_hunter.alerts import CandidatoIntradia
+from momentum_hunter.rutas_estado import RutaEstado
 
-DIR_AUDITORIA = Path(__file__).resolve().parent / "auditoria"
+DIR_AUDITORIA = RutaEstado("momentum_hunter/auditoria", es_dir=True)
 
 # Decisiones posibles -- claves estables para poder consultar la
 # auditoría meses después sin adivinar strings.
