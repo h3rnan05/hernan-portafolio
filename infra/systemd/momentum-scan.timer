@@ -7,7 +7,11 @@ Requires=momentum-scan.service
 # del universo se deriva del reloj en tramos de 30 min, así que un minuto
 # de corrimiento no cambia qué se escanea. Persistent=false a propósito:
 # un escaneo atrasado no sirve, la ventana ya pasó.
+# 13:00–20:31 más las 21:01 UTC. El tramo llega hasta después del cierre
+# de invierno (21:00 UTC). Quién opera de verdad lo decide el calendario
+# en el código: un feriado no entra aunque el timer haya disparado.
 OnCalendar=Mon..Fri *-*-* 13..20:01,31:00 UTC
+OnCalendar=Mon..Fri *-*-* 21:01:00 UTC
 Persistent=false
 Unit=momentum-scan.service
 

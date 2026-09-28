@@ -34,7 +34,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta
 
-from momentum_hunter import sesion, watchlist
+from momentum_hunter import calendario as calendario_sesion, sesion, watchlist
 
 from momentum_paper_trader import aviso_fallo_ia, bloqueos, estado, ia_decision, notify, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
@@ -483,6 +483,22 @@ def ejecutar(
 
     cuenta: _EstadoCuenta | None = None
     if not dry_run:
+        # Sin calendario para hoy no se abre nada, aunque el reloj en vivo
+        # diga que el mercado está abierto: no sabemos si es media sesión
+        # o feriado. La señal sigue viva. El aviso es una vez por día.
+        if calendario_sesion.consultar(ahora).desconocido:
+            try:
+                from momentum_paper_trader.aviso_calendario import avisar_si_desconocido
+                avisar_si_desconocido(ahora)
+            except Exception as ex:
+                log.warning("calendario: no se pudo avisar (%s)", type(ex).__name__)
+            motivo = "no hay calendario de sesión para hoy -- no se abren entradas (fail-closed)"
+            log.info("no se colocan órdenes en esta corrida: %s", motivo)
+            _capacidad_llena(dry_run, metricas, codigo=bloqueos.DATO_FALTANTE_CALENDARIO,
+                             limite="calendario_sesion", motivo=motivo, n_pendientes=len(pendientes))
+            if metricas is not None:
+                metricas.cerrar_corrida()
+            return nuevas
         # Antes que nada: ¿el mercado está abierto? Una orden colocada
         # fuera de sesión no falla, queda encolada para mañana (ver
         # `_mercado_cerrado`). No se registra ninguna revisión: la señal

@@ -28,7 +28,7 @@ import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, time, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -178,9 +178,16 @@ def inicio_dia_ny(ahora: datetime) -> datetime:
 
 
 def sesion_abierta(ahora: datetime) -> bool:
-    """Horario regular de NYSE. No conoce feriados."""
+    """Sesión regular según el calendario local. Feriado o sin archivo: cerrada."""
+    try:
+        from momentum_hunter.calendario import consultar
+    except Exception:
+        return False
+    consulta = consultar(ahora)
+    if consulta.dia is None:
+        return False
     ny = ahora.astimezone(NY)
-    return ny.weekday() < 5 and time(9, 30) <= ny.time() < time(16, 0)
+    return consulta.dia.apertura <= ny.time() < consulta.dia.cierre
 
 
 def percentil(valores: list[float], p: float) -> float | None:

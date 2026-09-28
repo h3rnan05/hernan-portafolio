@@ -2,7 +2,8 @@
 # Despliegue del VPS desde GitHub Actions (2026-09-23).
 #
 # POR QUÉ EXISTE. El VPS baja el código de main en el persist del vigía, que
-# solo corre en sesión (13:00-20:01 UTC). Fuera de sesión, un cambio ya
+# solo corre en sesión (el código gatea con el calendario; la tapa UTC
+# ancha es 13:00-21:30). Fuera de sesión, un cambio ya
 # fusionado no llega hasta el día siguiente, y los wrappers de
 # /opt/momentum/bin/ NUNCA se actualizan con un pull: hay que instalarlos a
 # mano (ver infra/systemd/README.md). Este script hace EXACTAMENTE la
@@ -14,7 +15,7 @@
 # depender de que el VPS ya tenga esta versión del script.
 #
 # QUÉ HACE, en orden, y se detiene en el primer fallo:
-#   1. Se niega a correr en sesión (13:00-20:05 UTC, lun-vie) salvo
+#   1. Se niega a correr en el tramo ancho (13:00-21:35 UTC, lun-vie) salvo
 #      FORZAR_EN_SESION=1: un pull a mitad de un persist del vigía podría
 #      pisarse con él.
 #   2. Aparta el estado del VPS (telemetría, revisiones, watchlist...) con
@@ -52,9 +53,9 @@ log() { printf '[deploy_vps] %s\n' "$*"; }
 # 1. Ventana: fuera de sesión, salvo que se fuerce.
 dow=$(date -u +%u)      # 1 = lunes ... 7 = domingo
 hhmm=$(date -u +%H%M)
-if [ "$FORZAR_EN_SESION" != "1" ] && [ "$dow" -le 5 ] && [ "$hhmm" -ge 1300 ] && [ "$hhmm" -le 2005 ]; then
+if [ "$FORZAR_EN_SESION" != "1" ] && [ "$dow" -le 5 ] && [ "$hhmm" -ge 1300 ] && [ "$hhmm" -le 2135 ]; then
   log "estamos en sesión ($(date -u +%H:%M) UTC): no se despliega para no pisarse con el persist del vigía."
-  log "Vuelve a correr fuera de 13:00-20:05 UTC, o con FORZAR_EN_SESION=1 si sabes lo que haces."
+  log "Vuelve a correr fuera de 13:00-21:35 UTC, o con FORZAR_EN_SESION=1 si sabes lo que haces."
   exit 3
 fi
 

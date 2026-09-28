@@ -38,6 +38,7 @@ def test_scripts_del_vps_pasan_bash_n_y_son_ejecutables():
 def test_timer_del_escaneo_cada_30_min_en_sesion_sin_pisar_al_rechequeo():
     texto = SCAN_TIMER.read_text(encoding="utf-8")
     assert "OnCalendar=Mon..Fri *-*-* 13..20:01,31:00 UTC" in texto
+    assert "OnCalendar=Mon..Fri *-*-* 21:01:00 UTC" in texto
     assert "Persistent=false" in texto
     assert "Unit=momentum-scan.service" in texto
     servicio = SCAN_SERVICE.read_text(encoding="utf-8")

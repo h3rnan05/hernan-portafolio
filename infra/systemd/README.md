@@ -197,7 +197,7 @@ resuelve el archivo de pausa del bot.
 
 Pedido del dueño: "que corra todo el tiempo sin pararse cada 5 minutos; al
 tiro". `momentum-vigia.service` es un proceso permanente
-(`momentum_paper_trader/vigia.py`) que en sesión (Lun–Vie 13:00–20:00 UTC)
+(`momentum_paper_trader/vigia.py`) que en sesión (la ventana sale del calendario de Alpaca, no de un 13:00–20:01 UTC fijo)
 corre a los :05 de cada minuto `momentum_hunter.run --solo-watchlist` y
 `momentum_paper_trader.run`, y cada 5 ticks (y al cerrar la ventana) llama
 al wrapper del rechequeo en modo `MOMENTUM_WRAPPER_SOLO_PERSISTIR=1` para
@@ -226,6 +226,53 @@ sudo systemctl disable --now momentum-watchlist.timer
 sudo systemctl enable --now momentum-vigia.service
 sudo journalctl -u momentum-vigia.service -f
 ```
+
+## Calendario de sesión (2026-09-28)
+
+El horario ya no es 9:30–16:00 fijo ni 13:00–20:01 UTC. Un job del lado
+paper lee `GET /v2/calendar` y `GET /v2/clock` (host paper, no el de
+datos) y escribe `/var/lib/momentum/calendario_alpaca.json`. El hunter
+solo lee ese archivo. El vigía abre la ventana media hora antes de la
+apertura del día y la cierra un minuto después del cierre, así el cierre
+diario corre en invierno (21:00 UTC) y en una media sesión. Los timers
+de systemd quedan en un tramo ancho **13:00–21:30 UTC**; el código es el
+que gatea. Sin archivo, o si no cubre hoy: no hay entradas nuevas, el
+cierre usa las 13:00 America/New_York y sale un Telegram (una vez al día).
+
+Hay que **reiniciar el vigía**: el proceso ya cargado no ve el código
+nuevo en el tick siguiente.
+
+Desde `/opt/hernan-portafolio` con `main` al día, fuera del tramo
+13:00–21:35 UTC (o con el deploy forzado, sabiendo que se cruza con un
+persist):
+
+```bash
+cd /opt/hernan-portafolio
+git pull --rebase origin main
+sudo install -m 755 infra/systemd/bin/run_calendario.sh infra/systemd/bin/run_vigia.sh /opt/momentum/bin/
+sudo cp infra/systemd/momentum-calendario.service infra/systemd/momentum-calendario.timer \
+        infra/systemd/momentum-vigia.service \
+        infra/systemd/momentum-scan.timer \
+        infra/systemd/momentum-watchlist.timer \
+        infra/systemd/momentum-watchlist-watchdog.timer \
+        infra/systemd/momentum-movers-sombra.timer \
+        /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now momentum-calendario.timer
+sudo systemctl restart momentum-vigia.service
+systemctl start momentum-calendario.service
+systemctl list-timers 'momentum*'
+journalctl -u momentum-calendario.service -n 40 --no-pager
+```
+
+`MOMENTUM_CALENDARIO_PATH` en `paper.env` cambia la ruta; si no está,
+el default es `/var/lib/momentum/calendario_alpaca.json`. El timer de
+las 12:15 UTC y el arranque del vigía refrescan. Si Alpaca no responde,
+el archivo anterior se conserva.
+
+Vuelta atrás del corte de invierno, sin borrar el archivo: reinstalar
+las unidades del commit anterior y `sudo systemctl restart momentum-vigia.service`.
+El timer nuevo se apaga con `sudo systemctl disable --now momentum-calendario.timer`.
 
 ### Pull con la telemetría sucia (2026-09-22)
 
@@ -289,7 +336,7 @@ hace exactamente la secuencia de arriba: apartar el estado con `git
 stash`, `git pull --rebase origin main`, `git stash pop`, e instalar los
 dos wrappers en `/opt/momentum/bin/`. No reinicia servicios (el vigía
 toma el código en su próximo tick), no usa `--force` ni `reset --hard`,
-y se niega a correr en sesión (13:00-20:05 UTC) salvo que se marque
+y se niega a correr en el tramo ancho (13:00-21:35 UTC) salvo que se marque
 `forzar_en_sesion`.
 
 Secretos del repositorio (Settings → Secrets and variables → Actions):

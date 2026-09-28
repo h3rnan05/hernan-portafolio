@@ -8,21 +8,27 @@ el VWAP de verdad de la sesión de hoy (ver la limitación que
 `factors/momentum.vwap_proxy` documentaba honestamente sobre no tener
 ticks -- esto la resuelve para los candidatos que llegan a esta etapa).
 
-Convención de sesión (aprox., mismo caveat que ya usan los cron de
-`.github/workflows/*.yml`): apertura regular 13:30 UTC, cierre 20:00 UTC
-(horario de verano ET). "Hoy" se define como la fecha de la ÚLTIMA vela
-recibida, no la fecha del sistema -- así el módulo funciona igual en
-producción y en pruebas con datos fabricados."""
+La sesión regular ya no sale de constantes UTC de verano (13:30–20:00).
+Cada vela se clasifica con la hora de America/New_York del calendario
+local (`calendario.limites_ny`): 9:30–16:00 en un día normal, 9:30–13:00
+en una media sesión, y nada en un feriado o si ese día no está en el
+archivo. En verano eso coincide con las constantes viejas; en invierno
+no, y por eso se fueron.
+
+"Hoy" se define como la fecha de la ÚLTIMA vela recibida, no la fecha
+del sistema -- así el módulo funciona igual en producción y en pruebas
+con datos fabricados."""
 
 from __future__ import annotations
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
+from momentum_hunter import calendario
 from momentum_hunter.factors.momentum import ema_serie
 from momentum_hunter.models import BarraIntradia, FactoresIntradia
 
-HORA_APERTURA_UTC = 13.5   # 9:30am ET (verano)
-HORA_CIERRE_UTC = 20.0     # 4:00pm ET (verano)
+_NY = ZoneInfo("America/New_York")
 
 
 def _hora_utc(timestamp_iso: str) -> float:
@@ -34,12 +40,27 @@ def _fecha(timestamp_iso: str) -> str:
     return timestamp_iso[:10]
 
 
+def _hora_ny(timestamp_iso: str):
+    dt = datetime.fromisoformat(timestamp_iso)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=ZoneInfo("UTC"))
+    return dt.astimezone(_NY).time()
+
+
 def es_premarket(timestamp_iso: str) -> bool:
-    return _hora_utc(timestamp_iso) < HORA_APERTURA_UTC
+    limites = calendario.limites_ny(timestamp_iso)
+    if limites is None:
+        return False
+    return _hora_ny(timestamp_iso) < limites[0]
 
 
 def es_sesion_regular(timestamp_iso: str) -> bool:
-    return HORA_APERTURA_UTC <= _hora_utc(timestamp_iso) < HORA_CIERRE_UTC
+    limites = calendario.limites_ny(timestamp_iso)
+    if limites is None:
+        return False
+    apertura, cierre = limites
+    hora = _hora_ny(timestamp_iso)
+    return apertura <= hora < cierre
 
 
 def barras_de_hoy(bi: BarraIntradia) -> BarraIntradia:
