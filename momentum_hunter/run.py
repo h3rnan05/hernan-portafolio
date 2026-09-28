@@ -73,6 +73,7 @@ from momentum_hunter.catalysts.ancla import ancla_ok
 from momentum_hunter.catalysts.detector import YahooNewsProvider, detectar_catalizador, minutos_desde_catalizador
 from momentum_hunter.catalysts.keyword_rechazos import explicar_rechazos_keyword
 from momentum_hunter.config import CONFIG, MomentumConfig
+from momentum_hunter.data import acciones_corporativas as acc_corp
 from momentum_hunter.data import subastas
 from momentum_hunter.data.fuente import informe_de, proveedor_configurado
 from momentum_hunter.data.provider import DataProvider, YahooProvider
@@ -882,6 +883,50 @@ def _filtrar_ya_resueltas_hoy(
     return [o for o in oportunidades if o.ticker not in ya_resueltas_hoy], ya_resueltas_hoy
 
 
+def _verificar_historia_corporativa(barras: dict, ahora: datetime):
+    """Punto único (las pruebas lo reemplazan) para verificar que la
+    historia diaria del universo no esconde un split sin ajustar -- ver
+    `data/acciones_corporativas.py`. Devuelve (barras, guardia parcial)."""
+    return acc_corp.verificar_historia(barras, ahora)
+
+
+def _guardia_corporativa(tickers: list[str], ahora: datetime, base=None):
+    """Punto único (las pruebas lo reemplazan) para la guardia del día:
+    qué símbolos tienen una acción corporativa con fecha hoy. Nunca
+    levanta; si no se pudo consultar, la guardia bloquea todo."""
+    return acc_corp.consultar(tickers, ahora, base=base)
+
+
+def _sin_bloqueo_corporativo(candidatos: list, guardia, ahora: datetime) -> list:
+    """Saca de la competencia a las candidatas que la guardia bloquea.
+
+    Va ANTES de `seleccionar_y_auditar`, no después: si la mejor del
+    ciclo está bloqueada, la competencia se decide entre las demás en
+    vez de quedarse sin ninguna. La bloqueada no se descarta de la
+    watchlist: sigue en WATCHING (la evaluación normal le actualiza los
+    niveles de observación) y mañana, sin la acción corporativa encima,
+    se vuelve a evaluar con datos de mañana. Mismo trato que
+    `_hay_tiempo`."""
+    permitidos = []
+    for c in candidatos:
+        motivo = guardia.motivo(c.ticker)
+        if motivo is None:
+            permitidos.append(c)
+            continue
+        observando = getattr(guardia, "observando", False)
+        if getattr(c.resultado, "accionable", False):
+            acc_corp.registrar(
+                "observacion_disparo" if observando else "bloqueo_disparo", c.ticker, motivo, ahora)
+        if observando:
+            # Modo observación: se registra lo que se habría bloqueado y
+            # la candidata compite igual que antes de esta guardia.
+            log.info("%s: OBSERVACIÓN -- en enforce no podría disparar hoy (%s)", c.ticker, motivo)
+            permitidos.append(c)
+            continue
+        log.info("%s: no puede disparar hoy (%s)", c.ticker, motivo)
+    return permitidos
+
+
 def _hay_tiempo(cfg: MomentumConfig, ahora: datetime, ticker: str) -> bool:
     """¿Queda sesión suficiente para que esta señal se pueda jugar?
 
@@ -1110,6 +1155,9 @@ def _revisar_watchlist_cuerpo(
     barras_intradia = provider.barras_intradia(tickers, cfg.intervalo_intradia, cfg.periodo_intradia)
     dato_recibido_ts = _ahora_iso_run(datetime.now(UTC))
     gaps_oficiales = _gaps_oficiales(barras_intradia)
+    # Acciones corporativas con fecha hoy -- después de pedir las velas
+    # para no correr el reloj `dato_recibido_ts` de la latencia.
+    guardia_corp = _guardia_corporativa(tickers, ahora)
 
     # --- Refresco de niveles de las TRIGGERED todavía sin orden ---
     # NO se evalúan ni cambian de estado: TRIGGERED es terminal. Solo se
@@ -1120,6 +1168,18 @@ def _revisar_watchlist_cuerpo(
     for e in a_refrescar:
         bi_t = barras_intradia.get(e.ticker)
         if bi_t is None:
+            continue
+        motivo_corp = guardia_corp.motivo(e.ticker)
+        if motivo_corp is not None and guardia_corp.bloquea(e.ticker) is None:
+            log.info("%s: OBSERVACIÓN -- en enforce no se refrescarían los niveles (%s)",
+                     e.ticker, motivo_corp)
+            acc_corp.registrar("observacion_refresco", e.ticker, motivo_corp, ahora)
+        elif motivo_corp is not None:
+            # Sin refresco, los niveles envejecen y el ejecutor los
+            # rechaza por rancios: así la guardia llega hasta la orden
+            # sin que el hunter tenga que saber nada de órdenes.
+            log.info("%s: niveles NO refrescados (%s)", e.ticker, motivo_corp)
+            acc_corp.registrar("bloqueo_refresco", e.ticker, motivo_corp, ahora)
             continue
         try:
             c_t = _construir_candidato_intradia(
@@ -1169,7 +1229,8 @@ def _revisar_watchlist_cuerpo(
         return
 
     evaluacion_ts = _ahora_iso_run(datetime.now(UTC))
-    oportunidades, vetadas, snapshots = seleccionar_y_auditar(candidatos, cfg, n_universo=0)
+    oportunidades, vetadas, snapshots = seleccionar_y_auditar(
+        _sin_bloqueo_corporativo(candidatos, guardia_corp, ahora), cfg, n_universo=0)
     elegidos = {o.ticker: o for o in oportunidades}
 
     # Primera pasada: SOLO transiciones de estado (State Engine) -- cero
@@ -1376,6 +1437,9 @@ def main() -> None:
 
         provider = _proveedor_de_datos()
         barras = provider.barras(tickers, dias=280)
+        # Antes de cualquier filtro o factor: un split sin ajustar en la
+        # historia diaria parece una ruptura (ver acciones_corporativas).
+        barras, historia_corp = _verificar_historia_corporativa(barras, inicio)
         # Tickers pedidos que NO volvieron con barras (2026-09-14). Hasta
         # hoy desaparecían sin rastro: `_barras_una` se traga la excepción
         # con log.debug y el ticker simplemente no está en `barras`, así
@@ -1457,8 +1521,11 @@ def main() -> None:
                 metricas.sumar(metricas.accionables, "large" if c.es_large_cap else "small")
             metricas.score_maximo = max(metricas.score_maximo, r.score_ajustado or 0.0)
 
+        guardia_corp = _guardia_corporativa(
+            [c.ticker for c in candidatos_intradia], datetime.now(UTC), base=historia_corp)
         oportunidades, vetadas, snapshots = seleccionar_y_auditar(
-            candidatos_intradia, CONFIG, n_universo=len(tickers))
+            _sin_bloqueo_corporativo(candidatos_intradia, guardia_corp, datetime.now(UTC)),
+            CONFIG, n_universo=len(tickers))
 
         clima = mercado.evaluar(provider)
         log.info("clima de mercado: %s", clima.veredicto)
