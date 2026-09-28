@@ -95,3 +95,12 @@ def grabar_get(cliente: Cliente, fuente: str, nombre: str, url: str, params: dic
     ruta = guardar(fuente, nombre, url, params, r.status, r.headers, r.texto, ficticio=False, nota=nota,
                    directorio=directorio)
     return ruta, r.texto
+
+
+def transporte_desde(fuente: str, nombres: list[str], fallar: set[str] | None = None) -> TransporteGrabado:
+    """Un transporte con las respuestas grabadas `nombres` de `fuente`."""
+    t = TransporteGrabado(fallar=fallar)
+    for n in nombres:
+        reg = cargar(fuente, n)
+        t.agregar(reg["url"], reg.get("params") or None, reg)
+    return t
