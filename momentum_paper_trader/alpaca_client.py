@@ -108,6 +108,28 @@ def parametros_ordenes_de_simbolos(simbolos: list[str]) -> dict | None:
     }
 
 
+def parametros_ordenes_del_dia(despues: str, hasta: str) -> dict:
+    """Query de `GET /v2/orders?status=all` para una ventana.
+
+    Sin los dos extremos no hay query: `status=all` abierto no es
+    "el día", es el historial entero. `after`/`until` de Alpaca filtran
+    por `submitted_at`, no por el fill: quien compara un día tiene que
+    pedir una ventana más ancha si quiere ver un bracket de ayer que
+    se llenó hoy. Este dict no decide eso; solo se niega a salir vacío."""
+    if not isinstance(despues, str) or not despues.strip():
+        raise ValueError("sin inicio de ventana")
+    if not isinstance(hasta, str) or not hasta.strip():
+        raise ValueError("sin fin de ventana")
+    return {
+        "status": "all",
+        "nested": "true",
+        "limit": 500,
+        "direction": "desc",
+        "after": despues.strip(),
+        "until": hasta.strip(),
+    }
+
+
 def _es_client_order_id_duplicado(respuesta: requests.Response) -> bool:
     """True solo si el cuerpo dice que ese `client_order_id` ya existe.
 
@@ -236,6 +258,24 @@ class AlpacaPaperClient:
             headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         return r.json()
+
+    def ordenes_del_dia(self, despues: str, hasta: str) -> list[dict]:
+        """`GET /v2/orders?status=all` en una ventana. Solo lectura.
+
+        Lo usa el comparador de la sombra de `trade_updates` para ver
+        qué devolvió el polling. No coloca, no cancela y no cambia el
+        cierre. Un cuerpo que no sea una lista no se convierte en `[]`:
+        un dato ilegible no es un libro vacío."""
+        params = parametros_ordenes_del_dia(despues, hasta)
+        r = requests.get(
+            f"{_BASE_URL}/orders",
+            params=params,
+            headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        datos = r.json()
+        if not isinstance(datos, list):
+            raise ValueError("listado de órdenes ilegible")
+        return datos
 
     def reloj_mercado(self) -> dict:
         """Estado del mercado según Alpaca (`GET /v2/clock`) -- solo

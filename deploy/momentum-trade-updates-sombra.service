@@ -1,0 +1,48 @@
+# Sombra de trade_updates. PAPER ONLY. Solo escucha: no coloca órdenes
+# y el cierre / seguimiento no leen este stream. La autoridad sigue
+# siendo el polling REST.
+#
+# No se enciende sola. Desde /opt/hernan-portafolio, con main al día
+# y el venv ya instalado (hace falta el paquete websockets, que está
+# en momentum_paper_trader/requirements.txt):
+#
+#   .venv/bin/pip install -r momentum_paper_trader/requirements.txt
+#   sudo cp deploy/momentum-trade-updates-sombra.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now momentum-trade-updates-sombra.service
+#   sudo systemctl status momentum-trade-updates-sombra.service
+#
+# El JSONL queda en /var/lib/momentum/trade_updates.jsonl y el estado
+# por orden en /var/lib/momentum/trade_updates_estado.json. Comparar
+# un día (no opera):
+#
+#   .venv/bin/python -m momentum_paper_trader.trade_updates_comparar \
+#       --dia YYYY-MM-DD --pedir-rest
+#
+# Apagar:
+#   sudo systemctl disable --now momentum-trade-updates-sombra.service
+
+[Unit]
+Description=Sombra trade_updates de Alpaca paper (solo escucha, no opera)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/etc/momentum/paper.env
+Environment=MOMENTUM_TRADE_UPDATES_JSONL=/var/lib/momentum/trade_updates.jsonl
+Environment=MOMENTUM_TRADE_UPDATES_ESTADO=/var/lib/momentum/trade_updates_estado.json
+ExecStart=/opt/hernan-portafolio/.venv/bin/python -m momentum_paper_trader.trade_updates_sombra
+Restart=always
+RestartSec=15
+Nice=10
+KillMode=mixed
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

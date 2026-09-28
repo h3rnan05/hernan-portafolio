@@ -176,6 +176,28 @@ def _seccion_condiciones(corridas: list[dict]) -> list[str]:
     return lineas
 
 
+def _la_ia_decidio(rev: dict) -> bool:
+    """¿Esta revisión la decidió la IA?
+
+    `ia_entraria` true/false es el veredicto (también cuando un
+    guardarraíl posterior, como la banda, impide la orden). Los
+    registros deterministas sin consulta —precio fuera de alcance,
+    niveles ya fuera de la ventana de refresco— guardan `ia_entraria`
+    en null y un `motivo_no_operada`: no son «la IA revisó».
+
+    Un null sin motivo no se reinterpreta como «no se consultó». Las
+    revisiones anteriores al campo (NTLA) quedaron así al reescribir
+    el JSON, y la IA sí había decidido. Un motivo presente sin
+    veredicto tampoco se cuenta: el dato que falta no es un sí.
+    """
+    veredicto = rev.get("ia_entraria")
+    if veredicto is True or veredicto is False:
+        return True
+    if rev.get("motivo_no_operada"):
+        return False
+    return True
+
+
 def _seccion_operaciones(desde: str, hasta: str) -> list[str]:
     if not PATH_REVISIONES.exists():
         return ["Operaciones: ninguna todavía (el archivo de revisiones aún no existe)."]
@@ -188,16 +210,19 @@ def _seccion_operaciones(desde: str, hasta: str) -> list[str]:
     if not revs:
         return ["Operaciones esta semana: ninguna."]
 
-    entraron = [r for r in revs if r.get("entro")]
-    lineas = [f"La IA revisó {len(revs)} señal(es); entró en {len(entraron)}."]
-    pnl = [r["pnl"] for r in revs if isinstance(r.get("pnl"), (int, float))]
+    # La frase habla de la IA. Un registro determinista (sin veredicto)
+    # no suma, ni en el conteo ni en el resultado.
+    por_ia = [r for r in revs if _la_ia_decidio(r)]
+    entraron = [r for r in por_ia if r.get("entro")]
+    lineas = [f"La IA revisó {len(por_ia)} señal(es); entró en {len(entraron)}."]
+    pnl = [r["pnl"] for r in por_ia if isinstance(r.get("pnl"), (int, float))]
     if pnl:
         total = sum(pnl)
         ganadoras = sum(1 for p in pnl if p > 0)
         lineas.append(
             f"Cerradas: {len(pnl)} | ganadoras: {ganadoras} | "
             f"resultado: {'+' if total >= 0 else '-'}${abs(total):,.2f}")
-    for r in revs[-3:]:
+    for r in por_ia[-3:]:
         marca = "entró" if r.get("entro") else "no entró"
         lineas.append(f"  · {r.get('ticker', '?')} — {marca}: {str(r.get('razonamiento', ''))[:90]}")
     return lineas
