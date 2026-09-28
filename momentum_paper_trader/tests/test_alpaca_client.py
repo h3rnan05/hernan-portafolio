@@ -62,8 +62,40 @@ def test_posiciones_y_ordenes_abiertas_son_gets_de_solo_lectura(monkeypatch):
     assert llamadas[0][0] == "https://paper-api.alpaca.markets/v2/positions"
     assert llamadas[1][0] == "https://paper-api.alpaca.markets/v2/orders"
     assert llamadas[1][1]["status"] == "open"
-    # Sin nested el stop `held` del bracket no viene en la respuesta.
     assert llamadas[1][1]["nested"] == "true"
+
+
+def test_ordenes_de_simbolos_pide_el_padre_filled_con_status_all(monkeypatch):
+    """El stop held no está en status=open. Hay que pedirlo con
+    status=all, nested y el símbolo de la posición."""
+    llamadas = []
+
+    class _FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return [{"id": "265e093f", "status": "filled", "symbol": "MNST"}]
+
+    def _fake_get(url, headers, timeout, params=None):
+        llamadas.append((url, params))
+        return _FakeResponse()
+
+    monkeypatch.setattr(alpaca_client.requests, "get", _fake_get)
+    client = AlpacaPaperClient("clave", "secreto")
+
+    assert client.ordenes_de_simbolos([]) == []
+    assert client.ordenes_de_simbolos(["", "  "]) == []
+    assert llamadas == []
+
+    assert client.ordenes_de_simbolos(["MNST", "MNST", " CTAS "])[0]["id"] == "265e093f"
+    url, params = llamadas[0]
+    assert url == "https://paper-api.alpaca.markets/v2/orders"
+    assert params["status"] == "all"
+    assert params["nested"] == "true"
+    assert params["symbols"] == "MNST,CTAS"
+    assert params["limit"] == 500
+    assert params["direction"] == "desc"
 
 
 def test_estado_orden_pide_nested_para_ver_las_patas_del_bracket(monkeypatch):
@@ -336,8 +368,60 @@ def test_vender_a_mercado_no_inventa_una_cantidad(monkeypatch):
             pass
 
 
+def test_cancelar_el_stop_held_del_padre_filled_y_no_el_padre(monkeypatch):
+    """Forma viva de MNST: padre 265e093f filled, límite bb5baab2 new,
+    stop f2d920f1 held. Se cancelan las dos patas vivas; el padre no."""
+    borradas = []
+
+    class _R:
+        status_code = 204
+
+        def raise_for_status(self):
+            pass
+
+    def _delete(url, headers=None, timeout=None):
+        borradas.append(url)
+        return _R()
+
+    monkeypatch.setattr(alpaca_client.requests, "delete", _delete)
+    ordenes = [{
+        "id": "265e093f",
+        "symbol": "MNST",
+        "side": "buy",
+        "type": "limit",
+        "order_class": "bracket",
+        "status": "filled",
+        "legs": [
+            {
+                "id": "bb5baab2",
+                "symbol": "MNST",
+                "side": "sell",
+                "type": "limit",
+                "limit_price": "42.36",
+                "status": "new",
+                "legs": None,
+            },
+            {
+                "id": "f2d920f1",
+                "symbol": "MNST",
+                "side": "sell",
+                "type": "stop",
+                "stop_price": "41.62",
+                "status": "held",
+                "legs": None,
+            },
+        ],
+    }]
+    n = AlpacaPaperClient("c", "s").cancelar_ordenes_de("MNST", ordenes)
+
+    assert n == 2
+    assert borradas == [
+        "https://paper-api.alpaca.markets/v2/orders/bb5baab2",
+        "https://paper-api.alpaca.markets/v2/orders/f2d920f1",
+    ]
+
+
 def test_cancelar_incluye_la_pata_stop_held_y_no_la_ya_muerta(monkeypatch):
-    # Misma forma que el open+nested de MNST: el stop no es una fila.
     borradas = []
 
     class _R:
