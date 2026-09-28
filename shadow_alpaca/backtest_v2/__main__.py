@@ -69,9 +69,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.simbolos:
         notas.insert(0, f"Universo recortado a: {args.simbolos}.")
     args.salida.parent.mkdir(parents=True, exist_ok=True)
-    args.salida.write_text(informe.markdown(res, cfg, args.desde, args.hasta, params, informe.Criterios(), notas),
+    args.salida.write_text(informe.markdown(res, cfg, args.desde, args.hasta, params, informe.Criterios(), notas, res.sesiones),
                            encoding="utf-8")
-    log.info("informe: %s · trades=%d · llamadas IA=%d", args.salida, len(res.trades), clasificador.llamadas)
+    log.info("informe: %s · trades=%d · llamadas IA=%d · reintentos=%d · inválidas=%d", args.salida, len(res.trades),
+             clasificador.llamadas, clasificador.reintentos, clasificador.invalidas)
     return 0
 
 

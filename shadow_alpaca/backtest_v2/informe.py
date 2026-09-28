@@ -108,7 +108,60 @@ def desgloses(trades) -> list[str]:
             + _tabla("Por motivo de salida", por_salida))
 
 
-def markdown(res, cfg, desde, hasta, params, criterios: Criterios, notas: list[str]) -> str:
+# Cortes de la distribución del stop requerido (fracción del precio).
+CORTES_STOP = (0.02, 0.04, 0.06, 0.08, 0.10, 0.15)
+
+
+def _histograma(valores: list[float]) -> list[tuple[str, int]]:
+    filas = []
+    previo = 0.0
+    for corte in CORTES_STOP:
+        filas.append((f"{previo:.0%}–{corte:.0%}", sum(1 for v in valores if previo <= v < corte)))
+        previo = corte
+    filas.append((f"≥ {previo:.0%}", sum(1 for v in valores if v >= previo)))
+    return filas
+
+
+def embudo_etapas(res, cfg, sesiones: int) -> list[str]:
+    """Tabla etapa por etapa con supervivientes y % de la etapa anterior.
+    `universo` son símbolo-días posibles (símbolos × sesiones); `gap`,
+    `sin_accion_corporativa` y `con_noticias` salen del embudo diario; de
+    `rvol` en adelante, de `res.embudo_etapas` (ver `motor.ETAPAS`)."""
+    filas = [
+        ("universo (símbolos × sesiones)", res.embudo.get("universo", 0) * sesiones),
+        ("gap ≥ mínimo (subasta oficial)", res.embudo.get("gap_oficial", 0)),
+        ("sin acción corporativa", res.embudo.get("sin_accion_corporativa", 0)),
+        ("con noticia en 24 h", res.embudo.get("con_noticias", 0)),
+    ]
+    nombres = {"gap": "gap (en la ventana, con velas)", "rvol": "RVOL ≥ mínimo", "vwap": "precio > VWAP",
+               "ruptura_orb": "ruptura del rango de apertura (con volumen)", "spread": "spread ≤ máximo",
+               "spy": "SPY > su VWAP", "ventana": "dentro de la ventana", "catalizador": "catalizador operable (IA)",
+               "stop": f"stop ≤ {cfg.riesgo.stop_max_pct:.0%}"}
+    for clave, nombre in nombres.items():
+        filas.append((nombre, res.embudo_etapas.get(clave, 0)))
+    out = ["## Embudo etapa por etapa", "",
+           "Símbolo-días que sobreviven cada filtro, en orden (una etapa se cuenta si alguna vela de la ventana "
+           "pasó esa etapa y todas las anteriores; el spread se mira en las primeras 3 velas que pasaron las previas).",
+           "", "| etapa | sobreviven | % de la anterior |", "|---|---:|---:|"]
+    previo = None
+    for nombre, n in filas:
+        pct = "—" if not previo else f"{n / previo:.1%}"
+        out.append(f"| {nombre} | {n} | {pct} |")
+        previo = n if n else previo
+    out += ["", f"### Descartados por stop (tope {cfg.riesgo.stop_max_pct:.0%})", "",
+            f"Señales: {len(res.stop_requerido)}; descartadas por stop: {len(res.stop_descartado)}. "
+            "Distancia del mínimo del rango de apertura al precio de la señal (el stop que habría requerido):",
+            "", "| stop requerido | todas las señales | descartadas |", "|---|---:|---:|"]
+    todas = _histograma(res.stop_requerido)
+    desc = dict(_histograma(res.stop_descartado))
+    out += [f"| {k} | {v} | {desc.get(k, 0)} |" for k, v in todas]
+    if res.stop_descartado:
+        orden = sorted(res.stop_descartado)
+        out += ["", f"Descartadas: mediana {orden[len(orden) // 2]:.1%}, máximo {orden[-1]:.1%}."]
+    return out + [""]
+
+
+def markdown(res, cfg, desde, hasta, params, criterios: Criterios, notas: list[str], sesiones: int = 0) -> str:
     m = metricas(res.trades, res.curva)
     veredicto = evaluar(m, criterios)
     pasa = all(ok for _, _, ok in veredicto)
@@ -148,7 +201,8 @@ def markdown(res, cfg, desde, hasta, params, criterios: Criterios, notas: list[s
         "",
     ]
     lineas += desgloses(res.trades)
-    lineas += ["## Embudo", "", "| etapa | símbolo-días |", "|---|---:|"]
+    lineas += embudo_etapas(res, cfg, sesiones)
+    lineas += ["## Embudo (etapas alcanzadas, sin orden)", "", "| etapa | símbolo-días |", "|---|---:|"]
     lineas += [f"| {k} | {v} |" for k, v in res.embudo.items()]
     lineas += ["", "Por qué no hubo señal (peor intento de cada símbolo-día, puede sumar más de uno):", ""]
     lineas += [f"- {k}: {v}" for k, v in res.descartes_senal.most_common()]

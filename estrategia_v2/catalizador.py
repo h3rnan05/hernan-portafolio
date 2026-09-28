@@ -9,7 +9,10 @@ La IA solo CLASIFICA. Entrada: titular + resumen. Salida, exactamente:
      "confianza": número en [0, 1]}
 Una respuesta que no cumple (JSON roto, claves de más o de menos, nivel
 fuera de 0/1/2, texto alrededor) es "sin clasificar": nunca se adivina
-un nivel. La IA no decide entradas: eso lo hacen `reglas.py` y el riesgo.
+un nivel. La ÚNICA tolerancia (2026-09-28, tras 73 respuestas válidas
+rechazadas en el backtest): exactamente un bloque de código Markdown
+(```json … ``` o ``` … ```) que contenga solo el objeto. Texto antes o
+después del bloque sigue siendo inválido. La IA no decide entradas: eso lo hacen `reglas.py` y el riesgo.
 
 El VETO no pasa por la IA: una lista fija de frases (en el YAML) sobre
 titular + resumen en minúsculas. Si una noticia vigente dispara el
@@ -19,6 +22,7 @@ veto, el símbolo no se opera, diga lo que diga la clasificación.
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 
 from estrategia_v2.config import Catalizador as CfgCatalizador
@@ -54,7 +58,8 @@ def prompts(titular: str, resumen: str | None, cfg: CfgCatalizador) -> tuple[str
 
     system = (
         "Clasificas UNA noticia bursátil. No recomiendas operar ni opinas del precio.\n"
-        "Responde SOLO un objeto JSON, sin texto alrededor, con exactamente estas claves:\n"
+        "Responde SOLO un objeto JSON, sin texto alrededor y sin bloque de código Markdown, "
+        "con exactamente estas claves:\n"
         '{"nivel": 0|1|2, "tipo": "<etiqueta corta>", '
         '"direccion": "alcista"|"bajista"|"neutral", "confianza": <número entre 0 y 1>}\n'
         f"Nivel 1 (hecho fuerte y confirmado):\n{lista(1)}\n"
@@ -67,12 +72,32 @@ def prompts(titular: str, resumen: str | None, cfg: CfgCatalizador) -> tuple[str
     return system, user
 
 
+_FENCE = re.compile(r"\A```(?:json)?\s*\n?(.*?)\n?```\Z", re.S)
+
+
+def sin_fence(texto: str) -> str:
+    """El contenido del único bloque de código, o el texto tal cual."""
+    m = _FENCE.match(texto.strip())
+    return m.group(1).strip() if m else texto.strip()
+
+
+def causa_invalida(respuesta: str) -> str:
+    """Por qué una respuesta no se pudo leer, para el registro: `vacia`,
+    `truncada` (empieza un objeto que no cierra) o `json_invalido`."""
+    t = sin_fence(respuesta or "")
+    if not t:
+        return "vacia"
+    if t.startswith("{") and not t.endswith("}"):
+        return "truncada"
+    return "json_invalido"
+
+
 def interpretar(respuesta: str) -> Clasificacion:
     """Validación estricta de la salida del modelo."""
     try:
-        obj = json.loads((respuesta or "").strip())
+        obj = json.loads(sin_fence(respuesta or ""))
     except (json.JSONDecodeError, TypeError):
-        return Clasificacion(False, motivo="json_invalido")
+        return Clasificacion(False, motivo=causa_invalida(respuesta))
     if not isinstance(obj, dict) or set(obj) != set(CLAVES):
         return Clasificacion(False, motivo="claves")
     nivel, tipo, direccion, confianza = (obj[k] for k in CLAVES)
@@ -85,6 +110,13 @@ def interpretar(respuesta: str) -> Clasificacion:
     if isinstance(confianza, bool) or not isinstance(confianza, (int, float)) or not 0 <= confianza <= 1:
         return Clasificacion(False, motivo="confianza")
     return Clasificacion(True, int(nivel), tipo.strip(), direccion, float(confianza))
+
+
+def prompt_correccion(user: str, motivo: str) -> str:
+    """Segundo intento tras una respuesta ilegible: el mismo pedido más
+    la causa. No cambia los niveles ni los criterios."""
+    return (f"{user}\n\nTu respuesta anterior no se pudo leer ({motivo}). "
+            "Responde únicamente el objeto JSON completo, en una sola línea, sin bloque de código.")
 
 
 def operable(c: Clasificacion, cfg: CfgCatalizador) -> bool:

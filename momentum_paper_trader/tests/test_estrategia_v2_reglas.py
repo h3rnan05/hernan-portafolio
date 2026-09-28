@@ -151,7 +151,8 @@ def test_stop_acotado_entre_minimo_y_maximo():
     r = CFG.riesgo
     assert reglas.stop_inicial(10.0, 9.7, r) == 9.7                       # 3 %: dentro
     assert reglas.stop_inicial(10.0, 9.95, r) == pytest.approx(9.85)      # 0,5 % -> 1,5 %
-    assert reglas.stop_inicial(10.0, 9.5, r) is None                      # 5 % > 4 %: no entra
+    assert reglas.stop_inicial(10.0, 9.5, r) == 9.5                       # 5 % entra (tope 6 % desde 2026-09-28)
+    assert reglas.stop_inicial(10.0, 9.3, r) is None                      # 7 % > 6 %: no entra
 
 
 def test_objetivo_2r():

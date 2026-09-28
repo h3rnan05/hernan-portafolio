@@ -107,7 +107,7 @@ riesgo:
   tope_posicion_pct_equity: 0.25       # y nunca más que el efectivo (invariante)
   stop_origen: minimo_rango_apertura
   stop_min_pct: 0.015
-  stop_max_pct: 0.04
+  stop_max_pct: 0.06                   # 0.04 hasta el 2026-09-28: 47 de 62 señales no entraban (backtest)
   stop_si_excede_max: no_entrar
   objetivo_r: 2.0
   breakeven_en_r: 1.0                  # stop a precio de llenado, reemplazando la pata

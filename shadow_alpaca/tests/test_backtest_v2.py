@@ -108,7 +108,7 @@ def test_limites_de_cartera_posiciones_y_entradas():
 
 def test_stop_mas_lejos_que_el_maximo_no_entra():
     res = motor.Resultado()
-    s = _senal(orb_bajo=9.4)
+    s = _senal(orb_bajo=9.3)   # 7 % > tope 6 %
     motor.simular([s], _velas_por([s], [(10.0, 10.05, 9.95, 10.0)]), CFG, P, res)
     assert res.trades == [] and res.no_entradas["stop_mayor_al_maximo"] == 1
 
@@ -214,3 +214,122 @@ def test_senal_del_dia_con_catalizador_y_sin_veto():
     assert motor.senal_del_dia("ACME", DIA, velas, previos, spy, 0.06, [tardia], clasificar,
                                lambda m: 0.001, CFG, res3) is None     # publicada después de la señal
     assert isinstance(res3.descartes_senal, Counter)
+
+
+# ------------------------------------------------- lectura de la IA y reintento
+
+
+def test_interpretar_acepta_un_solo_bloque_de_codigo_y_clasifica_la_causa():
+    ok = '{"nivel": 2, "tipo": "FDA fast track", "direccion": "alcista", "confianza": 0.7}'
+    assert cat.interpretar(f"```json\n{ok}\n```").nivel == 2
+    assert cat.interpretar(f"```\n{ok}\n```").nivel == 2
+    assert cat.interpretar(f"Claro:\n```json\n{ok}\n```").motivo == "json_invalido"
+    assert cat.interpretar(f"```json\n{ok}\n```\nEspero que sirva").motivo == "json_invalido"
+    assert cat.interpretar("").motivo == "vacia"
+    assert cat.interpretar('{"nivel": 0, "').motivo == "truncada"
+    assert cat.interpretar('{"nivel": 3, "tipo": "x", "direccion": "alcista", "confianza": 0.5}').motivo == "nivel"
+    assert cat.interpretar('{"nivel": 1, "tipo": "x", "direccion": "alcista", "confianza": 1.5}').motivo == "confianza"
+    assert "sin bloque de código" in cat.prompts("t", "r", CFG.catalizador)[0]
+    assert "truncada" in cat.prompt_correccion("Titular: x", "truncada")
+
+
+def test_clasificador_reintenta_una_vez_y_registra_la_invalida(tmp_path):
+    respuestas = ['```json\n{"nivel": 1, "tipo": "fda", "direccion": "alcista", "confianza": 0.9}', "",
+                  '{"nivel": 1, "tipo": "fda", "direccion": "alcista", "confianza": 0.9}']
+    pedidos = []
+
+    def llamar(system, user):
+        pedidos.append(user)
+        return respuestas.pop(0)
+
+    res = motor.Resultado()
+    c = Clasificador(tmp_path, llamar)
+    r = c.clasificar(NOTICIA, CFG, res)
+    assert not r.valida and r.motivo == "vacia" and c.reintentos == 1 and c.invalidas == 2
+    assert "no se pudo leer (json_invalido)" in pedidos[1]
+    base = tmp_path / "v2" / "clasificaciones"
+    inv = [json.loads(x) for x in (base / "invalidas.jsonl").read_text().splitlines()]
+    assert [(i["intento"], i["causa"]) for i in inv] == [(1, "json_invalido"), (2, "vacia")]
+    assert not (base / "cache.jsonl").exists()          # la inválida no se cachea
+    assert res.clasificaciones["reintento"] == 1 and res.clasificaciones["invalida_tras_reintento:vacia"] == 1
+    # Tercera llamada (nueva corrida): responde bien, se cachea.
+    assert c.clasificar(NOTICIA, CFG, res).nivel == 1 and len(pedidos) == 3
+    assert Clasificador(tmp_path, None).clasificar(NOTICIA, CFG).nivel == 1
+
+
+def test_clasificador_reintento_corrige_y_cachea(tmp_path):
+    respuestas = ['{"nivel": 1, "', '{"nivel": 2, "tipo": "x", "direccion": "alcista", "confianza": 0.6}']
+    c = Clasificador(tmp_path, lambda s, u: respuestas.pop(0))
+    res = motor.Resultado()
+    assert c.clasificar(NOTICIA, CFG, res).nivel == 2 and c.llamadas == 2
+    assert res.clasificaciones["invalida_intento_1:truncada"] == 1 and res.clasificaciones["nivel_2"] == 1
+
+
+def test_cache_vieja_con_invalidas_se_ignora_al_cargar(tmp_path):
+    base = tmp_path / "v2" / "clasificaciones"
+    base.mkdir(parents=True)
+    clave = f"{NOTICIA.id}|{CFG.catalizador.modelo}|{CFG.catalizador.prompt_version}"
+    (base / "cache.jsonl").write_text(json.dumps({"clave": clave, "clasificacion": {"valida": False, "nivel": None,
+                                                  "tipo": None, "direccion": None, "confianza": None, "motivo": "json_invalido"}}) + "\n")
+    c = Clasificador(tmp_path, lambda s, u: '{"nivel": 1, "tipo": "x", "direccion": "alcista", "confianza": 0.6}')
+    assert c.clasificar(NOTICIA, CFG).nivel == 1 and c.llamadas == 1
+
+
+# -------------------------------------------------------- embudo etapa por etapa
+
+
+def _dia_de_prueba():
+    base = datetime(2026, 9, 25, 13, 30, tzinfo=UTC)
+    cierres = [10.1, 10.15, 10.1, 10.05, 10.1] + [10.1] * 5 + [10.4]
+    altos = [10.2] * 5 + [10.15] * 5 + [10.45]
+    bajos = [10.0] * 5 + [10.05] * 5 + [10.3]
+    vols = [1000.0] * 10 + [5000.0]
+    velas = [Vela(base + timedelta(minutes=k), c, altos[k], bajos[k], c, vols[k]) for k, c in enumerate(cierres)]
+    spy = [Vela(base + timedelta(minutes=k), 500 + k, 500.5 + k, 499.5 + k, 500.4 + k, 1e5) for k in range(11)]
+    tope = motor._minutos_de_ventana(CFG, DIA)
+    previos = [[100.0 * (m + 1) for m in range(tope + 1)] for _ in range(CFG.senal.rvol_dias)]
+    buena = Noticia("a", "Acme wins $20M Army contract", "", base - timedelta(hours=2), ("ACME",))
+    return velas, previos, spy, buena
+
+
+def test_embudo_etapa_por_etapa_cuenta_en_orden():
+    velas, previos, spy, buena = _dia_de_prueba()
+    ok = lambda n: cat.Clasificacion(True, 1, "contrato", "alcista", 0.9)  # noqa: E731
+    res = motor.Resultado()
+    s = motor.senal_del_dia("ACME", DIA, velas, previos, spy, 0.06, [buena], ok, lambda m: 0.001, CFG, res)
+    assert s is not None
+    assert {k: res.embudo_etapas[k] for k in ("gap", "rvol", "vwap", "ruptura_orb", "spread", "spy", "ventana", "catalizador")} == \
+        {"gap": 1, "rvol": 1, "vwap": 1, "ruptura_orb": 1, "spread": 1, "spy": 1, "ventana": 1, "catalizador": 1}
+    # Spread demasiado ancho: sobrevive hasta ruptura y no más; SPY no se cuenta sin spread.
+    res2 = motor.Resultado()
+    assert motor.senal_del_dia("ACME", DIA, velas, previos, spy, 0.06, [buena], ok, lambda m: 0.05, CFG, res2) is None
+    assert res2.embudo_etapas["ruptura_orb"] == 1 and res2.embudo_etapas["spread"] == 0 and res2.embudo_etapas["spy"] == 0
+    # Sin catalizador operable: llega a ventana, no a catalizador.
+    res3 = motor.Resultado()
+    nivel0 = lambda n: cat.Clasificacion(True, 0, "opinion", "neutral", 0.9)  # noqa: E731
+    assert motor.senal_del_dia("ACME", DIA, velas, previos, spy, 0.06, [buena], nivel0, lambda m: 0.001, CFG, res3) is None
+    assert res3.embudo_etapas["ventana"] == 1 and res3.embudo_etapas["catalizador"] == 0
+
+
+def test_stop_requerido_y_etapa_stop_en_simular():
+    res = motor.Resultado()
+    senales = [_senal(orb_bajo=9.7), _senal(orb_bajo=9.3, ticker="B"), _senal(orb_bajo=9.45, ticker="C")]
+    motor.simular(senales, {}, CFG, P, res)
+    assert res.embudo_etapas["stop"] == 2 and len(res.stop_requerido) == 3
+    assert [round(d, 3) for d in res.stop_descartado] == [0.07]
+
+
+def test_informe_trae_embudo_etapa_por_etapa_y_distribucion_del_stop():
+    res = motor.Resultado()
+    res.embudo.update({"universo": 10, "gap_oficial": 5, "sin_accion_corporativa": 5, "con_noticias": 4})
+    res.embudo_etapas.update({"gap": 4, "rvol": 3, "vwap": 3, "ruptura_orb": 2, "spread": 2, "spy": 2, "ventana": 2,
+                              "catalizador": 1, "stop": 1})
+    res.stop_requerido = [0.03, 0.07, 0.12]
+    res.stop_descartado = [0.07, 0.12]
+    texto = informe.markdown(res, CFG, DIA, DIA, P, informe.Criterios(), [], sesiones=3)
+    assert "## Embudo etapa por etapa" in texto
+    assert "| universo (símbolos × sesiones) | 30 | — |" in texto
+    assert "| RVOL ≥ mínimo | 3 | 75.0% |" in texto
+    assert "| stop ≤ 6% | 1 | 100.0% |" in texto
+    assert "| 6%–8% | 1 | 1 |" in texto and "| ≥ 15% | 0 | 0 |" in texto
+    assert "mediana 12.0%" in texto

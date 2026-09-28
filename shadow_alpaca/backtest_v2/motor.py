@@ -121,6 +121,31 @@ class Resultado:
     curva: list[tuple[datetime, float]] = field(default_factory=list)
     clasificaciones: Counter = field(default_factory=Counter)
     sin_dato: Counter = field(default_factory=Counter)
+    # Embudo etapa por etapa (informe): símbolo-días que sobreviven cada
+    # filtro EN ORDEN, sobre las velas de la ventana. Ver `ETAPAS`.
+    embudo_etapas: Counter = field(default_factory=Counter)
+    # Distancia al stop (mínimo del rango de apertura vs precio de la señal)
+    # de TODAS las señales y de las descartadas por el tope.
+    stop_requerido: list[float] = field(default_factory=list)
+    stop_descartado: list[float] = field(default_factory=list)
+    sesiones: int = 0
+
+
+# Orden del embudo etapa por etapa y qué fallo de `evaluar_ruptura` lo
+# corta. Un símbolo-día sobrevive la etapa k si alguna vela de la ventana
+# pasa las etapas 1..k. `spread` y `catalizador` se evalúan aparte (el
+# spread cuesta una quote por minuto: se mira en las primeras
+# `SPREAD_INTENTOS_EMBUDO` velas que pasaron las etapas previas).
+ETAPAS = (
+    ("gap", {"gap", "gap_sin_dato"}),
+    ("rvol", {"rvol", "rvol_sin_dato"}),
+    ("vwap", {"vwap", "vwap_sin_dato"}),
+    ("ruptura_orb", {"sin_ruptura", "rango_sin_dato", "vol_ruptura", "vol_ruptura_sin_dato"}),
+    ("spread", None),
+    ("spy", {"indice", "indice_sin_dato"}),
+    ("ventana", {"fuera_de_ventana"}),
+)
+SPREAD_INTENTOS_EMBUDO = 3
 
 
 # ----------------------------------------------------------------- señales
@@ -166,10 +191,37 @@ def senal_del_dia(
     spy_por_t = {v.t: i for i, v in enumerate(spy_hoy)}
     peor = None
     alcanzadas: set[str] = set()     # etapas que el símbolo-día alcanzó (se cuentan una vez)
+    etapas: set[str] = set()         # embudo etapa por etapa (informe)
+    spread_cache: dict[datetime, float | None] = {}
+    intentos_spread = 0
 
     def _contar_etapas() -> None:
         for etapa in alcanzadas:
             res.embudo[etapa] += 1
+        for etapa in etapas:
+            res.embudo_etapas[etapa] += 1
+
+    def _spread(momento: datetime) -> float | None:
+        if momento not in spread_cache:
+            spread_cache[momento] = spread(momento)
+        return spread_cache[momento]
+
+    def _embudo(fallos: list[str], cierre: datetime) -> None:
+        nonlocal intentos_spread
+        f = set(fallos)
+        for nombre, corta in ETAPAS:
+            if nombre == "spread":
+                if "spread" in etapas:
+                    continue
+                if intentos_spread >= SPREAD_INTENTOS_EMBUDO:
+                    return
+                intentos_spread += 1
+                sp = _spread(cierre)
+                if sp is None or sp > s.spread_max_pct:
+                    return
+            elif f & corta:
+                return
+            etapas.add(nombre)
     for i, vela in enumerate(velas_hoy):
         cierre = vela.t + reglas.UN_MINUTO
         if not (s.ventana_inicio <= reglas.hora_local(cierre, s) <= s.ventana_fin):
@@ -185,6 +237,7 @@ def senal_del_dia(
             indice_ok = None if spy_vwap is None else spy_hoy[j].c > spy_vwap
         ev = reglas.evaluar_ruptura(velas_hoy, i, gap_oficial=gap, rvol_valor=rv, spread_pct=0.0,
                                     indice_sobre_vwap=indice_ok, cfg=cfg)
+        _embudo(ev.fallos, cierre)
         if "sin_ruptura" in ev.fallos:
             continue
         if not (cfg.universo.precio_min <= vela.c <= cfg.universo.precio_max):
@@ -205,7 +258,8 @@ def senal_del_dia(
                 ev.fallos.append("sin_catalizador_operable")
         if not ev.fallos:
             alcanzadas.add("catalizador")
-            sp = spread(cierre)
+            etapas.add("catalizador")
+            sp = _spread(cierre)
             ev2 = reglas.evaluar_ruptura(velas_hoy, i, gap_oficial=gap, rvol_valor=rv, spread_pct=sp,
                                          indice_sobre_vwap=indice_ok, cfg=cfg)
             ev.fallos = ev2.fallos
@@ -272,6 +326,16 @@ def simular(senales: list[Senal], velas_de: dict[tuple[str, date], list[Vela]], 
     r = cfg.riesgo
     equity = p.equity_inicial
     res.curva.append((datetime.min.replace(tzinfo=NY), equity))
+    # Etapa "stop" del embudo y distribución del stop requerido, sobre
+    # TODAS las señales (antes de los límites de cartera).
+    for s in senales:
+        if s.precio > 0:
+            d = (s.precio - s.orb_bajo) / s.precio
+            res.stop_requerido.append(d)
+            if reglas.stop_inicial(s.precio, s.orb_bajo, r) is None:
+                res.stop_descartado.append(d)
+            else:
+                res.embudo_etapas["stop"] += 1
     abiertos: list[Trade] = []
     dia_actual, semana_actual = None, None
     equity_dia = equity_semana = equity
@@ -437,4 +501,5 @@ def correr(cfg: ConfigV2, cliente, cache: datos.Cache, universo: list, desde: da
             log.info("señales: %d días procesados, %d señales", n_d + 1, len(res.senales))
     simular(res.senales, velas_de, cfg, p, res)
     res.embudo["trades"] = len(res.trades)
+    res.sesiones = len(sesiones)
     return res
