@@ -761,6 +761,37 @@ mide en el VPS con `hora_dato`. El screener y las noticias van por yfinance,
 con los mismos límites de peticiones que el resto; ante un 429 el bot ya se
 frena (`MOMENTUM_YAHOO_PAUSA_ARCHIVO`).
 
+## Stream SIP en sombra (2026-09-28)
+
+El minuto que decide el hunter sigue saliendo del REST
+(`data/alpaca_datos.py`, feed SIP, Yahoo si un lote falla). Al lado, un
+proceso aparte —`python -m momentum_hunter.data.sip_stream`, unidad
+`momentum-sip-stream.service`— abre **una** conexión a
+`wss://stream.data.alpaca.markets/v2/sip` y guarda barras de minuto.
+No es un bróker: no llama a órdenes ni a posiciones. Los símbolos son
+la watchlist en `watching` / `triggered` más las posiciones con
+`resultado=abierta` en `revisiones.json`. Esas dos rutas son las de
+#200, bajo `MOMENTUM_ESTADO_DIR`, no las del checkout. Trades y quotes no se piden: la vela ya viene armada, y
+`updatedBars` solo corrige ese mismo minuto.
+
+`MOMENTUM_SIP_STREAM=sombra` es el default y lo que instala la unidad.
+En sombra el hunter no lee el almacén. `=0` no abre el socket.
+`=primario` está escrito y **apagado**: solo entra si el feed configurado
+es SIP y el almacén está conectado, con latido de menos de 3 minutos,
+sin hueco que pise la ventana y con la watchlist y las revisiones
+leídas de verdad. Si no, el pedido sigue por REST. Un volumen que no
+vino no se guarda como 0.
+
+El almacén es `$MOMENTUM_ESTADO_DIR/sip_stream/` (default
+`/var/lib/momentum/estado/sip_stream/`), fuera del git. El comparador
+(`python -m momentum_hunter.data.sip_stream_comparar --dia YYYY-MM-DD`)
+cruza OHLCV por minuto: un centavo si el precio REST es ≥ $1, 0,0001 si
+es menor, volumen exacto. Esas tolerancias no mueven stops ni sizing.
+La sombra no se convierte sola en primario a la tercera sesión.
+
+Instalación del servicio (no queda encendido por este cambio):
+`infra/systemd/README.md`, sección "Stream SIP en sombra".
+
 ## Limitaciones honestas (datos gratis)
 
 - **Escanear el mercado completo es lento con datos gratis.** NYSE+NASDAQ+AMEX
