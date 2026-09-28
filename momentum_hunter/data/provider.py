@@ -35,6 +35,7 @@ porque así los espera su endpoint de chart, pero eso es un detalle de
 
 from __future__ import annotations
 
+import fcntl
 import json
 import logging
 import os
@@ -42,7 +43,9 @@ import re
 import time
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import ClassVar
+from zoneinfo import ZoneInfo
 
 import requests
 
@@ -245,18 +248,201 @@ class LimiteDePeticionesYahoo(Exception):
     """Yahoo respondió 429. Interna al proveedor: no sale de él."""
 
 
+# Cache diario de `Ticker.info`. Float, market cap y short interest no
+# cambian minuto a minuto, y el vigía pide metadata en cada ciclo. La
+# clave es la fecha calendario de Nueva York (la sesión no cambia de
+# día a medianoche UTC). Un fallo de Yahoo no se guarda como valor
+# válido: si no, un `{}` de un 429 dejaría el float en None todo el día.
+ENV_CACHE_METADATA = "MOMENTUM_YAHOO_METADATA_CACHE"
+_CACHE_METADATA_DEFAULT = Path("/var/lib/momentum/yahoo_metadata_cache.json")
+_NY = ZoneInfo("America/New_York")
+# El primer reintento espera un ciclo del vigía; después se espacia.
+# El techo es la pausa de 429: insistir más seguido no desbloquea a Yahoo.
+BACKOFF_METADATA_BASE_S = 60.0
+BACKOFF_METADATA_TOPE_S = SEGUNDOS_PAUSA_429
+_CAMPOS_BOOL_METADATA = ("es_etf", "es_spac", "es_cef", "es_adr")
+_CAMPOS_TEXTO_METADATA = ("nombre", "bolsa")
+_CAMPOS_NUM_METADATA = (
+    "market_cap", "shares_float", "short_pct_float", "days_to_cover",
+    "borrow_fee_pct", "cambio_premarket_pct", "cambio_afterhours_pct",
+)
+
+
+def fecha_ny(ahora: datetime) -> str:
+    """Fecha calendario en Nueva York. El cache de metadata vale hasta
+    que esta fecha cambia. No conoce feriados: mismo límite que
+    `sesion.py`, dicho sin maquillar."""
+    if ahora.tzinfo is None:
+        ahora = ahora.replace(tzinfo=UTC)
+    return ahora.astimezone(_NY).date().isoformat()
+
+
+def segundos_backoff_metadata(intentos: int) -> float:
+    n = intentos if isinstance(intentos, int) and not isinstance(intentos, bool) and intentos >= 1 else 1
+    return min(BACKOFF_METADATA_TOPE_S, BACKOFF_METADATA_BASE_S * (2 ** (n - 1)))
+
+
+def ruta_cache_metadata(explicita: Path | None = None) -> Path | None:
+    """Dónde vive el cache. Sin ruta y sin el directorio del VPS no se
+    inventa un archivo dentro del repo: se pide cada vez."""
+    if explicita is not None:
+        return explicita
+    raw = os.environ.get(ENV_CACHE_METADATA, "").strip()
+    if raw:
+        return Path(raw)
+    padre = _CACHE_METADATA_DEFAULT.parent
+    if padre.is_dir() and os.access(padre, os.W_OK):
+        return _CACHE_METADATA_DEFAULT
+    return None
+
+
+def _cache_metadata_vacio() -> dict:
+    return {"schema": 1, "tickers": {}, "fallos": {}}
+
+
+def _leer_cache_metadata(ruta: Path) -> dict:
+    """Ilegible o de otro schema → vacío. No se sirve un número a medias."""
+    try:
+        data = json.loads(ruta.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, UnicodeError):
+        return _cache_metadata_vacio()
+    if not isinstance(data, dict) or data.get("schema") not in (1, None):
+        return _cache_metadata_vacio()
+    if not isinstance(data.get("tickers"), dict):
+        data["tickers"] = {}
+    if not isinstance(data.get("fallos"), dict):
+        data["fallos"] = {}
+    data["schema"] = 1
+    return data
+
+
+def _escribir_cache_metadata(ruta: Path, data: dict) -> None:
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    temporal = ruta.with_name(ruta.name + ".tmp")
+    temporal.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    os.replace(temporal, ruta)
+
+
+def _mutar_cache_metadata(ruta: Path, mutar) -> dict:
+    ruta.parent.mkdir(parents=True, exist_ok=True)
+    lock = ruta.with_name(ruta.name + ".lock")
+    with lock.open("a") as fh:
+        fcntl.flock(fh, fcntl.LOCK_EX)
+        try:
+            data = _leer_cache_metadata(ruta)
+            mutar(data)
+            _escribir_cache_metadata(ruta, data)
+            return data
+        finally:
+            fcntl.flock(fh, fcntl.LOCK_UN)
+
+
+def _num_cache(v: object) -> float | None:
+    """Un booleano no es un market cap. Un ausente no es cero."""
+    if isinstance(v, bool) or v is None:
+        return None
+    return _num(v)
+
+
+def _campos_metadata(m: Metadata) -> dict:
+    return {c: getattr(m, c) for c in (*_CAMPOS_BOOL_METADATA, *_CAMPOS_TEXTO_METADATA, *_CAMPOS_NUM_METADATA)}
+
+
+def _metadata_desde_campos(ticker: str, campos: object) -> Metadata | None:
+    if not isinstance(campos, dict):
+        return None
+    kwargs: dict = {}
+    for c in _CAMPOS_BOOL_METADATA:
+        if c not in campos:
+            continue
+        val = campos[c]
+        if isinstance(val, bool):
+            kwargs[c] = val
+    for c in _CAMPOS_TEXTO_METADATA:
+        if c not in campos:
+            continue
+        val = campos[c]
+        kwargs[c] = val if isinstance(val, str) else None
+    for c in _CAMPOS_NUM_METADATA:
+        if c not in campos:
+            continue
+        kwargs[c] = _num_cache(campos[c])
+    return Metadata(ticker=ticker, **kwargs)
+
+
+def _metadata_del_dia(data: dict, ticker: str, fecha: str) -> Metadata | None:
+    tickers = data.get("tickers")
+    if not isinstance(tickers, dict):
+        return None
+    entry = tickers.get(ticker)
+    if not isinstance(entry, dict) or entry.get("fecha_ny") != fecha:
+        return None
+    return _metadata_desde_campos(ticker, entry.get("campos"))
+
+
+def _en_backoff_metadata(data: dict, ticker: str, ahora: datetime) -> bool:
+    fallos = data.get("fallos")
+    if not isinstance(fallos, dict):
+        return False
+    entry = fallos.get(ticker)
+    if not isinstance(entry, dict):
+        return False
+    raw = entry.get("reintentar_despues")
+    if not isinstance(raw, str):
+        return False
+    try:
+        limite = datetime.fromisoformat(raw)
+    except ValueError:
+        return False
+    if limite.tzinfo is None:
+        return False
+    return ahora < limite
+
+
+def _es_limite_de_yahoo(exc: BaseException) -> bool:
+    """429 de yfinance, que no pasa por `_get_chart`. No se registra el
+    texto: puede traer una URL."""
+    if isinstance(exc, LimiteDePeticionesYahoo):
+        return True
+    if type(exc).__name__ == "YFRateLimitError":
+        return True
+    if getattr(exc, "status_code", None) == 429:
+        return True
+    resp = getattr(exc, "response", None)
+    if getattr(resp, "status_code", None) == 429:
+        return True
+    texto = str(exc)
+    return "Too Many Requests" in texto or "429" in texto
+
+
 class YahooProvider(DataProvider):
     """Precios vía la API de chart de Yahoo (misma robusta usada en
     `screener/`). Metadata vía yfinance si está instalado; si no, degrada
-    a `Metadata` vacías (el pipeline sigue con solo factores de precio)."""
+    a `Metadata` vacías (el pipeline sigue con solo factores de precio).
+
+    `metadata` cachea en disco el snapshot del día de Nueva York. Un
+    fallo no se cachea como vacío: se reintenta con backoff, y un 429
+    usa la misma pausa que el chart."""
 
     CHART = "https://query1.finance.yahoo.com/v8/finance/chart/{t}"
     HEADERS: ClassVar[dict[str, str]] = {"User-Agent": "Mozilla/5.0"}
 
-    def __init__(self, pausa: float = 0.15, reintentos: int = 3, pausa_429: PausaYahoo | None = None) -> None:
+    def __init__(
+        self,
+        pausa: float = 0.15,
+        reintentos: int = 3,
+        pausa_429: PausaYahoo | None = None,
+        *,
+        cache_metadata: Path | None = None,
+        reloj=None,
+    ) -> None:
         self.pausa = pausa
         self.reintentos = reintentos
         self.pausa_429 = pausa_429 if pausa_429 is not None else PausaYahoo()
+        # None = resolver por entorno en cada llamada (AlpacaProvider
+        # construye este objeto sin argumentos).
+        self._cache_metadata = cache_metadata
+        self._reloj = reloj or (lambda: datetime.now(UTC))
 
     def _get_chart(self, ticker: str, params: dict):
         """Una petición al chart. Un 429 escribe la pausa y corta sin
@@ -361,26 +547,97 @@ class YahooProvider(DataProvider):
                 time.sleep(1.5 * (intento + 1))
         return None
 
-    def metadata(self, tickers: list[str]) -> dict[str, Metadata]:
+    def _ruta_cache_metadata(self) -> Path | None:
+        return ruta_cache_metadata(self._cache_metadata)
+
+    def _ahora(self) -> datetime:
+        ahora = self._reloj()
+        if ahora.tzinfo is None:
+            return ahora.replace(tzinfo=UTC)
+        return ahora
+
+    def _leer_cache_en_memoria(self) -> dict:
+        ruta = self._ruta_cache_metadata()
+        if ruta is None:
+            return _cache_metadata_vacio()
+        return _leer_cache_metadata(ruta)
+
+    def _commit_cache(self, cache: dict, mutar) -> dict:
+        """Aplica `mutar` en memoria y, si hay archivo, también en disco.
+        Un disco que no se puede escribir no tira la corrida: el snapshot
+        de esta llamada igual se devuelve."""
+        mutar(cache)
+        ruta = self._ruta_cache_metadata()
+        if ruta is None:
+            return cache
         try:
-            import yfinance as yf
-        except ImportError:
-            log.warning("yfinance no instalado: metadata queda vacía "
-                        "(el pipeline usa solo factores de precio)")
-            return {t: Metadata(t) for t in tickers}
+            def _mut(data: dict) -> None:
+                mutar(data)
+            return _mutar_cache_metadata(ruta, _mut)
+        except OSError as e:
+            log.warning("cache de metadata de Yahoo no se pudo escribir (%s)", type(e).__name__)
+            return cache
+
+    def metadata(self, tickers: list[str]) -> dict[str, Metadata]:
+        """Misma forma que antes. Un acierto del día no llama a Yahoo.
+        Un fallo deja los campos en None y no queda como valor del día."""
+        cache = self._leer_cache_en_memoria()
         out: dict[str, Metadata] = {}
+        yf = None
+        aviso_import = False
         for t in tickers:
-            out[t] = self._metadata_una(t, yf)
+            ahora = self._ahora()
+            fecha = fecha_ny(ahora)
+            hit = _metadata_del_dia(cache, t, fecha)
+            if hit is not None:
+                out[t] = hit
+                continue
+            if self.pausa_429.activa(ahora) or _en_backoff_metadata(cache, t, ahora):
+                out[t] = Metadata(t)
+                continue
+            if yf is None and not aviso_import:
+                try:
+                    import yfinance as yf_mod
+                except ImportError:
+                    log.warning("yfinance no instalado: metadata queda vacía "
+                                "(el pipeline usa solo factores de precio)")
+                    yf_mod = None
+                    aviso_import = True
+                yf = yf_mod
+            if yf is None:
+                out[t] = Metadata(t)
+                continue
+            meta, cache = self._metadata_una(t, yf, ahora, fecha, cache)
+            out[t] = meta
             time.sleep(self.pausa)
         return out
 
-    def _metadata_una(self, ticker: str, yf) -> Metadata:
+    def _metadata_una(self, ticker: str, yf, ahora: datetime, fecha: str, cache: dict) -> tuple[Metadata, dict]:
         try:
             info = yf.Ticker(ticker).info
         except Exception as e:
-            log.debug("metadata %s falló: %s", ticker, e)
-            return Metadata(ticker)
+            # Solo el tipo: el texto puede traer una URL con credenciales.
+            log.debug("metadata %s falló: %s", ticker, type(e).__name__)
+            return self._anotar_fallo_metadata_par(ticker, e, ahora, cache)
 
+        if not isinstance(info, dict) or not info:
+            # yfinance traga algunos 429 y devuelve {}. Cachearlo como
+            # metadata del día dejaría float y market cap en None hasta
+            # mañana, que es justo el dato inventado por ausencia.
+            log.debug("metadata %s falló: info vacío", ticker)
+            return self._anotar_fallo_metadata_par(ticker, LookupError("info vacío"), ahora, cache)
+
+        meta = self._metadata_de_info(ticker, info)
+        cache = self._guardar_metadata_ok(ticker, fecha, meta, cache)
+        return meta, cache
+
+    def _anotar_fallo_metadata_par(
+        self, ticker: str, exc: BaseException, ahora: datetime, cache: dict,
+    ) -> tuple[Metadata, dict]:
+        cache = self._anotar_fallo_metadata_cache(ticker, exc, ahora, cache)
+        return Metadata(ticker), cache
+
+    def _metadata_de_info(self, ticker: str, info: dict) -> Metadata:
         nombre = info.get("longName") or info.get("shortName")
         quote_type = info.get("quoteType")
         precio_regular = _num(info.get("regularMarketPrice"))
@@ -414,3 +671,53 @@ class YahooProvider(DataProvider):
             cambio_premarket_pct=cambio_pre,
             cambio_afterhours_pct=cambio_post,
         )
+
+    def _guardar_metadata_ok(self, ticker: str, fecha: str, meta: Metadata, cache: dict) -> dict:
+        campos = _campos_metadata(meta)
+
+        def mutar(data: dict) -> None:
+            tickers = data.setdefault("tickers", {})
+            if not isinstance(tickers, dict):
+                data["tickers"] = {}
+                tickers = data["tickers"]
+            tickers[ticker] = {"fecha_ny": fecha, "campos": campos}
+            fallos = data.get("fallos")
+            if isinstance(fallos, dict):
+                fallos.pop(ticker, None)
+
+        return self._commit_cache(cache, mutar)
+
+    def _anotar_fallo_metadata_cache(
+        self, ticker: str, exc: BaseException, ahora: datetime, cache: dict,
+    ) -> dict:
+        es_429 = _es_limite_de_yahoo(exc)
+        if es_429:
+            self.pausa_429.pausar(ahora)
+        fallos = cache.get("fallos")
+        prev = fallos.get(ticker) if isinstance(fallos, dict) and isinstance(fallos.get(ticker), dict) else {}
+        raw_intentos = prev.get("intentos") if isinstance(prev, dict) else None
+        if isinstance(raw_intentos, int) and not isinstance(raw_intentos, bool) and raw_intentos >= 1:
+            intentos = raw_intentos + 1
+        else:
+            intentos = 1
+        segundos = SEGUNDOS_PAUSA_429 if es_429 else segundos_backoff_metadata(intentos)
+        hasta = ahora + timedelta(seconds=segundos)
+        if es_429:
+            limite = self.pausa_429.hasta()
+            if limite is not None and limite > hasta:
+                hasta = limite
+        marca = hasta.isoformat(timespec="seconds")
+
+        def mutar(data: dict) -> None:
+            # No se escribe un valor válido vacío: el ticker sale de
+            # `tickers` si estaba, y el reintento queda en `fallos`.
+            tickers = data.get("tickers")
+            if isinstance(tickers, dict):
+                tickers.pop(ticker, None)
+            fallos_d = data.setdefault("fallos", {})
+            if not isinstance(fallos_d, dict):
+                data["fallos"] = {}
+                fallos_d = data["fallos"]
+            fallos_d[ticker] = {"intentos": intentos, "reintentar_despues": marca}
+
+        return self._commit_cache(cache, mutar)

@@ -237,6 +237,59 @@ def test_sin_variable_no_hay_archivo_pero_el_429_tampoco_se_reintenta(monkeypatc
 
 # ───────────────────────── Telegram del respaldo ─────────────────────────
 
+def test_duplicado_de_ticker_no_rearchiva_ni_reloguea_cada_ciclo(monkeypatch, tmp_path, caplog):
+    """watchlist.json con dos FOO (distinto creado_en). El overlay es por
+    ticker: si la encarnación nueva pisa el slot, la vieja —ya ARCHIVED—
+    vuelve a TRIGGERED al recargar y el hunter loguea otra vez
+    «N TRIGGERED archivadas». La nueva no tiene revisión: no se archiva."""
+    import logging
+
+    from momentum_paper_trader import archivo, estado
+
+    _activar_vps(monkeypatch, tmp_path)
+    canon = tmp_path / "watchlist.json"
+    vieja = watchlist.desde_candidato_diario(_candidato_diario("FOO"), AHORA - timedelta(days=2))
+    watchlist.marcar_triggered(vieja, "m", "d", "ev", AHORA - timedelta(days=2))
+    nueva = watchlist.desde_candidato_diario(_candidato_diario("FOO"), AHORA)
+    watchlist.marcar_triggered(nueva, "m", "d", "ev", AHORA)
+    watchlist.guardar([vieja, nueva], canon)
+
+    revision = estado.RevisionIA(
+        ticker="FOO", creado_en=vieja.creado_en, entro=False, confianza=4,
+        razonamiento="no", timestamp=AHORA.isoformat(),
+    )
+    monkeypatch.setattr(estado, "cargar", lambda path=None: [revision])
+    monkeypatch.setattr(archivo, "PATH_LOG", tmp_path / "archivo_triggered.jsonl")
+
+    entradas = watchlist.cargar(canon)
+    with caplog.at_level(logging.INFO, logger="momentum_hunter.run"):
+        run_mod._archivar_triggered_ya_revisadas(entradas, AHORA, dry_run=False)
+    assert any(
+        "1 TRIGGERED archivada(s) tras revisión paper" in r.message for r in caplog.records
+    )
+    # Igual que el rechequeo: persiste la lista entera. La nueva va última.
+    watchlist.guardar_vps_state(entradas, ahora=AHORA)
+    assert entradas[0].estado == watchlist.ESTADO_ARCHIVED
+    assert entradas[1].estado == watchlist.ESTADO_TRIGGERED
+    slot = json.loads(Path(os.environ["MOMENTUM_WATCHLIST_STATE"]).read_text())["entries"]["FOO"]
+    assert slot["creado_en"] == nueva.creado_en
+    assert slot["estado"] == watchlist.ESTADO_TRIGGERED
+    assert slot["encarnaciones_archivadas"][0]["creado_en"] == vieja.creado_en
+    assert slot["encarnaciones_archivadas"][0]["estado"] == watchlist.ESTADO_ARCHIVED
+
+    caplog.clear()
+    otra_vez = watchlist.aplicar_overlay(watchlist.cargar(canon))
+    with caplog.at_level(logging.INFO, logger="momentum_hunter.run"):
+        run_mod._archivar_triggered_ya_revisadas(
+            otra_vez, AHORA + timedelta(minutes=1), dry_run=False)
+    assert not any("TRIGGERED archivada" in r.message for r in caplog.records)
+    por_creado = {e.creado_en: e.estado for e in otra_vez}
+    assert por_creado[vieja.creado_en] == watchlist.ESTADO_ARCHIVED
+    assert por_creado[nueva.creado_en] == watchlist.ESTADO_TRIGGERED
+    log_path = tmp_path / "archivo_triggered.jsonl"
+    assert len([ln for ln in log_path.read_text().splitlines() if ln.strip()]) == 1
+
+
 def test_prefijo_de_respaldo_en_telegram(monkeypatch):
     enviados = []
     monkeypatch.setenv("MOMENTUM_TELEGRAM_BOT_TOKEN", "t")
