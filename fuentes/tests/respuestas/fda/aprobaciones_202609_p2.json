@@ -1,0 +1,15 @@
+{
+ "url": "https://api.fda.gov/drug/drugsfda.json",
+ "params": {
+  "search": "submissions.submission_status_date:[20260901 TO 20260930] AND submissions.submission_status:AP",
+  "limit": 100,
+  "skip": 100
+ },
+ "status": 200,
+ "headers": {
+  "Content-Type": "application/json"
+ },
+ "texto": "{\"meta\": {\"results\": {\"skip\": 100, \"limit\": 100, \"total\": 141}}, \"results\": [{\"application_number\": \"BLA769999\", \"sponsor_name\": \"Ficticia C Biopharma, Inc.\", \"openfda\": {}, \"products\": [], \"submissions\": [{\"submission_type\": \"ORIG\", \"submission_number\": \"1\", \"submission_status\": \"AP\", \"submission_status_date\": \"20260924\", \"submission_class_code\": \"TYPE 1\"}, {\"submission_type\": \"SUPPL\", \"submission_number\": \"2\", \"submission_status\": \"AP\", \"submission_status_date\": \"20260925\", \"submission_class_code\": \"LABELING\"}]}]}",
+ "ficticio": true,
+ "nota": "SINTÉTICO: la página real de septiembre 2026 (aprobaciones_202609.json) declara total=141 y el VPS grabó solo la primera (100). Esta segunda página se arma con un laboratorio inventado para que la paginación cierre; reemplazar con `python -m fuentes grabar fda 2026-09` cuando el comando grabe todas las páginas."
+}
