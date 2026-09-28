@@ -23,7 +23,24 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-PATH = Path(__file__).resolve().parent / "revisiones.json"
+from momentum_hunter.rutas_estado import RutaEstado, legado, migrar_activo
+
+PATH = RutaEstado("momentum_paper_trader/revisiones.json")
+
+
+class RevisionesIlegibles(Exception):
+    """El libro no se pudo leer. No es un libro vacío.
+
+    El mensaje es solo el origen (tipo de fallo), nunca el contenido
+    del archivo. Abrir entradas nuevas contra un libro inventado
+    repetiría una revisión y podría colocar otra orden sobre la misma
+    señal. Un path explícito que no existe sí es vacío: las pruebas y
+    el primer arranque no tienen legado.
+    """
+
+    def __init__(self, origen: str) -> None:
+        super().__init__(origen)
+        self.origen = origen
 
 
 @dataclass
@@ -135,17 +152,39 @@ def _clave(ticker: str, creado_en: str) -> str:
     return f"{ticker}|{creado_en}"
 
 
-def cargar(path: Path = PATH) -> list[RevisionIA]:
-    """Un archivo corrupto no debe tumbar la corrida -- se ignora y se
-    reinicia vacío (mismo principio que `momentum_hunter.watchlist.cargar`)."""
-    if not path.exists():
+def _concreto(path: Path | RutaEstado) -> Path:
+    if isinstance(path, RutaEstado):
+        return path.resolver()
+    return Path(path)
+
+
+def cargar(path: Path | RutaEstado = PATH) -> list[RevisionIA]:
+    """Falta el archivo y no hay legado: libro vacío (primer arranque).
+
+    Cualquier otra cosa ilegible lanza `RevisionesIlegibles`. Tratarla
+    como `[]` haría que el ejecutor volviera a abrir entradas ya
+    revisadas. Una fila que no entra en el dataclass se salta: el resto
+    del libro sigue valiendo. El archivo entero ilegible, no.
+    """
+    concreto = _concreto(path)
+    if not concreto.exists():
+        if (
+            isinstance(path, RutaEstado)
+            and migrar_activo()
+            and legado(path.relativo).exists()
+        ):
+            raise RevisionesIlegibles("migracion")
         return []
     try:
-        data = json.loads(path.read_text())
-    except (json.JSONDecodeError, OSError):
-        return []
+        texto = concreto.read_text()
+    except OSError:
+        raise RevisionesIlegibles("OSError") from None
+    try:
+        data = json.loads(texto)
+    except json.JSONDecodeError:
+        raise RevisionesIlegibles("JSONDecodeError") from None
     if not isinstance(data, dict):
-        return []
+        raise RevisionesIlegibles("forma")
     revisiones: list[RevisionIA] = []
     for d in data.get("revisiones", []):
         try:
@@ -155,9 +194,11 @@ def cargar(path: Path = PATH) -> list[RevisionIA]:
     return revisiones
 
 
-def guardar(revisiones: list[RevisionIA], path: Path = PATH) -> None:
+def guardar(revisiones: list[RevisionIA], path: Path | RutaEstado = PATH) -> None:
+    concreto = _concreto(path)
+    concreto.parent.mkdir(parents=True, exist_ok=True)
     data = {"revisiones": [asdict(r) for r in revisiones]}
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
+    concreto.write_text(json.dumps(data, ensure_ascii=False, indent=2))
 
 
 def ya_revisada(revisiones: list[RevisionIA], ticker: str, creado_en: str) -> bool:
