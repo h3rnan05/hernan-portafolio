@@ -234,6 +234,193 @@ def test_un_lote_caido_marca_solo_esos_simbolos(monkeypatch):
     assert p.fallidos == ["BBB"]
 
 
+def test_simbolos_con_guion_se_piden_con_punto_y_vuelven_con_la_clave_pedida(monkeypatch):
+    # La traducción es solo del query. La clave que busca el pipeline
+    # sigue siendo la del universo (con guion).
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        syms = params["symbols"].split(",")
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    out = _provider().barras(["UMH", "BH-A", "CMS-PB"])
+    assert vistos == ["UMH,BH.A,CMS.PRB"]
+    assert set(out) == {"UMH", "BH-A", "CMS-PB"}
+    assert "BH.A" not in out and "CMS.PRB" not in out
+
+
+def test_sufijo_no_verificado_no_se_envia_y_no_se_confunde_con_la_clase(monkeypatch):
+    # `-PB` es preferida, no clase P. `-WT`/`-UN` no se leen como una
+    # letra. `-RI`, `-R` y `-WTA` no se mandan: no hay traducción
+    # comprobada y un símbolo adivinado no es un dato.
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        syms = params["symbols"].split(",")
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    p = _provider()
+    out = p.barras(["LZM-WT", "KCAC-UN", "BRK-B", "CMS-PB", "FOO-RI", "BAR-R", "NE-WTA"])
+    assert vistos == ["LZM.WS,KCAC.U,BRK.B,CMS.PRB"]
+    assert p.fallidos == ["FOO-RI", "BAR-R", "NE-WTA"]
+    assert set(out) == {"LZM-WT", "KCAC-UN", "BRK-B", "CMS-PB"}
+    assert all(t not in out for t in p.fallidos)
+
+
+def test_preferida_sin_serie_no_se_pide_como_clase_p(monkeypatch):
+    # ETI-P es preferida sin letra de serie. `.P` no está verificado y
+    # una clase P de verdad es rara: va al respaldo, no al feed.
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        syms = params["symbols"].split(",")
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    p = _provider()
+    out = p.barras(["ETI-P", "AAA", "CMS-PB"])
+    assert vistos == ["AAA,CMS.PRB"]
+    assert "ETI.P" not in vistos[0]
+    assert p.fallidos == ["ETI-P"]
+    assert "ETI-P" not in out
+    assert set(out) == {"AAA", "CMS-PB"}
+
+
+def test_dos_tickers_al_mismo_simbolo_se_piden_una_vez_y_vuelven_los_dos(monkeypatch):
+    # BH-A y BH.A son el mismo símbolo del feed. Pedirlo dos veces, o
+    # quedarse con una sola clave, deja a la otra sin serie y sin
+    # fallback.
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        syms = params["symbols"].split(",")
+        assert len(syms) == len(set(syms))
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    out = _provider().barras(["BH-A", "BH.A", "LZM-WT", "LZM.WS"])
+    assert vistos == ["BH.A,LZM.WS"]
+    assert set(out) == {"BH-A", "BH.A", "LZM-WT", "LZM.WS"}
+    assert out["BH-A"].volume == out["BH.A"].volume
+    assert out["LZM-WT"].fechas == out["LZM.WS"].fechas
+
+    def _todo_400(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        return _Resp({}, status=400)
+
+    monkeypatch.setattr(ad.requests, "get", _todo_400)
+    p = _provider(reintentos=1)
+    with pytest.raises(ErrorDatosAlpaca):
+        p.barras(["X-WT", "X.WS"])
+    assert p.fallidos == ["X-WT", "X.WS"]
+    assert vistos[-1] == "X.WS"
+
+
+def test_http_400_en_un_lote_solo_manda_al_respaldo_el_simbolo_invalido(monkeypatch):
+    # Un 400 rechaza el lote entero. Se parte hasta que el inválido
+    # queda solo en fallidos; los otros 99 salen de Alpaca.
+    malo = "ZZZZ"
+    buenos = [f"S{i:02d}" for i in range(99)]
+    tickers = buenos + [malo]
+    llamadas = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        syms = params["symbols"].split(",")
+        llamadas.append(syms)
+        if malo in syms:
+            return _Resp({}, status=400)
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    p = _provider(reintentos=1)
+    out = p.barras(tickers)
+    assert len(llamadas[0]) == 100 and malo in llamadas[0]
+    assert llamadas[-1] == [malo]
+    assert p.fallidos == [malo]
+    assert malo not in out
+    assert set(out) == set(buenos)
+    assert out["S00"].volume[-1] == 1000.0
+
+
+def test_http_500_no_se_parte(monkeypatch):
+    # 5xx sigue tumbando el lote entero. Partirlo reintentaría un fallo
+    # que no es de símbolo.
+    def _get(url, params=None, headers=None, timeout=None):
+        if "BBB" in params["symbols"]:
+            return _Resp({}, status=500)
+        syms = params["symbols"].split(",")
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    monkeypatch.setattr(ad, "LOTE_DIARIO", 2)
+    p = _provider(reintentos=1)
+    out = p.barras(["AAA", "BBB", "CCC"])
+    assert list(out) == ["CCC"]
+    assert p.fallidos == ["AAA", "BBB"]
+
+
+def test_ningun_lote_valido_no_se_convierte_en_cero(monkeypatch):
+    # Todo 400: se aísla cada símbolo y, como ninguno respondió, se
+    # relanza el mismo código de hoy. El cuerpo trae volumen 0 a
+    # propósito: no puede colarse como serie.
+    ceros = _diarias(20, volumen=0.0, ultima_volumen=0.0)
+
+    def _get(url, params=None, headers=None, timeout=None):
+        syms = params["symbols"].split(",")
+        return _Resp({"bars": {s: ceros for s in syms}}, status=400)
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    p = _provider(reintentos=1)
+    with pytest.raises(ErrorDatosAlpaca) as exc:
+        p.barras(["AAA", "BBB"])
+    assert exc.value.codigo == "http_400"
+    assert p.fallidos == ["AAA", "BBB"]
+
+
+def test_http_400_de_un_lote_grande_no_baja_hasta_el_simbolo(monkeypatch):
+    # Si las dos mitades también son 400, no es un símbolo suelto.
+    # Partir hasta el singleton serían 2n-1 pedidos; se corta en tres
+    # (el lote y sus dos mitades) y se pausa entre esos sub-pedidos.
+    llamadas = []
+    dormidos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        llamadas.append(params["symbols"])
+        return _Resp({}, status=400)
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    n = ad.UMBRAL_CORTE_400
+    tickers = [f"T{i}" for i in range(n)]
+    p = _provider(reintentos=1, pausa=0.2, dormir=lambda s: dormidos.append(s))
+    with pytest.raises(ErrorDatosAlpaca) as exc:
+        p.barras(tickers)
+    assert exc.value.codigo == "http_400"
+    assert len(llamadas) == 3
+    assert len(llamadas) < 2 * n - 1
+    assert p.fallidos == tickers
+    assert dormidos == [0.2, 0.2]
+
+
+def test_snapshots_olvida_el_codigo_de_la_llamada_anterior(monkeypatch):
+    monkeypatch.setattr(
+        ad.requests, "get",
+        lambda *a, **k: _Resp({"AAA": {"latestTrade": {"p": 3.5}}}),
+    )
+    p = _provider()
+    p.ultimo_codigo = "http_400"
+    p.fallidos = ["VIEJO"]
+    out = p.snapshots(["AAA"])
+    assert out["AAA"]["precio"] == 3.5
+    assert p.ultimo_codigo is None
+    assert p.fallidos == []
+
+
 # ------------------------- respaldo -------------------------
 
 class _Primario:
@@ -305,6 +492,53 @@ def test_solo_los_lotes_fallidos_van_al_respaldo():
     assert info.fuente == "mixto"
     assert info.feed == "sip"
     assert info.fallbacks == 1
+
+
+def test_ventana_con_guion_en_cada_lote_no_cae_al_respaldo(monkeypatch):
+    # Antes, un guion en el lote devolvía 400 y las 100 iban a Yahoo.
+    # Traducidas, las tres tandas salen de Alpaca: fallbacks=0.
+    monkeypatch.setattr(ad, "LOTE_DIARIO", 2)
+    tickers = ["UMH", "BH-A", "AAA", "CMS-PB", "LZM-WT", "BBB"]
+
+    def _get(url, params=None, headers=None, timeout=None):
+        syms = params["symbols"].split(",")
+        if any("-" in s for s in syms):
+            return _Resp({}, status=400)
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    yahoo = _Yahoo()
+    p = ProveedorConRespaldo(_provider(), yahoo, feed="sip")
+    out = p.barras(tickers)
+    assert set(out) == set(tickers)
+    assert out["BH-A"].volume[-1] == 1000.0
+    assert out["CMS-PB"].volume[-1] == 1000.0
+    assert yahoo.pedidos == []
+    info = p.informe_datos()
+    assert info.fallbacks == 0
+    assert info.fuente == "alpaca"
+    assert info.feed == "sip"
+
+
+def test_el_aviso_de_respaldo_nombra_el_codigo_y_el_simbolo(monkeypatch, caplog):
+    # El dict de telemetría no cambia de forma. El código y el símbolo
+    # van al aviso, que es lo que se puede leer después de una corrida.
+    def _get(url, params=None, headers=None, timeout=None):
+        if "ZZZZ" in params["symbols"]:
+            return _Resp({}, status=400)
+        return _Resp({"bars": {"AAA": _diarias(20)}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    yahoo = _Yahoo()
+    caplog.set_level("WARNING")
+    p = ProveedorConRespaldo(_provider(reintentos=1), yahoo, feed="sip")
+    out = p.barras(["AAA", "ZZZZ"])
+    assert out["AAA"].volume[-1] == 1000.0  # feed
+    assert out["ZZZZ"].volume == [100.0]  # solo este fue al respaldo
+    assert yahoo.pedidos == [["ZZZZ"]]
+    assert p.informe_datos().fuente == "mixto"
+    assert p.informe_datos().fallbacks == 1
+    assert "http_400" in caplog.text and "ZZZZ" in caplog.text
 
 
 def test_un_simbolo_sin_velas_no_dispara_el_respaldo():
@@ -476,3 +710,47 @@ def test_la_telemetria_guarda_la_fuente_y_el_reporte_ignora_el_rechequeo(tmp_pat
     texto = reporte_semanal.construir("2026-09-28", "2026-09-28", tmp_path)
     assert "Corridas registradas: 1" in texto
     assert "500" not in texto
+
+
+def test_metadata_de_alpaca_reusa_el_cache_diario_de_yahoo(monkeypatch, tmp_path):
+    """El feed no trae float ni nombre: AlpacaProvider.metadata delega en
+    Yahoo, y ese cache diario también vale por este camino."""
+    import sys
+
+    from momentum_hunter.data.provider import ENV_CACHE_METADATA
+    from momentum_hunter.models import Metadata
+
+    class _Ticker:
+        def __init__(self, info):
+            self._info = info
+
+        @property
+        def info(self):
+            return self._info
+
+    class _YF:
+        def __init__(self):
+            self.llamadas: list[str] = []
+
+        def Ticker(self, ticker):
+            self.llamadas.append(ticker)
+            return _Ticker({
+                "longName": "Acme Corp",
+                "quoteType": "EQUITY",
+                "exchange": "NMS",
+                "marketCap": 2_000_000,
+                "floatShares": 10_000,
+            })
+
+    yf = _YF()
+    monkeypatch.setitem(sys.modules, "yfinance", yf)
+    monkeypatch.setenv(ENV_CACHE_METADATA, str(tmp_path / "cache.json"))
+    p = _provider()
+    primera = p.metadata(["ACME"])["ACME"]
+    segunda = p.metadata(["ACME"])["ACME"]
+    assert yf.llamadas == ["ACME"]
+    assert isinstance(primera, Metadata)
+    assert segunda.market_cap == 2_000_000
+    assert segunda.shares_float == 10_000
+    assert segunda.nombre == "Acme Corp"
+    assert segunda == primera
