@@ -68,6 +68,7 @@ y Telegram aparte, también como mucho uno por día por clase. Sin
 | `DASH_GHA_TTL_SEG` | cuánto vale la respuesta de Actions antes de volver a preguntar | `300` |
 | `DASH_TELEM_HUNTER` | carpeta de telemetría del hunter; el estado del Hunter sale del último escaneo `vps` de hoy | `momentum_hunter/telemetria` |
 | `DASH_YAHOO_PAUSA_BOT` | archivo de pausa del BOT ante un 429 de Yahoo (solo lectura): el panel se frena también | (vacío) |
+| `DASH_REVISIONES` | `revisiones.json` del ejecutor, solo para el aviso de reconciliación | el del paquete |
 
 La tabla de watchlist muestra las entradas activas (`watching`, `triggered`) y las que cambiaron
 de estado hoy. El estado sale del overlay del VPS cuando existe, porque el JSON de GitHub
@@ -77,15 +78,53 @@ La latencia es **ruptura → orden** en velas de 1 minuto: las velas que el hunt
 al disparar (`velas_desde_ruptura`) más las que pasaron desde el disparo. Es la misma medida
 del presupuesto de 8 velas. Si una orden no trae las dos partes, no entra al gráfico.
 
-### Velas del ticker en operación
+### Cuenta en el broker (desde 2026-09-28)
+
+Lo que está abierto lo dice Alpaca, no `revisiones.json` ni la watchlist. El 28/9
+el contador de posiciones marcaba 1 (MNST) y el gráfico seguía pintando DLB, NBIS
+y TWST, cerradas a las 09:53, porque cualquier orden de hoy contaba como "en
+operación" y la entrada/stop salían "sin dato".
+
+Tres bloques, todos de GET:
+
+- **Posiciones abiertas**: cantidad, entrada (`avg_entry_price`), precio actual,
+  P&L abierto (`unrealized_pl`, y el porcentaje si vino `unrealized_plpc`), stop
+  y objetivo. El stop de un bracket ya lleno no viene suelto: Alpaca lo deja
+  `held` en `legs` del take-profit y solo aparece con `nested=true`. Una pata
+  `held` se muestra y cuenta como protección.
+- **Órdenes pendientes**: compras de entrada que todavía no llenan (ACN, NTAP),
+  con sus patas. No se mezclan con la posición.
+- **Cerradas hoy**: ventas llenas de hoy de un símbolo que ya no está abierto,
+  con el P&L realizado por FIFO contra los fills que alcanzó a ver (hasta 500
+  órdenes cerradas, el tope de Alpaca). Si la entrada no está en ese historial,
+  el P&L queda "—". No se rellena con cero ni con `revisiones.json`.
+
+Un aviso rojo si el broker tiene una posición que ninguna revisión viva sigue,
+o una sin stop de venta (ni venta a mercado en curso). Es `reconciliacion.detectar`
+de la PR #183; las patas `held` se aplanan antes de llamarlo, porque ese detector
+mira la fila de arriba. Si las órdenes no se pudieron leer, no se afirma que
+falte el stop. `DASH_REVISIONES` apunta al libro; por defecto es el
+`revisiones.json` del paquete.
+
+La píldora "Fuente de datos" sale de la telemetría de hoy del VPS, bloque
+`datos` (`fuente`: `yahoo` / `alpaca` / `mixto`, y `feed`: `sip` o `iex`).
+Es lo que contestó, no lo que estaba configurado: si `fuente` viene vacía
+se usa la medición anterior del mismo día, y si ninguna corrida la trajo
+no se escribe "Yahoo" por costumbre. `alpaca` + `sip` se muestra como
+Alpaca SIP; `iex` no se disfraza de SIP; `mixto` avisa que hubo respaldo
+Yahoo. `fuente: vps` en la raíz del JSONL es el escritor, no el feed.
+
+### Velas de posiciones abiertas
 
 Las velas se piden con la misma petición y se parsean con la misma función que el hunter
 (`provider.parsear_chart_intradia`), así que coinciden con lo que vio el bot. Yahoo se comparte
 con el bot desde la misma IP, y el panel no puede perjudicarlo: un ticker se pide como mucho
 una vez por TTL, hay tope de tickers, y ante un 429 el panel deja de pedir velas durante
 `DASH_VELAS_PAUSA_SEG` y muestra la copia vieja marcada como "caché vencida" con la hora
-(o "Sin datos" si no hay copia). Las marcas (ruptura, entrada del fill, stop) salen de la
-watchlist y de Alpaca: si falta una, no se dibuja y el pie dice "sin dato".
+(o "Sin datos" si no hay copia). Se grafican las posiciones abiertas y, si cabe en el tope,
+las compras pendientes, con la marca "pendiente". Una cerrada hoy no se grafica: va a la
+tabla. Las marcas (ruptura de la watchlist, entrada del fill, stop) salen de Alpaca y, la
+ruptura, de la watchlist: si falta una, no se dibuja y el pie dice "sin dato".
 
 ## 3. Probar a mano
 
@@ -109,6 +148,17 @@ sudo systemctl start momentum-dashboard.service      # primera generación, a ma
 sudo systemctl status momentum-dashboard.service     # debe terminar sin error
 sudo systemctl enable --now momentum-dashboard.timer momentum-dashboard-http.service
 ```
+
+Para actualizar el panel cuando ya está instalado (el HTML se regenera en
+`/var/lib/momentum/dashboard_site`; el servidor HTTP solo lo sirve):
+
+```bash
+cd /opt/hernan-portafolio && git pull --rebase
+sudo systemctl start momentum-dashboard.service
+```
+
+`momentum-dashboard.service` es oneshot: `start` lo vuelve a correr. El timer
+lo lanza solo cada minuto. No hace falta reiniciar `momentum-dashboard-http`.
 
 ## 5. Abrirlo desde tu computadora
 
