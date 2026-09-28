@@ -6,7 +6,14 @@ Cuatro anuncios que mueven el índice y con él la señal `indice_sobre_vwap`:
     CPI      BLS, 08:30 NY. `https://www.bls.gov/schedule/news_release/cpi.htm`
     NOMINAS  BLS Employment Situation, 08:30 NY.
              `https://www.bls.gov/schedule/news_release/empsit.htm`
-    PIB      BEA, 08:30 NY. `https://www.bea.gov/news/schedule`
+    PIB      BEA, 08:30 NY. `https://www.bea.gov/news/schedule/full` (el
+             año completo; `/news/schedule` solo muestra lo que falta).
+
+USER-AGENT. BLS responde 403 a cualquier UA sin correo real (probado el
+2026-09-28: el texto "contacto en …" no basta; uno de navegador tampoco).
+Se usa `FUENTES_USER_AGENT` o, si no está, `FUENTES_SEC_USER_AGENT`
+("nombre correo@dominio"); sin ninguno de los dos no se descarga nada y
+queda solo el archivo.
 
 Dos orígenes que se SUMAN:
   1. `fuentes/datos/calendario_economico.json`: fechas curadas a mano
@@ -21,6 +28,10 @@ Un día de un año que ningún origen cubre para un tipo es FALTANTE en
 ese tipo: "no hay CPI ese día" solo se afirma con el calendario del año
 a la vista. Las fechas del JSON marcadas `verificado: false` cuentan
 igual (son la mejor información disponible) pero `grabar` las contrasta.
+Las páginas oficiales muestran el año en curso y la cola del anterior;
+para 2025 (la mitad del backtest) hacen falta las tablas archivadas, y
+mientras no se carguen, 2025 queda sin cobertura (FALTANTE), no
+estimado.
 
 COLUMNAS:
     eco_fomc_dia, eco_cpi_dia, eco_nominas_dia, eco_pib_dia
@@ -43,7 +54,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 
-from fuentes import __main__ as cli
+from fuentes import cli
 from fuentes.cache import Cache
 from fuentes.columnas import todas_faltantes
 from fuentes.comun import FALTANTE, ErrorFuente
@@ -57,8 +68,10 @@ URLS = {
     "FOMC": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
     "CPI": "https://www.bls.gov/schedule/news_release/cpi.htm",
     "NOMINAS": "https://www.bls.gov/schedule/news_release/empsit.htm",
-    "PIB": "https://www.bea.gov/news/schedule",
+    "PIB": "https://www.bea.gov/news/schedule/full",
 }
+ENV_USER_AGENT = "FUENTES_USER_AGENT"
+ENV_USER_AGENT_SEC = "FUENTES_SEC_USER_AGENT"
 HORA = {"FOMC": time(14, 0), "CPI": time(8, 30), "NOMINAS": time(8, 30), "PIB": time(8, 30)}
 VENTANA_FED = timedelta(minutes=15)
 EDAD_S = 24 * 3600.0
@@ -77,10 +90,20 @@ class Anuncio:
     hora: time
 
 
+def user_agent_configurado() -> str:
+    """Nombre + correo real. BLS bloquea lo demás."""
+    import os
+    for var in (ENV_USER_AGENT, ENV_USER_AGENT_SEC):
+        ua = os.environ.get(var, "").strip()
+        if ua and "@" in ua:
+            return ua
+    raise ErrorFuente("sin_user_agent", "calendario_economico")
+
+
 def cliente_calendario(transport=None, dormir=None) -> Cliente:
     kw = {"dormir": dormir} if dormir is not None else {}
-    return Cliente("calendario_economico", "hernan-portafolio fuentes (contacto en FUENTES_SEC_USER_AGENT)",
-                   limitador=Limitador(2, 1.0, **kw), transport=transport, **kw)
+    return Cliente("calendario_economico", user_agent_configurado(), limitador=Limitador(2, 1.0, **kw),
+                   transport=transport, **kw)
 
 
 # ------------------------------------------------------------- parsers
@@ -124,40 +147,81 @@ def parsear_fomc(html: str) -> tuple[list[Anuncio], set[int]]:
 
 
 _FECHA_LARGA = re.compile(r"([A-Z][a-z]+)\.?\s+(\d{1,2}),\s+(\d{4})")
+_TABLA_BLS = re.compile(r'<table class="release-list">(.*?)</table>', re.S)
+_FILA_BLS = re.compile(r"<tr[^>]*>\s*<td>([^<]*)</td>\s*<td>([^<]*)</td>\s*<td>([^<]*)</td>", re.S)
+
+
+def _fecha_larga(texto: str) -> date | None:
+    m = _FECHA_LARGA.search(texto)
+    if not m:
+        return None
+    mes = _mes(m.group(1))
+    if mes is None:
+        return None
+    try:
+        return date(int(m.group(3)), mes, int(m.group(2)))
+    except ValueError:
+        return None
 
 
 def parsear_bls(html: str, tipo: str) -> tuple[list[Anuncio], set[int]]:
-    """Filas de la tabla de fechas de publicación: 'Oct. 14, 2026' + '08:30 AM'."""
+    """Solo las filas de `table.release-list` (Reference Month | Release
+    Date | Release Time). La página trae además un <script> con fechas de
+    OTRAS publicaciones (PPI, productividad...): recorrer el HTML entero
+    las mezclaba (visto el 2026-09-28)."""
     out, anios = [], set()
-    for m in _FECHA_LARGA.finditer(html):
-        mes = _mes(m.group(1))
-        if mes is None:
-            continue
-        try:
-            f = date(int(m.group(3)), mes, int(m.group(2)))
-        except ValueError:
+    tabla = _TABLA_BLS.search(html)
+    if not tabla:
+        return [], set()
+    for _ref, fecha_txt, hora_txt in _FILA_BLS.findall(tabla.group(1)):
+        f = _fecha_larga(fecha_txt)
+        if f is None:
             continue
         anios.add(f.year)
-        out.append(Anuncio(tipo, f, HORA[tipo]))
+        out.append(Anuncio(tipo, f, _hora_de(hora_txt, HORA[tipo])))
     return sorted(set(out), key=lambda a: a.fecha), anios
+
+
+def _hora_de(texto: str, default: time) -> time:
+    m = re.match(r"\s*(\d{1,2}):(\d{2})\s*(AM|PM)", texto, re.I)
+    if not m:
+        return default
+    h = int(m.group(1)) % 12 + (12 if m.group(3).upper() == "PM" else 0)
+    return time(h, int(m.group(2)))
+
+
+_ANIO_BEA = re.compile(r"<th[^>]*>\s*Year (\d{4})")
+_FILA_BEA = re.compile(r"<tr[^>]*>(.*?)</tr>", re.S)
+_FECHA_BEA = re.compile(r'class="release-date">\s*([A-Za-z]+)\s+(\d{1,2})\s*<')
+_TITULO_BEA = re.compile(r'class="release-title[^"]*"[^>]*>\s*([^<]*?)\s*<')
+_TITULOS_PIB = ("GDP (", "Gross Domestic Product,")
 
 
 def parsear_bea(html: str) -> tuple[list[Anuncio], set[int]]:
-    """Filas que nombran 'Gross Domestic Product' con una fecha larga en la misma fila."""
-    out, anios = [], set()
-    for fila in re.findall(r"<tr[^>]*>(.*?)</tr>", html, re.S | re.I):
-        if "gross domestic product" not in fila.lower():
+    """`/news/schedule/full`: el año está en el encabezado ("Year 2026"),
+    cada fila trae `div.release-date` sin año ("October 29") y un título.
+    Cuenta como PIB un título que empieza con "GDP (" o "Gross Domestic
+    Product," (las estimaciones trimestrales, incluida la "Updated" de
+    enero); "GDP by County/State/Industry" no es la publicación del PIB."""
+    m_anio = _ANIO_BEA.search(html)
+    if not m_anio:
+        return [], set()
+    anio = int(m_anio.group(1))
+    out = []
+    for fila in _FILA_BEA.findall(html):
+        t = _TITULO_BEA.search(fila)
+        if not t or not t.group(1).startswith(_TITULOS_PIB):
             continue
-        m = _FECHA_LARGA.search(re.sub(r"<[^>]+>", " ", fila))
-        if not m or _mes(m.group(1)) is None:
+        d = _FECHA_BEA.search(fila)
+        if not d or _mes(d.group(1)) is None:
             continue
         try:
-            f = date(int(m.group(3)), _mes(m.group(1)), int(m.group(2)))
+            f = date(anio, _mes(d.group(1)), int(d.group(2)))
         except ValueError:
             continue
-        anios.add(f.year)
-        out.append(Anuncio("PIB", f, HORA["PIB"]))
-    return sorted(set(out), key=lambda a: a.fecha), anios
+        hora = re.search(r'text-muted">\s*([^<]*?)\s*<', fila)
+        out.append(Anuncio("PIB", f, _hora_de(hora.group(1) if hora else "", HORA["PIB"])))
+    return sorted(set(out), key=lambda a: a.fecha), ({anio} if out else set())
 
 
 PARSERS = {"FOMC": parsear_fomc, "CPI": lambda h: parsear_bls(h, "CPI"), "NOMINAS": lambda h: parsear_bls(h, "NOMINAS"),
@@ -268,7 +332,12 @@ def _grabar(argv: list[str]) -> int:
     archivo, _ = cargar_archivo()
     rc = 0
     for tipo, url in URLS.items():
-        _, html = grabar_get(cliente, "calendario_economico", tipo.lower(), url, directorio=args.dir)
+        try:
+            _, html = grabar_get(cliente, "calendario_economico", tipo.lower(), url, directorio=args.dir)
+        except ErrorFuente as ex:
+            print(f"{tipo}: FUENTE CAÍDA ({ex.codigo})")
+            rc = 3
+            continue
         anuncios, anios = PARSERS[tipo](html)
         print(f"{tipo}: {len(anuncios)} fechas, años {sorted(anios)}")
         if not anuncios:
