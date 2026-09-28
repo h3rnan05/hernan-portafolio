@@ -8,8 +8,10 @@ Requires=momentum-movers-sombra.service
 # termina escribiendo movers.jsonl en medio del stash/pop (2026-09-28).
 # El segundo 30 cae fuera de esa ventana. El candado del persist cubre un
 # desfase si el vigía se reinicia. Persistent=false: una corrida atrasada
-# no sirve.
+# no sirve. El tramo 21:xx cubre el cierre de invierno; el código del
+# calendario decide si hay sesión.
 OnCalendar=Mon..Fri *-*-* 13..20:0/5:30 UTC
+OnCalendar=Mon..Fri *-*-* 21:00,05,10,15,20,25:30 UTC
 Persistent=false
 Unit=momentum-movers-sombra.service
 

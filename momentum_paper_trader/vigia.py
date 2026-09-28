@@ -50,15 +50,18 @@ import subprocess
 import sys
 import time
 from dataclasses import dataclass
-from datetime import UTC, datetime, time as dtime, timedelta
+from datetime import UTC, datetime
 from pathlib import Path
+
+from momentum_hunter import calendario
 
 log = logging.getLogger("momentum_paper_trader.vigia")
 
-# Ventana de la sesión regular en UTC, [inicio, fin). El último tick cae
-# a las 20:00:05: el cierre diario del paper (`cierre.py`) se decide ahí.
-INICIO_VENTANA = dtime(13, 0)
-FIN_VENTANA = dtime(20, 1)
+# La ventana ya no es 13:00–20:01 UTC. Sale del calendario del día
+# (media hora antes de abrir, un minuto después de cerrar) para que el
+# cierre diario corra también en invierno (21:00 UTC) y en una media
+# sesión. El proceso systemd sigue vivo fuera de esa ventana; esto solo
+# decide si el tick trabaja o duerme.
 CADENCIA_SEG = 60
 DESFASE_SEG = 5           # los ticks caen a los :05 de cada minuto
 PERSISTIR_CADA_TICKS = 5  # misma cadencia de commit que el timer viejo
@@ -77,10 +80,10 @@ LATIDO_DEFAULT = "/var/lib/momentum/vigia_latido.json"
 
 
 def en_ventana(ahora: datetime) -> bool:
-    """Lun-Vie, 13:00 <= hora UTC < 20:01. Los feriados los resuelven el
-    hunter y el paper por su cuenta (mercado cerrado = no se opera)."""
-    u = ahora.astimezone(UTC)
-    return u.weekday() < 5 and INICIO_VENTANA <= u.time() < FIN_VENTANA
+    """True si hoy hay sesión y estamos entre media hora antes de abrir
+    y un minuto después de cerrar. Feriado: False. Sin calendario para
+    hoy: solo el tramo de las 13:00 NY, para que el cierre diario corra."""
+    return calendario.en_ventana_operativa(ahora)
 
 
 def proximo_tick(ahora: datetime, cadencia: int = CADENCIA_SEG, desfase: int = DESFASE_SEG) -> datetime:
@@ -95,13 +98,7 @@ def proximo_tick(ahora: datetime, cadencia: int = CADENCIA_SEG, desfase: int = D
 
 
 def inicio_proxima_ventana(ahora: datetime) -> datetime:
-    u = ahora.astimezone(UTC)
-    candidato = datetime.combine(u.date(), INICIO_VENTANA, tzinfo=UTC)
-    if u >= candidato:
-        candidato += timedelta(days=1)
-    while candidato.weekday() >= 5:
-        candidato += timedelta(days=1)
-    return candidato
+    return calendario.inicio_proxima_ventana(ahora)
 
 
 @dataclass
@@ -240,10 +237,16 @@ class Vigia:
     # ── bucle ──
     def correr(self, max_ticks: int | None = None) -> int:
         """Bucle principal. `max_ticks` es solo para pruebas."""
-        log.info("vigía arrancado: cadencia %d s, persistir cada %d ticks, ventana %s-%s UTC Lun-Vie",
-                 self.cadencia, self.persistir_cada, INICIO_VENTANA.strftime("%H:%M"), FIN_VENTANA.strftime("%H:%M"))
+        self._refrescar_calendario()
+        log.info(
+            "vigía arrancado: cadencia %d s, persistir cada %d ticks, "
+            "ventana según calendario (%d min antes de abrir, %d min después de cerrar)",
+            self.cadencia, self.persistir_cada,
+            calendario.MINUTOS_ANTES_APERTURA, calendario.MINUTOS_DESPUES_CIERRE,
+        )
         while not self.detener:
             ahora = self.reloj()
+            self._avisar_calendario(ahora)
             if not en_ventana(ahora):
                 # Al salir de la ventana, una vez por día: corre el libro
                 # sombra del día y sube lo último, sombra incluida. La
@@ -276,6 +279,22 @@ class Vigia:
             self.persistir()
         log.info("vigía detenido tras %d tick(s)", self.ticks)
         return 0
+
+    def _refrescar_calendario(self) -> None:
+        """Al arrancar, el mismo refresco que el timer diario. Si Alpaca
+        no responde, se sigue con el archivo que ya había."""
+        try:
+            from momentum_paper_trader.calendario_job import refrescar_desde_entorno
+            refrescar_desde_entorno()
+        except Exception as ex:
+            log.warning("calendario: refresco al arrancar falló (%s)", type(ex).__name__)
+
+    def _avisar_calendario(self, ahora: datetime) -> None:
+        try:
+            from momentum_paper_trader.aviso_calendario import avisar_si_desconocido
+            avisar_si_desconocido(ahora)
+        except Exception as ex:
+            log.warning("calendario: no se pudo avisar (%s)", type(ex).__name__)
 
     def pedir_parada(self, *_args) -> None:
         """SIGTERM/SIGINT: termina el paso en curso, persiste y sale. El

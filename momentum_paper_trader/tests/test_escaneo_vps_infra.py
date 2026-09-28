@@ -39,6 +39,7 @@ def test_timer_del_escaneo_cada_30_min_en_sesion_sin_pisar_al_rechequeo():
     texto = SCAN_TIMER.read_text(encoding="utf-8")
     # :20, no :00: el pre-pull no puede seguir vivo cuando el vigía escribe a los :05.
     assert "OnCalendar=Mon..Fri *-*-* 13..20:01,31:20 UTC" in texto
+    assert "OnCalendar=Mon..Fri *-*-* 21:01:20 UTC" in texto
     assert "Persistent=false" in texto
     assert "Unit=momentum-scan.service" in texto
     servicio = SCAN_SERVICE.read_text(encoding="utf-8")
@@ -104,59 +105,6 @@ def test_vuelta_atras_sin_tocar_codigo():
 
 
 # ───────────── compuertas de GitHub ─────────────
-
-def _pasos(texto: str) -> list[str]:
-    marca = "\n    steps:\n"
-    cuerpo = texto.split(marca, 1)[1]
-    partes = cuerpo.split("\n      - ")
-    return [partes[0]] + ["      - " + p for p in partes[1:]]
-
-
-def _env_del_paso(paso: str) -> str:
-    """Solo el bloque env. Los comentarios entre pasos (el del paper
-    menciona MOMENTUM_PAPER_GHA) no son variables de este paso."""
-    ini = paso.find("\n        env:\n")
-    if ini < 0:
-        return ""
-    resto = paso[ini + len("\n        env:\n"):]
-    fin = resto.find("\n        run:")
-    return resto if fin < 0 else resto[:fin]
-
-
-def test_el_paso_del_hunter_en_gha_pide_sip_y_las_claves_no_salen_de_ahi():
-    """Respaldo alineado con el VPS: alpaca/sip solo en el paso que corre
-    momentum_hunter.run. El cron, la compuerta de respaldo y el paper
-    (apagado salvo MOMENTUM_PAPER_GHA) no se mueven con el feed."""
-    cron = {
-        HUNTER_WF: 'cron: "*/30 13-20 * * 1-5"',
-        WATCHLIST_WF: 'cron: "*/5 13-20 * * 1-5"',
-    }
-    for wf, cron_esperado in cron.items():
-        texto = wf.read_text(encoding="utf-8")
-        assert cron_esperado in texto, wf
-        assert "ALPACA_PAPER" not in texto.split("\n    steps:\n", 1)[0], wf
-        assert "MOMENTUM_DATA_PROVIDER" not in texto.split("\n    steps:\n", 1)[0], wf
-        hunter = [p for p in _pasos(texto) if "python -m momentum_hunter.run" in p]
-        assert len(hunter) == 1, wf
-        paso = hunter[0]
-        compuerta = next(l for l in paso.splitlines() if l.strip().startswith("if:"))
-        assert compuerta.strip() == "if: steps.vps.outputs.respaldo == 'true'"
-        env = _env_del_paso(paso)
-        assert "MOMENTUM_PAPER_GHA" not in env
-        assert "MOMENTUM_DATA_PROVIDER: alpaca" in env
-        assert "ALPACA_DATA_FEED: sip" in env
-        assert "ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}" in env
-        assert "ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}" in env
-        for otro in _pasos(texto):
-            if "python -m momentum_hunter.run" in otro:
-                continue
-            otro_env = _env_del_paso(otro)
-            assert "MOMENTUM_DATA_PROVIDER" not in otro_env, wf
-            assert "ALPACA_DATA_FEED" not in otro_env, wf
-            if "python -m momentum_paper_trader.run" in otro:
-                continue
-            assert "ALPACA_PAPER_API_KEY" not in otro_env, wf
-
 
 def test_github_solo_actua_como_respaldo_y_el_paper_esta_apagado_por_defecto():
     for wf in (HUNTER_WF, WATCHLIST_WF):

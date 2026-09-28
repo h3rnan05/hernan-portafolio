@@ -44,12 +44,12 @@ CUÁNDO. `cfg.minutos_antes_del_cierre` antes del cierre (16:00 ET), o
 sea 15:50 ET por defecto. El re-chequeo de watchlist corre cada pocos
 minutos, así que suele caer al menos una corrida dentro de esa ventana.
 
-La hora se calcula con la zona horaria real (`momentum_hunter.sesion`),
-así que el cambio de horario se aplica solo. Lo que sigue sin saberse
-son los feriados y las medias sesiones: en una media sesión (13:00 ET)
-esta ventana no se abriría y las posiciones quedarían sin liquidar. El
-ejecutor sí consulta el calendario real de Alpaca antes de ABRIR, pero
-el cierre todavía no. Anotado, no resuelto.
+La hora sale del calendario local (`momentum_hunter.sesion`), el mismo
+archivo que refresca el paper desde Alpaca: cambio de horario, feriados
+y medias sesiones (cierre 13:00 ET). Si ese archivo no cubre hoy, la
+ventana usa las 13:00 de Nueva York — lo más temprano que cierra un día
+hábil — y se avisa por Telegram una vez. Un feriado que sí está en el
+rango no abre ventana: ese día se sabe cerrado.
 
 IDEMPOTENTE por construcción: la segunda corrida dentro de la ventana ya
 no encuentra posiciones y no hace nada. No hace falta estado persistido.
@@ -117,14 +117,18 @@ def en_ventana_de_cierre(ahora: datetime, cfg: PaperTraderConfig) -> bool:
     cerrado y una orden a mercado no se ejecutaría hasta el día
     siguiente -- justo lo contrario de lo que se busca.
 
-    2026-08-27: pasa a calcularse con la zona horaria real
-    (`momentum_hunter.sesion`) en vez de la constante de verano que este
-    módulo usaba antes. Esa constante hacía que en horario de invierno
-    la ventana cayera una hora antes de tiempo -- se liquidaba a las
-    14:50 ET, con más de una hora de sesión por delante. Era una
-    limitación anotada y no resuelta en el docstring de arriba; ya está
-    resuelta."""
-    faltan = sesion.minutos_hasta_el_cierre(ahora)
+    El cierre es el del calendario de hoy (16:00 ET un día normal, 13:00
+    en una media sesión). Sin calendario para hoy se usa 13:00 NY y se
+    avisa una vez: mejor liquidar temprano que dejar la posición sin
+    stop hasta el día siguiente. Un feriado cubierto por el archivo no
+    abre esta ventana."""
+    if sesion.calendario_desconocido(ahora):
+        try:
+            from momentum_paper_trader.aviso_calendario import avisar_si_desconocido
+            avisar_si_desconocido(ahora)
+        except Exception as ex:
+            log.warning("calendario: no se pudo avisar (%s)", type(ex).__name__)
+    faltan = sesion.minutos_para_liquidar(ahora)
     return 0 < faltan <= cfg.minutos_antes_del_cierre
 
 

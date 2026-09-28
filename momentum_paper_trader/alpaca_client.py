@@ -299,16 +299,31 @@ class AlpacaPaperClient:
         """Estado del mercado según Alpaca (`GET /v2/clock`) -- solo
         lectura. Devuelve `is_open`, `next_open` y `next_close`.
 
-        Es la ÚNICA fuente de verdad de calendario que este proyecto
-        tiene: el resto del sistema deduce el horario de constantes
-        hardcodeadas en horario de verano (ver `momentum_hunter.factors.
-        intradia.HORA_CIERRE_UTC`), que en invierno se corren una hora, y
-        no sabe nada de feriados ni de medias sesiones. El executor lo
-        usa para no colocar órdenes de entrada con el mercado cerrado
-        (ver `executor._mercado_cerrado`)."""
+        Sigue siendo la lectura EN VIVO de si el mercado está abierto
+        ahora (`executor._mercado_cerrado`). Los horarios del día — apertura,
+        cierre, feriados, medias sesiones — no salen de acá en cada tick:
+        los refresca `calendario_job` a un archivo y el resto los lee de
+        ahí. Un reloj ilegible sigue siendo fail-closed. Pasa por `_http`
+        para contarla en `uso_api` (#204)."""
         r = _http("get", f"{_BASE_URL}/clock", headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         return r.json()
+
+    def calendario(self, inicio: str, fin: str) -> list:
+        """Días de mercado entre dos fechas (`GET /v2/calendar`), solo
+        lectura, host paper. `open`/`close` vienen en hora de Nueva York.
+        Un cuerpo que no sea una lista no se interpreta: el caller no
+        escribe el archivo."""
+        r = _http(
+            "get",
+            f"{_BASE_URL}/calendar",
+            params={"start": inicio, "end": fin},
+            headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        data = r.json()
+        if not isinstance(data, list):
+            raise ValueError("calendario")
+        return data
 
     def activo(self, ticker: str) -> dict:
         """Ficha del instrumento (`GET /v2/assets/{symbol}`) -- solo

@@ -25,9 +25,10 @@ from momentum_hunter.rutas_estado import RutaEstado
 
 PATH = RutaEstado("momentum_hunter/estado_diario.json")
 
-# ~20:00 UTC -- cerca del cierre de la sesión regular (mismo horario que
-# ya asume `report._HORA_CIERRE_UTC` y `factors/intradia.py`). Basta con
-# que UNA corrida del cron caiga en o después de esta hora.
+# ~20:00 UTC -- cerca del cierre de la sesión regular en VERANO. Es un
+# umbral editorial del resumen "hoy no hubo nada", no el cierre real:
+# ese lo da el calendario (`momentum_hunter.calendario`). Basta con que
+# UNA corrida del cron caiga en o después de esta hora.
 HORA_UTC_CIERRE_RESUMEN = 19.9
 
 MENSAJE_SIN_ALERTAS = (

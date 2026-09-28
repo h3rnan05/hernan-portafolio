@@ -87,12 +87,13 @@ else
 fi
 hour=$((10#$hour))
 
-# 1) Weekend and outside US window (UTC hour 13–20 inclusive).
+# 1) Weekend and outside the wide UTC span (hour 13–21 inclusive).
+#    Winter close is 21:00 UTC; the calendar, not this script, is the session.
 if [ "$dow" -gt 5 ]; then
   echo "INFO: weekend (dow=${dow} UTC); skip"
   exit 0
 fi
-if [ "$hour" -lt 13 ] || [ "$hour" -gt 20 ]; then
+if [ "$hour" -lt 13 ] || [ "$hour" -gt 21 ]; then
   echo "INFO: outside US window (hour=${hour} UTC); skip"
   exit 0
 fi

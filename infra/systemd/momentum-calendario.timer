@@ -1,0 +1,15 @@
+[Unit]
+Description=Calendario de sesión, una vez al día (antes de las 13:00 UTC)
+Requires=momentum-calendario.service
+
+[Timer]
+# 12:15 UTC cae antes de la ventana ancha (13:00) en verano y en invierno.
+# Persistent=true: si el VPS estaba apagado a esa hora, corre al encender.
+# El vigía también refresca al arrancar; este timer cubre el día en que
+# el proceso no se reinició.
+OnCalendar=*-*-* 12:15:00 UTC
+Persistent=true
+Unit=momentum-calendario.service
+
+[Install]
+WantedBy=timers.target

@@ -272,6 +272,7 @@ def test_unidades_de_sombra_no_se_instalan_solas_y_no_bloquean_al_escaneo():
     raiz = Path(__file__).resolve().parents[2] / "infra" / "systemd"
     timer = (raiz / "momentum-movers-sombra.timer").read_text(encoding="utf-8")
     assert "OnCalendar=Mon..Fri *-*-* 13..20:0/5:30 UTC" in timer and "NO se instala solo" in timer
+    assert "OnCalendar=Mon..Fri *-*-* 21:00,05,10,15,20,25:30 UTC" in timer
     wrapper = (raiz / "bin" / "run_movers_sombra.sh").read_text(encoding="utf-8")
     assert 'if [ "${MOMENTUM_MOVERS_SOMBRA:-0}" != "1" ]' in wrapper
     assert "flock -n 9" in wrapper and "momentum-paper-git.lock" in wrapper
