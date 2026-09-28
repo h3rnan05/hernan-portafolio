@@ -4855,27 +4855,181 @@
       },
       "capacidad_llena": null,
       "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-28T15:45:12+00:00",
+      "triggered_nuevos": 28,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 28
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-28T15:46:11+00:00",
+      "triggered_nuevos": 28,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 28
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-28T15:47:13+00:00",
+      "triggered_nuevos": 29,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 28,
+        "PRECIO_FUERA_DE_ALCANCE": 1
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-28T15:48:25+00:00",
+      "triggered_nuevos": 29,
+      "revisiones": 1,
+      "ordenes_colocadas": 1,
+      "paper_step_success_zero_orders": 0,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": [
+          1.4
+        ]
+      },
+      "latencias_ms": {
+        "descubrimiento": [
+          69000.0
+        ],
+        "alerta": [
+          70000.0
+        ],
+        "e2e": [
+          85000.0
+        ]
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 28
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-28T15:49:11+00:00",
+      "triggered_nuevos": 28,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "MAXIMO_POSICIONES": 1
+      },
+      "capacidad_llena": "MAXIMO_POSICIONES",
+      "fuente": "vps"
     }
   ],
   "sesion": {
-    "triggered_nuevos": 4678,
-    "revisiones": 2,
-    "ordenes_colocadas": 0,
-    "paper_step_success_zero_orders": 167,
+    "triggered_nuevos": 4820,
+    "revisiones": 3,
+    "ordenes_colocadas": 1,
+    "paper_step_success_zero_orders": 171,
     "muestras_latencia": {
-      "descubrimiento": 2,
-      "alerta": 2,
-      "e2e": 2
+      "descubrimiento": 3,
+      "alerta": 3,
+      "e2e": 3
     },
     "latencia_p50_ms": {
-      "descubrimiento": 116000.0,
-      "alerta": 116000.0,
-      "e2e": 136500.0
+      "descubrimiento": 106000.0,
+      "alerta": 106000.0,
+      "e2e": 130000.0
     },
     "latencia_p95_ms": {
-      "descubrimiento": 125000.0,
-      "alerta": 125000.0,
-      "e2e": 142350.0
+      "descubrimiento": 124000.0,
+      "alerta": 124000.0,
+      "e2e": 141700.0
     },
     "sobre_presupuesto": {
       "descubrimiento": 0,
@@ -4887,15 +5041,18 @@
     "version_medicion": 2,
     "bloqueos": {
       "MERCADO_CERRADO": 30,
-      "DATO_FALTANTE:ultimos_niveles_ts": 3836
+      "DATO_FALTANTE:ultimos_niveles_ts": 3948,
+      "PRECIO_FUERA_DE_ALCANCE": 1,
+      "MAXIMO_POSICIONES": 1
     },
     "corridas_sin_capacidad": {
-      "MERCADO_CERRADO": 30
+      "MERCADO_CERRADO": 30,
+      "MAXIMO_POSICIONES": 1
     },
     "latencia_total_velas": {
-      "muestras": 0,
-      "p50": null,
-      "p95": null,
+      "muestras": 1,
+      "p50": 1.4,
+      "p95": 1.4,
       "sobre_presupuesto": 0
     }
   }
