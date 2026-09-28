@@ -323,6 +323,24 @@ def test_el_hunter_no_importa_fuentes_hasta_que_una_se_apruebe():
             assert mod != "fuentes" and not mod.startswith("fuentes."), path
 
 
+def test_el_cli_como_modulo_ve_los_comandos_registrados(monkeypatch, capsys):
+    """`python -m fuentes` ejecuta `__main__.py` como el módulo `__main__`
+    (otro objeto que `fuentes.__main__`). Un comando registrado en
+    `fuentes.cli` tiene que verse desde ahí; en el VPS salía
+    "Disponibles: (ninguna)" porque el registro vivía en `__main__`."""
+    import runpy
+    import sys
+
+    from fuentes import cli
+    monkeypatch.setitem(cli.COMANDOS, "prueba", lambda argv: 0)
+    monkeypatch.setattr(sys, "argv", ["fuentes", "grabar", "x"])
+    with pytest.raises(SystemExit) as ex:
+        runpy.run_module("fuentes", run_name="__main__", alter_sys=True)
+    assert ex.value.code == 2
+    err = capsys.readouterr().err
+    assert "Disponibles:" in err and "prueba" in err and "(ninguna)" not in err
+
+
 def test_el_ci_corre_estas_pruebas():
     texto = (RAIZ / ".github" / "workflows" / "test.yml").read_text(encoding="utf-8")
     assert "fuentes/tests" in texto
