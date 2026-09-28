@@ -129060,6 +129060,1442 @@
           ]
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-28T18:31:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "WTTR",
+          "nombre": "Select Water Solutions, Inc.",
+          "precio_actual": 20.195,
+          "factores_intradia": {
+            "precio_actual": 20.195,
+            "vwap": 20.194394145510145,
+            "ema9": 20.217044772476537,
+            "rvol_actual": 3.7226795344876527,
+            "aceleracion_volumen": 1.4149312377210215,
+            "gap_pct": 0.009072580645161275,
+            "maximo_dia": 20.44,
+            "maximo_premarket": 19.92,
+            "rango_apertura_max": 20.02,
+            "rango_apertura_min": 19.635,
+            "velas_desde_ruptura": 161,
+            "macd": -0.023014334457332808,
+            "macd_signal": -0.015747070345536282
+          },
+          "meta": {
+            "float_acciones": 121830402.0,
+            "short_pct_float": 0.0514,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Select to acquire Delaware Basin-focused Pilot Water for $700m",
+            "fuente": "Offshore Technology",
+            "fecha": "2026-09-25T09:04:45Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4886.357083083333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 62.1,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 161 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 91.49312377210214,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.01369863013686,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 161 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 67.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 161 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.22,
+          "factores_intradia": {
+            "precio_actual": 17.22,
+            "vwap": 17.10729821614018,
+            "ema9": 17.204492714094155,
+            "rvol_actual": 0.8019183582422484,
+            "aceleracion_volumen": 0.8718963655991363,
+            "gap_pct": -0.005586592178770883,
+            "maximo_dia": 17.28,
+            "maximo_premarket": 17.0,
+            "rango_apertura_max": 17.02,
+            "rango_apertura_min": 16.77,
+            "velas_desde_ruptura": 3,
+            "macd": 0.012827149545639571,
+            "macd_signal": 0.010549882919290564
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4234.090439966667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 64.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 37.18963655991363,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.52777777777766,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 52.5,
+            "score_ajustado": 17.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T18:32:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "WTTR",
+          "nombre": "Select Water Solutions, Inc.",
+          "precio_actual": 20.21,
+          "factores_intradia": {
+            "precio_actual": 20.21,
+            "vwap": 20.194440141346597,
+            "ema9": 20.215635817981234,
+            "rvol_actual": 1.2230788569513116,
+            "aceleracion_volumen": 1.4638354346383544,
+            "gap_pct": 0.009072580645161275,
+            "maximo_dia": 20.44,
+            "maximo_premarket": 19.92,
+            "rango_apertura_max": 20.02,
+            "rango_apertura_min": 19.635,
+            "velas_desde_ruptura": null,
+            "macd": -0.022528934336591533,
+            "macd_signal": -0.017103443143747333
+          },
+          "meta": {
+            "float_acciones": 121830402.0,
+            "short_pct_float": 0.0514,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Select to acquire Delaware Basin-focused Pilot Water for $700m",
+            "fuente": "Offshore Technology",
+            "fecha": "2026-09-25T09:04:45Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4887.35395735,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 74.3,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 96.38354346383545,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.74755381604693,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.5,
+            "score_ajustado": 47.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.22,
+          "factores_intradia": {
+            "precio_actual": 17.22,
+            "vwap": 17.10729821614018,
+            "ema9": 17.204492714094155,
+            "rvol_actual": 0.8019183582422484,
+            "aceleracion_volumen": 0.8718963655991363,
+            "gap_pct": -0.005586592178770883,
+            "maximo_dia": 17.28,
+            "maximo_premarket": 17.0,
+            "rango_apertura_max": 17.02,
+            "rango_apertura_min": 16.77,
+            "velas_desde_ruptura": 3,
+            "macd": 0.012827149545639571,
+            "macd_signal": 0.010549882919290564
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4235.08731345,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 64.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 37.18963655991363,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.52777777777766,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 52.5,
+            "score_ajustado": 17.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T18:33:06+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "WTTR",
+          "nombre": "Select Water Solutions, Inc.",
+          "precio_actual": 20.21,
+          "factores_intradia": {
+            "precio_actual": 20.21,
+            "vwap": 20.194456745468834,
+            "ema9": 20.21450865438499,
+            "rvol_actual": 0.3591470258136925,
+            "aceleracion_volumen": 2.6322410766530138,
+            "gap_pct": 0.009072580645161275,
+            "maximo_dia": 20.44,
+            "maximo_premarket": 19.92,
+            "rango_apertura_max": 20.02,
+            "rango_apertura_min": 19.635,
+            "velas_desde_ruptura": null,
+            "macd": -0.021891895104253933,
+            "macd_signal": -0.018061133535848654
+          },
+          "meta": {
+            "float_acciones": 121830402.0,
+            "short_pct_float": 0.0514,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Select to acquire Delaware Basin-focused Pilot Water for $700m",
+            "fuente": "Offshore Technology",
+            "fecha": "2026-09-25T09:04:45Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4888.3522803666665,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 75.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 88.74755381604693,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 67.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        },
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.22,
+          "factores_intradia": {
+            "precio_actual": 17.22,
+            "vwap": 17.10729821614018,
+            "ema9": 17.204492714094155,
+            "rvol_actual": 0.8019183582422484,
+            "aceleracion_volumen": 0.8718963655991363,
+            "gap_pct": -0.005586592178770883,
+            "maximo_dia": 17.28,
+            "maximo_premarket": 17.0,
+            "rango_apertura_max": 17.02,
+            "rango_apertura_min": 16.77,
+            "velas_desde_ruptura": 3,
+            "macd": 0.012827149545639571,
+            "macd_signal": 0.010549882919290564
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4236.0856386666665,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 64.6,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 37.18963655991363,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.52777777777766,
+                "frescura_patron": 83.33333333333333,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 52.5,
+            "score_ajustado": 17.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T18:33:59+00:00",
+      "candidatos_evaluados": 1,
+      "candidatos": [
+        {
+          "ticker": "SKHY",
+          "nombre": "SK hynix Inc.",
+          "precio_actual": 182.28,
+          "factores_intradia": {
+            "precio_actual": 182.28,
+            "vwap": 182.24286835242046,
+            "ema9": 182.48345965646195,
+            "rvol_actual": 1.1954896743950336,
+            "aceleracion_volumen": 1.9451337027222353,
+            "gap_pct": -0.030068907913969465,
+            "maximo_dia": 191.56,
+            "maximo_premarket": 191.56,
+            "rango_apertura_max": 186.7,
+            "rango_apertura_min": 184.05,
+            "velas_desde_ruptura": null,
+            "macd": -0.06314640841881669,
+            "macd_signal": -0.044439930399402264
+          },
+          "meta": {
+            "float_acciones": 5673884737.0,
+            "short_pct_float": null,
+            "market_cap": 1297072783360.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "SKHY Likely to Gain From a Potential Intel Partnership: Worth a Buy?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-28T13:41:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 292.97510915000004,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 70.8,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 51.55564836082682,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T18:34:06+00:00",
+      "candidatos_evaluados": 3,
+      "candidatos": [
+        {
+          "ticker": "WTTR",
+          "nombre": "Select Water Solutions, Inc.",
+          "precio_actual": 20.28,
+          "factores_intradia": {
+            "precio_actual": 20.28,
+            "vwap": 20.195281515349087,
+            "ema9": 20.22760692350799,
+            "rvol_actual": 5.364740253811742,
+            "aceleracion_volumen": 2.1525965009719523,
+            "gap_pct": 0.009072580645161275,
+            "maximo_dia": 20.44,
+            "maximo_premarket": 19.92,
+            "rango_apertura_max": 20.02,
+            "rango_apertura_min": 19.635,
+            "velas_desde_ruptura": 164,
+            "macd": -0.015559264422464025,
+            "macd_signal": -0.01756075971317173
+          },
+          "meta": {
+            "float_acciones": 121830402.0,
+            "short_pct_float": 0.0514,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Select to acquire Delaware Basin-focused Pilot Water for $700m",
+            "fuente": "Offshore Technology",
+            "fecha": "2026-09-25T09:04:45Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4889.35532225,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.2,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 164 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 92.17221135029352,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 164 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 67.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El patrón se activó hace 164 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.22,
+          "factores_intradia": {
+            "precio_actual": 17.22,
+            "vwap": 17.108308113151047,
+            "ema9": 17.207594171275325,
+            "rvol_actual": 2.385450160771704,
+            "aceleracion_volumen": 1.6156583629893237,
+            "gap_pct": -0.005586592178770883,
+            "maximo_dia": 17.28,
+            "maximo_premarket": 17.0,
+            "rango_apertura_max": 17.02,
+            "rango_apertura_min": 16.77,
+            "velas_desde_ruptura": 202,
+            "macd": 0.013416027505570582,
+            "macd_signal": 0.011123111836546568
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4237.088714133333,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.7,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 202 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.52777777777766,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "El patrón se activó hace 202 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 52.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "El patrón se activó hace 202 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "SKHY",
+          "nombre": "SK hynix Inc.",
+          "precio_actual": 182.4,
+          "factores_intradia": {
+            "precio_actual": 182.4,
+            "vwap": 182.2429921188071,
+            "ema9": 182.46676772516957,
+            "rvol_actual": 1.2182853675046097,
+            "aceleracion_volumen": 1.1640875675236586,
+            "gap_pct": -0.029815675421648896,
+            "maximo_dia": 191.56,
+            "maximo_premarket": 191.56,
+            "rango_apertura_max": 186.7,
+            "rango_apertura_min": 184.05,
+            "velas_desde_ruptura": null,
+            "macd": -0.06688558165899394,
+            "macd_signal": -0.048929060651320605
+          },
+          "meta": {
+            "float_acciones": 5673884737.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "SKHY Likely to Gain From a Potential Intel Partnership: Worth a Buy?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-28T13:41:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 293.10552731666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 62.9,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 66.40875675236586,
+                "extension": 100.0,
+                "distancia_maximo_dia": 52.182083942367896,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T18:35:06+00:00",
+      "candidatos_evaluados": 3,
+      "candidatos": [
+        {
+          "ticker": "WTTR",
+          "nombre": "Select Water Solutions, Inc.",
+          "precio_actual": 20.28,
+          "factores_intradia": {
+            "precio_actual": 20.28,
+            "vwap": 20.195372831807212,
+            "ema9": 20.238085538806395,
+            "rvol_actual": 0.2076326606875934,
+            "aceleracion_volumen": 1.5268585675430644,
+            "gap_pct": 0.009072580645161275,
+            "maximo_dia": 20.44,
+            "maximo_premarket": 19.92,
+            "rango_apertura_max": 20.02,
+            "rango_apertura_min": 19.635,
+            "velas_desde_ruptura": 1,
+            "macd": -0.010420488082914403,
+            "macd_signal": -0.016132705387120264
+          },
+          "meta": {
+            "float_acciones": 121830402.0,
+            "short_pct_float": 0.0514,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Select to acquire Delaware Basin-focused Pilot Water for $700m",
+            "fuente": "Offshore Technology",
+            "fecha": "2026-09-25T09:04:45Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4890.357749866667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 92.17221135029352,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.5,
+            "score_ajustado": 47.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.22,
+          "factores_intradia": {
+            "precio_actual": 17.22,
+            "vwap": 17.108308113151047,
+            "ema9": 17.207594171275325,
+            "rvol_actual": 2.385450160771704,
+            "aceleracion_volumen": 1.6156583629893237,
+            "gap_pct": -0.005586592178770883,
+            "maximo_dia": 17.28,
+            "maximo_premarket": 17.0,
+            "rango_apertura_max": 17.02,
+            "rango_apertura_min": 16.77,
+            "velas_desde_ruptura": 202,
+            "macd": 0.013416027505570582,
+            "macd_signal": 0.011123111836546568
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4238.091110316667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 64.7,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 202 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.52777777777766,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+              "El patrón se activó hace 202 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 52.5,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto).",
+            "El patrón se activó hace 202 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados).",
+            "Que aparezca una configuración fresca -- esta ya corrió sin nosotros y perseguirla es mal negocio."
+          ]
+        },
+        {
+          "ticker": "SKHY",
+          "nombre": "SK hynix Inc.",
+          "precio_actual": 182.51,
+          "factores_intradia": {
+            "precio_actual": 182.51,
+            "vwap": 182.2431395587146,
+            "ema9": 182.4754141801357,
+            "rvol_actual": 0.6066031877458083,
+            "aceleracion_volumen": 0.9050817654299278,
+            "gap_pct": -0.029815675421648896,
+            "maximo_dia": 191.56,
+            "maximo_premarket": 191.56,
+            "rango_apertura_max": 186.7,
+            "rango_apertura_min": 184.05,
+            "velas_desde_ruptura": 0,
+            "macd": -0.060277975717156096,
+            "macd_signal": -0.05119884366448771
+          },
+          "meta": {
+            "float_acciones": 5673884737.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "SKHY Likely to Gain From a Potential Intel Partnership: Worth a Buy?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-28T13:41:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 294.1078362833333,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 63.4,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 40.50817654299278,
+                "extension": 100.0,
+                "distancia_maximo_dia": 52.75631655878043,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T18:36:06+00:00",
+      "candidatos_evaluados": 3,
+      "candidatos": [
+        {
+          "ticker": "WTTR",
+          "nombre": "Select Water Solutions, Inc.",
+          "precio_actual": 20.26,
+          "factores_intradia": {
+            "precio_actual": 20.26,
+            "vwap": 20.195471073052857,
+            "ema9": 20.242468431045115,
+            "rvol_actual": 0.2650429799426934,
+            "aceleracion_volumen": 1.5325108369456486,
+            "gap_pct": 0.009072580645161275,
+            "maximo_dia": 20.44,
+            "maximo_premarket": 19.92,
+            "rango_apertura_max": 20.02,
+            "rango_apertura_min": 19.635,
+            "velas_desde_ruptura": 2,
+            "macd": -0.007871070858676887,
+            "macd_signal": -0.014480378481431588
+          },
+          "meta": {
+            "float_acciones": 121830402.0,
+            "short_pct_float": 0.0514,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Select to acquire Delaware Basin-focused Pilot Water for $700m",
+            "fuente": "Offshore Technology",
+            "fecha": "2026-09-25T09:04:45Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4891.356309366666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 91.19373776908024,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.5,
+            "score_ajustado": 47.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.22,
+          "factores_intradia": {
+            "precio_actual": 17.22,
+            "vwap": 17.10842729496195,
+            "ema9": 17.21007533702026,
+            "rvol_actual": 0.24557445331482122,
+            "aceleracion_volumen": 1.2648932184338704,
+            "gap_pct": -0.005586592178770883,
+            "maximo_dia": 17.28,
+            "maximo_premarket": 17.0,
+            "rango_apertura_max": 17.02,
+            "rango_apertura_min": 16.77,
+            "velas_desde_ruptura": 2,
+            "macd": 0.01372450992425911,
+            "macd_signal": 0.011643391454089077
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4239.089667616667,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 75.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 76.48932184338705,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.52777777777766,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 52.5,
+            "score_ajustado": 17.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "SKHY",
+          "nombre": "SK hynix Inc.",
+          "precio_actual": 182.4223,
+          "factores_intradia": {
+            "precio_actual": 182.4223,
+            "vwap": 182.2433515565478,
+            "ema9": 182.46479134410856,
+            "rvol_actual": 1.0899849784966151,
+            "aceleracion_volumen": 0.8327089203331579,
+            "gap_pct": -0.029815675421648896,
+            "maximo_dia": 191.56,
+            "maximo_premarket": 191.56,
+            "rango_apertura_max": 186.7,
+            "rango_apertura_min": 184.05,
+            "velas_desde_ruptura": null,
+            "macd": -0.061410159372798034,
+            "macd_signal": -0.05324110680614978
+          },
+          "meta": {
+            "float_acciones": 5673884737.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "SKHY Likely to Gain From a Potential Intel Partnership: Worth a Buy?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-28T13:41:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 295.10639855000005,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 55.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 33.27089203331579,
+                "extension": 100.0,
+                "distancia_maximo_dia": 52.29849655460428,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
+    },
+    {
+      "timestamp": "2026-09-28T18:37:06+00:00",
+      "candidatos_evaluados": 3,
+      "candidatos": [
+        {
+          "ticker": "WTTR",
+          "nombre": "Select Water Solutions, Inc.",
+          "precio_actual": 20.26,
+          "factores_intradia": {
+            "precio_actual": 20.26,
+            "vwap": 20.195471073052857,
+            "ema9": 20.242468431045115,
+            "rvol_actual": 0.2650429799426934,
+            "aceleracion_volumen": 1.5325108369456486,
+            "gap_pct": 0.009072580645161275,
+            "maximo_dia": 20.44,
+            "maximo_premarket": 19.92,
+            "rango_apertura_max": 20.02,
+            "rango_apertura_min": 19.635,
+            "velas_desde_ruptura": 2,
+            "macd": -0.007871070858676887,
+            "macd_signal": -0.014480378481431588
+          },
+          "meta": {
+            "float_acciones": 121830402.0,
+            "short_pct_float": 0.0514,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Select to acquire Delaware Basin-focused Pilot Water for $700m",
+            "fuente": "Offshore Technology",
+            "fecha": "2026-09-25T09:04:45Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4892.3558474,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 79.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 91.19373776908024,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo."
+            ],
+            "score_base": 67.5,
+            "score_ajustado": 47.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza."
+          ]
+        },
+        {
+          "ticker": "DAKT",
+          "nombre": "Daktronics, Inc.",
+          "precio_actual": 17.22,
+          "factores_intradia": {
+            "precio_actual": 17.22,
+            "vwap": 17.10842729496195,
+            "ema9": 17.21007533702026,
+            "rvol_actual": 0.24557445331482122,
+            "aceleracion_volumen": 1.2648932184338704,
+            "gap_pct": -0.005586592178770883,
+            "maximo_dia": 17.28,
+            "maximo_premarket": 17.0,
+            "rango_apertura_max": 17.02,
+            "rango_apertura_min": 16.77,
+            "velas_desde_ruptura": 2,
+            "macd": 0.01372450992425911,
+            "macd_signal": 0.011643391454089077
+          },
+          "meta": {
+            "float_acciones": 45922229.0,
+            "short_pct_float": 0.044699997,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "buyback",
+            "titular": "Daktronics' 2026 Outlook: Capital Allocation Strategy Supports $40 Million Buyback Program",
+            "fuente": "Motley Fool",
+            "fecha": "2026-09-25T19:57:01Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 4240.0892728,
+          "es_large_cap": false,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": "trend_continuation",
+            "temprano": true,
+            "early": {
+              "score": 75.0,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 76.48932184338705,
+                "extension": 100.0,
+                "distancia_maximo_dia": 96.52777777777766,
+                "frescura_patron": 100.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+            ],
+            "score_base": 52.5,
+            "score_ajustado": 17.5,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un desequilibrio claro de oferta/demanda (float bajo o interés en corto alto)."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que exista un desequilibrio real de oferta/demanda (pocas acciones disponibles, o muchos vendedores en corto atrapados)."
+          ]
+        },
+        {
+          "ticker": "SKHY",
+          "nombre": "SK hynix Inc.",
+          "precio_actual": 182.46,
+          "factores_intradia": {
+            "precio_actual": 182.46,
+            "vwap": 182.24355266043165,
+            "ema9": 182.46383307528686,
+            "rvol_actual": 0.9461166770103732,
+            "aceleracion_volumen": 0.8719863228777781,
+            "gap_pct": -0.029815675421648896,
+            "maximo_dia": 191.56,
+            "maximo_premarket": 191.56,
+            "rango_apertura_max": 186.7,
+            "rango_apertura_min": 184.05,
+            "velas_desde_ruptura": null,
+            "macd": -0.058589959565978234,
+            "macd_signal": -0.054310877358115475
+          },
+          "meta": {
+            "float_acciones": 5673884737.0,
+            "short_pct_float": null,
+            "market_cap": null,
+            "bolsa": null
+          },
+          "catalizador": {
+            "tipo": "nuevo_cliente",
+            "titular": "SKHY Likely to Gain From a Potential Intel Partnership: Worth a Buy?",
+            "fuente": "Zacks",
+            "fecha": "2026-09-28T13:41:00Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 296.10610271666667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 56.1,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 37.19863228777781,
+                "extension": 100.0,
+                "distancia_maximo_dia": 52.49530173313843,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.2,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "descartada_por_evaluador",
+          "motivos": [
+            "El volumen no muestra que esté entrando dinero ahora mismo.",
+            "No hay un patrón técnico claro formándose todavía."
+          ],
+          "que_tendria_que_cambiar": [
+            "Que el volumen del momento supere 3 veces el de los minutos anteriores -- hoy no está entrando dinero con fuerza.",
+            "Que el precio forme una de las seis figuras que sé operar -- sin una forma clara no hay entrada ni salida definibles."
+          ]
+        }
+      ]
     }
   ]
 }
