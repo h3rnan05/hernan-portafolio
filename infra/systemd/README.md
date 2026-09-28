@@ -34,6 +34,9 @@ Alpaca.
 | `bin/run_scan_paper.sh` | `/opt/momentum/bin/` | wrapper del escaneo: sin candado durante el escaneo; candado solo al escribir la watchlist y al commitear |
 | `momentum-movers-sombra.service` / `.timer` | **NO se instala solo** | ejemplo: descubrimiento "movers" en sombra cada 5 min (:02, :07, …), solo telemetría (`momentum_hunter/movers.py`) |
 | `bin/run_movers_sombra.sh` | `/opt/momentum/bin/` (solo si se instala la sombra) | wrapper: no-op salvo `MOMENTUM_MOVERS_SOMBRA=1`; flock solo contra sí mismo |
+| `shadow/momentum-shadow-noticias.service` / `.timer` | **NO se instala solo** | sombra B1: noticias Alpaca+Yahoo, JSONL fuera del repo (`shadow_alpaca/`) |
+| `shadow/momentum-shadow-screener.service` / `.timer` | **NO se instala solo** | sombra B2: most-actives y movers cada 5 min; no filtra market cap |
+| `bin/run_shadow_noticias.sh`, `bin/run_shadow_screener.sh` | `/opt/momentum/bin/` (solo si se instala la sombra Alpaca) | no-op salvo `SHADOW_ALPACA=1`; no hacen git ni tocan la watchlist |
 
 **No versionado a propósito:** `/etc/momentum/paper.env` (credenciales;
 viven en el VPS y en GitHub Secrets, nunca en el repo).
@@ -61,6 +64,7 @@ aparte; el validador acepta ambos porque ambos existen.
 Desde `/opt/hernan-portafolio` con `main` al día:
 
 ```bash
+# El glob no entra en shadow/: esas unidades no son del camino operativo.
 sudo cp infra/systemd/*.service infra/systemd/*.timer /etc/systemd/system/
 sudo mkdir -p /etc/systemd/system/momentum-watchlist.service.d
 sudo cp infra/systemd/momentum-watchlist.service.d/*.conf \
@@ -298,3 +302,50 @@ Secretos del repositorio (Settings → Secrets and variables → Actions):
 falla antes de intentar nada. La llave vive solo en GitHub (regla 7 del
 CLAUDE.md); el runner la escribe con permisos 600 y la borra al final.
 Cada despliegue queda en el historial de Actions con su motivo.
+
+## Sombra Alpaca (`shadow_alpaca/`, 2026-09-28): NO se instala sola
+
+Herramienta de comparación, en un paquete que el hunter y el paper trader
+no importan. Habla solo con `https://data.alpaca.markets` (noticias
+Benzinga, screener y barras SIP). No escribe `watchlist.json`, no manda
+Telegram, no coloca órdenes y no entra en el `git add` del vigía: el JSONL
+vive en `/var/lib/momentum/shadow_alpaca`, fuera del repo.
+
+El `cp infra/systemd/*.service` de arriba no copia `shadow/` a propósito.
+B3 (histórico SIP) no tiene unidad: es un CLI offline, sin timer.
+
+Las dos unidades quedan en no-op mientras `SHADOW_ALPACA` no sea `1`.
+No escriben la pausa de Yahoo del bot; si esa pausa ya está activa, B1
+anota el lado Yahoo como no disponible en vez de como una lista vacía.
+
+Instalar, a mano, desde `/opt/hernan-portafolio` con `main` al día:
+
+```bash
+echo 'SHADOW_ALPACA=1' | sudo tee -a /etc/momentum/paper.env
+sudo install -d /var/lib/momentum/shadow_alpaca
+sudo install -m 755 infra/systemd/bin/run_shadow_noticias.sh infra/systemd/bin/run_shadow_screener.sh /opt/momentum/bin/
+sudo cp infra/systemd/shadow/momentum-shadow-noticias.service infra/systemd/shadow/momentum-shadow-noticias.timer /etc/systemd/system/
+sudo cp infra/systemd/shadow/momentum-shadow-screener.service infra/systemd/shadow/momentum-shadow-screener.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now momentum-shadow-noticias.timer momentum-shadow-screener.timer
+```
+
+B1 corre a :18 y :48 (el escaneo arranca a :01 y :31). B2 corre cada 5 min
+en :04, :09, …, Lun–Vie 13–20 UTC, y dentro del proceso no llama a Alpaca
+si la sesión regular está cerrada.
+
+Apagar: `sudo systemctl disable --now momentum-shadow-noticias.timer momentum-shadow-screener.timer`.
+Sin la variable, el wrapper ya sale enseguida.
+
+Histórico SIP (no se programa; no lo llama el vigía ni el escaneo):
+
+```bash
+python -m shadow_alpaca historia descargar --simbolos AAPL --desde 2016-01-01 --hasta 2016-01-31 --almacen /var/lib/momentum/shadow_alpaca/sip
+python -m shadow_alpaca historia diff --simbolos AAPL --desde 2016-01-01 --hasta 2016-01-31 --almacen /var/lib/momentum/shadow_alpaca/sip
+python -m shadow_alpaca informe --sesiones 5
+```
+
+Un rango de minutos desde 2016 es mucho volumen: el CLI pagina y, si corta
+por el tope, lo anota en el `.meta.json` (`truncado: true`). No rellena
+velas incompletas con ceros.
+
