@@ -882,9 +882,17 @@ def _sin_bloqueo_corporativo(candidatos: list, guardia, ahora: datetime) -> list
         if motivo is None:
             permitidos.append(c)
             continue
-        log.info("%s: no puede disparar hoy (%s)", c.ticker, motivo)
+        observando = getattr(guardia, "observando", False)
         if getattr(c.resultado, "accionable", False):
-            acc_corp.registrar("bloqueo_disparo", c.ticker, motivo, ahora)
+            acc_corp.registrar(
+                "observacion_disparo" if observando else "bloqueo_disparo", c.ticker, motivo, ahora)
+        if observando:
+            # Modo observación: se registra lo que se habría bloqueado y
+            # la candidata compite igual que antes de esta guardia.
+            log.info("%s: OBSERVACIÓN -- en enforce no podría disparar hoy (%s)", c.ticker, motivo)
+            permitidos.append(c)
+            continue
+        log.info("%s: no puede disparar hoy (%s)", c.ticker, motivo)
     return permitidos
 
 
@@ -1130,7 +1138,11 @@ def _revisar_watchlist_cuerpo(
         if bi_t is None:
             continue
         motivo_corp = guardia_corp.motivo(e.ticker)
-        if motivo_corp is not None:
+        if motivo_corp is not None and guardia_corp.bloquea(e.ticker) is None:
+            log.info("%s: OBSERVACIÓN -- en enforce no se refrescarían los niveles (%s)",
+                     e.ticker, motivo_corp)
+            acc_corp.registrar("observacion_refresco", e.ticker, motivo_corp, ahora)
+        elif motivo_corp is not None:
             # Sin refresco, los niveles envejecen y el ejecutor los
             # rechaza por rancios: así la guardia llega hasta la orden
             # sin que el hunter tenga que saber nada de órdenes.

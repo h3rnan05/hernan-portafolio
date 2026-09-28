@@ -760,12 +760,17 @@ deterministas:
    serie ya viene ajustada no se toca; si viene cruda se ajusta; si el salto
    no se parece claramente a ninguna de las dos, ese símbolo no dispara hoy.
 
-Fail-closed: si la consulta falla (sin claves, red, página ilegible), no se
-dispara nada en esa corrida. Una candidata bloqueada sigue en WATCHING. Se
-apaga solo en emergencia con `MOMENTUM_ACCIONES_CORPORATIVAS=0` (WARNING en
-cada corrida). Cada bloqueo accionable queda en
-`/var/lib/momentum/acciones_corporativas.jsonl` (fuera de git; otra ruta con
-`MOMENTUM_ACCIONES_CORP_LOG`).
+**Modo (`MOMENTUM_CORP_ACTIONS`).** Arranca en `observar` (default): consulta
+todo y registra qué bloquearía o ajustaría, sin bloquear ni tocar precios. Se
+pasa a `enforce` a mano después de una sesión limpia; para revisarla:
+`python -m momentum_hunter.data.acciones_corporativas --resumen AAAA-MM-DD`.
+`off` es solo para emergencias. Un valor desconocido cuenta como `enforce`.
+
+En `enforce` es fail-closed: si la consulta falla (sin claves, red, página
+ilegible), no se dispara nada en esa corrida. Una candidata bloqueada sigue en
+WATCHING. Todo queda en `/var/lib/momentum/acciones_corporativas.jsonl` (fuera
+de git; otra ruta con `MOMENTUM_ACCIONES_CORP_LOG`): `observacion_*` en
+`observar`, `bloqueo_*`/`ajuste` en `enforce`, y `consulta_fallida` en los dos.
 
 Limitación anotada: `FRACCION_CONFIANZA = 0.25` (cuánto se tiene que parecer
 el salto a "ajustada" o "cruda") es razonamiento, no calibración. No cambia

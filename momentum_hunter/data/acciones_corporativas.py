@@ -42,10 +42,17 @@ guardia pide un rango ancho alrededor de hoy (-7 / +75 días) y filtra
 localmente por las fechas que sí mueven el precio. Pedir de más cuesta
 un par de registros; pedir de menos dejaría pasar la ex-date de hoy.
 
-APAGADO DE EMERGENCIA. `MOMENTUM_ACCIONES_CORPORATIVAS=0` deja el
-comportamiento anterior (sin guardia ni ajuste) y lo avisa con WARNING
-en cada corrida. El default es encendido: esto es una protección, y una
-protección que hay que acordarse de prender no protege.
+MODO (`MOMENTUM_CORP_ACTIONS`):
+  - `observar` (default mientras no haya una sesión limpia): se consulta
+    todo igual y se registra QUÉ se habría bloqueado o ajustado, pero no
+    se bloquea ni se toca ninguna serie. Es el comportamiento anterior
+    más el registro.
+  - `enforce`: bloquea y ajusta como se describe arriba. Se pasa a este
+    modo a mano, después de una sesión limpia en `observar`
+    (`python -m momentum_hunter.data.acciones_corporativas --resumen`).
+  - `off`: ni consulta ni registra (emergencia), con WARNING por corrida.
+  Un valor desconocido se trata como `enforce` (fail-closed) y se avisa:
+  una errata no debe apagar una protección en silencio.
 
 Registro fuera de git: `MOMENTUM_ACCIONES_CORP_LOG` (JSONL). Sin la
 variable se usa `/var/lib/momentum/acciones_corporativas.jsonl` si ese
@@ -72,7 +79,11 @@ RUTA = "/v1/corporate-actions"
 LIMITE_PAGINA = 1000
 NY = ZoneInfo("America/New_York")
 
-ENV_ENCENDIDO = "MOMENTUM_ACCIONES_CORPORATIVAS"
+ENV_MODO = "MOMENTUM_CORP_ACTIONS"
+MODO_OBSERVAR = "observar"
+MODO_ENFORCE = "enforce"
+MODO_APAGADO = "off"
+MODO_DEFAULT = MODO_OBSERVAR
 ENV_LOG = "MOMENTUM_ACCIONES_CORP_LOG"
 LOG_DEFAULT = Path("/var/lib/momentum/acciones_corporativas.jsonl")
 
@@ -134,6 +145,8 @@ class Guardia:
     disponible: bool
     codigo: str | None = None
     apagada: bool = False
+    # Modo `observar`: `motivo` dice qué bloquearía, `bloquea` nunca bloquea.
+    observando: bool = False
     hoy: dict[str, tuple[str, ...]] = field(default_factory=dict)
     sin_fecha: set[str] = field(default_factory=set)
     sin_verificar: dict[str, str] = field(default_factory=dict)
@@ -156,6 +169,11 @@ class Guardia:
             return "split_sin_verificar:" + self.sin_verificar[clave]
         return None
 
+    def bloquea(self, ticker: str) -> str | None:
+        """Lo que el caller debe respetar: el motivo en `enforce`, None
+        en `observar` (el motivo igual se registra, ver `run.py`)."""
+        return None if self.observando else self.motivo(ticker)
+
 
 def normalizar(ticker: str) -> str:
     """Una sola forma de clave para los dos estilos de clase: el
@@ -163,8 +181,15 @@ def normalizar(ticker: str) -> str:
     return str(ticker).strip().upper().replace(".", "-").replace("/", "-")
 
 
-def encendida() -> bool:
-    return os.environ.get(ENV_ENCENDIDO, "1").strip().lower() not in {"0", "false", "no", "off"}
+def modo() -> str:
+    crudo = os.environ.get(ENV_MODO, "").strip().lower()
+    if not crudo:
+        return MODO_DEFAULT
+    if crudo in (MODO_OBSERVAR, MODO_ENFORCE, MODO_APAGADO):
+        return crudo
+    log.warning("acciones corporativas: %s=%r no es observar/enforce/off -- se aplica enforce",
+                ENV_MODO, crudo)
+    return MODO_ENFORCE
 
 
 def hoy_ny(ahora: datetime | None = None) -> date:
@@ -339,9 +364,20 @@ def consultar(
     vuelve como `disponible=False` (que bloquea todo). `base` es lo que
     dejó `verificar_historia` en el escaneo."""
     fecha = hoy_ny(ahora)
-    if not encendida():
-        log.warning("acciones corporativas: APAGADAS por %s=0 -- no se verifica nada", ENV_ENCENDIDO)
+    m = modo()
+    if m == MODO_APAGADO:
+        log.warning("acciones corporativas: APAGADAS por %s=off -- no se verifica nada", ENV_MODO)
         return Guardia(fecha=fecha, disponible=True, apagada=True)
+    guardia = _consultar(tickers, fecha, cliente, base)
+    guardia.observando = m == MODO_OBSERVAR
+    if not guardia.disponible:
+        registrar("consulta_fallida", "*", guardia.codigo or "desconocido", ahora)
+    return guardia
+
+
+def _consultar(
+    tickers: list[str], fecha: date, cliente: ClienteAcciones | None, base: Guardia | None,
+) -> Guardia:
     interes = {normalizar(t) for t in tickers if isinstance(t, str) and t.strip()}
     if not interes:
         return _heredar(Guardia(fecha=fecha, disponible=True), base)
@@ -363,7 +399,7 @@ def consultar(
     if sin_simbolo:
         log.warning("acciones corporativas: %d registro(s) sin símbolo -- no se atribuyen a nadie", sin_simbolo)
     for s, tipos in sorted(guardia.hoy.items()):
-        log.info("acciones corporativas: %s tiene %s con fecha hoy (%s) -- no se dispara",
+        log.info("acciones corporativas: %s tiene %s con fecha hoy (%s) -- motivo de bloqueo",
                  s, "/".join(tipos), fecha.isoformat())
     return guardia
 
@@ -452,8 +488,9 @@ def verificar_historia(
     ajustadas, guardia parcial con qué se ajustó y qué no se pudo
     verificar). Si el pedido falla, la guardia sale no disponible."""
     fecha = hoy_ny(ahora)
-    guardia = Guardia(fecha=fecha, disponible=True)
-    if not encendida():
+    m = modo()
+    guardia = Guardia(fecha=fecha, disponible=True, observando=m == MODO_OBSERVAR)
+    if m == MODO_APAGADO:
         guardia.apagada = True
         return barras, guardia
     primeras = [fecha_de_barra(b.fechas[0]) for b in barras.values() if b.fechas]
@@ -470,10 +507,12 @@ def verificar_historia(
         log.warning("acciones corporativas: historia de splits no disponible (%s) -- no se dispara nada",
                     ex.codigo)
         guardia.disponible, guardia.codigo = False, f"historia:{ex.codigo}"
+        registrar("consulta_fallida", "*", guardia.codigo, ahora)
         return barras, guardia
     except Exception as ex:   # noqa: BLE001
         log.warning("acciones corporativas: fallo inesperado en historia (%s)", type(ex).__name__)
         guardia.disponible, guardia.codigo = False, f"historia:{type(ex).__name__}"
+        registrar("consulta_fallida", "*", guardia.codigo, ahora)
         return barras, guardia
 
     por_simbolo: dict[str, list[AccionCorporativa]] = {}
@@ -504,17 +543,23 @@ def verificar_historia(
         if dudosas:
             a, v = dudosas[0]
             guardia.sin_verificar[normalizar(ticker)] = f"{a.tipo}:{v}"
+            registrar("observacion_sin_verificar" if guardia.observando else "sin_verificar",
+                      ticker, f"{a.tipo}:{v}", ahora)
             log.warning("acciones corporativas: %s tiene %s del %s y la serie no se puede verificar (%s) "
-                        "-- no se dispara hoy", ticker, a.tipo, (a.ex_date or a.effective_date), v)
+                        "-- motivo de bloqueo hoy", ticker, a.tipo, (a.ex_date or a.effective_date), v)
             continue
         nueva = b
         for a, v in veredictos:
             if v == "cruda":
                 nueva = ajustar(nueva, a)
                 guardia.ajustados[normalizar(ticker)] = f"{a.tipo}:{a.factor:g}"
-                log.warning("acciones corporativas: %s venía SIN ajustar por %s (x%g, ex %s) -- ajustada",
-                            ticker, a.tipo, a.factor, a.ex_date or a.effective_date)
-        out[ticker] = nueva
+                registrar("observacion_ajuste" if guardia.observando else "ajuste",
+                          ticker, f"{a.tipo}:{a.factor:g}", ahora)
+                log.warning("acciones corporativas: %s venía SIN ajustar por %s (x%g, ex %s) -- %s",
+                            ticker, a.tipo, a.factor, a.ex_date or a.effective_date,
+                            "se AJUSTARÍA (observación)" if guardia.observando else "ajustada")
+        if not guardia.observando:
+            out[ticker] = nueva
     return out, guardia
 
 
@@ -547,6 +592,46 @@ def registrar(evento: str, ticker: str, motivo: str, ahora: datetime | None = No
         log.debug("acciones corporativas: no se pudo escribir el registro (%s)", type(ex).__name__)
 
 
+# ----------------------------------------------------- ¿sesión limpia?
+
+
+def resumen_sesion(fecha_ny: str, ruta: Path | None = None) -> dict[str, dict[str, int]]:
+    """evento -> {ticker: veces} de una fecha de Nueva York, leído del
+    JSONL. Es lo que se mira antes de pasar de `observar` a `enforce`."""
+    ruta = ruta or _ruta_log()
+    out: dict[str, dict[str, int]] = {}
+    if ruta is None or not ruta.exists():
+        return out
+    for linea in ruta.read_text(encoding="utf-8").splitlines():
+        try:
+            fila = json.loads(linea)
+            ts = datetime.fromisoformat(fila["ts"])
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError):
+            continue
+        if hoy_ny(ts).isoformat() != fecha_ny:
+            continue
+        por = out.setdefault(str(fila.get("evento")), {})
+        por[str(fila.get("ticker"))] = por.get(str(fila.get("ticker")), 0) + 1
+    return out
+
+
+def formatear_resumen(resumen: dict[str, dict[str, int]], fecha_ny: str) -> str:
+    """"Limpia" = ninguna consulta fallida y ningún bloqueo u observación
+    que el dueño no pueda explicar con una acción corporativa real. Lo
+    primero lo dice este texto; lo segundo lo decide una persona."""
+    if not resumen:
+        return (f"{fecha_ny}: sin registros (¿corrió la guardia? ¿existe el JSONL?). "
+                "Sin registros no hay evidencia de sesión limpia.")
+    lineas = [f"Acciones corporativas, {fecha_ny}:"]
+    for evento, por in sorted(resumen.items()):
+        detalle = ", ".join(f"{t}×{n}" for t, n in sorted(por.items()))
+        lineas.append(f"  {evento}: {sum(por.values())} ({detalle})")
+    fallidas = sum(resumen.get("consulta_fallida", {}).values())
+    lineas.append("  consultas fallidas: " + ("NINGUNA" if not fallidas else
+                                              f"{fallidas} -- en enforce, esos minutos no habrían disparado"))
+    return "\n".join(lineas)
+
+
 # ------------------------------------------------------------ verificación
 
 
@@ -559,7 +644,12 @@ def _probar(argv: list[str] | None = None) -> int:
     endpoint no fuera el que este módulo supone, sale aquí como
     `no disponible (http_400)`, y no como un día entero sin disparos."""
     import sys
-    tickers = list(argv if argv is not None else sys.argv[1:]) or ["AAPL"]
+    args = list(argv if argv is not None else sys.argv[1:])
+    if args and args[0] == "--resumen":
+        fecha = args[1] if len(args) > 1 else hoy_ny().isoformat()
+        print(formatear_resumen(resumen_sesion(fecha), fecha))
+        return 0
+    tickers = args or ["AAPL"]
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
     ahora = datetime.now(UTC)
     guardia = consultar(tickers, ahora)

@@ -49,8 +49,10 @@ def _cliente(grupos=None, error=None):
 
 
 @pytest.fixture(autouse=True)
-def _encendida(monkeypatch):
-    monkeypatch.delenv(ac.ENV_ENCENDIDO, raising=False)
+def _enforce(monkeypatch):
+    # Casi todas las pruebas miden el bloqueo real; las de observación
+    # cambian el modo explícitamente.
+    monkeypatch.setenv(ac.ENV_MODO, ac.MODO_ENFORCE)
 
 
 # ------------------------------------------------------------------ parseo
@@ -166,7 +168,7 @@ def test_el_codigo_del_fallo_es_una_etiqueta_no_el_texto():
 
 
 def test_apagada_por_variable_no_bloquea_ni_pide_nada(monkeypatch):
-    monkeypatch.setenv(ac.ENV_ENCENDIDO, "0")
+    monkeypatch.setenv(ac.ENV_MODO, "off")
     transporte = _Transporte(error=ErrorDatosAlpaca("red"))
     g = ac.consultar(["KO"], MEDIODIA, ac.ClienteAcciones(transporte))
     assert g.motivo("KO") is None and transporte.pedidos == []
@@ -360,3 +362,75 @@ def test_una_serie_con_fecha_ilegible_y_split_en_la_ventana_no_se_ajusta_a_ciega
     out, g = ac.verificar_historia({"MULN": b}, MEDIODIA, _cliente(_reverse()))
     assert out["MULN"] is b
     assert g.motivo("MULN") == "split_sin_verificar:reverse_split:ambigua"
+
+
+# ------------------------------------------------------------ modo observar
+
+
+def test_el_modo_por_defecto_es_observar(monkeypatch):
+    monkeypatch.delenv(ac.ENV_MODO, raising=False)
+    assert ac.modo() == ac.MODO_OBSERVAR
+
+
+def test_un_modo_desconocido_se_trata_como_enforce(monkeypatch):
+    monkeypatch.setenv(ac.ENV_MODO, "enforse")
+    assert ac.modo() == ac.MODO_ENFORCE
+
+
+def test_observar_dice_el_motivo_pero_no_bloquea(monkeypatch):
+    monkeypatch.setenv(ac.ENV_MODO, "observar")
+    g = ac.consultar(["KO"], MEDIODIA, _cliente({
+        "cash_dividends": [{"symbol": "KO", "rate": 0.51, "ex_date": "2026-09-28"}]}))
+    assert g.observando
+    assert g.motivo("KO") == "accion_corporativa_hoy:cash_dividend"
+    assert g.bloquea("KO") is None
+
+
+def test_observar_con_consulta_caida_registra_y_no_bloquea(monkeypatch, tmp_path):
+    monkeypatch.setenv(ac.ENV_MODO, "observar")
+    monkeypatch.setenv(ac.ENV_LOG, str(tmp_path / "ac.jsonl"))
+    g = ac.consultar(["KO"], MEDIODIA, _cliente(error=ErrorDatosAlpaca("red")))
+    assert g.bloquea("KO") is None and g.motivo("KO") is not None
+    assert '"consulta_fallida"' in (tmp_path / "ac.jsonl").read_text()
+
+
+def test_observar_no_ajusta_la_serie_pero_registra_que_la_ajustaria(monkeypatch, tmp_path):
+    monkeypatch.setenv(ac.ENV_MODO, "observar")
+    monkeypatch.setenv(ac.ENV_LOG, str(tmp_path / "ac.jsonl"))
+    b = _serie("MULN", [0.50, 0.51, 0.50, 5.0, 5.1])
+    out, g = ac.verificar_historia({"MULN": b}, MEDIODIA, _cliente(_reverse()))
+    assert out["MULN"] is b
+    assert "observacion_ajuste" in (tmp_path / "ac.jsonl").read_text()
+
+
+def test_rechequeo_en_observar_dispara_igual_y_registra(monkeypatch, tmp_path):
+    ruta = tmp_path / "ac.jsonl"
+    monkeypatch.setenv(ac.ENV_LOG, str(ruta))
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    path = _preparar_watchlist(monkeypatch, tmp_path, [e])
+    _parchear_efectos_secundarios(monkeypatch)
+    monkeypatch.setattr(run_mod, "_construir_candidato_intradia",
+                        lambda ticker, *a, **kw: _candidato_intradia(ticker, accionable=True))
+    monkeypatch.setattr(run_mod, "_guardia_corporativa", lambda tickers, ahora, base=None: ac.Guardia(
+        fecha=ac.hoy_ny(ahora), disponible=True, observando=True, hoy={"RKLB": ("forward_split",)}))
+
+    run_mod.revisar_watchlist(CFG, _FakeProviderIntradia({"RKLB"}), dry_run=False, ahora=AHORA)
+
+    assert watchlist.cargar(path)[0].estado == watchlist.ESTADO_TRIGGERED
+    assert '"observacion_disparo"' in ruta.read_text()
+
+
+def test_resumen_de_sesion_cuenta_por_evento_y_dice_si_hubo_fallas(tmp_path):
+    ruta = tmp_path / "ac.jsonl"
+    filas = [
+        {"ts": "2026-09-28T14:00:00+00:00", "evento": "observacion_disparo", "ticker": "KO", "motivo": "x"},
+        {"ts": "2026-09-28T14:01:00+00:00", "evento": "observacion_disparo", "ticker": "KO", "motivo": "x"},
+        {"ts": "2026-09-29T02:00:00+00:00", "evento": "consulta_fallida", "ticker": "*", "motivo": "red"},
+    ]
+    ruta.write_text("".join(__import__("json").dumps(f) + "\n" for f in filas))
+    r = ac.resumen_sesion("2026-09-28", ruta)
+    # 02:00 UTC del 29 = 22:00 del 28 en Nueva York: cuenta para el 28.
+    assert r == {"observacion_disparo": {"KO": 2}, "consulta_fallida": {"*": 1}}
+    texto = ac.formatear_resumen(r, "2026-09-28")
+    assert "KO×2" in texto and "consultas fallidas: 1" in texto
+    assert "Sin registros" in ac.formatear_resumen({}, "2026-09-28")
