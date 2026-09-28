@@ -670,6 +670,19 @@ Las dos bandas corren en la MISMA corrida, nunca se excluyen entre sí --
 cualquier ticker cae en una banda o en la otra según su precio, nunca en
 ninguna a la vez.
 
+Esos umbrales no miran si Alpaca deja operar el símbolo. Eso, cuando
+existe, sale de un JSON local (`momentum_hunter/datos/alpaca_assets.json`,
+fuera de git) que escribe otro proceso. Este paquete solo lo lee: no
+llama a ningún endpoint de trading. Con el archivo fresco (de hoy UTC
+y con 36 h o menos) un símbolo que no está, que viene `tradable: false`
+o con un status distinto de `active` no entra al escaneo, y la clase
+`BRK-B` se pide al feed como el símbolo que el archivo trae (`BRK.B`).
+La ventana rotativa no se rellena con el siguiente tramo. Si el archivo
+falta, está viejo o no se puede leer, el dato queda desconocido
+(`None`, nunca un false) y no se filtra nada por él; la telemetría lo
+marca `assets_desconocido`. El timer que genera el archivo se instala
+a mano: `infra/systemd/README.md`.
+
 ## Modo large-cap (pedido 2026-08-07, tras el gap de 17% de Airbnb en un día)
 
 El dueño del producto vio a ABNB subir 17% en un día y preguntó por qué

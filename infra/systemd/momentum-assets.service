@@ -1,0 +1,19 @@
+[Unit]
+Description=Momentum catálogo de activos paper (GET /v2/assets, PAPER ONLY oneshot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+EnvironmentFile=/etc/momentum/paper.env
+ExecStart=/opt/momentum/bin/run_assets.sh
+Nice=15
+# Una lista de us_equity activos. Si pasa de 3 min, algo está mal.
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

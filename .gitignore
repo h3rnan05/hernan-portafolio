@@ -44,6 +44,10 @@ logs/
 *.sqlite3
 local_data/
 
+# Catálogo local de activos paper. Lo escribe el job diario; el hunter
+# solo lo lee. Miles de símbolos, se regenera: no va a git.
+momentum_hunter/datos/alpaca_assets.json
+
 # Logs rotativos que genera el SDK de Webull al correr las sondas
 webull_trade_sdk.log*
 dashboard_site/
