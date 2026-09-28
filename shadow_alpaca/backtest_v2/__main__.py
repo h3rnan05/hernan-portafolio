@@ -22,6 +22,10 @@ from shadow_alpaca.jsonl_log import exigir_directorio_aislado
 
 log = logging.getLogger("shadow_alpaca.backtest_v2")
 
+# Muy por debajo de NYSE+NASDAQ+AMEX (~7.500) y muy por encima de la semilla
+# de `universe.py`: es la frontera entre "universo real" y "descarga caída".
+MINIMO_UNIVERSO = 1000
+
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -47,6 +51,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.simbolos:
         pedidos = {s.strip().upper() for s in args.simbolos.split(",")}
         universo = [u for u in universo if u.ticker in pedidos]
+    elif len(universo) < MINIMO_UNIVERSO:
+        # `universe.cargar` cae a una semilla de una docena de símbolos si
+        # la descarga o su caché fallan. Un backtest sobre eso no es "sin
+        # señales": es otro experimento. Se aborta en vez de informar.
+        log.error("universo de %d símbolos (< %d): la descarga falló; no se corre", len(universo),
+                  MINIMO_UNIVERSO)
+        return 2
     llamar = None if args.sin_ia else llamada_anthropic(cfg.catalizador.modelo)
     clasificador = Clasificador(args.almacen, llamar, args.max_llamadas_ia)
     params = motor.Parametros(equity_inicial=args.equity, slippage=args.slippage)

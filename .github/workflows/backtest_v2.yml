@@ -45,6 +45,10 @@ jobs:
 
       - name: Correr backtest
         env:
+          # El universo (#200) guarda su caché en el directorio de estado;
+          # en el runner no existe /var/lib/momentum. Sin esto, la escritura
+          # de la caché falla y `universe.cargar` cae a la semilla de 12.
+          MOMENTUM_ESTADO_DIR: /tmp/estado_momentum
           ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
           ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -55,6 +59,7 @@ jobs:
           print(f"--desde {s['desde']} --hasta {s['hasta']} --equity {s['equity']} "
                 f"--slippage {s['slippage']} --max-llamadas-ia {s['max_llamadas_ia']} --salida {s['salida']}")
           PY
+          mkdir -p /tmp/estado_momentum/momentum_hunter
           python -m shadow_alpaca.backtest_v2 $(cat /tmp/args.txt) --almacen /tmp/almacen_v2 --refrescar-universo 2>&1 | tee /tmp/backtest_v2.log
 
       - name: Guardar almacén
@@ -85,7 +90,9 @@ jobs:
         run: |
           git config user.name "backtest-v2[bot]"
           git config user.email "backtest-v2@users.noreply.github.com"
-          git add docs/backtests/*.md docs/backtests/*.jsonl.gz 2>/dev/null || true
+          # -A sobre la carpeta: un patrón sin coincidencias (p. ej. sin
+          # auditoría) hacía que `git add` no agregara NADA.
+          git add -A docs/backtests
           if git diff --cached --quiet; then
             echo "sin informe nuevo"
             exit 0
