@@ -38,7 +38,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Callable
 
-from fuentes import __main__ as cli
+from fuentes import cli
 from fuentes.cache import Cache
 from fuentes.columnas import todas_faltantes
 from fuentes.comun import FALTANTE, ErrorFuente, numero

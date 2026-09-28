@@ -1,0 +1,11 @@
+{
+ "url": "https://data.sec.gov/api/xbrl/companyconcept/CIK0001652130/dei/EntityCommonStockSharesOutstanding.json",
+ "params": {},
+ "status": 200,
+ "headers": {
+  "Content-Type": "application/json"
+ },
+ "texto": "{\"cik\": 1652130, \"taxonomy\": \"dei\", \"tag\": \"EntityCommonStockSharesOutstanding\", \"label\": \"Entity Common Stock, Shares Outstanding\", \"description\": \"...\", \"entityName\": \"Intellia Therapeutics, Inc.\", \"units\": {\"shares\": [{\"end\": \"2026-02-20\", \"val\": 100000000, \"accn\": \"0001193125-26-000010\", \"fy\": 2025, \"fp\": \"FY\", \"form\": \"10-K\", \"filed\": \"2026-03-02\", \"frame\": \"CY2025Q4I\"}, {\"end\": \"2026-05-01\", \"val\": 102500000, \"accn\": \"0001193125-26-000020\", \"fy\": 2026, \"fp\": \"Q1\", \"form\": \"10-Q\", \"filed\": \"2026-05-08\"}, {\"end\": \"2026-07-31\", \"val\": 130000000, \"accn\": \"0001193125-26-337952\", \"fy\": 2026, \"fp\": \"Q2\", \"form\": \"10-Q\", \"filed\": \"2026-08-06\"}, {\"end\": \"2026-07-31\", \"val\": null, \"accn\": \"x\", \"fy\": 2026, \"fp\": \"Q2\", \"form\": \"10-Q\", \"filed\": \"2026-08-06\"}]}}",
+ "ficticio": true,
+ "nota": "FICTICIO en el contenido, REAL en la URL (CIK de NTLA): companyconcept no se grabó en el VPS. Formato público de dei/EntityCommonStockSharesOutstanding. Reemplazar con `python -m fuentes grabar edgar_acciones NTLA`."
+}

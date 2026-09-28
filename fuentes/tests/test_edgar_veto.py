@@ -9,13 +9,13 @@ import pytest
 from fuentes import FALTANTE, edgar, edgar_veto
 from fuentes.cache import Cache
 from fuentes.grabar import transporte_desde
-from fuentes.tests.test_edgar import TODAS
+from fuentes.tests.test_edgar import DESDE, TODAS
 
 
 def _fuente(tmp_path, monkeypatch):
     monkeypatch.setenv(edgar.ENV_USER_AGENT, "hernan-portafolio pruebas@example.com")
     t = transporte_desde("edgar", TODAS)
-    lector = edgar.LectorEdgar(Cache(tmp_path / "c"), edgar.cliente_edgar(transport=t, dormir=lambda s: None))
+    lector = edgar.LectorEdgar(Cache(tmp_path / "c"), edgar.cliente_edgar(transport=t, dormir=lambda s: None), DESDE)
     return edgar_veto.EdgarVeto(lector)
 
 
@@ -72,20 +72,25 @@ def test_estanteria_activa_3_anios_y_no_es_veto():
     assert edgar_veto.veto_en(pres, acc + timedelta(hours=1)) == (False, None, None)
 
 
-def test_columnas_con_las_presentaciones_ficticias(tmp_path, monkeypatch):
+def test_columnas_con_presentaciones_reales(tmp_path, monkeypatch):
     f = _fuente(tmp_path, monkeypatch)
-    # 8-K 3.02 aceptado 2026-09-15 07:30 NY (11:30 UTC): el 16 a las 14:00 UTC sigue vetado.
-    fila = f.columnas("FICA", datetime(2026, 9, 16, 14, 0, tzinfo=UTC))
-    assert fila["edgar_veto"] is True and fila["edgar_veto_motivo"] == "8-K 3.02 2026-09-15"
-    assert fila["edgar_veto_horas_restantes"] == 45.5
-    assert fila["edgar_estanteria_activa"] is True and fila["edgar_estanteria_form"] == "S-3 2026-03-02"
-    # El 25/9 ya no hay veto vigente (424B5 del 20/8 y S-1/A del 15/6 vencieron).
-    fila = f.columnas("FICA", datetime(2026, 9, 25, 14, 0, tzinfo=UTC))
+    # MRNA: 8-K con ítem 3.02 aceptado 2026-09-01 20:37:04 UTC -> 72 h de veto. El 2/9 a las 14:00 UTC sigue.
+    fila = f.columnas("MRNA", datetime(2026, 9, 2, 14, 0, tzinfo=UTC))
+    assert fila["edgar_veto"] is True and fila["edgar_veto_motivo"] == "8-K 3.02 2026-09-01"
+    assert fila["edgar_veto_horas_restantes"] == 54.62
+    # A las 21:00 UTC del 1/9 ya estaba vetado (la lectura NY lo habría dejado pasar hasta las 00:37).
+    assert f.columnas("MRNA", datetime(2026, 9, 1, 21, 0, tzinfo=UTC))["edgar_veto"] is True
+    assert f.columnas("MRNA", datetime(2026, 9, 1, 20, 0, tzinfo=UTC))["edgar_veto"] is False
+    # El 5/9 venció.
+    assert f.columnas("MRNA", datetime(2026, 9, 5, 14, 0, tzinfo=UTC))["edgar_veto"] is False
+    # NTLA: dos 424B5 (27/4 21:19 UTC y 29/4 21:28 UTC); el 30/4 gana el que vence más tarde.
+    fila = f.columnas("NTLA", datetime(2026, 4, 30, 14, 0, tzinfo=UTC))
+    assert fila["edgar_veto"] is True and fila["edgar_veto_motivo"] == "424B5 2026-04-29"
+    assert fila["edgar_estanteria_activa"] is False   # NTLA no tiene S-3 en las 150 recientes
+    # AAPL: S-3ASR del 2024-11-01 sigue vigente (3 años); sin veto.
+    fila = f.columnas("AAPL", datetime(2026, 9, 25, 14, 0, tzinfo=UTC))
     assert fila["edgar_veto"] is False and fila["edgar_veto_motivo"] is None
-    # El 20/6: S-1 (1/6) y S-1/A (15/6) vigentes; gana la enmienda (vence el 15/7).
-    fila = f.columnas("FICA", datetime(2026, 6, 20, 14, 0, tzinfo=UTC))
-    assert fila["edgar_veto"] is True and fila["edgar_veto_motivo"] == "S-1/A 2026-06-15"
-    assert fila["edgar_estanteria_activa"] is True
+    assert fila["edgar_estanteria_activa"] is True and fila["edgar_estanteria_form"] == "S-3ASR 2024-11-01"
 
 
 def test_sin_presentaciones_es_faltante(tmp_path, monkeypatch):
@@ -97,7 +102,7 @@ def test_sin_presentaciones_es_faltante(tmp_path, monkeypatch):
 
 def test_emisor_limpio_da_false_no_faltante(tmp_path, monkeypatch):
     f = _fuente(tmp_path, monkeypatch)
-    fila = f.columnas("FICB", datetime(2026, 9, 25, 14, 0, tzinfo=UTC))
+    fila = f.columnas("TSLA", datetime(2026, 9, 25, 14, 0, tzinfo=UTC))
     assert fila == {"edgar_veto": False, "edgar_veto_motivo": None, "edgar_veto_horas_restantes": None,
                     "edgar_estanteria_activa": False, "edgar_estanteria_form": None}
 
@@ -107,6 +112,6 @@ def test_el_lector_se_comparte_con_el_8k_sin_pedir_dos_veces(tmp_path, monkeypat
     ochok = edgar.Edgar8K(lector=f.lector)
     from fuentes.columnas import Registro
     reg = Registro([ochok, f])
-    fila = reg.columnas("FICA", datetime(2026, 9, 25, 13, 40, tzinfo=UTC))
+    fila = reg.columnas("AAPL", datetime(2026, 7, 30, 21, 0, tzinfo=UTC))
     assert fila["edgar_8k_nivel"] == 1 and fila["edgar_veto"] is False
     assert len(f.lector.cliente()._transport.pedidos) == 2   # tickers + submissions
