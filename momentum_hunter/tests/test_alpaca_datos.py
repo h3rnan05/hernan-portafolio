@@ -756,10 +756,11 @@ def test_claves_ausentes_o_vacias_caen_a_yahoo_sin_romper(monkeypatch, clave, se
 
 
 def test_el_hunter_solo_habla_con_el_host_de_datos():
-    # Frontera con el ejecutor: el hunter puede leer data.alpaca.markets.
-    # Importar el cliente de órdenes, o nombrar el host de trading (paper
-    # o live), mezclaría las dos cosas. data.alpaca.markets no contiene
-    # la cadena api.alpaca.markets; paper-api sí.
+    # Frontera con el ejecutor: el hunter puede leer el host de DATOS,
+    # REST o el websocket SIP (stream.data). Importar el cliente de
+    # órdenes, o nombrar el host de trading (paper o live), mezclaría
+    # las dos cosas. data.alpaca.markets no contiene la cadena
+    # api.alpaca.markets; paper-api sí.
     raiz = Path(__file__).resolve().parents[1]
     prohibido = ("alpaca_client", "place_order", "paper-api", "api.alpaca.markets")
     hosts: set[str] = set()
@@ -773,7 +774,7 @@ def test_el_hunter_solo_habla_con_el_host_de_datos():
             assert palabra not in texto, f"{path.relative_to(raiz)} menciona {palabra}"
         hosts.update(re.findall(r"[\w.-]*alpaca\.markets", texto))
     assert vistos > 0
-    assert hosts == {"data.alpaca.markets"}
+    assert hosts == {"data.alpaca.markets", "stream.data.alpaca.markets"}
     assert ad.DATA_BASE == "https://data.alpaca.markets"
 
 
