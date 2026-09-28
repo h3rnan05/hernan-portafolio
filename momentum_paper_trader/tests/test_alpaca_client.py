@@ -62,6 +62,8 @@ def test_posiciones_y_ordenes_abiertas_son_gets_de_solo_lectura(monkeypatch):
     assert llamadas[0][0] == "https://paper-api.alpaca.markets/v2/positions"
     assert llamadas[1][0] == "https://paper-api.alpaca.markets/v2/orders"
     assert llamadas[1][1]["status"] == "open"
+    # Sin nested el stop `held` del bracket no viene en la respuesta.
+    assert llamadas[1][1]["nested"] == "true"
 
 
 def test_estado_orden_pide_nested_para_ver_las_patas_del_bracket(monkeypatch):
@@ -332,6 +334,58 @@ def test_vender_a_mercado_no_inventa_una_cantidad(monkeypatch):
             assert False, cantidad
         except ValueError:
             pass
+
+
+def test_cancelar_incluye_la_pata_stop_held_y_no_la_ya_muerta(monkeypatch):
+    # Misma forma que el open+nested de MNST: el stop no es una fila.
+    borradas = []
+
+    class _R:
+        status_code = 204
+
+        def raise_for_status(self):
+            pass
+
+    def _delete(url, headers=None, timeout=None):
+        borradas.append(url)
+        return _R()
+
+    monkeypatch.setattr(alpaca_client.requests, "delete", _delete)
+    ordenes = [{
+        "id": "b7c1e0aa-11d4-4f2a-9c33-0a1b2c3d4e5f",
+        "symbol": "MNST",
+        "side": "sell",
+        "type": "limit",
+        "order_class": "oco",
+        "status": "new",
+        "legs": [
+            {
+                "id": "f2d920f1-7a3e-4d11-9c2b-1e8a0b5c6d70",
+                "symbol": "MNST",
+                "side": "sell",
+                "type": "stop",
+                "order_class": "bracket",
+                "stop_price": "41.62",
+                "status": "held",
+                "legs": None,
+            },
+            {
+                "id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                "symbol": "MNST",
+                "side": "sell",
+                "type": "stop",
+                "status": "canceled",
+                "legs": None,
+            },
+        ],
+    }]
+    n = AlpacaPaperClient("c", "s").cancelar_ordenes_de("MNST", ordenes)
+
+    assert n == 2
+    assert borradas == [
+        "https://paper-api.alpaca.markets/v2/orders/b7c1e0aa-11d4-4f2a-9c33-0a1b2c3d4e5f",
+        "https://paper-api.alpaca.markets/v2/orders/f2d920f1-7a3e-4d11-9c2b-1e8a0b5c6d70",
+    ]
 
 
 def test_activo_consulta_el_endpoint_de_assets(monkeypatch):
