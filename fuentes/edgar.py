@@ -12,13 +12,16 @@ Reglas de la SEC que se cumplen aquí: `User-Agent` con nombre y correo
 de contacto (`FUENTES_SEC_USER_AGENT`, obligatorio: sin él no se pide
 nada) y como máximo 10 pedidos por segundo (se usan 8).
 
-ZONA HORARIA. `acceptanceDateTime` viene como `2026-09-25T16:05:12.000Z`
-pero la SEC la publica en hora de Nueva York (decisión del proyecto,
-2026-09-28: se lee como NY, no como UTC). El comando `grabar` lo
-verifica con las presentaciones reales: un 8-K aceptado después de las
-17:30 ET lleva `filingDate` del día hábil siguiente; si leyendo la hora
-como NY eso se cumple y como UTC no, imprime "ZONA OK"; si no,
-"ZONA A REVISAR" y el módulo NO debe usarse hasta resolverlo.
+ZONA HORARIA. `acceptanceDateTime` viene como `2026-07-30T20:30:28.000Z`
+y la `Z` ES UTC de verdad: el índice de sec.gov de ese filing dice
+"Accepted 2026-07-30 16:30:28" (ET). Verificado en el VPS el 2026-09-28
+contra NTLA, AAPL, TSLA y MRNA (la primera versión de este módulo lo leía
+como hora de NY y desplazaba cada aceptación +4 h; corregido). El
+comando `grabar` sigue comprobándolo con las presentaciones reales: un
+filing aceptado después de las 17:30 ET lleva `filingDate` del día hábil
+siguiente; se prueban las dos hipótesis (Z = UTC, Z = NY) sobre los
+filings donde predicen fechas distintas, y solo si la lectura UTC
+explica el `filingDate` casi siempre imprime "ZONA OK".
 
 NIVEL POR ÍTEM (decisión 2026-09-28). Solo dice cuán fuerte es el hecho,
 no su dirección: la dirección la decide la clasificación de la IA sobre
@@ -48,13 +51,13 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
-from fuentes import __main__ as cli
+from fuentes import cli
 from fuentes.cache import Cache
 from fuentes.columnas import todas_faltantes
 from fuentes.comun import FALTANTE, ErrorFuente
 from fuentes.grabar import grabar_get
 from fuentes.http import Cliente, Limitador
-from fuentes.tiempo import NY, fmt_utc_mty, leer_fecha
+from fuentes.tiempo import NY, fmt_utc_mty, leer_fecha, leer_iso_utc
 
 log = logging.getLogger("fuentes.edgar")
 
@@ -98,19 +101,9 @@ def cliente_edgar(transport=None, dormir=None) -> Cliente:
 
 
 def leer_aceptacion(texto: object) -> datetime | None:
-    """`2026-09-25T16:05:12.000Z` leído como hora de Nueva York -> UTC."""
-    if not isinstance(texto, str) or not texto.strip():
-        return None
-    t = texto.strip()
-    if t.endswith("Z"):
-        t = t[:-1]
-    try:
-        naive = datetime.fromisoformat(t)
-    except ValueError:
-        return None
-    if naive.tzinfo is not None:
-        naive = naive.replace(tzinfo=None)
-    return naive.replace(tzinfo=NY).astimezone(UTC)
+    """`2026-07-30T20:30:28.000Z` es UTC (la Z es real) -> aware en UTC.
+    Sin zona o ilegible -> None: no se adivina."""
+    return leer_iso_utc(texto)
 
 
 def _cik_de(valor: object) -> int | None:
@@ -161,8 +154,11 @@ def _presentaciones_de(bloque: dict) -> list[Presentacion]:
     return out
 
 
-def submissions(cliente: Cliente, cache: Cache, cik: int) -> list[Presentacion]:
-    """Todas las presentaciones del emisor (recientes + archivos extra)."""
+def submissions(cliente: Cliente, cache: Cache, cik: int, desde: date | None = None) -> list[Presentacion]:
+    """Presentaciones del emisor: `filings.recent` más los archivos extra
+    que cubran fechas >= `desde` (sin `desde`, todos). Un emisor grande
+    trae archivos que terminan en 2015: para un backtest de un año no
+    hace falta pedirlos."""
     url = f"{URL_SUBMISSIONS}CIK{cik:010d}.json"
 
     def pedir():
@@ -175,13 +171,17 @@ def submissions(cliente: Cliente, cache: Cache, cik: int) -> list[Presentacion]:
             nombre = extra.get("name") if isinstance(extra, dict) else None
             if not isinstance(nombre, str) or not nombre.endswith(".json") or "/" in nombre:
                 raise ErrorFuente("cuerpo", "edgar")
+            hasta_extra = leer_fecha(extra.get("filingTo"))
+            if desde is not None and hasta_extra is not None and hasta_extra < desde:
+                continue
             b = cliente.get_json(URL_SUBMISSIONS + nombre)
             if not isinstance(b, dict):
                 raise ErrorFuente("cuerpo", "edgar")
             bloques.append(b)
         return bloques
 
-    bloques = cache.obtener("edgar_submissions", url, pedir, EDAD_SUBMISSIONS_S)
+    clave = url if desde is None else f"{url}?desde={desde.isoformat()}"
+    bloques = cache.obtener("edgar_submissions", clave, pedir, EDAD_SUBMISSIONS_S)
     out: list[Presentacion] = []
     for b in bloques:
         out.extend(_presentaciones_de(b))
@@ -221,18 +221,20 @@ def ochok_en_ventana(pres: list[Presentacion], momento: datetime, horas: int = H
 # --------------------------------------------------------------- fuente
 
 
-class Edgar8K:
-    nombre = "edgar_8k"
-    _NOMBRES = ["edgar_8k_nivel", "edgar_8k_items", "edgar_8k_horas", "edgar_8k_cantidad_24h"]
+class LectorEdgar:
+    """Mapa ticker→CIK y presentaciones por emisor, compartido por las
+    columnas EDGAR (8-K, veto, Form 4, acciones). Un fallo de descarga se
+    recuerda en el proceso para no martillar a la SEC."""
 
-    def __init__(self, cache: Cache | None = None, cliente: Cliente | None = None) -> None:
+    def __init__(self, cache: Cache | None = None, cliente: Cliente | None = None,
+                 desde: date | None = None) -> None:
         self.cache = cache or Cache()
         self._cliente = cliente
+        # Hasta dónde atrás hacen falta presentaciones (archivos extra de
+        # submissions). Default: 400 días, un backtest de 12 meses.
+        self.desde = desde if desde is not None else datetime.now(UTC).date() - timedelta(days=400)
         self._mapa: dict[str, int] | None = None
         self._pres: dict[int, list[Presentacion] | None] = {}
-
-    def nombres(self) -> list[str]:
-        return list(self._NOMBRES)
 
     def cliente(self) -> Cliente:
         if self._cliente is None:
@@ -245,26 +247,44 @@ class Edgar8K:
         return self._mapa.get(ticker.upper().replace("-", "").replace(".", ""))  # BRK-B/BRK.B -> BRKB
 
     def presentaciones(self, ticker: str) -> list[Presentacion] | None:
-        """None = no se pudo (sin CIK o descarga caída). Un fallo se
-        recuerda en el proceso para no martillar a la SEC."""
-        cik = self.cik(ticker)
+        """None = no se pudo (sin CIK, sin User-Agent o descarga caída)."""
+        try:
+            cik = self.cik(ticker)
+        except ErrorFuente as ex:
+            log.warning("edgar: %s (%s)", ex.codigo, ticker)
+            return None
         if cik is None:
             log.info("edgar: %s no está en el mapa de la SEC", ticker)
             return None
         if cik not in self._pres:
             try:
-                self._pres[cik] = submissions(self.cliente(), self.cache, cik)
+                self._pres[cik] = submissions(self.cliente(), self.cache, cik, self.desde)
             except ErrorFuente as ex:
                 log.warning("edgar: submissions de %s falló (%s)", ticker, ex.codigo)
                 self._pres[cik] = None
         return self._pres[cik]
 
+
+class Edgar8K:
+    nombre = "edgar_8k"
+    _NOMBRES = ["edgar_8k_nivel", "edgar_8k_items", "edgar_8k_horas", "edgar_8k_cantidad_24h"]
+
+    def __init__(self, cache: Cache | None = None, cliente: Cliente | None = None,
+                 lector: LectorEdgar | None = None) -> None:
+        self.lector = lector or LectorEdgar(cache, cliente)
+
+    @property
+    def cache(self) -> Cache:
+        return self.lector.cache
+
+    def cliente(self) -> Cliente:
+        return self.lector.cliente()
+
+    def nombres(self) -> list[str]:
+        return list(self._NOMBRES)
+
     def columnas(self, ticker: str, momento: datetime) -> dict:
-        try:
-            pres = self.presentaciones(ticker)
-        except ErrorFuente as ex:
-            log.warning("edgar: %s (%s)", ex.codigo, ticker)
-            return todas_faltantes(self._NOMBRES)
+        pres = self.lector.presentaciones(ticker)
         if pres is None:
             return todas_faltantes(self._NOMBRES)
         try:
@@ -289,29 +309,45 @@ class Edgar8K:
 # --------------------------------------------------------------- grabar
 
 
-def verificar_zona(pres: list[Presentacion], crudos: list[str]) -> tuple[str, dict]:
-    """Evidencia con presentaciones reales de que la hora es NY.
+def _fecha_presentacion_esperada(aceptada_et: datetime) -> date:
+    """La SEC fecha al día hábil siguiente lo aceptado después de las
+    17:30 ET (fines de semana sí; feriados no se descuentan: ruido chico)."""
+    d = aceptada_et.date()
+    if (aceptada_et.hour, aceptada_et.minute) >= CORTE_SEC:
+        d += timedelta(days=1)
+    while d.weekday() >= 5:
+        d += timedelta(days=1)
+    return d
 
-    Para cada aceptación cruda con hora >= 17:30: si `filingDate` cae
-    DESPUÉS del día de la aceptación, la lectura NY es consistente (la
-    SEC fecha al día hábil siguiente); si cae el MISMO día, la lectura
-    UTC es la consistente (17:30 UTC = 13:30 ET, dentro del horario)."""
-    ny_ok = utc_ok = 0
-    for p, crudo in zip(pres, crudos):
-        if not isinstance(crudo, str) or "T" not in crudo:
+
+def verificar_zona(recent: dict) -> tuple[str, dict]:
+    """Evidencia con presentaciones reales de que la Z es UTC.
+
+    Sobre las filas crudas de `filings.recent` (por índice, sin descartar
+    ninguna para no desalinear), se prueban las dos hipótesis: leer la
+    hora como UTC o como NY. Cada una predice un `filingDate`; solo
+    cuentan las filas donde las predicciones difieren. "ZONA OK" si la
+    lectura UTC (la del código) acierta en >= 95 % de esas filas y más
+    que la lectura NY; si no, "ZONA A REVISAR"."""
+    fechas, crudos = recent.get("filingDate") or [], recent.get("acceptanceDateTime") or []
+    utc_ok = ny_ok = discriminantes = 0
+    for fecha_txt, crudo in zip(fechas, crudos):
+        fecha = leer_fecha(fecha_txt)
+        if fecha is None or not isinstance(crudo, str) or "T" not in crudo:
             continue
-        try:
-            hh, mm = int(crudo[11:13]), int(crudo[14:16])
-            dia = date.fromisoformat(crudo[:10])
-        except ValueError:
+        como_utc = leer_iso_utc(crudo)
+        if como_utc is None:
             continue
-        if (hh, mm) >= CORTE_SEC:
-            if p.fecha > dia:
-                ny_ok += 1
-            elif p.fecha == dia:
-                utc_ok += 1
-    detalle = {"consistentes_ny": ny_ok, "consistentes_utc": utc_ok}
-    if ny_ok > 0 and utc_ok == 0:
+        naive = como_utc.replace(tzinfo=None)
+        pred_utc = _fecha_presentacion_esperada(como_utc.astimezone(NY))
+        pred_ny = _fecha_presentacion_esperada(naive.replace(tzinfo=NY))
+        if pred_utc == pred_ny:
+            continue
+        discriminantes += 1
+        utc_ok += pred_utc == fecha
+        ny_ok += pred_ny == fecha
+    detalle = {"discriminantes": discriminantes, "consistentes_utc": utc_ok, "consistentes_ny": ny_ok}
+    if discriminantes and utc_ok > ny_ok and utc_ok >= 0.95 * discriminantes:
         return "ZONA OK", detalle
     return "ZONA A REVISAR", detalle
 
@@ -335,7 +371,7 @@ def _grabar(argv: list[str]) -> int:
     cuerpo = json.loads(texto)
     recent = cuerpo["filings"]["recent"]
     pres = _presentaciones_de(recent)
-    veredicto, detalle = verificar_zona(pres, recent.get("acceptanceDateTime", []))
+    veredicto, detalle = verificar_zona(recent)
     print(f"{veredicto} {detalle}")
     for p in [p for p in pres if es_8k(p)][:5]:
         hora = fmt_utc_mty(p.aceptada) if p.aceptada else "aceptación ilegible"
