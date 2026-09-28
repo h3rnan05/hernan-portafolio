@@ -73,6 +73,7 @@ from momentum_hunter.catalysts.ancla import ancla_ok
 from momentum_hunter.catalysts.detector import YahooNewsProvider, detectar_catalizador, minutos_desde_catalizador
 from momentum_hunter.catalysts.keyword_rechazos import explicar_rechazos_keyword
 from momentum_hunter.config import CONFIG, MomentumConfig
+from momentum_hunter.data import subastas
 from momentum_hunter.data.fuente import informe_de, proveedor_configurado
 from momentum_hunter.data.provider import DataProvider, YahooProvider
 from momentum_hunter.factors import intradia as fi
@@ -385,6 +386,7 @@ def _construir_candidato_intradia(
     ticker: str, nombre: str | None, catalizador, meta, es_large_cap: bool,
     atr_diario: float | None, score_base: float, cierre_anterior: float | None,
     bi, cfg: MomentumConfig, gap_pct_fallback: float | None = None,
+    gap_oficial: float | None = None,
 ) -> CandidatoIntradia | None:
     """Núcleo compartido de la etapa 2 -- lo usan tanto
     `construir_candidatos_intradia` (descubrimiento, con `cierre_anterior`
@@ -408,6 +410,15 @@ def _construir_candidato_intradia(
     if cierre_anterior is None:
         cierre_anterior = fi.cierre_sesion_anterior(bi)
     factores = fi.calcular(bi, cierre_anterior)
+    if gap_oficial is not None:
+        # Subasta de apertura de hoy vs. subasta de cierre de la sesión
+        # anterior (ver `data/subastas.py`). Gana sobre el gap de velas
+        # porque es EL número oficial; se registran los dos para poder
+        # medir cuánto se separan antes de sacar conclusiones.
+        if factores.gap_pct is None or abs(factores.gap_pct - gap_oficial) >= 0.001:
+            log.info("%s: gap oficial %s vs. gap de velas %s", ticker, f"{gap_oficial:+.2%}",
+                     "sin dato" if factores.gap_pct is None else f"{factores.gap_pct:+.2%}")
+        factores = replace(factores, gap_pct=gap_oficial)
     if factores.gap_pct is None and gap_pct_fallback is not None:
         factores = replace(factores, gap_pct=gap_pct_fallback)
 
@@ -434,6 +445,24 @@ def _construir_candidato_intradia(
     )
 
 
+def _gaps_oficiales(barras_intradia: dict) -> dict[str, float]:
+    """Gap oficial por ticker, agrupado por la fecha de su última vela
+    (normalmente una sola fecha = un solo pedido por lote). Punto único
+    para que las pruebas lo reemplacen. Un fallo no tumba nada: vuelve
+    vacío y cada ticker se queda con su gap de velas."""
+    por_fecha: dict[str, list[str]] = {}
+    for t, bi in barras_intradia.items():
+        if bi is not None and bi.timestamps:
+            por_fecha.setdefault(bi.timestamps[-1][:10], []).append(t)
+    out: dict[str, float] = {}
+    for fecha, tickers in por_fecha.items():
+        try:
+            out.update(subastas.gaps_oficiales(tickers, fecha))
+        except Exception as ex:   # noqa: BLE001 -- extra, nunca requisito
+            log.warning("gap oficial no disponible (%s)", type(ex).__name__)
+    return out
+
+
 def construir_candidatos_intradia(
     shortlist: list[CandidatoDiario], barras_diarias: dict[str, Barras],
     provider: DataProvider, cfg: MomentumConfig, on_datos_recibidos: Callable[[], None] | None = None,
@@ -454,6 +483,7 @@ def construir_candidatos_intradia(
     barras_intradia = provider.barras_intradia(tickers, cfg.intervalo_intradia, cfg.periodo_intradia)
     if on_datos_recibidos is not None:
         on_datos_recibidos()
+    gaps_oficiales = _gaps_oficiales(barras_intradia)
 
     resultado: list[CandidatoIntradia] = []
     for c in shortlist:
@@ -468,6 +498,7 @@ def construir_candidatos_intradia(
             candidato = _construir_candidato_intradia(
                 c.ticker, c.nombre, c.catalizador, c.meta, c.es_large_cap,
                 c.factores.atr, c.puntuacion.score_total, cierre_ant, bi, cfg,
+                gap_oficial=gaps_oficiales.get(c.ticker),
             )
             if candidato is not None:
                 resultado.append(candidato)
@@ -1078,6 +1109,7 @@ def _revisar_watchlist_cuerpo(
     tickers = [e.ticker for e in vigiladas] + [e.ticker for e in a_refrescar]
     barras_intradia = provider.barras_intradia(tickers, cfg.intervalo_intradia, cfg.periodo_intradia)
     dato_recibido_ts = _ahora_iso_run(datetime.now(UTC))
+    gaps_oficiales = _gaps_oficiales(barras_intradia)
 
     # --- Refresco de niveles de las TRIGGERED todavía sin orden ---
     # NO se evalúan ni cambian de estado: TRIGGERED es terminal. Solo se
@@ -1093,7 +1125,7 @@ def _revisar_watchlist_cuerpo(
             c_t = _construir_candidato_intradia(
                 e.ticker, e.nombre, watchlist.catalizador_de(e), watchlist.meta_de(e),
                 e.es_large_cap, e.atr_diario, e.score_base, None, bi_t, cfg,
-                gap_pct_fallback=e.gap_pct_congelado)
+                gap_pct_fallback=e.gap_pct_congelado, gap_oficial=gaps_oficiales.get(e.ticker))
             if c_t is None:
                 continue
             niveles_t = report.niveles_entrada_salida(c_t.factores, c_t.atr_diario)
@@ -1118,6 +1150,7 @@ def _revisar_watchlist_cuerpo(
                 e.ticker, e.nombre, watchlist.catalizador_de(e), watchlist.meta_de(e),
                 e.es_large_cap, e.atr_diario, e.score_base, None, bi, cfg,
                 gap_pct_fallback=e.gap_pct_congelado,
+                gap_oficial=gaps_oficiales.get(e.ticker),
             )
             if candidato is not None:
                 candidatos.append(candidato)

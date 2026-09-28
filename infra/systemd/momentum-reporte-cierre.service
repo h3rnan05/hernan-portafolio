@@ -1,0 +1,18 @@
+[Unit]
+Description=Reporte de cierre con subastas oficiales (solo lectura, informativo)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+EnvironmentFile=/etc/momentum/paper.env
+# Solo lee watchlist, revisiones.json y el host de DATOS. No coloca
+# órdenes ni escribe en git: la salida va a /var/lib/momentum/reportes_cierre/.
+# Telegram: MOMENTUM_REPORTE_CIERRE_TELEGRAM=1 en paper.env.
+ExecStart=/opt/momentum/bin/run_reporte_cierre.sh
+Nice=10
+TimeoutStartSec=300

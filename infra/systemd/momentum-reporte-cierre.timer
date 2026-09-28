@@ -1,0 +1,15 @@
+[Unit]
+Description=Reporte de cierre, Lun-Vie 16:15 Nueva York (después de la subasta de cierre)
+Requires=momentum-reporte-cierre.service
+
+[Timer]
+# En hora de Nueva York para no depender del horario de verano: la
+# subasta de cierre se publica unos segundos después de las 16:00 ET.
+# 16:15 ET = 20:15 UTC en verano / 21:15 UTC en invierno = 14:15
+# Monterrey (UTC−6). Un feriado corre igual y reporta "no hubo señales".
+OnCalendar=Mon..Fri *-*-* 16:15:00 America/New_York
+Persistent=false
+Unit=momentum-reporte-cierre.service
+
+[Install]
+WantedBy=timers.target
