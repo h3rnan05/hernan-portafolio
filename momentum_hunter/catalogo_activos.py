@@ -2,12 +2,21 @@
 endpoint: el archivo lo escribe otro proceso, y ese proceso no se
 importa desde acá.
 
-CUÁNDO SIRVE. Si `fecha_generacion` es de hoy (UTC) y tiene 36 h o
-menos, el archivo es usable. Si falta, no se puede leer, está vacío,
-tiene más de 36 h o su fecha no es la de hoy, el dato es desconocido:
-`tradable` y el exchange quedan en None (nunca False ni 0) y el
-escaneo no filtra por esto. Un campo ausente dentro de una fila
-fresca tampoco se convierte en False: solo un `tradable: false`
+DÓNDE ESTÁ. Fuera del árbol git:
+`$MOMENTUM_ESTADO_DIR/datos/alpaca_assets.json`, y si esa variable no
+está, `/var/lib/momentum/estado/datos/alpaca_assets.json`.
+`MOMENTUM_CATALOGO_ACTIVOS`, si está puesta, es la ruta completa del
+archivo y gana sobre el directorio. Este módulo solo lee: no crea el
+directorio. Lo crea el job que escribe.
+
+CUÁNDO SIRVE. Si `fecha_generacion` es de hoy (UTC), tiene 36 h o
+menos, y hay al menos `MINIMO_SIMBOLOS` filas, el archivo es usable.
+Si falta, no se puede leer, está vacío, tiene más de 36 h, su fecha
+no es la de hoy, o trae sospechosamente pocos símbolos, el dato es
+desconocido: `tradable` y el exchange quedan en None (nunca False ni
+0) y el escaneo no filtra por esto. Un catálogo truncado no es
+evidencia de que el resto no exista. Un campo ausente dentro de una
+fila fresca tampoco se convierte en False: solo un `tradable: false`
 explícito saca al símbolo.
 
 PARA QUÉ. (1) Saber si el símbolo está en la lista de us_equity
@@ -31,17 +40,29 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 EDAD_MAXIMA = timedelta(hours=36)
+# Un us_equity activo de verdad son varios miles. Por debajo de esto
+# la foto está truncada o es un fixture: no alcanza para sacar símbolos.
+MINIMO_SIMBOLOS = 5000
 
 _NOMBRE = "alpaca_assets.json"
+DIR_ESTADO_DEFAULT = Path("/var/lib/momentum/estado")
 
 
 def ruta_catalogo() -> Path:
-    """`MOMENTUM_CATALOGO_ACTIVOS` si está puesta; si no, el JSON
-    junto a este paquete. El job escribe en la misma ruta."""
-    env = os.environ.get("MOMENTUM_CATALOGO_ACTIVOS", "").strip()
-    if env:
-        return Path(env)
-    return Path(__file__).resolve().parent / "datos" / _NOMBRE
+    """Un solo camino para el job y para el hunter.
+
+    `MOMENTUM_CATALOGO_ACTIVOS` es la ruta completa del archivo y gana
+    siempre (las pruebas la usan). Si no está, el archivo vive en
+    `$MOMENTUM_ESTADO_DIR/datos/`, fuera del repo. Sin ninguna de las
+    dos variables, el default es `/var/lib/momentum/estado/datos/`.
+    No hay otro helper de estado en el repo: cada proceso elige su
+    propio archivo bajo `/var/lib/momentum`."""
+    explicita = os.environ.get("MOMENTUM_CATALOGO_ACTIVOS", "").strip()
+    if explicita:
+        return Path(explicita)
+    base = os.environ.get("MOMENTUM_ESTADO_DIR", "").strip()
+    raiz = Path(base) if base else DIR_ESTADO_DEFAULT
+    return raiz / "datos" / _NOMBRE
 
 
 def _texto(valor: object) -> str | None:
@@ -109,6 +130,10 @@ class InformeCatalogo:
     tickers: list[str]
     descartados: int | None
     motivos: dict[str, int] | None
+    # Por qué no se filtró. None cuando el archivo sí se usó.
+    # `ausente` = no está, vacío o ilegible. `viejo` = fecha que no
+    # cubre hoy. `pocos` = de hoy, pero con menos de MINIMO_SIMBOLOS.
+    motivo: str | None = None
 
 
 @dataclass(frozen=True)
@@ -190,20 +215,32 @@ def _ahora_utc(ahora: datetime | None) -> datetime | None:
     return momento.astimezone(UTC)
 
 
-def esta_fresco(snap: _Snapshot, ahora: datetime | None = None) -> bool:
-    """Hoy en UTC y no más viejo que `EDAD_MAXIMA`. Un archivo de ayer
-    con menos de 36 h igual no cubre hoy: el job es diario y la sesión
-    no debe operar con la foto del día anterior."""
-    if not snap.legible or snap.fecha is None or not snap.filas:
-        return False
+def motivo_desconocido(snap: _Snapshot, ahora: datetime | None = None) -> str | None:
+    """None = se puede filtrar. El orden importa: un archivo viejo y
+    corto es `viejo`, no `pocos`. `pocos` solo cuando la foto sería de
+    hoy y tiene menos de `MINIMO_SIMBOLOS` filas."""
+    if not snap.legible or not snap.filas:
+        return "ausente"
     momento = _ahora_utc(ahora)
-    if momento is None:
-        return False
-    if momento - snap.fecha > EDAD_MAXIMA:
-        return False
-    if snap.fecha.date() != momento.date():
-        return False
-    return True
+    if (
+        momento is None
+        or snap.fecha is None
+        or momento - snap.fecha > EDAD_MAXIMA
+        or snap.fecha.date() != momento.date()
+    ):
+        return "viejo"
+    if len(snap.filas) < MINIMO_SIMBOLOS:
+        return "pocos"
+    return None
+
+
+def esta_fresco(snap: _Snapshot, ahora: datetime | None = None) -> bool:
+    """Hoy en UTC, no más viejo que `EDAD_MAXIMA`, y con suficientes
+    símbolos. Un archivo de ayer con menos de 36 h igual no cubre hoy:
+    el job es diario y la sesión no debe operar con la foto del día
+    anterior. Un archivo de hoy con menos de `MINIMO_SIMBOLOS` tampoco:
+    un catálogo truncado filtraría de más."""
+    return motivo_desconocido(snap, ahora) is None
 
 
 def _claves(ticker: str) -> list[str]:
@@ -285,7 +322,9 @@ def filtrar_por_catalogo(
     de active, y los que no están en el archivo."""
     snap = cargar(path)
     if not esta_fresco(snap, ahora):
-        return InformeCatalogo(True, list(tickers), None, None)
+        return InformeCatalogo(
+            True, list(tickers), None, None, motivo_desconocido(snap, ahora),
+        )
     quedan: list[str] = []
     motivos: dict[str, int] = {}
     for t in tickers:
