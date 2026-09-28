@@ -1403,9 +1403,15 @@ def test_el_take_profit_abierto_sin_patas_no_es_el_stop(tmp_path):
 
 def test_si_no_se_leen_las_ordenes_del_simbolo_no_se_afirma_que_falta_el_stop(tmp_path):
     # status=open sigue siendo solo el take-profit. Si la consulta de
-    # símbolos falla o no es una lista, no se usa esa fila para decir
-    # que no hay stop.
+    # símbolos falla o no es una lista, el panel recibe None, no []:
+    # ni afirma que falte el stop ni pinta 41.62.
     libro = _libro(tmp_path, _revision_viva("MNST"))
+
+    def get_roto(ruta, params=None):
+        return None, "timeout"
+
+    assert bd.leer_ordenes_de_simbolos(get_roto, ["MNST"])[0] is None
+
     fallos = (
         (None, "Alpaca no respondió en /v2/orders: timeout"),
         ({"message": "no"}, None),
@@ -1414,12 +1420,13 @@ def test_si_no_se_leen_las_ordenes_del_simbolo_no_se_afirma_que_falta_el_stop(tm
         get, _llamadas = _get_mnst([], fallo_simbolos=fallo)
         ctx = bd.construir(AHORA, cfg(tmp_path, revisiones=libro), get=get, velas=velas_ok)
         assert ctx["avisos_broker"] == [], fallo
+        assert all(not a.get("sin_stop") for a in ctx["avisos_broker"])
         fila = ctx["posiciones_broker"][0]
         assert fila["salidas_conocidas"] is False and fila["stop"] is None
         html = bd.render(ctx)
         assert "no tiene stop" not in html
         bloque = html.split("Posiciones abiertas", 1)[1].split("Órdenes pendientes", 1)[0]
-        assert "sin datos" in bloque and "$41.62" not in bloque
+        assert "sin datos" in bloque and "$41.62" not in bloque and "<td>—</td>" not in bloque
         if fallo[1]:
             assert fallo[1] in ctx["problemas"]
         else:
@@ -1427,16 +1434,18 @@ def test_si_no_se_leen_las_ordenes_del_simbolo_no_se_afirma_que_falta_el_stop(tm
 
 
 def test_aviso_y_columna_siguen_la_regla_de_proteccion(tmp_path):
-    # Misma forma del padre filled. Cambia el tipo o el status de la
-    # pata de venta: stop_limit / trailing_stop y new / accepted /
-    # pending_new protegen; canceled, status ausente y un limit no.
+    # Misma forma del padre filled. La whitelist es held/new/accepted/
+    # pending_new. pending_cancel, canceled y un status desconocido o
+    # ausente no protegen y no llenan la columna con 41.62.
     libro = _libro(tmp_path, _revision_viva("MNST"))
     casos = [
         ("stop", "held", False),
         ("stop_limit", "new", False),
         ("trailing_stop", "accepted", False),
         ("stop", "pending_new", False),
+        ("stop", "pending_cancel", True),
         ("stop", "canceled", True),
+        ("stop", "foo", True),
         ("stop", None, True),
     ]
     for tipo, status, sin_stop in casos:
@@ -1446,8 +1455,10 @@ def test_aviso_y_columna_siguen_la_regla_de_proteccion(tmp_path):
         ctx = bd.construir(AHORA, cfg(tmp_path, revisiones=libro), get=get, velas=velas_ok)
         stop = ctx["posiciones_broker"][0]["stop"]
         if sin_stop:
-            assert ctx["avisos_broker"] == [{"ticker": "MNST", "sin_seguimiento": False, "sin_stop": True}]
+            assert ctx["avisos_broker"] == [{"ticker": "MNST", "sin_seguimiento": False, "sin_stop": True}], status
             assert stop is None
+            bloque = bd.render(ctx).split("Posiciones abiertas", 1)[1].split("Órdenes pendientes", 1)[0]
+            assert "$41.62" not in bloque
         else:
             assert ctx["avisos_broker"] == [], (tipo, status)
             assert stop == {"precio": 41.62, "estado": status}
