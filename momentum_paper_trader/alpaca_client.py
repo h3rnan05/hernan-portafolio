@@ -15,6 +15,52 @@ import requests
 
 log = logging.getLogger("momentum_paper_trader.alpaca_client")
 
+# Una pata `held` no está muerta: es el stop del bracket esperando.
+# Estos estados sí: no protegen y no hace falta volver a cancelarlos.
+_ESTADOS_ORDEN_TERMINAL = frozenset({
+    "filled", "canceled", "cancelled", "expired", "rejected",
+    "replaced", "done_for_day", "suspended",
+})
+
+
+def orden_ya_terminada(orden: dict) -> bool:
+    """True si el status dice que la orden ya no trabaja. Sin status no
+    se inventa un terminal: el listado `open` a veces no lo trae en los
+    dobles de prueba, y un ausente no es evidencia de que murió."""
+    status = orden.get("status")
+    if status is None:
+        return False
+    return str(status).lower() in _ESTADOS_ORDEN_TERMINAL
+
+
+def ordenes_con_patas(ordenes: list) -> list[dict]:
+    """La fila de arriba y, un nivel más, sus `legs`.
+
+    Alpaca no anida más allá de un nivel. La pata hereda el símbolo del
+    padre si ella no lo trae: sin eso un stop `held` sin `symbol` se
+    pierde. No muta el dict original (le pone el símbolo resuelto en
+    una copia, clave `_symbol`)."""
+    salida: list[dict] = []
+    if not isinstance(ordenes, list):
+        return salida
+    for orden in ordenes:
+        if not isinstance(orden, dict):
+            continue
+        padre = orden.get("symbol")
+        fila = dict(orden)
+        fila["_symbol"] = padre
+        salida.append(fila)
+        legs = orden.get("legs")
+        if not isinstance(legs, list):
+            continue
+        for leg in legs:
+            if not isinstance(leg, dict):
+                continue
+            pata = dict(leg)
+            pata["_symbol"] = leg.get("symbol") or padre
+            salida.append(pata)
+    return salida
+
 # NUNCA "https://api.alpaca.markets" (esa es la cuenta real) -- ver
 # docstring del módulo.
 _BASE_URL = "https://paper-api.alpaca.markets/v2"
@@ -64,12 +110,21 @@ class AlpacaPaperClient:
         return r.json()
 
     def ordenes_abiertas(self) -> list[dict]:
-        """Órdenes todavía vivas (`GET /v2/orders?status=open`) -- solo
-        lectura. Complementa `posiciones()`: una orden límite de entrada
-        que aún no se llenó no es una posición, pero SÍ compromete el
-        ticker (colocar otra sería duplicar la apuesta)."""
+        """Órdenes todavía vivas (`GET /v2/orders?status=open&nested=true`).
+
+        Complementa `posiciones()`: una orden límite de entrada que aún
+        no se llenó no es una posición, pero SÍ compromete el ticker.
+
+        `nested=true` no es cosmético. Con el bracket ya lleno, Alpaca
+        deja el stop en `held` y NO lo devuelve en `status=open`: solo
+        el take-profit (`new`) sale en la lista, y el stop va en su
+        `legs` si se pide anidado. Sin eso, el 2026-09-28 la
+        reconciliación avisó que MNST no tenía stop teniendo la pata
+        `f2d920f1` en `held` a $41.62. Quien busque protección tiene
+        que mirar `legs`, no solo la fila de arriba."""
         r = requests.get(
-            f"{_BASE_URL}/orders", params={"status": "open", "limit": 100},
+            f"{_BASE_URL}/orders",
+            params={"status": "open", "limit": 100, "nested": "true"},
             headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         return r.json()
@@ -185,24 +240,50 @@ class AlpacaPaperClient:
         return datos if isinstance(datos, dict) else {}
 
     def cancelar_ordenes_de(self, ticker: str, ordenes_abiertas: list[dict]) -> int:
-        """Cancela las órdenes vivas de un ticker. Devuelve cuántas
-        canceló. Necesario antes de reemplazar las salidas: las patas del
-        bracket siguen vivas y colocar otra orden de venta encima
-        rebotaría por cantidad insuficiente.
+        """Cancela las órdenes vivas de un ticker, patas `held` incluidas.
 
-        Un fallo cancelando una orden concreta no aborta el resto -- se
-        cuenta solo lo que de verdad se canceló."""
+        Necesario antes de reemplazar las salidas: las patas del bracket
+        siguen vivas y colocar otra venta encima rebota por cantidad
+        insuficiente. El stop de un bracket lleno está en `held` y no
+        aparece como fila propia de `status=open`: vive en `legs` del
+        take-profit. Cancelar solo la fila de arriba alcanza cuando
+        Alpaca tira la pata hermana (OCO), pero si esa fila no está y
+        la pata sí, hay que cancelar el id de la pata.
+
+        El cierre además manda `cancel_orders=true` en el DELETE de la
+        posición. Ese flag es el que cancela en el servidor lo que este
+        listado no vio -- incluidas las patas `held` que retienen la
+        cantidad y provocan el 403. Las dos cosas van juntas: el DELETE
+        no se queda esperando a que este bucle haya visto cada pata.
+
+        Una pata ya terminal no se toca. Un 404/422 (la hermana ya cayó
+        al cancelar la otra) no es un fallo. Cualquier otro error no
+        aborta el resto, y el log lleva el tipo, no el texto de la
+        excepción (puede traer la URL)."""
         canceladas = 0
-        for o in ordenes_abiertas:
-            if o.get("symbol") != ticker or not o.get("id"):
+        vistos: set[str] = set()
+        for o in ordenes_con_patas(ordenes_abiertas):
+            oid = o.get("id")
+            simbolo = o.get("_symbol")
+            if simbolo != ticker or not oid or oid in vistos:
                 continue
+            if orden_ya_terminada(o):
+                continue
+            vistos.add(str(oid))
             try:
                 r = requests.delete(
-                    f"{_BASE_URL}/orders/{o['id']}", headers=self._headers, timeout=self._timeout)
+                    f"{_BASE_URL}/orders/{oid}", headers=self._headers, timeout=self._timeout)
+                if r.status_code in (404, 422):
+                    # La pata hermana del OCO ya no está: cancelar una
+                    # cancela la otra. No es que el id estuviera mal.
+                    continue
                 r.raise_for_status()
                 canceladas += 1
             except Exception as ex:
-                log.warning("%s: no se pudo cancelar la orden %s: %s", ticker, o["id"], ex)
+                log.warning(
+                    "%s: no se pudo cancelar la orden %s (%s)",
+                    ticker, oid, type(ex).__name__,
+                )
         return canceladas
 
     def colocar_stop_protector(self, ticker: str, cantidad: int, stop: float) -> str:

@@ -13,6 +13,11 @@ venta abierto, dispara un Telegram ERROR. Una venta a mercado viva
 (el cierre en curso) no es un stop, pero tampoco es "desprotegida":
 hay una salida pendiente y no se alarma el cierre que está funcionando.
 
+El stop de un bracket ya lleno no sale en la fila de `status=open`:
+queda `held` dentro de `legs` del take-profit (MNST, 2026-09-28, pata
+`f2d920f1` a $41.62). Contar solo la fila de arriba daba un falso
+"sin stop" con la protección puesta. `legs` forma parte del chequeo.
+
 No coloca órdenes ni cambia umbrales. Si no se pueden leer las
 posiciones, no alerta y no inventa un "todo bien". Si no se pueden
 leer las órdenes, sí alerta lo que no depende de ellas (una posición
@@ -26,7 +31,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from momentum_paper_trader import dedupe_avisos, estado, notify
-from momentum_paper_trader.alpaca_client import AlpacaPaperClient
+from momentum_paper_trader.alpaca_client import (
+    AlpacaPaperClient,
+    orden_ya_terminada,
+    ordenes_con_patas,
+)
 
 log = logging.getLogger("momentum_paper_trader.reconciliacion")
 
@@ -53,16 +62,20 @@ def _ticker_seguido(revisiones: list[estado.RevisionIA]) -> set[str]:
 
 def _cobertura(ordenes: list[dict] | None) -> tuple[set[str], set[str]] | None:
     """(símbolos con stop de venta, símbolos con venta a mercado).
-    None si no hay listado: no se puede afirmar que falte el stop."""
+    None si no hay listado: no se puede afirmar que falte el stop.
+
+    Mira también `legs`. Con el bracket lleno, `status=open` trae el
+    take-profit y el stop va anidado en `held` (MNST, 2026-09-28). Un
+    limit de take-profit no es un stop. Una pata ya terminal tampoco."""
     if ordenes is None:
         return None
     stops: set[str] = set()
     mercados: set[str] = set()
-    for o in ordenes:
-        if not isinstance(o, dict):
-            continue
-        simbolo = o.get("symbol")
+    for o in ordenes_con_patas(ordenes):
+        simbolo = o.get("_symbol")
         if not isinstance(simbolo, str) or not simbolo:
+            continue
+        if orden_ya_terminada(o):
             continue
         if str(o.get("side") or "").lower() != "sell":
             continue

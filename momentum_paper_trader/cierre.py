@@ -277,7 +277,11 @@ def _liquidar(
     """(orden con id, código de fallo). El código es None si hay id.
 
     Cancelar primero es obligatorio: con las patas del bracket vivas el
-    DELETE ve cantidad disponible 0 y Alpaca responde 403. Si ese
+    DELETE ve cantidad disponible 0 y Alpaca responde 403. La pata de
+    stop suele estar `held` y solo aparece en `legs`; `cancelar_ordenes_de`
+    la incluye. El DELETE igual lleva `cancel_orders=true`: es Alpaca
+    quien cancela, antes de liquidar, las órdenes que retienen la
+    cantidad -- también la `held` que este listado no haya visto. Si el
     rechazo se repite, la venta a mercado usa la qty del broker. Un
     error que no es 4xx no dispara esa venta -- el DELETE pudo haber
     llegado igual y una segunda orden abriría un corto."""
