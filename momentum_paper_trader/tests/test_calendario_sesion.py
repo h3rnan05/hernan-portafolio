@@ -250,9 +250,14 @@ def test_el_get_de_calendario_va_al_host_paper(monkeypatch):
     assert AlpacaPaperClient("k", "s").calendario("2026-10-26", "2027-12-07")[0]["close"] == "16:00"
     assert llamadas[0][0] == "https://paper-api.alpaca.markets/v2/calendar"
     assert llamadas[0][1] == {"start": "2026-10-26", "end": "2027-12-07"}
+    # El método no arma la URL a mano: sale de `_BASE_URL`, que está
+    # hardcodeado al host paper. Si alguien lo apunta a la cuenta real,
+    # este assert falla.
     fuente = inspect.getsource(AlpacaPaperClient.calendario)
-    assert "api.alpaca.markets" not in fuente or "paper-api" in inspect.getsource(
-        __import__("momentum_paper_trader.alpaca_client", fromlist=["alpaca_client"]))
+    assert "_BASE_URL" in fuente
+    assert "api.alpaca.markets" not in fuente
+    modulo = inspect.getsource(__import__("momentum_paper_trader.alpaca_client", fromlist=["x"]))
+    assert '_BASE_URL = "https://paper-api.alpaca.markets/v2"' in modulo
 
 
 def test_sin_calendario_el_ejecutor_no_abre_aunque_el_reloj_diga_abierto(monkeypatch, tmp_path):
