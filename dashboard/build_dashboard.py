@@ -386,6 +386,17 @@ def leer_watchlist(ruta: Path, ruta_estado: Path | None = None):
     return items, generado, err_estado
 
 
+def _contar_trading() -> None:
+    """El panel también gasta cupo del límite de 200/min de trading
+    (corre cada minuto). Si `uso_api` no se puede importar, el panel
+    sigue igual: medir nunca rompe la página."""
+    try:
+        from uso_api.contador import TRADING, registrar
+    except ImportError:
+        return
+    registrar(TRADING)
+
+
 def alpaca_get(ruta: str, params: dict | None = None, timeout: float = 10):
     # Mismos nombres que usa momentum_paper_trader/run.py; APCA_* queda como respaldo.
     clave = os.environ.get("ALPACA_PAPER_API_KEY") or os.environ.get("APCA_API_KEY_ID")
@@ -399,6 +410,7 @@ def alpaca_get(ruta: str, params: dict | None = None, timeout: float = 10):
         "APCA-API-KEY-ID": clave,
         "APCA-API-SECRET-KEY": secreto,
     })
+    _contar_trading()
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return json.loads(r.read().decode("utf-8")), None
