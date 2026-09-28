@@ -47,17 +47,18 @@ def test_el_script_pasa_bash_n_es_ejecutable_y_falla_en_el_primer_error():
 
 def test_el_script_hace_la_secuencia_documentada_y_nada_mas():
     texto = SCRIPT.read_text(encoding="utf-8")
-    # La misma lista de estado que el README (pull con la telemetría sucia).
+    # Copia el estado fuera del repo ANTES del pull. Sin stash.
     for p in ("momentum_paper_trader/telemetria", "momentum_hunter/telemetria",
               "momentum_paper_trader/revisiones.json", "momentum_paper_trader/archivo_triggered.jsonl",
               "momentum_hunter/watchlist.json", "momentum_hunter/auditoria",
               "momentum_hunter/alertas_enviadas.json", "momentum_hunter/estado_diario.json",
               "momentum_hunter/universo_cache.json"):
         assert p in texto, p
-    assert "git stash push --include-untracked" in texto
-    assert "git pull --rebase origin main" in texto
-    assert "git stash pop" in texto
-    assert "install -m 755 infra/systemd/bin/run_watchlist_paper.sh infra/systemd/bin/run_scan_paper.sh" in texto
+    assert "cp -a" in texto
+    assert texto.index("cp -a") < texto.index("git pull --rebase origin main")
+    assert "git stash" not in texto
+    assert "git checkout --" in texto
+    assert "install -m 755 infra/systemd/bin/run_watchlist_paper.sh infra/systemd/bin/run_scan_paper.sh infra/systemd/bin/run_movers_sombra.sh" in texto
     # Lo que NUNCA hace: forzar, resetear, reiniciar servicios, tocar
     # credenciales. Se mira el código, no los comentarios que lo explican.
     codigo = "\n".join(l for l in texto.splitlines() if not l.lstrip().startswith("#"))
@@ -84,3 +85,22 @@ def test_el_script_se_niega_en_sesion_salvo_que_se_fuerce(tmp_path):
 def test_el_readme_documenta_el_despliegue_desde_actions():
     texto = README.read_text(encoding="utf-8")
     assert "deploy_vps.yml" in texto and "VPS_SSH_KEY" in texto and "VPS_HOST" in texto
+
+
+def test_preparar_merge_borra_el_estado_y_no_fuerza():
+    """main sigue trackeando telemetría. El script la saca del índice
+    para que el PR deje de estar dirty. No es el deploy del VPS."""
+    path = ROOT / "scripts" / "preparar_merge_200.sh"
+    assert subprocess.run(["bash", "-n", str(path)], capture_output=True).returncode == 0
+    assert path.stat().st_mode & stat.S_IXUSR
+    texto = path.read_text(encoding="utf-8")
+    assert "git fetch origin main" in texto
+    assert "git merge origin/main" in texto
+    assert "git rm -f" in texto
+    assert "checkout --theirs" in texto
+    for p in ("momentum_hunter/telemetria", "momentum_hunter/watchlist.json",
+              "momentum_paper_trader/revisiones.json", "momentum_paper_trader/telemetria"):
+        assert p in texto, p
+    codigo = "\n".join(l for l in texto.splitlines() if not l.lstrip().startswith("#"))
+    for prohibido in ("--force", "reset --hard", "systemctl stop", "systemctl restart"):
+        assert prohibido not in codigo, prohibido

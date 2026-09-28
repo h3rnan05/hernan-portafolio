@@ -11,3 +11,6 @@ def _eventos_del_panel_en_tmp(tmp_path, monkeypatch):
     monkeypatch.setenv("DASH_EVENTOS", str(tmp_path / "panel" / "events.jsonl"))
     # La racha de fallos de IA no debe escribir en /var/lib durante las pruebas.
     monkeypatch.setenv("MOMENTUM_AVISOS_DIR", str(tmp_path / "avisos"))
+    # Un catálogo generado en el árbol de un desarrollador no puede
+    # cambiar las pruebas del feed. La que quiera un archivo lo apunta.
+    monkeypatch.setenv("MOMENTUM_CATALOGO_ACTIVOS", str(tmp_path / "sin_catalogo_activos.json"))

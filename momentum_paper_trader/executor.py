@@ -462,8 +462,16 @@ def ejecutar(
         else watchlist.cargar()
     )
     executor_leido_ts = _ahora_iso()
-    revisiones_previas = estado.cargar()
     nuevas: list[estado.RevisionIA] = []
+    try:
+        revisiones_previas = estado.cargar()
+    except estado.RevisionesIlegibles as exc:
+        # Sin libro no hay forma de saber qué ya se revisó. No se abren
+        # entradas nuevas. El mensaje no lleva el contenido del archivo.
+        log.error("revisiones ilegibles (%s): no se abren entradas nuevas", exc.origen)
+        if metricas is not None:
+            metricas.cerrar_corrida()
+        return nuevas
 
     pendientes = [
         e for e in entradas

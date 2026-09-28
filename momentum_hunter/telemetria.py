@@ -48,9 +48,11 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
+from momentum_hunter.rutas_estado import RutaEstado
+
 log = logging.getLogger("momentum_hunter.telemetria")
 
-DIR_TELEMETRIA = Path(__file__).resolve().parent / "telemetria"
+DIR_TELEMETRIA = RutaEstado("momentum_hunter/telemetria", es_dir=True)
 
 FUENTES_VALIDAS = ("vps", "gha", "local")
 _RE_FECHA = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -144,6 +146,17 @@ class Metricas:
     fallbacks_datos: int | None = None
     latencia_datos_ms: float | None = None
 
+    # Catálogo local de activos (lo escribe otro proceso; acá solo se
+    # lee). None = esta corrida no lo consultó. True = ausente, viejo,
+    # ilegible o con sospechosamente pocos símbolos: no se filtró.
+    # False = se usó. Un 0 en `descartados_catalogo` solo aparece
+    # cuando de verdad se contó; si el archivo no sirvió, el conteo
+    # queda en None. `assets_motivo` dice cuál de esos casos fue
+    # (`ausente`, `viejo`, `pocos`) y queda en None si se filtró.
+    assets_desconocido: bool | None = None
+    assets_motivo: str | None = None
+    descartados_catalogo: int | None = None
+
     def registrar_error(self, origen: str, ex: BaseException) -> None:
         self.errores[f"{origen}:{type(ex).__name__}"] += 1
 
@@ -186,6 +199,9 @@ class Metricas:
             "n_slots": self.n_slots,
             "universo_total": self.universo_total,
             "universo_escaneado": self.universo_escaneado,
+            "assets_desconocido": self.assets_desconocido,
+            "assets_motivo": self.assets_motivo,
+            "descartados_catalogo": self.descartados_catalogo,
             "embudo": {
                 "operables": dict(self.operables),
                 "con_alguna_noticia": dict(self.con_alguna_noticia),

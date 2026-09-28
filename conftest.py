@@ -1,10 +1,14 @@
-"""Calendario de sesión para la suite.
+"""Fixtures de suite: calendario de sesión + estado fuera del repo.
 
-Sin archivo, el código se niega a abrir entradas. Casi todas las pruebas
-históricas asumen un día hábil normal (9:30–16:00 America/New_York) y no
-saben de este archivo. Esta fixture se lo da, una vez por sesión de
-pytest. Las pruebas del calendario real apuntan `MOMENTUM_CALENDARIO_PATH`
-a otro archivo.
+1) Calendario: sin archivo, el código se niega a abrir entradas. Casi
+   todas las pruebas históricas asumen un día hábil normal (9:30–16:00
+   America/New_York). Esta fixture se lo da, una vez por sesión de
+   pytest. Las pruebas del calendario real apuntan
+   `MOMENTUM_CALENDARIO_PATH` a otro archivo.
+
+2) Estado: `RutaEstado` resuelve `MOMENTUM_ESTADO_DIR` en cada uso. Sin
+   esto, un test que toca el default copiaría la telemetría versionada
+   o intentaría crear `/var/lib/momentum/estado`.
 """
 
 from __future__ import annotations
@@ -52,3 +56,9 @@ def _archivo_calendario_normal(tmp_path_factory) -> Path:
 @pytest.fixture(autouse=True)
 def _calendario_normal_en_el_entorno(monkeypatch, _archivo_calendario_normal):
     monkeypatch.setenv("MOMENTUM_CALENDARIO_PATH", str(_archivo_calendario_normal))
+
+
+@pytest.fixture(autouse=True)
+def _estado_fuera_del_repo(tmp_path, monkeypatch):
+    monkeypatch.setenv("MOMENTUM_ESTADO_DIR", str(tmp_path / "estado"))
+    monkeypatch.setenv("MOMENTUM_ESTADO_MIGRAR", "0")

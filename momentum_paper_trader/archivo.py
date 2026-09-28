@@ -41,11 +41,13 @@ from pathlib import Path
 
 from momentum_hunter import watchlist
 
+from momentum_hunter.rutas_estado import RutaEstado
+
 from momentum_paper_trader import estado
 
 log = logging.getLogger("momentum_paper_trader.archivo")
 
-PATH_LOG = Path(__file__).resolve().parent / "archivo_triggered.jsonl"
+PATH_LOG = RutaEstado("momentum_paper_trader/archivo_triggered.jsonl")
 
 # Hipótesis verificada con NTLA/BEAM: no había transición terminal
 # después de la revisión paper. A/B se descartan en el PR.

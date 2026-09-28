@@ -62,12 +62,13 @@ y Telegram aparte, también como mucho uno por día por clase. Sin
 | `DASH_CACHE_VELAS` | caché de velas de 1 min (fuera de git; en el VPS `/var/lib/momentum/dashboard_cache`). Si falta, el temporal del sistema; si apunta dentro del repo, se ignora con aviso | temporal del sistema |
 | `DASH_VELAS_TTL_SEG` | cuánto vale una copia de velas antes de volver a pedir | `120` |
 | `DASH_VELAS_MAX_TICKERS` | tope de tickers graficados por corrida | `6` |
-| `DASH_VELAS_PAUSA_SEG` | cuánto deja de pedir a Yahoo tras un 429 (todos los tickers) | `900` |
+| `DASH_VELAS_PAUSA_SEG` | cuánto deja de pedir a Yahoo tras un 429 (todos los tickers). No frena el feed SIP | `900` |
+| `ALPACA_DATA_FEED` | feed de `data.alpaca.markets` para las velas del gráfico (`sip` o `iex`). Lo lee `AlpacaProvider`, igual que el hunter | `sip` |
 | `DASH_GHA_REPO` | repo público cuyo Actions se consulta para la última corrida OK del hunter (vacío = no preguntar) | `h3rnan05/hernan-portafolio` |
 | `DASH_GHA_WORKFLOW` | archivo del workflow del hunter | `momentum_hunter.yml` |
 | `DASH_GHA_TTL_SEG` | cuánto vale la respuesta de Actions antes de volver a preguntar | `300` |
 | `DASH_TELEM_HUNTER` | carpeta de telemetría del hunter; el estado del Hunter sale del último escaneo `vps` de hoy | `momentum_hunter/telemetria` |
-| `DASH_YAHOO_PAUSA_BOT` | archivo de pausa del BOT ante un 429 de Yahoo (solo lectura): el panel se frena también | (vacío) |
+| `DASH_YAHOO_PAUSA_BOT` | archivo de pausa del BOT ante un 429 de Yahoo (solo lectura): el panel no le pide a Yahoo tampoco. No frena el feed SIP | (vacío) |
 | `DASH_REVISIONES` | `revisiones.json` del ejecutor, solo para el aviso de reconciliación | el del paquete |
 
 La tabla de watchlist muestra las entradas activas (`watching`, `triggered`) y las que cambiaron
@@ -123,15 +124,21 @@ Yahoo. `fuente: vps` en la raíz del JSONL es el escritor, no el feed.
 
 ### Velas de posiciones abiertas
 
-Las velas se piden con la misma petición y se parsean con la misma función que el hunter
-(`provider.parsear_chart_intradia`), así que coinciden con lo que vio el bot. Yahoo se comparte
-con el bot desde la misma IP, y el panel no puede perjudicarlo: un ticker se pide como mucho
-una vez por TTL, hay tope de tickers, y ante un 429 el panel deja de pedir velas durante
-`DASH_VELAS_PAUSA_SEG` y muestra la copia vieja marcada como "caché vencida" con la hora
-(o "Sin datos" si no hay copia). Se grafican las posiciones abiertas y, si cabe en el tope,
-las compras pendientes, con la marca "pendiente". Una cerrada hoy no se grafica: va a la
-tabla. Las marcas (ruptura de la watchlist, entrada del fill, stop) salen de Alpaca y, la
-ruptura, de la watchlist: si falta una, no se dibuja y el pie dice "sin dato".
+El gráfico pide primero el feed de datos de Alpaca (`https://data.alpaca.markets`,
+`AlpacaProvider.barras_intradia`, feed `ALPACA_DATA_FEED` o `sip`) y recorta a hoy
+con `barras_de_hoy`. Menos de 5 velas de hoy no se dibuja: se cae a Yahoo, una sola
+petición parseada con `provider.parsear_chart_intradia`. El subtítulo de cada ticker
+dice `SIP` o `Yahoo (respaldo)`. La caché guarda esa etiqueta.
+
+Yahoo se comparte con el bot desde la misma IP, y el panel no puede perjudicarlo: un
+ticker se pide como mucho una vez por TTL, hay tope de tickers, y ante un 429 el panel
+deja de pedirle a Yahoo durante `DASH_VELAS_PAUSA_SEG`. Esa pausa no bloquea el feed.
+Si las dos fuentes fallan, se muestra la copia vieja marcada como "caché vencida" con
+la hora (o "Sin datos" si no hay copia). Nunca una serie de ceros. Se grafican las
+posiciones abiertas y, si cabe en el tope, las compras pendientes, con la marca
+"pendiente". Una cerrada hoy no se grafica: va a la tabla. Las marcas (ruptura de la
+watchlist, entrada del fill, stop) salen de la API paper de Alpaca y, la ruptura, de
+la watchlist: si falta una, no se dibuja y el pie dice "sin dato".
 
 ## 3. Probar a mano
 

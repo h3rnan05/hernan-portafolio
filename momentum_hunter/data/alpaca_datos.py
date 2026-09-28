@@ -43,6 +43,14 @@ verificado no se manda (`-P` pelado incluido: no es `X.P`). Un 400 se
 parte en mitades hasta aislar el símbolo, salvo que el lote sea grande
 y las dos mitades también sean 400: eso no es un símbolo suelto y no
 vale la pena bajar hasta el singleton. 429, 5xx y auth no se parten.
+
+CATÁLOGO LOCAL. Si el JSON de activos está fresco, el símbolo del
+query es el que figura ahí (`BRK-B` pedido como `BRK.B` porque el
+archivo tiene `BRK.B`). Si el archivo no lista esa forma, no se manda
+la traducción adivinada: un símbolo que el catálogo no tiene es el
+mismo 400 de lote que esta sección existe para evitar. Si el archivo
+falta o está viejo, sigue valiendo la traducción de arriba y no se
+filtra nada por él.
 """
 
 from __future__ import annotations
@@ -55,6 +63,14 @@ import requests
 
 from momentum_hunter.data.provider import DataProvider, _velas_finales_en_formacion
 from momentum_hunter.models import Barras, BarraIntradia, Metadata
+try:
+    from uso_api.contador import DATOS
+    from uso_api.contador import registrar as registrar_uso
+except ImportError:   # medir nunca puede impedir una consulta
+    DATOS = "datos"
+
+    def registrar_uso(host: str) -> None:
+        return None
 
 log = logging.getLogger("momentum_hunter.data.alpaca")
 
@@ -230,6 +246,18 @@ def _simbolo_para_query(ticker: str) -> str | None:
     return None
 
 
+def _resolver_query(ticker: str) -> str | None:
+    """Símbolo que va en `symbols`. Con el catálogo frío es la
+    traducción de `_simbolo_para_query`. Con el catálogo fresco es la
+    forma que el archivo trae, o None si no está: no se inventa una."""
+    from momentum_hunter.catalogo_activos import resolver_simbolo
+
+    veredicto = resolver_simbolo(ticker)
+    if veredicto.catalogo_fresco:
+        return veredicto.simbolo_feed
+    return _simbolo_para_query(ticker)
+
+
 def _pares(tickers: list[str]) -> tuple[list[tuple[str, list[str]]], list[str]]:
     """(query, pedidos) enviables, y pedidos que van directo a fallidos.
 
@@ -240,7 +268,10 @@ def _pares(tickers: list[str]) -> tuple[list[tuple[str, list[str]]], list[str]]:
     Dos tickers que caen en el mismo símbolo (`BH-A` y `BH.A`, `X-WT`
     y `X.WS`) se piden una vez. La serie vuelve a cada clave: descartar
     una en silencio dejaría un hueco que el caller no puede distinguir
-    de "el feed no la tiene"."""
+    de "el feed no la tiene".
+
+    Con el catálogo local fresco, el query es el símbolo de ese
+    archivo. Sin catálogo, la traducción de clase de siempre."""
     vistos: set[str] = set()
     por_query: dict[str, list[str]] = {}
     orden: list[str] = []
@@ -255,7 +286,7 @@ def _pares(tickers: list[str]) -> tuple[list[tuple[str, list[str]]], list[str]]:
         if clave in vistos:
             continue
         vistos.add(clave)
-        query = _simbolo_para_query(clave)
+        query = _resolver_query(clave)
         if query is None:
             directos.append(pedido)
             continue
@@ -355,6 +386,8 @@ class AlpacaProvider(DataProvider):
         for intento in range(self.reintentos):
             if intento:
                 self._dormir(self._espera(intento - 1, respuesta))
+            # Cada intento gasta cupo del plan (un reintento también).
+            registrar_uso(DATOS)
             try:
                 respuesta = requests.get(
                     f"{DATA_BASE}{path}", params=params, headers=headers, timeout=self.timeout,

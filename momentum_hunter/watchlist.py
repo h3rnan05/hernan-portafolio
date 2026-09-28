@@ -72,14 +72,19 @@ from pathlib import Path
 
 from momentum_hunter.catalysts.detector import Catalizador, dentro_de_ventana
 from momentum_hunter.models import Metadata
+from momentum_hunter.rutas_estado import RutaEstado
 
 log = logging.getLogger("momentum_hunter.watchlist")
 
-PATH = Path(__file__).resolve().parent / "watchlist.json"
+# Canónico fuera del checkout (MOMENTUM_ESTADO_DIR). En el VPS el
+# buscador y el ejecutor comparten disco, así que este archivo ya no
+# viaja por git. Lo escribe el buscador (escaneo / materializar). El
+# ejecutor no lo toca: sus mutaciones van al overlay de abajo.
+PATH = RutaEstado("momentum_hunter/watchlist.json")
 
 # Estado runtime del VPS -- FUERA del repo a propósito. Escribir PATH
-# desde `--solo-watchlist` sucia el worktree y rompe `git pull --rebase`
-# (medido 2026-09-18). GHA sigue siendo el único escritor del canónico.
+# desde `--solo-watchlist` pisaría el canónico que acaba de calcular el
+# escaneo (medido 2026-09-18, cuando además rompía el pull).
 STATE_PATH_DEFAULT = Path("/var/lib/momentum/watchlist_vps_state.json")
 ENV_VPS_STATE = "MOMENTUM_WATCHLIST_VPS_STATE"
 ENV_STATE_PATH = "MOMENTUM_WATCHLIST_STATE"
@@ -662,6 +667,45 @@ def _candado(path: Path | None = None):
             fcntl.flock(fh, fcntl.LOCK_UN)
 
 
+def _construir_entries_overlay(entradas: list[EntradaWatchlist], escrito: str) -> dict:
+    """Un slot por ticker. La última entrada se queda con el slot, igual
+    que el dict comprehension de antes.
+
+    Si el mismo ticker tiene OTRA encarnación (`creado_en` distinto) que
+    ya está ARCHIVED, esa no puede perder el slot: si no, el ciclo
+    siguiente la vuelve a ver TRIGGERED en el canónico, la archiva otra
+    vez y el log repite «N TRIGGERED archivadas». No cambia qué señales
+    se archivan: solo recuerda las que ya lo estaban."""
+    grupos: dict[str, list[EntradaWatchlist]] = {}
+    for e in entradas:
+        grupos.setdefault(e.ticker, []).append(e)
+    entries: dict = {}
+    for ticker, grupo in grupos.items():
+        primario = _entrada_a_overlay(grupo[-1], escrito)
+        vistos = {grupo[-1].creado_en}
+        extras: list[dict] = []
+        for e in reversed(grupo[:-1]):
+            if e.creado_en in vistos:
+                continue
+            vistos.add(e.creado_en)
+            if e.estado == ESTADO_ARCHIVED:
+                extras.append(_entrada_a_overlay(e, escrito))
+        if extras:
+            primario = dict(primario)
+            primario["encarnaciones_archivadas"] = extras
+        entries[ticker] = primario
+    return entries
+
+
+def _overlays_del_ticker(overlay: dict) -> list[dict]:
+    """El slot y, si las hay, las ARCHIVED de otro `creado_en`."""
+    candidatos = [overlay]
+    extras = overlay.get("encarnaciones_archivadas")
+    if isinstance(extras, list):
+        candidatos.extend(x for x in extras if isinstance(x, dict))
+    return candidatos
+
+
 def guardar_vps_state(
     entradas: list[EntradaWatchlist],
     path: Path | None = None,
@@ -686,9 +730,7 @@ def guardar_vps_state(
         "schema": 1,
         "updated_at": escrito,
         "source": "vps-solo-watchlist",
-        "entries": {
-            e.ticker: _entrada_a_overlay(e, escrito) for e in entradas
-        },
+        "entries": _construir_entries_overlay(entradas, escrito),
     }
     with _candado(path):
         _escribir_json_atomico(path, data)
@@ -858,10 +900,21 @@ def aplicar_overlay(
         overlay = entries.get(e.ticker)
         if overlay is None:
             overlay = entries.get(e.ticker.upper())
-        if not isinstance(overlay, dict) or not _overlay_es_de_esta_entrada(e, overlay):
+        if not isinstance(overlay, dict):
             resultado.append(e)
             continue
-        resultado.append(_fusionar_overlay(e, overlay))
+        # El slot es de UNA encarnación. Si esta entrada es otra (otro
+        # creado_en), la ARCHIVED puede estar en `encarnaciones_archivadas`
+        # y no en el slot: sin mirarla, el canónico sigue TRIGGERED.
+        elegido = None
+        for cand in _overlays_del_ticker(overlay):
+            if _overlay_es_de_esta_entrada(e, cand):
+                elegido = cand
+                break
+        if elegido is None:
+            resultado.append(e)
+            continue
+        resultado.append(_fusionar_overlay(e, elegido))
     return resultado
 
 

@@ -21,7 +21,9 @@ from dataclasses import asdict, dataclass
 from datetime import date
 from pathlib import Path
 
-PATH = Path(__file__).resolve().parent / "estado_diario.json"
+from momentum_hunter.rutas_estado import RutaEstado
+
+PATH = RutaEstado("momentum_hunter/estado_diario.json")
 
 # ~20:00 UTC -- cerca del cierre de la sesión regular en VERANO. Es un
 # umbral editorial del resumen "hoy no hubo nada", no el cierre real:

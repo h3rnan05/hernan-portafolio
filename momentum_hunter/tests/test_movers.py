@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import subprocess
 from collections import Counter
 from datetime import UTC, datetime
 from pathlib import Path
@@ -264,12 +265,24 @@ def test_movers_no_menciona_ejecucion_ni_brokers():
 
 
 def test_unidades_de_sombra_no_se_instalan_solas_y_no_bloquean_al_escaneo():
+    """La sombra no corre git y no envuelve al escaneo. Sí toma el candado
+    del persist mientras escribe: el 2026-09-28 movers.jsonl cayó entre
+    el stash y el pop y el stash entero (revisiones.json incluido) quedó
+    abandonado. El timer sale de esa ventana (:30 de cada 5 min)."""
     raiz = Path(__file__).resolve().parents[2] / "infra" / "systemd"
     timer = (raiz / "momentum-movers-sombra.timer").read_text(encoding="utf-8")
-    assert "OnCalendar=Mon..Fri *-*-* 13..20:2/5:00 UTC" in timer and "NO se instala solo" in timer
-    assert "OnCalendar=Mon..Fri *-*-* 21:02,07,12,17,22,27:00 UTC" in timer
+    assert "OnCalendar=Mon..Fri *-*-* 13..20:0/5:30 UTC" in timer and "NO se instala solo" in timer
+    assert "OnCalendar=Mon..Fri *-*-* 21:00,05,10,15,20,25:30 UTC" in timer
     wrapper = (raiz / "bin" / "run_movers_sombra.sh").read_text(encoding="utf-8")
     assert 'if [ "${MOMENTUM_MOVERS_SOMBRA:-0}" != "1" ]' in wrapper
-    assert "flock -n 9" in wrapper and "momentum-paper-git.lock" not in wrapper
+    assert "flock -n 9" in wrapper and "momentum-paper-git.lock" in wrapper
+    assert "flock -w 60 8" in wrapper
+    # El candado del persist se toma después del propio y antes de escribir.
+    # El path también se nombra en el comentario de arriba: se mira el cuerpo.
+    cuerpo = wrapper.split("if ! flock -n 9", 1)[1]
+    assert cuerpo.index("momentum-paper-git.lock") < cuerpo.index("flock -w 60 8")
+    assert cuerpo.index("flock -w 60 8") < cuerpo.index("--movers-sombra")
     assert "--movers-sombra" in wrapper and "git " not in wrapper
     assert "NO se instala solo" in (raiz / "README.md").read_text(encoding="utf-8")
+    r = subprocess.run(["bash", "-n", str(raiz / "bin" / "run_movers_sombra.sh")], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr

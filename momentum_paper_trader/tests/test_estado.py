@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from momentum_paper_trader.estado import (
-    MOTIVO_FUERA_DE_BANDA, RevisionIA, cargar, guardar, ya_revisada,
+    MOTIVO_FUERA_DE_BANDA, RevisionesIlegibles, RevisionIA, cargar, guardar, ya_revisada,
 )
 
 
@@ -142,16 +144,21 @@ def test_registro_viejo_sin_veredicto_ni_motivo_carga_como_none(tmp_path):
     assert recargada.motivo_no_operada is None
 
 
-def test_cargar_archivo_corrupto_no_lanza(tmp_path):
+def test_cargar_archivo_corrupto_no_se_trata_como_vacio(tmp_path):
     path = tmp_path / "revisiones.json"
     path.write_text("{esto no es json")
-    assert cargar(path) == []
+    with pytest.raises(RevisionesIlegibles) as exc:
+        cargar(path)
+    assert exc.value.origen == "JSONDecodeError"
+    assert "esto no es json" not in str(exc.value)
 
 
-def test_cargar_formato_inesperado_no_lanza(tmp_path):
+def test_cargar_formato_inesperado_no_se_trata_como_vacio(tmp_path):
     path = tmp_path / "revisiones.json"
     path.write_text(json.dumps([1, 2, 3]))
-    assert cargar(path) == []
+    with pytest.raises(RevisionesIlegibles) as exc:
+        cargar(path)
+    assert exc.value.origen == "forma"
 
 
 def test_ya_revisada_true_para_misma_clave():

@@ -3,3 +3,10 @@
 # OPCIONAL (metadata/catalizadores/opciones degradan con gracia sin él).
 requests>=2.31.0
 yfinance>=0.2.40
+# Solo para config/estrategia_v2.yaml (se importa al cargar la v2; sin él la
+# v1 sigue igual y la v2 queda apagada).
+pyyaml>=6.0
+# Stream SIP de barras (data/sip_stream.py). El mismo paquete que el
+# listener de trade_updates: el de datos manda JSON en texto. El hunter
+# no importa esto para decidir mientras MOMENTUM_SIP_STREAM sea sombra.
+websockets>=12.0,<16
