@@ -761,6 +761,37 @@ mide en el VPS con `hora_dato`. El screener y las noticias van por yfinance,
 con los mismos límites de peticiones que el resto; ante un 429 el bot ya se
 frena (`MOMENTUM_YAHOO_PAUSA_ARCHIVO`).
 
+## Acciones corporativas (2026-09-28)
+
+`data/acciones_corporativas.py` consulta `GET /v1/corporate-actions` en el
+host de DATOS (solo lectura, mismas claves de datos). Dos reglas
+deterministas:
+
+1. **Día de la acción = día sin señal.** Si un símbolo tiene una acción
+   corporativa con ex-date / effective date HOY (fecha de Nueva York), no se
+   dispara ni se le refrescan niveles. Sin niveles frescos el ejecutor ya lo
+   rechaza por su tope de 15 min. Es literal: también bloquea un dividendo
+   trimestral chico.
+2. **Historia verificada.** En el escaneo se piden los splits / dividendos en
+   acciones de todo el mercado en la ventana de las barras diarias. Si la
+   serie ya viene ajustada no se toca; si viene cruda se ajusta; si el salto
+   no se parece claramente a ninguna de las dos, ese símbolo no dispara hoy.
+
+**Modo (`MOMENTUM_CORP_ACTIONS`).** Arranca en `observar` (default): consulta
+todo y registra qué bloquearía o ajustaría, sin bloquear ni tocar precios. Se
+pasa a `enforce` a mano después de una sesión limpia; para revisarla:
+`python -m momentum_hunter.data.acciones_corporativas --resumen AAAA-MM-DD`.
+`off` es solo para emergencias. Un valor desconocido cuenta como `enforce`.
+
+En `enforce` es fail-closed: si la consulta falla (sin claves, red, página
+ilegible), no se dispara nada en esa corrida. Una candidata bloqueada sigue en
+WATCHING. Todo queda en `/var/lib/momentum/acciones_corporativas.jsonl` (fuera
+de git; otra ruta con `MOMENTUM_ACCIONES_CORP_LOG`): `observacion_*` en
+`observar`, `bloqueo_*`/`ajuste` en `enforce`, y `consulta_fallida` en los dos.
+
+Limitación anotada: `FRACCION_CONFIANZA = 0.25` (cuánto se tiene que parecer
+el salto a "ajustada" o "cruda") es razonamiento, no calibración. No cambia
+qué es una oportunidad, solo cuándo la serie de precios es confiable.
 ## Stream SIP en sombra (2026-09-28)
 
 El minuto que decide el hunter sigue saliendo del REST

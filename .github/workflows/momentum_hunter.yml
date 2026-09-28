@@ -98,6 +98,10 @@ jobs:
         if: steps.vps.outputs.respaldo == 'true'
         env:
           MOMENTUM_TELEGRAM_PREFIJO: "[RESPALDO GITHUB]"
+          # Solo para el host de DATOS (acciones corporativas): la guardia
+          # es fail-closed y sin claves no dejaría disparar nada.
+          ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
           MOMENTUM_TELEGRAM_BOT_TOKEN: ${{ secrets.MOMENTUM_TELEGRAM_BOT_TOKEN }}
           MOMENTUM_TELEGRAM_CHAT_ID: ${{ secrets.MOMENTUM_TELEGRAM_CHAT_ID }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
