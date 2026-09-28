@@ -13,7 +13,14 @@ por cada transición que sea un trade completado:
   - entrada llenada            -> "abierta"      (precio real de ejecución)
   - salida por take-profit     -> "objetivo"     (con ganancia realizada)
   - salida por stop-loss       -> "stop"         (con pérdida realizada)
-  - cierre por otra vía        -> "cerrada"      (ERROR: llena sin salidas)
+  - cierre por otra vía        -> "cerrada"      SOLO si GET /v2/positions
+                                              confirma que el símbolo ya no
+                                              está. Si el broker lo sigue
+                                              teniendo, la revisión queda
+                                              viva y sale un ERROR. Marcar
+                                              `cerrada` con la posición
+                                              abierta (2026-09-25) archivó
+                                              el trade y dejó de vigilarlo.
 
 `no_ejecutada` (limit expiró/se canceló sin fill) se persiste igual, pero
 NO se manda a Telegram -- no hubo trade. Ver `notify.py`. Excepción
@@ -34,13 +41,23 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
+from typing import NamedTuple
 
-from momentum_paper_trader import estado, notify
+from momentum_paper_trader import dedupe_avisos, estado, notify
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig
 from momentum_paper_trader.notify import enviar as enviar_telegram
 
 log = logging.getLogger("momentum_paper_trader.seguimiento")
+
+
+class Transicion(NamedTuple):
+    """Propuesta de cambio. `cerrada` no se persiste hasta confirmar que
+    el broker ya no tiene el símbolo (ver `revisar`)."""
+    resultado: str
+    pnl: float | None
+    mensaje: str
+    precio_salida: float | None = None
 
 _ESTADOS_ORDEN_MUERTA = frozenset({"canceled", "expired", "rejected", "done_for_day"})
 # Estados en los que la ENTRADA todavía no tocó el mercado: cancelarla no
@@ -95,7 +112,7 @@ def _patas_todas_muertas(datos: dict) -> bool:
     return bool(legs) and all(leg.get("status") in _ESTADOS_ORDEN_MUERTA for leg in legs)
 
 
-def _evaluar(r: estado.RevisionIA, datos: dict, cierre_datos: dict | None = None) -> tuple[str, float | None, str] | None:
+def _evaluar(r: estado.RevisionIA, datos: dict, cierre_datos: dict | None = None) -> Transicion | None:
     """(nuevo resultado, pnl, mensaje) para esta revisión según el estado
     real de la orden en Alpaca -- None si no hay ninguna novedad que
     avisar. `cierre_datos` es el estado de la orden de liquidación de fin
@@ -107,7 +124,7 @@ def _evaluar(r: estado.RevisionIA, datos: dict, cierre_datos: dict | None = None
     if status in _ESTADOS_ORDEN_MUERTA and precio_llenado is None:
         # Se persiste para no reconsultar, pero el mensaje va vacío:
         # sin fill no hay trade, y sin trade no hay Telegram.
-        return ("no_ejecutada", None, "")
+        return Transicion("no_ejecutada", None, "")
 
     if status != "filled" or precio_llenado is None:
         return None   # la entrada sigue esperando -- nada nuevo que contar
@@ -126,11 +143,11 @@ def _evaluar(r: estado.RevisionIA, datos: dict, cierre_datos: dict | None = None
             resultado, motivo = "objetivo", notify.MOTIVO_OBJETIVO
         else:
             resultado, motivo = "stop", notify.MOTIVO_STOP
-        return (resultado, pnl, notify.formatear_cerrada(
+        return Transicion(resultado, pnl, notify.formatear_cerrada(
             ticker=r.ticker, motivo=motivo, signal_id=r.creado_en,
             cantidad=cantidad, precio_entrada=precio_llenado,
             precio_salida=precio_salida, pnl=pnl,
-        ))
+        ), precio_salida)
 
     if _patas_todas_muertas(datos):
         if r.cierre_order_id:
@@ -143,11 +160,14 @@ def _evaluar(r: estado.RevisionIA, datos: dict, cierre_datos: dict | None = None
                 cantidad = _num(datos.get("filled_qty")) or (r.cantidad or 0)
                 pnl = round((precio_c - precio_llenado) * cantidad, 2) if cantidad else None
                 # Sin Telegram: el resumen de fin de día ya lo mandó `cierre.py`.
-                return ("cerrada", pnl, "")
+                # `revisar` igual exige que el broker ya no tenga el símbolo.
+                return Transicion("cerrada", pnl, "", precio_c)
             if estado_c in _ESTADOS_ORDEN_MUERTA:
-                # La liquidación murió SIN llenarse: la posición sigue abierta
-                # y desprotegida -> el ERROR de seguridad debe salir.
-                return ("cerrada", None, notify.formatear_error(
+                # La liquidación murió SIN llenarse. Es una PROPUESTA de
+                # cerrada: si el broker todavía tiene la posición, `revisar`
+                # no la aplica y manda el ERROR. Marcarla igual (25/9) la
+                # archivó con la posición abierta.
+                return Transicion("cerrada", None, notify.formatear_error(
                     tipo="liquidación de cierre no llenada",
                     ticker=r.ticker,
                     signal_id=r.creado_en,
@@ -155,16 +175,16 @@ def _evaluar(r: estado.RevisionIA, datos: dict, cierre_datos: dict | None = None
                 ))
             # Todavía pendiente de llenarse: se reintenta en la próxima pasada.
             return None
-        return ("cerrada", None, notify.formatear_error(
+        return Transicion("cerrada", None, notify.formatear_error(
             tipo="posición sin salidas",
             ticker=r.ticker,
             signal_id=r.creado_en,
-            detalle="Entrada llena y las dos salidas quedaron inactivas. Revisar en el dashboard paper -- no se reponen solas.",
+            detalle="Entrada llena y las dos salidas quedaron inactivas. No se marca cerrada hasta confirmar que el broker ya no tiene la posición.",
         ))
 
     if r.resultado is None:
         cantidad = _num(datos.get("filled_qty")) or (r.cantidad or 0)
-        return ("abierta", None, notify.formatear_llenada(
+        return Transicion("abierta", None, notify.formatear_llenada(
             ticker=r.ticker, signal_id=r.creado_en, cantidad=cantidad,
             precio_lleno=precio_llenado, precio_limite=r.precio_entrada,
             stop=r.stop, objetivo=r.objetivo,
@@ -195,15 +215,79 @@ def _cancelar_vencida(client: AlpacaPaperClient, r: estado.RevisionIA, minutos: 
     return True
 
 
+class _PosicionesLeidas:
+    """Un solo GET por pasada, y solo si alguna revisión propone `cerrada`."""
+
+    def __init__(self) -> None:
+        self._leido = False
+        self.datos: list | None = None
+
+    def obtener(self, client: AlpacaPaperClient) -> list | None:
+        if self._leido:
+            return self.datos
+        self._leido = True
+        try:
+            datos = client.posiciones()
+        except Exception as ex:
+            log.warning(
+                "no se pudieron leer las posiciones para confirmar un cierre (%s)",
+                type(ex).__name__,
+            )
+            self.datos = None
+            return None
+        if not isinstance(datos, list):
+            log.warning("posiciones ilegibles al confirmar un cierre; no se da nada por cerrado")
+            self.datos = None
+            return None
+        self.datos = datos
+        return datos
+
+
+def _plana(posiciones: list | None, ticker: str) -> bool | None:
+    """True solo si el listado vino y el símbolo no está (o está en qty 0).
+
+    False si sigue con cantidad. None si no se puede saber: una qty
+    ausente o un GET fallido no es evidencia de que esté plana."""
+    if posiciones is None:
+        return None
+    for p in posiciones:
+        if not isinstance(p, dict) or p.get("symbol") != ticker:
+            continue
+        qty = _num(p.get("qty"))
+        if qty is None:
+            return None
+        return qty == 0
+    return True
+
+
+def _avisar_sigue_abierta(r: estado.RevisionIA, mensaje: str, ahora: datetime) -> None:
+    texto = mensaje if mensaje and "ERROR" in mensaje else notify.formatear_error(
+        tipo="posición sigue abierta",
+        ticker=r.ticker,
+        signal_id=r.creado_en,
+        detalle="El broker todavía tiene la posición. No se marca cerrada ni se archiva.",
+    )
+    marca = dedupe_avisos.clave("sigue_abierta", r.ticker, ahora, r.creado_en)
+    if dedupe_avisos.ya_avisada(marca):
+        log.info("%s: la posición sigue abierta; el aviso de esta sesión ya salió", r.ticker)
+        return
+    enviar_telegram(texto)
+    dedupe_avisos.marcar(marca, ahora)
+
+
 def revisar(
     client: AlpacaPaperClient, cfg: PaperTraderConfig | None = None, ahora: datetime | None = None,
 ) -> list[estado.RevisionIA]:
     """Devuelve las revisiones que cambiaron de estado en esta pasada.
-    Guarda ANTES de enviar cada aviso (ver docstring del módulo)."""
+    Guarda ANTES de enviar cada aviso (ver docstring del módulo).
+
+    Una propuesta de `cerrada` solo se aplica si `GET /v2/positions` no
+    trae el símbolo. Si lo trae, la revisión sigue viva y se avisa."""
     cfg = cfg or PaperTraderConfig()
     ahora = ahora or datetime.now(UTC)
     revisiones = estado.cargar()
     cambiadas: list[estado.RevisionIA] = []
+    posiciones = _PosicionesLeidas()
 
     for r in revisiones:
         if not r.entro or not r.order_id:
@@ -232,9 +316,29 @@ def revisar(
             minutos = entrada_vencida(r, datos, cfg, ahora)
             if minutos is None or not _cancelar_vencida(client, r, minutos):
                 continue
-            novedad = ("no_ejecutada", None, notify.formatear_cancelada(
+            novedad = Transicion("no_ejecutada", None, notify.formatear_cancelada(
                 ticker=r.ticker, signal_id=r.creado_en, minutos=minutos, precio_limite=r.precio_entrada))
-        r.resultado, r.pnl, mensaje = novedad
+        if novedad.resultado == "cerrada":
+            plana = _plana(posiciones.obtener(client), r.ticker)
+            if plana is not True:
+                # Sigue en el broker, o no pudimos leerlo. En los dos
+                # casos la revisión queda viva: archivarla fue lo que
+                # dejó las cuatro posiciones sin seguimiento el 25/9.
+                if plana is False:
+                    _avisar_sigue_abierta(r, novedad.mensaje, ahora)
+                else:
+                    log.warning(
+                        "%s: no se marca cerrada; no se pudo confirmar que el broker ya no la tenga",
+                        r.ticker,
+                    )
+                continue
+            if "ERROR" in (novedad.mensaje or ""):
+                novedad = novedad._replace(mensaje="")
+        r.resultado = novedad.resultado
+        r.pnl = novedad.pnl
+        if novedad.precio_salida is not None:
+            r.precio_salida = novedad.precio_salida
+        mensaje = novedad.mensaje
         estado.guardar(revisiones)
         if mensaje and (notify.debe_avisar(r.resultado) or r.resultado == "no_ejecutada"):
             enviar_telegram(mensaje)

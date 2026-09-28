@@ -269,6 +269,71 @@ def test_sin_client_order_id_la_clave_no_viaja(monkeypatch):
     assert "client_order_id" not in payloads[0]
 
 
+def test_cerrar_una_posicion_puede_pedir_que_alpaca_cancele_antes(monkeypatch):
+    # Sin cancel_orders el DELETE ve la cantidad retenida por el bracket
+    # y responde 403. El cierre de una sola posición tiene que poder pedirlo.
+    llamadas = []
+
+    class _R:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"id": "ord-cierre", "status": "accepted"}
+
+    def _delete(url, params=None, headers=None, timeout=None):
+        llamadas.append((url, params))
+        return _R()
+
+    monkeypatch.setattr(alpaca_client.requests, "delete", _delete)
+    resp = AlpacaPaperClient("clave", "secreto").cerrar_posicion("CTAS", cancel_orders=True)
+
+    assert resp["id"] == "ord-cierre"
+    assert llamadas[0][0] == "https://paper-api.alpaca.markets/v2/positions/CTAS"
+    assert llamadas[0][1] == {"cancel_orders": "true"}
+
+
+def test_vender_a_mercado_vende_la_qty_recibida_y_solo_en_paper(monkeypatch):
+    payloads = []
+
+    class _R:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"id": "mkt-1", "status": "accepted"}
+
+    def _post(url, json, headers, timeout):
+        payloads.append((url, json))
+        return _R()
+
+    monkeypatch.setattr(alpaca_client.requests, "post", _post)
+    resp = AlpacaPaperClient("clave", "secreto").vender_a_mercado("CTAS", "3")
+
+    assert resp["id"] == "mkt-1"
+    url, payload = payloads[0]
+    assert url == "https://paper-api.alpaca.markets/v2/orders"
+    assert payload["symbol"] == "CTAS"
+    assert payload["qty"] == "3"
+    assert payload["side"] == "sell"
+    assert payload["type"] == "market"
+    assert payload["time_in_force"] == "day"
+    assert payload["extended_hours"] is False
+
+
+def test_vender_a_mercado_no_inventa_una_cantidad(monkeypatch):
+    monkeypatch.setattr(
+        alpaca_client.requests, "post",
+        lambda *a, **kw: (_ for _ in ()).throw(AssertionError("no debió llamarse")))
+    client = AlpacaPaperClient("c", "s")
+    for cantidad in ("0", "-1", "", "no-es-un-numero"):
+        try:
+            client.vender_a_mercado("CTAS", cantidad)
+            assert False, cantidad
+        except ValueError:
+            pass
+
+
 def test_activo_consulta_el_endpoint_de_assets(monkeypatch):
     llamadas = []
 
