@@ -144633,6 +144633,150 @@
           "que_tendria_que_cambiar": []
         }
       ]
+    },
+    {
+      "timestamp": "2026-09-28T20:37:04+00:00",
+      "candidatos_evaluados": 2,
+      "candidatos": [
+        {
+          "ticker": "WTTR",
+          "nombre": "Select Water Solutions, Inc.",
+          "precio_actual": 20.18,
+          "factores_intradia": {
+            "precio_actual": 20.18,
+            "vwap": 20.241312975499742,
+            "ema9": 20.265467074419757,
+            "rvol_actual": 6.635461272169447,
+            "aceleracion_volumen": 7.429327025934818,
+            "gap_pct": 0.009072580645161275,
+            "maximo_dia": 20.44,
+            "maximo_premarket": 19.92,
+            "rango_apertura_max": 20.02,
+            "rango_apertura_min": 19.635,
+            "velas_desde_ruptura": 245,
+            "macd": -0.037004150181243034,
+            "macd_signal": -0.012163848166862137
+          },
+          "meta": {
+            "float_acciones": 121830402.0,
+            "short_pct_float": 0.0514,
+            "market_cap": 2880367360.0,
+            "bolsa": "NYSE"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Select to acquire Delaware Basin-focused Pilot Water for $700m",
+            "fuente": "Offshore Technology",
+            "fecha": "2026-09-25T09:04:45Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 5012.316241616666,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": true,
+            "desequilibrio": false,
+            "patron": "opening_range_breakout",
+            "temprano": false,
+            "early": {
+              "score": 63.7,
+              "veredicto": "tarde",
+              "razon": "velas",
+              "motivo_veredicto": "El patrón se activó hace 245 velas -- ya pasó la ventana en la que esta entrada tenía sentido.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 87.2798434442269,
+                "frescura_patron": 0.0,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El patrón se activó hace 245 velas -- ya pasó la ventana en la que esta entrada tenía sentido."
+            ],
+            "score_base": 68.6,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        },
+        {
+          "ticker": "CZR",
+          "nombre": "Caesars Entertainment, Inc.",
+          "precio_actual": 29.59,
+          "factores_intradia": {
+            "precio_actual": 29.59,
+            "vwap": 29.610831493780566,
+            "ema9": 29.5949467267586,
+            "rvol_actual": 0.4131624015764737,
+            "aceleracion_volumen": 6.734572616925558,
+            "gap_pct": 0.0003379520108145172,
+            "maximo_dia": 29.6595,
+            "maximo_premarket": null,
+            "rango_apertura_max": 29.604,
+            "rango_apertura_min": 29.57,
+            "velas_desde_ruptura": null,
+            "macd": -0.0007313510402333634,
+            "macd_signal": -8.076705087261995e-07
+          },
+          "meta": {
+            "float_acciones": 181889697.0,
+            "short_pct_float": 0.1076,
+            "market_cap": 6029854208.0,
+            "bolsa": "NASDAQ"
+          },
+          "catalizador": {
+            "tipo": "adquisicion",
+            "titular": "Does Caesars (CZR)’s $31 Buyout Offer Enough Reward for the Regulatory Wait?",
+            "fuente": "Insider Monkey",
+            "fecha": "2026-09-28T01:51:41Z",
+            "confirmado": true,
+            "fuentes_adicionales": []
+          },
+          "minutos_desde_catalizador": 1125.3829403166667,
+          "es_large_cap": true,
+          "evaluacion": {
+            "paso_detenido": null,
+            "dinero_entrando": false,
+            "desequilibrio": false,
+            "patron": null,
+            "temprano": true,
+            "early": {
+              "score": 76.2,
+              "veredicto": "temprano",
+              "razon": "ok",
+              "motivo_veredicto": "El precio sigue cerca de sus anclas de corto plazo y el patrón se activó hace pocas velas -- todavía hay margen real para entrar.",
+              "sub": {
+                "antiguedad_catalizador": 0.0,
+                "aceleracion_volumen": 100.0,
+                "extension": 100.0,
+                "distancia_maximo_dia": 97.65673730170765,
+                "riesgo_recompensa": 100.0
+              }
+            },
+            "penalizaciones": [
+              "El volumen no muestra que esté entrando dinero ahora mismo.",
+              "No hay un patrón técnico claro formándose todavía."
+            ],
+            "score_base": 61.1,
+            "score_ajustado": 0.0,
+            "riesgo_definido": true,
+            "accionable": false
+          },
+          "decision": "duplicada_ya_resuelta_hoy",
+          "motivos": [
+            "Ya se resolvió hoy en la watchlist -- se omitió como alerta duplicada."
+          ],
+          "que_tendria_que_cambiar": []
+        }
+      ]
     }
   ]
 }
