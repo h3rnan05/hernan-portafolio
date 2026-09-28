@@ -214,8 +214,9 @@ def test_el_veto_se_compara_en_minusculas(tmp_path):
 def test_el_codigo_v2_no_tiene_numeros_de_estrategia():
     """Todo número de la v2 vive en el YAML. En el código solo se aceptan
     0, 1 y 2 (fronteras de fracción y los niveles del catalizador, que
-    son el esquema, no un umbral). Cuando entren los PRs de universo,
-    señal y riesgo, sus carpetas se agregan aquí."""
+    son el esquema, no un umbral). `estrategia_v2/` ya incluye las reglas
+    de señal y riesgo y el catalizador; las carpetas del hunter y del
+    ejecutor v2 se agregan aquí cuando entren."""
     permitidos = {0, 1, 2, -1}
     carpetas = [RAIZ / "estrategia_v2"]
     hallados = []

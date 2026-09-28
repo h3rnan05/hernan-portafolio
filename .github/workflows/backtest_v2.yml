@@ -1,0 +1,94 @@
+name: backtest-v2
+
+# Backtest de la estrategia v2 (shadow_alpaca/backtest_v2). NO es
+# producción: no toca la watchlist ni coloca órdenes. Solo lee el host de
+# DATOS de Alpaca, Yahoo (float actual) y clasifica catalizadores con la
+# IA. Se dispara al cambiar docs/backtests/solicitud_v2.json en la rama del
+# backtest (o a mano), y deja el informe markdown en docs/backtests/ con un
+# commit [skip ci] (no se vuelve a disparar).
+on:
+  push:
+    branches: [claude/paper-trading-operations-analysis-xt40oo-v2-backtest]
+    paths: [docs/backtests/solicitud_v2.json]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backtest-v2
+  cancel-in-progress: false
+
+jobs:
+  correr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 340
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q -r momentum_hunter/requirements.txt -r momentum_paper_trader/requirements.txt
+
+      # El almacén (velas, noticias, subastas, clasificaciones) se guarda
+      # entre corridas: repetir el backtest no vuelve a pedir ni a pagar
+      # lo mismo.
+      - name: Restaurar almacén
+        uses: actions/cache/restore@v4
+        with:
+          path: /tmp/almacen_v2
+          key: backtest-v2-${{ github.run_id }}
+          restore-keys: backtest-v2-
+
+      - name: Correr backtest
+        env:
+          ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
+          ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python - <<'PY' > /tmp/args.txt
+          import json
+          s = json.load(open("docs/backtests/solicitud_v2.json"))
+          print(f"--desde {s['desde']} --hasta {s['hasta']} --equity {s['equity']} "
+                f"--slippage {s['slippage']} --max-llamadas-ia {s['max_llamadas_ia']} --salida {s['salida']}")
+          PY
+          python -m shadow_alpaca.backtest_v2 $(cat /tmp/args.txt) --almacen /tmp/almacen_v2 --refrescar-universo 2>&1 | tee /tmp/backtest_v2.log
+
+      - name: Guardar almacén
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: /tmp/almacen_v2
+          key: backtest-v2-${{ github.run_id }}
+
+      - name: Auditoría de la IA junto al informe
+        if: always()
+        run: |
+          if [ -f /tmp/almacen_v2/v2/clasificaciones/auditoria.jsonl ]; then
+            gzip -c /tmp/almacen_v2/v2/clasificaciones/auditoria.jsonl > docs/backtests/estrategia_v2_auditoria_ia.jsonl.gz
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backtest-v2-${{ github.run_id }}
+          path: |
+            /tmp/backtest_v2.log
+            /tmp/almacen_v2/v2/clasificaciones/
+          retention-days: 90
+
+      - name: Commit del informe
+        if: always()
+        run: |
+          git config user.name "backtest-v2[bot]"
+          git config user.email "backtest-v2@users.noreply.github.com"
+          git add docs/backtests/*.md docs/backtests/*.jsonl.gz 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "sin informe nuevo"
+            exit 0
+          fi
+          git commit -m "backtest v2: informe ${GITHUB_RUN_ID} [skip ci]"
+          git push origin HEAD:${GITHUB_REF_NAME}
