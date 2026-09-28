@@ -37,6 +37,7 @@ Alpaca.
 | `shadow/momentum-shadow-noticias.service` / `.timer` | **NO se instala solo** | sombra B1: noticias Alpaca+Yahoo, JSONL fuera del repo (`shadow_alpaca/`) |
 | `shadow/momentum-shadow-screener.service` / `.timer` | **NO se instala solo** | sombra B2: most-actives y movers cada 5 min; no filtra market cap |
 | `bin/run_shadow_noticias.sh`, `bin/run_shadow_screener.sh` | `/opt/momentum/bin/` (solo si se instala la sombra Alpaca) | no-op salvo `SHADOW_ALPACA=1`; no hacen git ni tocan la watchlist |
+| `momentum-assets.service` / `.timer` | **NO se habilita solo** | diario 12:05 UTC: `GET /v2/assets` del host paper → `/var/lib/momentum/estado/datos/alpaca_assets.json` (fuera del repo). El hunter solo lee ese archivo |
 
 **No versionado a propósito:** `/etc/momentum/paper.env` (credenciales;
 viven en el VPS y en GitHub Secrets, nunca en el repo).
@@ -214,6 +215,58 @@ sudo systemctl daemon-reload
 sudo systemctl restart momentum-movers-sombra.timer
 systemctl list-timers momentum-movers-sombra.timer
 ```
+
+## Catálogo de activos paper (NO se habilita solo)
+
+Un proceso distinto del escaneo y del vigía. Una vez al día, a las
+12:05 UTC, pide `GET /v2/assets?status=active&asset_class=us_equity` al
+host que ya está fijo en `alpaca_client._BASE_URL`
+(`https://paper-api.alpaca.markets`) con `ALPACA_PAPER_API_KEY` /
+`ALPACA_PAPER_API_SECRET`, y escribe
+`/var/lib/momentum/estado/datos/alpaca_assets.json`. La ruta sale de
+`MOMENTUM_ESTADO_DIR` (default `/var/lib/momentum/estado`); el archivo
+es `datos/alpaca_assets.json` debajo. No vive en el árbol git. La
+entrada de `.gitignore` sobre `momentum_hunter/datos/alpaca_assets.json`
+se queda por si alguien apunta el archivo de vuelta al repo.
+
+El hunter no llama a ese endpoint y no crea el directorio. Si el
+archivo falta, tiene más de 36 h, no es de hoy (UTC) o trae menos de
+5000 símbolos, no filtra por él y deja `assets_desconocido` junto con
+`assets_motivo` (`ausente`, `viejo` o `pocos`) en la telemetría. Un
+catálogo corto se escribe igual: es lo que devolvió el host. Quien
+no lo usa para filtrar es el hunter.
+
+`Persistent=true` porque una corrida atrasada todavía cubre el día. El
+escaneo, que sí pierde el slot si llega tarde, sigue en `Persistent=false`.
+
+El `cp` de arriba copia la unidad junto con las demás. No la habilita.
+Para encenderla, a mano, desde `/opt/hernan-portafolio` con `main` al día:
+
+```bash
+sudo mkdir -p /var/lib/momentum/estado/datos
+sudo chown momentum:momentum /var/lib/momentum/estado /var/lib/momentum/estado/datos
+sudo install -m 755 infra/systemd/bin/run_assets.sh /opt/momentum/bin/
+sudo cp infra/systemd/momentum-assets.service infra/systemd/momentum-assets.timer /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now momentum-assets.timer
+# una pasada ahora, sin esperar a las 12:05:
+sudo systemctl start momentum-assets.service
+sudo journalctl -u momentum-assets.service -n 40 --no-pager
+```
+
+La unidad también declara `StateDirectory=momentum/estado/datos` (crea
+ese directorio con dueño `momentum` antes de arrancar) y
+`ReadWritePaths=/var/lib/momentum/estado`. El `mkdir` y el `chown` de
+arriba dejan el mismo sitio listo para una corrida a mano, antes de
+que systemd lo cree.
+
+Tiene que quedar una línea `catálogo de activos escrito: N símbolos` y
+el archivo en `/var/lib/momentum/estado/datos/alpaca_assets.json`. Si
+faltan las claves o el HTTP no es 200, la unidad falla y el archivo
+anterior no se toca.
+
+Apagar: `sudo systemctl disable --now momentum-assets.timer`. El hunter
+vuelve solo al comportamiento de antes (no filtra por este dato). No
+hace falta revertir código.
 
 ## Vigía (2026-09-22): rechequeo + paper cada 60 s, sin timer
 
