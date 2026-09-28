@@ -4675,27 +4675,91 @@
       },
       "capacidad_llena": null,
       "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-28T15:40:06+00:00",
+      "triggered_nuevos": 28,
+      "revisiones": 0,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [],
+        "alerta": [],
+        "e2e": []
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 28
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
+    },
+    {
+      "timestamp": "2026-09-28T15:41:11+00:00",
+      "triggered_nuevos": 29,
+      "revisiones": 1,
+      "ordenes_colocadas": 0,
+      "paper_step_success_zero_orders": 1,
+      "presupuesto_velas": 8,
+      "presupuesto_ms": 480000,
+      "version_medicion": 2,
+      "latencias_velas": {
+        "total": []
+      },
+      "latencias_ms": {
+        "descubrimiento": [
+          106000.0
+        ],
+        "alerta": [
+          106000.0
+        ],
+        "e2e": [
+          130000.0
+        ]
+      },
+      "sobre_presupuesto": {
+        "descubrimiento": 0,
+        "alerta": 0,
+        "e2e": 0,
+        "total": 0
+      },
+      "bloqueos": {
+        "DATO_FALTANTE:ultimos_niveles_ts": 28
+      },
+      "capacidad_llena": null,
+      "fuente": "vps"
     }
   ],
   "sesion": {
-    "triggered_nuevos": 4509,
-    "revisiones": 1,
+    "triggered_nuevos": 4566,
+    "revisiones": 2,
     "ordenes_colocadas": 0,
-    "paper_step_success_zero_orders": 161,
+    "paper_step_success_zero_orders": 163,
     "muestras_latencia": {
-      "descubrimiento": 1,
-      "alerta": 1,
-      "e2e": 1
+      "descubrimiento": 2,
+      "alerta": 2,
+      "e2e": 2
     },
     "latencia_p50_ms": {
-      "descubrimiento": 126000.0,
-      "alerta": 126000.0,
-      "e2e": 143000.0
+      "descubrimiento": 116000.0,
+      "alerta": 116000.0,
+      "e2e": 136500.0
     },
     "latencia_p95_ms": {
-      "descubrimiento": 126000.0,
-      "alerta": 126000.0,
-      "e2e": 143000.0
+      "descubrimiento": 125000.0,
+      "alerta": 125000.0,
+      "e2e": 142350.0
     },
     "sobre_presupuesto": {
       "descubrimiento": 0,
@@ -4707,7 +4771,7 @@
     "version_medicion": 2,
     "bloqueos": {
       "MERCADO_CERRADO": 30,
-      "DATO_FALTANTE:ultimos_niveles_ts": 3668
+      "DATO_FALTANTE:ultimos_niveles_ts": 3724
     },
     "corridas_sin_capacidad": {
       "MERCADO_CERRADO": 30
