@@ -16,14 +16,27 @@ LO QUE ESTA FUENTE NO SABE, y por eso las columnas lo dicen:
     (subsidiaria, licencia, fusión), vale FALTANTE: no se afirma "sin
     aprobación" de un laboratorio que no se sabe cómo se llama en la FDA.
 
+QUÉ ES UNA "APROBACIÓN" AQUÍ (verificado contra la API el 2026-09-28):
+`submission_type` real solo vale `ORIG` (solicitud nueva) o `SUPPL`
+(suplemento: etiquetado, manufactura, eficacia...). NDA/ANDA/BLA va en
+el PREFIJO de `application_number`. Los suplementos son la gran mayoría
+(106 de 125 en la primera página de septiembre 2026) y un `LABELING` de
+un genérico no mueve ninguna acción: las columnas de aprobación cuentan
+solo `ORIG`; los suplementos del día se exponen aparte para que el
+backtest pueda mirarlos si quiere.
+
 COLUMNAS:
-    fda_aprobacion_dia      True (hubo aprobación el día NY del instante)
+    fda_aprobacion_dia      True (aprobación ORIG el día NY del instante)
                             | False | FALTANTE
     fda_aprobacion_vispera  ídem el día hábil anterior (una aprobación
                             tras el cierre se opera al día siguiente)
-    fda_aplicacion          "NDA123456" | None | FALTANTE
-    fda_tipo                submission_type ("NDA", "BLA", "ANDA", "SUPPL") | None | FALTANTE
+    fda_aplicacion          "BLA761463" | None | FALTANTE
+    fda_tipo                "NDA" | "ANDA" | "BLA" (prefijo de la solicitud) | None | FALTANTE
+    fda_clase               submission_class_code ("TYPE 1", "TYPE 5", ...) | None | FALTANTE
     fda_laboratorio         sponsor tal como lo escribe la FDA | None | FALTANTE
+    fda_suplementos_dia     suplementos (SUPPL) aprobados ese día al laboratorio | FALTANTE
+`meta.last_updated` de openFDA va con ~4 días de retraso: en vivo, la
+aprobación de hoy puede no estar hasta la semana siguiente.
 """
 
 from __future__ import annotations
@@ -35,7 +48,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
-from fuentes import __main__ as cli
+from fuentes import cli
 from fuentes.cache import Cache
 from fuentes.columnas import todas_faltantes
 from fuentes.comun import ErrorFuente
@@ -57,7 +70,16 @@ class Aprobacion:
     fecha: date
     sponsor: str
     aplicacion: str
-    tipo: str
+    tipo: str            # NDA | ANDA | BLA | "" (prefijo desconocido)
+    suplemento: bool     # SUPPL (True) u ORIG (False)
+    clase: str
+
+
+def tipo_de(aplicacion: str) -> str:
+    for prefijo in ("ANDA", "NDA", "BLA"):
+        if aplicacion.upper().startswith(prefijo):
+            return prefijo
+    return ""
 
 
 def cliente_fda(transport=None, dormir=None) -> Cliente:
@@ -112,7 +134,11 @@ def leer_pagina(cuerpo: object, desde: date, hasta: date) -> tuple[list[Aprobaci
             f = _fecha_fda(s.get("submission_status_date"))
             if f is None or not desde <= f <= hasta:
                 continue
-            out.append(Aprobacion(f, normalizar(sponsor), app, str(s.get("submission_type", ""))))
+            tipo_sub = str(s.get("submission_type", "")).upper()
+            if tipo_sub not in ("ORIG", "SUPPL"):
+                continue   # un tipo desconocido no se cuenta como nada
+            out.append(Aprobacion(f, normalizar(sponsor), app, tipo_de(app), tipo_sub == "SUPPL",
+                                  str(s.get("submission_class_code") or "")))
     return out, total
 
 
@@ -124,7 +150,8 @@ def _mes(d: date) -> tuple[date, date]:
 
 class AprobacionesFDA:
     nombre = "fda"
-    _NOMBRES = ["fda_aprobacion_dia", "fda_aprobacion_vispera", "fda_aplicacion", "fda_tipo", "fda_laboratorio"]
+    _NOMBRES = ["fda_aprobacion_dia", "fda_aprobacion_vispera", "fda_aplicacion", "fda_tipo", "fda_clase",
+                "fda_laboratorio", "fda_suplementos_dia"]
 
     def __init__(self, cache: Cache | None = None, cliente: Cliente | None = None, mapa: dict[str, list[str]] | None = None,
                  hoy: date | None = None) -> None:
@@ -177,15 +204,15 @@ class AprobacionesFDA:
                 self._meses[ini] = None
         return self._meses[ini]
 
-    def _del_dia(self, nombres: list[str], d: date) -> Aprobacion | None | bool:
-        """Aprobación del laboratorio ese día, None si no hubo, False si el mes no se pudo."""
+    def _del_dia(self, nombres: list[str], d: date) -> tuple[Aprobacion | None, int] | None:
+        """(aprobación ORIG del laboratorio ese día o None, suplementos ese
+        día); None si el mes no se pudo."""
         aps = self.aprobaciones_del_mes(d)
         if aps is None:
-            return False
-        for a in aps:
-            if a.fecha == d and a.sponsor in nombres:
-                return a
-        return None
+            return None
+        propias = [a for a in aps if a.fecha == d and a.sponsor in nombres]
+        orig = next((a for a in propias if not a.suplemento), None)
+        return orig, sum(1 for a in propias if a.suplemento)
 
     def columnas(self, ticker: str, momento: datetime) -> dict:
         nombres = self.mapa.get(ticker.upper())
@@ -196,12 +223,13 @@ class AprobacionesFDA:
         while vispera.weekday() >= 5:
             vispera -= timedelta(days=1)
         hoy, ayer = self._del_dia(nombres, dia), self._del_dia(nombres, vispera)
-        if hoy is False or ayer is False:
+        if hoy is None or ayer is None:
             return todas_faltantes(self._NOMBRES)
-        elegida = hoy or ayer
-        return {"fda_aprobacion_dia": hoy is not None, "fda_aprobacion_vispera": ayer is not None,
+        elegida = hoy[0] or ayer[0]
+        return {"fda_aprobacion_dia": hoy[0] is not None, "fda_aprobacion_vispera": ayer[0] is not None,
                 "fda_aplicacion": elegida.aplicacion if elegida else None, "fda_tipo": elegida.tipo if elegida else None,
-                "fda_laboratorio": elegida.sponsor if elegida else None}
+                "fda_clase": elegida.clase if elegida else None, "fda_laboratorio": elegida.sponsor if elegida else None,
+                "fda_suplementos_dia": hoy[1]}
 
 
 def _grabar(argv: list[str]) -> int:
@@ -211,17 +239,24 @@ def _grabar(argv: list[str]) -> int:
 
     ap = argparse.ArgumentParser(prog="python -m fuentes grabar fda")
     ap.add_argument("mes", help="AAAA-MM")
+    ap.add_argument("--skip", type=int, default=0, help="página siguiente (100, 200, ...)")
     ap.add_argument("--dir", type=Path, default=None)
     args = ap.parse_args(argv)
     ini, fin = _mes(date.fromisoformat(args.mes + "-01"))
     params = {"search": f"submissions.submission_status_date:[{ini:%Y%m%d} TO {fin:%Y%m%d}] AND submissions.submission_status:AP",
-              "limit": LIMITE, "skip": 0}
+              "limit": LIMITE, "skip": args.skip}
     r = cliente_fda().get(URL, params)
-    guardar("fda", f"aprobaciones_{ini:%Y%m}", URL, params, r.status, r.headers, r.texto, ficticio=False, directorio=args.dir)
+    sufijo = f"_p{args.skip // LIMITE + 1}" if args.skip else ""
+    guardar("fda", f"aprobaciones_{ini:%Y%m}{sufijo}", URL, params, r.status, r.headers, r.texto, ficticio=False,
+            directorio=args.dir)
     aps, total = leer_pagina(json.loads(r.texto), ini, fin)
-    print(f"{ini:%Y-%m}: {total} solicitudes con aprobación; {len(aps)} en la primera página")
-    for s in sorted({a.sponsor for a in aps}):
-        print(f"  {s}")
+    orig = [a for a in aps if not a.suplemento]
+    print(f"{ini:%Y-%m}: {total} solicitudes con aprobación; {len(aps)} en la primera página "
+          f"({len(orig)} ORIG, {len(aps) - len(orig)} SUPPL)")
+    if args.skip + LIMITE < total:
+        print(f"  faltan páginas: repetir con --skip {args.skip + LIMITE} (total {total})")
+    for a in orig:
+        print(f"  ORIG {a.fecha} {a.tipo} {a.aplicacion} {a.clase}: {a.sponsor}")
     return 0
 
 
