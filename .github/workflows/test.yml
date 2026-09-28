@@ -60,11 +60,11 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
 
-  # Las 680 pruebas del bot paper viven aquí, no en `backend/`.
+  # Las pruebas del bot paper viven aquí, no en `backend/`.
   # Sin secrets, sin Alpaca, sin red: los tests mockean broker e IA.
-  # No cambia umbrales ni modo paper -- solo corre lo que ya se
-  # prueba en local (`python -m pytest momentum_hunter/tests
-  # momentum_paper_trader/tests -q`).
+  # No cambia umbrales ni modo paper. `shadow_alpaca/tests` es la
+  # sombra de solo lectura: no opera, y el job la corre para que el
+  # aislamiento no se quede sin CI.
   momentum:
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -82,4 +82,4 @@ jobs:
           pip install -q -r momentum_paper_trader/requirements.txt
 
       - name: Tests momentum_hunter + momentum_paper_trader + panel
-        run: python -m pytest momentum_hunter/tests momentum_paper_trader/tests tests/test_dashboard.py tests/test_deploy_vps.py -q
+        run: python -m pytest momentum_hunter/tests momentum_paper_trader/tests shadow_alpaca/tests tests/test_dashboard.py tests/test_deploy_vps.py -q

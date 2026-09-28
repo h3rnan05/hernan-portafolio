@@ -1,0 +1,22 @@
+[Unit]
+Description=Sombra Alpaca B1 noticias (SOLO LECTURA, no opera, no toca la watchlist)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+Environment=SHADOW_ALPACA_DIR=/var/lib/momentum/shadow_alpaca
+EnvironmentFile=/etc/momentum/paper.env
+ExecStart=/opt/momentum/bin/run_shadow_noticias.sh
+Nice=15
+# El slot son ~1000 tickers más la watchlist. Alpaca va en lotes; Yahoo
+# se frena si hay pausa de 429. 15 min de techo, y si no alcanza se ve
+# en el journal en vez de pisar al escaneo.
+TimeoutStartSec=900
+
+[Install]
+WantedBy=multi-user.target

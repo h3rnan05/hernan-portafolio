@@ -13,6 +13,15 @@ from dataclasses import dataclass
 
 import requests
 
+try:
+    from uso_api.contador import TRADING
+    from uso_api.contador import registrar as registrar_uso
+except ImportError:   # medir nunca puede impedir una consulta
+    TRADING = "trading"
+
+    def registrar_uso(host: str) -> None:
+        return None
+
 log = logging.getLogger("momentum_paper_trader.alpaca_client")
 
 # Una pata `held` no está muerta: es el stop del bracket esperando.
@@ -108,6 +117,28 @@ def parametros_ordenes_de_simbolos(simbolos: list[str]) -> dict | None:
     }
 
 
+def parametros_ordenes_del_dia(despues: str, hasta: str) -> dict:
+    """Query de `GET /v2/orders?status=all` para una ventana.
+
+    Sin los dos extremos no hay query: `status=all` abierto no es
+    "el día", es el historial entero. `after`/`until` de Alpaca filtran
+    por `submitted_at`, no por el fill: quien compara un día tiene que
+    pedir una ventana más ancha si quiere ver un bracket de ayer que
+    se llenó hoy. Este dict no decide eso; solo se niega a salir vacío."""
+    if not isinstance(despues, str) or not despues.strip():
+        raise ValueError("sin inicio de ventana")
+    if not isinstance(hasta, str) or not hasta.strip():
+        raise ValueError("sin fin de ventana")
+    return {
+        "status": "all",
+        "nested": "true",
+        "limit": 500,
+        "direction": "desc",
+        "after": despues.strip(),
+        "until": hasta.strip(),
+    }
+
+
 def _es_client_order_id_duplicado(respuesta: requests.Response) -> bool:
     """True solo si el cuerpo dice que ese `client_order_id` ya existe.
 
@@ -130,6 +161,15 @@ def _es_client_order_id_duplicado(respuesta: requests.Response) -> bool:
 # NUNCA "https://api.alpaca.markets" (esa es la cuenta real) -- ver
 # docstring del módulo.
 _BASE_URL = "https://paper-api.alpaca.markets/v2"
+
+
+def _http(metodo: str, *args, **kwargs):
+    """Toda consulta al host de trading pasa por aquí para contarla
+    contra el límite de 200/min (`uso_api`). El `requests.<metodo>` se
+    busca en el momento, así las pruebas que parchean `requests.get`
+    siguen funcionando. Contar nunca rompe la consulta."""
+    registrar_uso(TRADING)
+    return getattr(requests, metodo)(*args, **kwargs)
 
 
 @dataclass(frozen=True)
@@ -162,7 +202,7 @@ class AlpacaPaperClient:
         verdad con el entorno paper. Pensada para verificar la conexión
         sin depender de que exista una señal TRIGGERED real (ver
         `run.py --verificar-conexion`)."""
-        r = requests.get(f"{_BASE_URL}/account", headers=self._headers, timeout=self._timeout)
+        r = _http("get", f"{_BASE_URL}/account", headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         return r.json()
 
@@ -171,7 +211,7 @@ class AlpacaPaperClient:
         -- solo lectura. El executor las usa como guardarraíl determinista
         (no duplicar ticker, no exceder el máximo de posiciones) y como
         contexto para la IA ("con qué está cargada la cuenta ahora")."""
-        r = requests.get(f"{_BASE_URL}/positions", headers=self._headers, timeout=self._timeout)
+        r = _http("get", f"{_BASE_URL}/positions", headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         return r.json()
 
@@ -183,7 +223,7 @@ class AlpacaPaperClient:
         y un error de lectura no es un 404 -- quien va a vender tiene que
         poder distinguirlos. Un cuerpo que no sea un objeto tampoco se
         disfraza de "no hay posición"."""
-        r = requests.get(
+        r = _http("get",
             f"{_BASE_URL}/positions/{ticker}",
             headers=self._headers, timeout=self._timeout)
         if r.status_code == 404:
@@ -204,7 +244,7 @@ class AlpacaPaperClient:
         del padre, `status=open` devuelve solo el take-profit (`new`) y
         ese objeto trae `legs: null`. El stop `held` cuelga del padre,
         que ya no está en `open`. Para eso está `ordenes_de_simbolos`."""
-        r = requests.get(
+        r = _http("get",
             f"{_BASE_URL}/orders",
             params={"status": "open", "limit": 100, "nested": "true"},
             headers=self._headers, timeout=self._timeout)
@@ -230,12 +270,30 @@ class AlpacaPaperClient:
         params = parametros_ordenes_de_simbolos(simbolos)
         if params is None:
             return []
-        r = requests.get(
+        r = _http("get",
             f"{_BASE_URL}/orders",
             params=params,
             headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         return r.json()
+
+    def ordenes_del_dia(self, despues: str, hasta: str) -> list[dict]:
+        """`GET /v2/orders?status=all` en una ventana. Solo lectura.
+
+        Lo usa el comparador de la sombra de `trade_updates` para ver
+        qué devolvió el polling. No coloca, no cancela y no cambia el
+        cierre. Un cuerpo que no sea una lista no se convierte en `[]`:
+        un dato ilegible no es un libro vacío."""
+        params = parametros_ordenes_del_dia(despues, hasta)
+        r = requests.get(
+            f"{_BASE_URL}/orders",
+            params=params,
+            headers=self._headers, timeout=self._timeout)
+        r.raise_for_status()
+        datos = r.json()
+        if not isinstance(datos, list):
+            raise ValueError("listado de órdenes ilegible")
+        return datos
 
     def reloj_mercado(self) -> dict:
         """Estado del mercado según Alpaca (`GET /v2/clock`) -- solo
@@ -248,7 +306,7 @@ class AlpacaPaperClient:
         no sabe nada de feriados ni de medias sesiones. El executor lo
         usa para no colocar órdenes de entrada con el mercado cerrado
         (ver `executor._mercado_cerrado`)."""
-        r = requests.get(f"{_BASE_URL}/clock", headers=self._headers, timeout=self._timeout)
+        r = _http("get", f"{_BASE_URL}/clock", headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         return r.json()
 
@@ -258,7 +316,7 @@ class AlpacaPaperClient:
         "halted" intradía, así que esto es lo más cerca que se puede
         estar de "¿se puede operar este símbolo ahora?" sin una fuente
         externa de halts. Ver `executor._activo_no_operable`."""
-        r = requests.get(
+        r = _http("get",
             f"{_BASE_URL}/assets/{ticker}", headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         return r.json()
@@ -268,7 +326,7 @@ class AlpacaPaperClient:
         {id}?nested=true`) -- solo lectura. `nested=true` trae las dos
         patas del bracket (`legs`), que es como `seguimiento.py` sabe si
         la salida fue por objetivo o por stop y a qué precio real."""
-        r = requests.get(
+        r = _http("get",
             f"{_BASE_URL}/orders/{order_id}", params={"nested": "true"},
             headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
@@ -289,7 +347,7 @@ class AlpacaPaperClient:
         una orden limitada podría no llenarse justo cuando lo que se
         necesita es salir sí o sí. Es la única parte del sistema que usa
         órdenes a mercado, y solo para SALIR -- nunca para entrar."""
-        r = requests.delete(
+        r = _http("delete",
             f"{_BASE_URL}/positions", params={"cancel_orders": "true"},
             headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
@@ -313,7 +371,7 @@ class AlpacaPaperClient:
         diferencia. Un cuerpo que no sea la orden se devuelve vacío:
         no se inventa un id."""
         params = {"cancel_orders": "true"} if cancel_orders else None
-        r = requests.delete(
+        r = _http("delete",
             f"{_BASE_URL}/positions/{ticker}", params=params,
             headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
@@ -352,7 +410,7 @@ class AlpacaPaperClient:
         coid = client_order_id[:48] if client_order_id else None
         if coid:
             payload["client_order_id"] = coid
-        r = requests.post(
+        r = _http("post",
             f"{_BASE_URL}/orders", json=payload, headers=self._headers, timeout=self._timeout)
         if coid and _es_client_order_id_duplicado(r):
             # El POST no se aceptó porque la orden ya estaba. Devolverla
@@ -410,7 +468,7 @@ class AlpacaPaperClient:
                 continue
             vistos.add(str(oid))
             try:
-                r = requests.delete(
+                r = _http("delete",
                     f"{_BASE_URL}/orders/{oid}", headers=self._headers, timeout=self._timeout)
                 if r.status_code in (404, 422):
                     # La pata hermana del OCO ya no está: cancelar una
@@ -445,7 +503,7 @@ class AlpacaPaperClient:
             "stop_price": f"{stop:.2f}",
             "time_in_force": "gtc",
         }
-        r = requests.post(
+        r = _http("post",
             f"{_BASE_URL}/orders", json=payload, headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         return r.json().get("id", "")
@@ -507,7 +565,7 @@ class AlpacaPaperClient:
         # señal, Alpaca rechaza el duplicado en vez de ejecutarlo.
         if client_order_id:
             payload["client_order_id"] = client_order_id[:128]
-        r = requests.post(
+        r = _http("post",
             f"{_BASE_URL}/orders", json=payload, headers=self._headers, timeout=self._timeout)
         r.raise_for_status()
         data = r.json()

@@ -7,3 +7,7 @@ requests>=2.31.0
 anthropic>=0.40.0
 # config/estrategia_v2.yaml (riesgo v2). Import perezoso: sin él la v1 no cambia.
 pyyaml>=6.0
+# El listener sombra de trade_updates (trade_updates_sombra.py). El
+# stream paper manda JSON en frames binarios. El camino de órdenes no
+# importa este paquete: sigue en REST.
+websockets>=12.0,<16

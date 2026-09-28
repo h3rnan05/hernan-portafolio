@@ -250,6 +250,43 @@ def test_reporte_sin_alarmas_lo_dice(tmp_path):
     assert "Sin señales de alarma" in texto
 
 
+def test_reporte_la_ia_no_cuenta_revisiones_deterministas(tmp_path, monkeypatch):
+    # `precio_fuera_de_alcance` y `expirada_niveles_rancios` se registran
+    # sin consultar a la IA (`ia_entraria` null). `fuera_de_banda` sí
+    # tiene veredicto. NTLA (fuera de la semana) y una revisión vieja
+    # sin el campo siguen contando solo si caen en el rango y no traen
+    # motivo determinista: el null histórico no es «no se consultó».
+    rev = tmp_path / "revisiones.json"
+    rev.write_text(json.dumps({"revisiones": [
+        {"ticker": "DXC", "timestamp": "2026-09-23T13:37:17+00:00", "entro": True,
+         "ia_entraria": True, "pnl": 1.25, "razonamiento": "entra"},
+        {"ticker": "GS", "timestamp": "2026-09-23T19:18:07+00:00", "entro": False,
+         "ia_entraria": None, "motivo_no_operada": "precio_fuera_de_alcance",
+         "pnl": 999, "razonamiento": "no se consultó"},
+        {"ticker": "BNS", "timestamp": "2026-09-23T16:00:00+00:00", "entro": False,
+         "ia_entraria": False, "razonamiento": "no entra"},
+        {"ticker": "OLD", "timestamp": "2026-09-22T12:00:00+00:00", "entro": True,
+         "pnl": -0.25, "razonamiento": "histórico"},
+        {"ticker": "LLY", "timestamp": "2026-09-24T12:00:00+00:00", "entro": False,
+         "ia_entraria": False, "motivo_no_operada": "fuera_de_banda",
+         "razonamiento": "banda"},
+        {"ticker": "RANCIA", "timestamp": "2026-09-24T18:00:00+00:00", "entro": False,
+         "ia_entraria": None, "motivo_no_operada": "expirada_niveles_rancios",
+         "razonamiento": "sin consulta"},
+        {"ticker": "NTLA", "timestamp": "2026-09-08T17:18:39+00:00", "entro": True,
+         "ia_entraria": None, "pnl": -6.38, "razonamiento": "otra semana"},
+    ]}))
+    monkeypatch.setattr(reporte_semanal, "PATH_REVISIONES", rev)
+    texto = reporte_semanal.construir("2026-09-21", "2026-09-25", tmp_path)
+    assert "La IA revisó 4 señal(es); entró en 2." in texto
+    assert "+$1.00" in texto
+    assert "GS" not in texto
+    assert "999" not in texto
+    assert "RANCIA" not in texto
+    assert "NTLA" not in texto
+    assert "LLY" in texto
+
+
 # ------------------------- inicio_ts / slot (2026-09-15) -------------------------
 
 def test_como_dict_lleva_inicio_y_slot_y_por_defecto_son_none():

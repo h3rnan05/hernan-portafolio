@@ -1,0 +1,19 @@
+[Unit]
+Description=Sombra Alpaca B2 screener (SOLO LECTURA, no opera, no toca la watchlist)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+Environment=SHADOW_ALPACA_DIR=/var/lib/momentum/shadow_alpaca
+EnvironmentFile=/etc/momentum/paper.env
+ExecStart=/opt/momentum/bin/run_shadow_screener.sh
+Nice=15
+TimeoutStartSec=180
+
+[Install]
+WantedBy=multi-user.target

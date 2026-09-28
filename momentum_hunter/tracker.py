@@ -29,8 +29,9 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from momentum_hunter.models import Oportunidad
+from momentum_hunter.rutas_estado import RutaEstado
 
-PATH = Path(__file__).resolve().parent / "alertas_enviadas.json"
+PATH = RutaEstado("momentum_hunter/alertas_enviadas.json")
 
 
 @dataclass
