@@ -32,6 +32,15 @@ patrón que lo necesita no dispara: no se inventa un máximo.
 HISTORIA DIARIA. Con `dias <= 365` se piden 365 días de calendario (el
 `range=1y` de Yahoo), no 280: el máximo de 52 semanas mira ~252 sesiones.
 Acortar esa ventana cambiaría un factor sin que nadie lo hubiera pedido.
+
+SÍMBOLOS CON GUION. El universo (NASDAQ Trader) escribe la clase y la
+preferida al estilo Yahoo (`BH-A`, `CMS-PB`, `LZM-WT`, `KCAC-UN`).
+Alpaca las pide con punto y responde HTTP 400 al LOTE entero si uno
+no le sirve: un slot lleno de preferidas marcaba las 1000 como
+fallidas y las mandaba a Yahoo. La traducción es solo del query; la
+clave que ve el pipeline sigue siendo la pedida. Un sufijo no
+verificado no se manda. Un 400 que igual aparezca se parte en mitades
+hasta aislar el símbolo. 429, 5xx y auth no se parten.
 """
 
 from __future__ import annotations
@@ -175,12 +184,53 @@ def timeframe_de(intervalo: str) -> str:
     return tf
 
 
-def _lotes(tickers: list[str], n: int) -> list[list[tuple[str, str]]]:
-    """(símbolo para el query, ticker tal como lo pidió el caller).
+def _simbolo_para_query(ticker: str) -> str | None:
+    """Símbolo del query, o None si ese guion no se manda al feed.
+
+    Solo se traducen sufijos comprobados en vivo. Otro guion no se
+    adivina: podría pedir otra serie, y un ausente no es un cero. El
+    ticker sin guion pasa igual.
+
+    Orden cerrado, del sufijo más específico al más corto. La clase es
+    exactamente una letra; un patrón flojo se comería `-PB`, `-WT` o
+    `-UN` (y `-P` + letra dejaría de ser preferida).
+      - `WT` → `.WS` (warrant: `LZM-WT`)
+      - `UN` → `.U` (unit: `KCAC-UN`)
+      - `P` + una letra → `.PR` + esa letra (`CMS-PB` → `CMS.PRB`)
+      - una letra distinta de `R` → `.` + esa letra (`BH-A` → `BH.A`)
+      - cualquier otro (`-RI`, `-R`, `-WTA`, varios guiones) → None
+
+    `-R` es una sola letra y no se manda: es rights, no clase, y no
+    está verificado. `-P` pelado (`ETI-P`) sí cae en la regla de clase
+    y se pide como `ETI.P`. No se inventa `.PR`: esa forma no se
+    comprobó. Si el feed responde 400, el corte de abajo aísla ese
+    símbolo y el resto del lote sigue en Alpaca.
+    """
+    if "-" not in ticker:
+        return ticker
+    base, _, sufijo = ticker.partition("-")
+    if not base or not sufijo or "-" in sufijo:
+        return None
+    if sufijo == "WT":
+        return f"{base}.WS"
+    if sufijo == "UN":
+        return f"{base}.U"
+    if len(sufijo) == 2 and sufijo[0] == "P" and sufijo[1].isalpha():
+        return f"{base}.PR{sufijo[1]}"
+    if len(sufijo) == 1 and sufijo.isalpha() and sufijo != "R":
+        return f"{base}.{sufijo}"
+    return None
+
+
+def _pares(tickers: list[str]) -> tuple[list[tuple[str, str]], list[str]]:
+    """(query, pedido) enviables, y pedidos que van directo a fallidos.
+
     La clave del dict de salida tiene que coincidir con lo pedido: el
-    resto del pipeline busca `barras[ticker]` con esa cadena."""
+    resto del pipeline busca `barras[ticker]` con esa cadena. El query
+    es otra cosa y solo vive en el parámetro `symbols`."""
     vistos: set[str] = set()
-    pares: list[tuple[str, str]] = []
+    enviables: list[tuple[str, str]] = []
+    directos: list[str] = []
     for t in tickers:
         if not isinstance(t, str):
             continue
@@ -191,8 +241,12 @@ def _lotes(tickers: list[str], n: int) -> list[list[tuple[str, str]]]:
         if clave in vistos:
             continue
         vistos.add(clave)
-        pares.append((clave, pedido))
-    return [pares[i:i + n] for i in range(0, len(pares), n)]
+        query = _simbolo_para_query(clave)
+        if query is None:
+            directos.append(pedido)
+            continue
+        enviables.append((query, pedido))
+    return enviables, directos
 
 
 def parsear_snapshot(crudo: object) -> dict:
@@ -218,8 +272,11 @@ class AlpacaProvider(DataProvider):
     """`DataProvider` de barras contra `data.alpaca.markets`. Las claves
     se leen del entorno en cada pedido (o se inyectan en pruebas); no se
     guardan en logs. `fallidos` es la lista de tickers de los lotes que
-    no respondieron en la última llamada: el respaldo la usa. Un símbolo
-    que el feed simplemente no trae no entra ahí (no es un error)."""
+    no respondieron en la última llamada, más los de sufijo con guion
+    que no se enviaron: el respaldo la usa. Un símbolo que el feed
+    simplemente no trae no entra ahí (no es un error). `ultimo_codigo`
+    es la etiqueta corta del último fallo de esa llamada (nunca el
+    cuerpo ni una URL)."""
 
     def __init__(
         self,
@@ -243,6 +300,7 @@ class AlpacaProvider(DataProvider):
         self._dormir = dormir
         self._ahora = ahora or (lambda: datetime.now(UTC))
         self.fallidos: list[str] = []
+        self.ultimo_codigo: str | None = None
         # Yahoo solo para metadata (float / ETF / nombre). No es el
         # respaldo de precios: ese lo pone `fuente.proveedor_configurado`.
         self._meta = None
@@ -314,54 +372,107 @@ class AlpacaProvider(DataProvider):
                 return paginas
         raise ErrorDatosAlpaca("paginacion")
 
+    def _incorporar_lote(
+        self, lote: list[tuple[str, str]], params: dict,
+        pedido_de: dict[str, str], crudas: dict[str, list],
+    ) -> str | None:
+        """Mete las velas del lote en `crudas`. None si el feed respondió
+        (aunque sea con series vacías). Un código si el lote no sirvió:
+        esos pedidos ya están en `fallidos`.
+
+        HTTP 400 parte el lote en mitades y repite. Un símbolo inválido
+        rechaza el lote entero; partir aísla al culpable y el resto
+        queda en Alpaca. 429, 5xx y auth no se parten: un corte ahí
+        reintentaría un fallo que no es de símbolo y cambiaría el
+        comportamiento que ya tiene `_get`."""
+        q = dict(params)
+        q["symbols"] = ",".join(clave for clave, _ in lote)
+        try:
+            paginas = self._paginas("/v2/stocks/bars", q)
+        except ErrorDatosAlpaca as ex:
+            if ex.codigo == "http_400" and len(lote) > 1:
+                medio = len(lote) // 2
+                log.info(
+                    "datos: HTTP 400 en un lote de %d; se parte para aislar el símbolo",
+                    len(lote),
+                )
+                izq = self._incorporar_lote(lote[:medio], params, pedido_de, crudas)
+                der = self._incorporar_lote(lote[medio:], params, pedido_de, crudas)
+                if izq is None or der is None:
+                    return None
+                self.ultimo_codigo = der or izq
+                return self.ultimo_codigo
+            self.ultimo_codigo = ex.codigo
+            simbolos = [pedido for _, pedido in lote]
+            log.warning(
+                "datos: lote de %d símbolos falló (%s: %s)",
+                len(lote), ex.codigo, ", ".join(simbolos[:8]),
+            )
+            self.fallidos.extend(simbolos)
+            return ex.codigo
+        for cuerpo in paginas:
+            barras = cuerpo.get("bars")
+            if not isinstance(barras, dict):
+                # 200 sin la forma esperada: no es "no hay velas".
+                simbolos = [pedido for _, pedido in lote]
+                self.fallidos.extend(simbolos)
+                self.ultimo_codigo = "cuerpo"
+                log.warning(
+                    "datos: lote de %d símbolos falló (%s: %s)",
+                    len(lote), "cuerpo", ", ".join(simbolos[:8]),
+                )
+                return "cuerpo"
+            for clave, serie in barras.items():
+                if not isinstance(clave, str):
+                    continue
+                destino = pedido_de.get(clave.upper())
+                if destino is None:
+                    continue
+                if not isinstance(serie, list):
+                    if destino not in self.fallidos:
+                        self.fallidos.append(destino)
+                    self.ultimo_codigo = "cuerpo"
+                    continue
+                crudas.setdefault(destino, []).extend(serie)
+        return None
+
     def _velas_de_lotes(
         self, tickers: list[str], params: dict, tamano: int, intradia: bool,
     ) -> dict[str, list]:
         """Mapa ticker -> listas ya armadas. Llena `self.fallidos` con
-        los tickers de los lotes que no respondieron."""
+        los tickers de los lotes que no respondieron y con los que no
+        se enviaron. Nunca devuelve una serie a medias: el fallido se
+        saca entero, y un volumen ausente no llega a ser 0."""
         self.fallidos = []
-        lotes = _lotes(tickers, tamano)
+        self.ultimo_codigo = None
+        enviables, directos = _pares(tickers)
+        if directos:
+            # No es un 400: ni siquiera se pidieron. El respaldo los ve
+            # igual, en `fallidos`, sin envenenar al lote de al lado.
+            self.fallidos.extend(directos)
+            self.ultimo_codigo = "simbolo"
+            log.warning(
+                "datos: %d símbolo(s) con sufijo no verificado no se piden al feed (%s)",
+                len(directos), ", ".join(directos[:8]),
+            )
+        lotes = [enviables[i:i + tamano] for i in range(0, len(enviables), tamano)]
         if not lotes:
             return {}
         ok = 0
         # Si ningún lote respondió, se relanza ESE código (auth, sin
         # claves, red), no uno genérico: el respaldo lo anota tal cual.
-        ultimo_codigo = "ciclo"
+        ultimo_codigo = self.ultimo_codigo or "ciclo"
         crudas: dict[str, list] = {}
         pedido_de: dict[str, str] = {}
         for lote in lotes:
             for clave, pedido in lote:
                 pedido_de[clave] = pedido
-            q = dict(params)
-            q["symbols"] = ",".join(clave for clave, _ in lote)
-            try:
-                paginas = self._paginas("/v2/stocks/bars", q)
-            except ErrorDatosAlpaca as ex:
-                ultimo_codigo = ex.codigo
-                log.warning("datos: lote de %d símbolos falló (%s)", len(lote), ex.codigo)
-                self.fallidos.extend(pedido for _, pedido in lote)
-                continue
-            ok += 1
-            for cuerpo in paginas:
-                barras = cuerpo.get("bars")
-                if not isinstance(barras, dict):
-                    # 200 sin la forma esperada: no es "no hay velas".
-                    self.fallidos.extend(pedido for _, pedido in lote)
-                    ok -= 1
-                    ultimo_codigo = "cuerpo"
-                    break
-                for clave, serie in barras.items():
-                    if not isinstance(clave, str):
-                        continue
-                    destino = pedido_de.get(clave.upper())
-                    if destino is None:
-                        continue
-                    if not isinstance(serie, list):
-                        if destino not in self.fallidos:
-                            self.fallidos.append(destino)
-                        continue
-                    crudas.setdefault(destino, []).extend(serie)
-            if self.pausa:
+            codigo = self._incorporar_lote(lote, params, pedido_de, crudas)
+            if codigo is None:
+                ok += 1
+            else:
+                ultimo_codigo = codigo
+            if self.pausa and codigo is None:
                 self._dormir(self.pausa)
         if ok == 0:
             raise ErrorDatosAlpaca(ultimo_codigo)
@@ -431,9 +542,14 @@ class AlpacaProvider(DataProvider):
 
     def snapshots(self, tickers: list[str]) -> dict[str, dict]:
         """Último trade / vela de minuto. Solo lectura, para comparar.
-        Si el ciclo falla, lanza `ErrorDatosAlpaca` (el caller decide)."""
+        Si el ciclo falla, lanza `ErrorDatosAlpaca` (el caller decide).
+        El 400 de un lote de snapshots no se parte: este camino no
+        alimenta el escaneo. Las barras sí, porque un símbolo inválido
+        tira las cien."""
         self.fallidos = []
-        lotes = _lotes(tickers, LOTE_DIARIO)
+        enviables, directos = _pares(tickers)
+        self.fallidos.extend(directos)
+        lotes = [enviables[i:i + LOTE_DIARIO] for i in range(0, len(enviables), LOTE_DIARIO)]
         if not lotes:
             return {}
         out: dict[str, dict] = {}
