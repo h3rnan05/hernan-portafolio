@@ -44,6 +44,31 @@ try:
 except Exception:  # pragma: no cover - sin paper trader instalado
     _catalogo_bloqueos = None
 
+# La misma consulta y la misma noción de "orden viva" que la
+# reconciliación. Si no se puede importar, el panel no afirma que falte
+# el stop: un dato que no se pudo leer no es evidencia.
+try:
+    from momentum_paper_trader.alpaca_client import (
+        orden_sigue_viva as _orden_sigue_viva,
+        ordenes_con_patas as _ordenes_con_patas,
+        parametros_ordenes_de_simbolos as _parametros_ordenes_de_simbolos,
+    )
+except Exception:  # pragma: no cover - sin paper trader instalado
+    _orden_sigue_viva = None
+    _ordenes_con_patas = None
+    _parametros_ordenes_de_simbolos = None
+
+# Misma cobertura que `reconciliacion.detectar`: whitelist
+# held/new/accepted/pending_new. Sin esto el panel no decide si hay stop.
+try:
+    from momentum_paper_trader.reconciliacion import (
+        cobertura as _cobertura,
+        ventas_vivas as _ventas_vivas,
+    )
+except Exception:  # pragma: no cover - sin paper trader instalado
+    _cobertura = None
+    _ventas_vivas = None
+
 ALPACA_PAPER = "https://paper-api.alpaca.markets"  # fijo: el panel nunca habla con la cuenta real
 REPO = Path(__file__).resolve().parents[1]
 # Sin DASH_CACHE_VELAS la caché va al directorio temporal del sistema,
@@ -528,10 +553,10 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         "status": "all", "limit": 500, "direction": "desc", "nested": "true",
         "after": desde.astimezone(timezone.utc).isoformat(),
     })
-    # Órdenes abiertas sin filtro de fecha: el stop de una posición abierta
-    # ayer no aparece entre las órdenes de hoy. `nested=true` es obligatorio:
-    # con el bracket ya lleno Alpaca deja el stop en `held` dentro de `legs`
-    # del take-profit y no lo manda como fila de `status=open` (MNST, 28/9).
+    # Compras de entrada todavía sin llenar: tabla de pendientes y gráfico.
+    # El stop de una posición abierta no sale de aquí. Con el padre ya
+    # filled, esta lista trae el take-profit y `legs` vacío; el stop
+    # `held` cuelga de ese padre y lo pide `leer_ordenes_de_simbolos`.
     abiertas, err_a = get("/v2/orders", {"status": "open", "limit": 500, "nested": "true"})
     # Cerradas sin filtro de fecha: el fill de entrada de lo que se cerró
     # hoy puede ser de otro día. Sin ese precio el P&L realizado queda "—".
@@ -747,9 +772,19 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
     } for t, rol in tickers_op[:tope]]
     omitidos = [t for t, _rol in tickers_op[tope:]]
 
-    vivas = None if err_a is not None else ordenes_para_detectar(abiertas_lista)
+    # Columna Stop y aviso: el listado de `ordenes_de_simbolos`. Si el
+    # GET falla, `None` — nunca `[]`, porque una lista vacía afirmaría
+    # que no hay stop.
+    if err_p is None and _cobertura is not None:
+        ordenes_simbolo, err_s = leer_ordenes_de_simbolos(get, _simbolos_lista(lista_posiciones))
+        if err_s and err_s not in problemas:
+            problemas.append(err_s)
+    else:
+        ordenes_simbolo, err_s = None, None
+    if not isinstance(ordenes_simbolo, list):
+        ordenes_simbolo = None
     filas_pos = None if err_p is not None else [
-        fila_posicion(p, vivas or [], ordenes_conocidas=vivas is not None)
+        fila_posicion(p, ordenes_simbolo, ordenes_conocidas=ordenes_simbolo is not None)
         for p in lista_posiciones if isinstance(p, dict) and p.get("symbol")]
     filas_pend = None if err_a is not None else filas_pendientes(abiertas_lista, _simbolos(lista_posiciones))
     if err_p is not None or (err_o is not None and err_h is not None):
@@ -764,7 +799,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
             _unir_aplanadas(*fuentes_cierre), _simbolos(lista_posiciones), desde)
     avisos, nota_seguimiento = contrastar_broker(
         lista_posiciones if err_p is None else None,
-        vivas,
+        ordenes_simbolo,
         cfg.get("revisiones"),
     )
 
@@ -995,7 +1030,8 @@ def _resumen_equity(hist: dict) -> str:
 
 # ───────────────────────── velas del ticker en operación ─────────────────────────
 
-ESTADOS_ORDEN_MUERTA = ("canceled", "expired", "rejected", "replaced")
+# Los mismos tipos que `reconciliacion.cobertura`. Un `limit` es el
+# take-profit, no el stop.
 TIPOS_STOP = ("stop", "stop_limit", "trailing_stop")
 
 
@@ -1029,13 +1065,6 @@ def cache_velas_segura(ruta: Path | None, problemas: list) -> Path:
     return ruta
 
 
-# Una pata `held` no está muerta: es el stop del bracket esperando
-# (MNST, 2026-09-28). Estos estados sí: no protegen y no son un cierre.
-_ESTADOS_TERMINALES = frozenset({
-    "filled", "canceled", "cancelled", "expired", "rejected",
-    "replaced", "done_for_day", "suspended",
-})
-
 # Claves que un proveedor de barras podría dejar en la telemetría del
 # hunter. El PR que suma Alpaca SIP todavía no está en main: si ninguna
 # está, no se afirma "Yahoo". `fuente` NO entra: en este repo es el
@@ -1047,50 +1076,20 @@ _CLAVES_FUENTE = (
 _AUSENTE = object()
 
 
-def _terminal(orden: dict) -> bool:
-    """Sin status no se da por muerta: un ausente no es evidencia."""
-    status = orden.get("status")
-    if status is None:
-        return False
-    return str(status).lower() in _ESTADOS_TERMINALES
-
-
-def _aplanar(ordenes) -> list[dict]:
-    """Fila de arriba y, un nivel más, sus `legs`. Copia: no muta el
-    payload. La pata hereda el símbolo del padre si ella no lo trae
-    (el stop `held` de MNST a veces no repite `symbol`)."""
-    if not isinstance(ordenes, list):
-        return []
-    salida: list[dict] = []
-    for orden in ordenes:
-        if not isinstance(orden, dict):
-            continue
-        padre = orden.get("symbol") if isinstance(orden.get("symbol"), str) else None
-        fila = dict(orden)
-        if padre:
-            fila["symbol"] = padre
-        salida.append(fila)
-        legs = orden.get("legs")
-        if not isinstance(legs, list):
-            continue
-        for leg in legs:
-            if not isinstance(leg, dict):
-                continue
-            pata = dict(leg)
-            simbolo = pata.get("symbol") if isinstance(pata.get("symbol"), str) and pata.get("symbol") else padre
-            if simbolo:
-                pata["symbol"] = simbolo
-            salida.append(pata)
-    return salida
-
-
 def _unir_aplanadas(*listas: list) -> list[dict]:
-    """Aplana y quita duplicados por id. La misma orden viene en 'hoy'
-    y en 'closed'; contarla dos veces doblaría el P&L."""
+    """Quita duplicados por id. La misma orden viene en 'hoy' y en
+    'closed'; contarla dos veces doblaría el P&L.
+
+    El aplanado es `ordenes_con_patas`: la pata hereda `_symbol` del
+    padre. El FIFO de cierres lee `symbol`, así que se copia ahí cuando
+    la pata no lo trae."""
     vistos: set[str] = set()
     out: list[dict] = []
     for lista in listas:
-        for o in _aplanar(lista):
+        patas = _ordenes_con_patas(lista) if _ordenes_con_patas is not None else []
+        for o in patas:
+            if not o.get("symbol") and isinstance(o.get("_symbol"), str) and o.get("_symbol"):
+                o["symbol"] = o["_symbol"]
             oid = o.get("id")
             if oid:
                 if oid in vistos:
@@ -1100,21 +1099,45 @@ def _unir_aplanadas(*listas: list) -> list[dict]:
     return out
 
 
-def ordenes_para_detectar(abiertas: list) -> list[dict]:
-    """Lo que `reconciliacion.detectar` sabe leer: filas planas.
+def leer_ordenes_de_simbolos(get, simbolos: list[str]):
+    """(lista | None, error | None). La consulta de `ordenes_de_simbolos`.
 
-    El detector de la PR #183 mira `symbol`/`side`/`type` de la fila de
-    arriba y no entra a `legs`. El stop `held` vive ahí. Se aplana antes
-    de llamarlo, y se tiran las patas ya terminales: si no, un stop
-    `canceled` contaría como protección (el detector no filtra status)."""
-    return [o for o in _aplanar(abiertas) if not _terminal(o)]
+    None en la lista: no se pudieron leer, y eso no es "no hay stop".
+    Sin símbolos no se llama al broker. Un cuerpo que no es una lista
+    tampoco cuenta como "cero órdenes"."""
+    if _parametros_ordenes_de_simbolos is None:
+        return None, ("no se pudo cargar la consulta de órdenes del paper trader; "
+                      "no se afirma que falte el stop")
+    params = _parametros_ordenes_de_simbolos(simbolos)
+    if params is None:
+        return [], None
+    datos, err = get("/v2/orders", params)
+    if err:
+        return None, err
+    if not isinstance(datos, list):
+        return None, ("Alpaca no devolvió una lista de órdenes de los símbolos en posición; "
+                      "no se afirma que falte el stop")
+    return datos, None
 
 
 def _simbolos(posiciones: list) -> set[str]:
-    return {
-        p.get("symbol") for p in posiciones
-        if isinstance(p, dict) and isinstance(p.get("symbol"), str) and p.get("symbol")
-    }
+    return set(_simbolos_lista(posiciones))
+
+
+def _simbolos_lista(posiciones: list) -> list[str]:
+    """Símbolos en el orden del broker, sin repetir. Vacía: no se pide
+    `status=all` sin filtro."""
+    salida: list[str] = []
+    vistos: set[str] = set()
+    for p in posiciones:
+        if not isinstance(p, dict):
+            continue
+        simbolo = p.get("symbol")
+        if not isinstance(simbolo, str) or not simbolo or simbolo in vistos:
+            continue
+        vistos.add(simbolo)
+        salida.append(simbolo)
+    return salida
 
 
 def _mas_reciente(candidatas: list[dict]) -> dict | None:
@@ -1138,29 +1161,35 @@ def _nivel_de(orden: dict | None, precio_clave: str) -> dict | None:
     }
 
 
-def salidas_de(ticker: str, ordenes_vivas: list) -> dict:
+def salidas_de(ticker: str, ordenes: list | None) -> dict:
     """Stop, take-profit y venta a mercado todavía vivos de `ticker`.
 
-    El take-profit es un `limit` de venta: no es protección (igual que
-    la reconciliación). El stop `held` anidado sí. Una venta a mercado
-    viva es el cierre en curso, no un stop, pero tampoco es "sin salida"."""
-    stops, limites, mercados = [], [], []
-    for o in ordenes_vivas:
-        if not isinstance(o, dict) or o.get("symbol") != ticker:
-            continue
-        if str(o.get("side") or "").lower() != "sell":
+    La protección la decide `cobertura` (la de `detectar`): whitelist
+    `held` / `new` / `accepted` / `pending_new` en la fila o en una pata.
+    Un stop en `pending_cancel` o con un status desconocido no entra, así
+    que no llena la columna. Un `limit` es el take-profit. `ordenes is
+    None` (el GET falló) no es "no hay salida"."""
+    vacio = {"stop": None, "tp": None, "mercado": False}
+    if ordenes is None or _cobertura is None or _ventas_vivas is None:
+        return vacio
+    cob = _cobertura(ordenes)
+    if cob is None:
+        return vacio
+    con_stop, con_mercado = cob
+    stops, limites = [], []
+    for o in _ventas_vivas(ordenes) or []:
+        if o.get("_symbol") != ticker:
             continue
         tipo = str(o.get("type") or "").lower()
         if tipo in TIPOS_STOP:
             stops.append(o)
         elif tipo == "limit":
             limites.append(o)
-        elif tipo == "market":
-            mercados.append(o)
+    stop = _nivel_de(_mas_reciente(stops), "stop_price") if ticker in con_stop else None
     return {
-        "stop": _nivel_de(_mas_reciente(stops), "stop_price"),
+        "stop": stop,
         "tp": _nivel_de(_mas_reciente(limites), "limit_price"),
-        "mercado": _mas_reciente(mercados) is not None,
+        "mercado": ticker in con_mercado,
     }
 
 
@@ -1170,8 +1199,12 @@ def fila_posicion(p: dict, ordenes_vivas: list, ordenes_conocidas: bool = True) 
     no vino. `unrealized_plpc` es fracción (0,0125 = 1,25 %), igual que
     lo lee `cierre.py`. Si las órdenes no se pudieron leer, stop y
     objetivo quedan desconocidos: un "—" ahí se leería como que no hay."""
-    salidas = salidas_de(str(p.get("symbol")), ordenes_vivas) if ordenes_conocidas else {
-        "stop": None, "tp": None, "mercado": False}
+    # `None` es un GET que falló: no se sustituye por [] (eso diría que
+    # no hay stop). Solo una lista leída de verdad llena la columna.
+    if ordenes_conocidas and ordenes_vivas is not None:
+        salidas = salidas_de(str(p.get("symbol")), ordenes_vivas)
+    else:
+        salidas = {"stop": None, "tp": None, "mercado": False}
     plpc = num(p.get("unrealized_plpc"))
     return {
         "ticker": p.get("symbol"),
@@ -1196,7 +1229,7 @@ def filas_pendientes(abiertas: list, simbolos_abiertos: set[str]) -> list[dict]:
     abierta tampoco: va en la fila de esa posición."""
     filas = []
     for o in abiertas:
-        if not isinstance(o, dict) or _terminal(o):
+        if not isinstance(o, dict) or not (_orden_sigue_viva and _orden_sigue_viva(o)):
             continue
         simbolo = o.get("symbol")
         if not isinstance(simbolo, str) or not simbolo:
@@ -1206,7 +1239,7 @@ def filas_pendientes(abiertas: list, simbolos_abiertos: set[str]) -> list[dict]:
             continue
         if lado not in ("buy", "sell"):
             continue
-        salidas = salidas_de(simbolo, ordenes_para_detectar([o]))
+        salidas = salidas_de(simbolo, [o])
         status = o.get("status")
         filas.append({
             "ticker": simbolo,
@@ -1339,15 +1372,20 @@ def cierres_de_hoy(ordenes: list, simbolos_abiertos: set[str], desde: datetime) 
     return filas
 
 
-def contrastar_broker(posiciones, ordenes_vivas, ruta_revisiones):
-    """(avisos, nota). Reusa `reconciliacion.detectar` (PR #183).
+def contrastar_broker(posiciones, ordenes, ruta_revisiones):
+    """(avisos, nota). Reusa `reconciliacion.detectar`.
+
+    `ordenes` es el listado anidado de `ordenes_de_simbolos` (el padre
+    `filled` incluido). El detector mira la fila y sus `legs` y solo
+    cuenta una venta viva; no se aplana antes, porque tirar el padre
+    `filled` es como se perdía el stop `held`.
 
     Los avisos son dicts {ticker, sin_seguimiento, sin_stop}. `None` en
     avisos significa que no se pudo contrastar (no es "todo en orden").
     Sin ruta de revisiones no se lee el libro del repo: las pruebas del
     panel no lo configuran y no deben alarmar con el archivo real.
 
-    `ordenes_vivas is None` (no se pudieron leer) se le pasa tal cual al
+    `ordenes is None` (no se pudieron leer) se le pasa tal cual al
     detector: no afirma que falte el stop. Una lista vacía sí lo afirma."""
     if ruta_revisiones is None or not isinstance(posiciones, list):
         return [], None
@@ -1362,7 +1400,7 @@ def contrastar_broker(posiciones, ordenes_vivas, ruta_revisiones):
     except Exception as ex:
         return None, (f"no se pudieron leer las revisiones ({type(ex).__name__}); "
                       "no se afirma que el seguimiento cubra lo que el broker tiene abierto")
-    problemas = detectar(posiciones, ordenes_vivas, revisiones)
+    problemas = detectar(posiciones, ordenes, revisiones)
     return [
         {"ticker": p.ticker, "sin_seguimiento": p.sin_seguimiento, "sin_stop": p.sin_stop}
         for p in problemas
@@ -1504,7 +1542,7 @@ def tickers_en_operacion(posiciones: list, ordenes_abiertas: list) -> list[tuple
             vistos.add(simbolo)
             out.append((simbolo, "abierta"))
     for o in ordenes_abiertas or []:
-        if not isinstance(o, dict) or _terminal(o):
+        if not isinstance(o, dict) or not (_orden_sigue_viva and _orden_sigue_viva(o)):
             continue
         if str(o.get("side") or "").lower() != "buy":
             continue
@@ -1535,8 +1573,8 @@ def marcas_de(ticker: str, posiciones: list, ordenes: list, watch: list[dict]) -
       entrada       -> `filled_avg_price` / `filled_at` de la compra llenada
                        (fill real); si no hay compra de hoy, el precio medio de
                        la posición (`avg_entry_price`), sin hora
-      stop          -> `stop_price` de la pata/orden de venta tipo stop que
-                       no esté cancelada, la más reciente"""
+      stop          -> `stop_price` de la venta tipo stop que
+                       `orden_sigue_viva` acepta, la más reciente"""
     w = _entrada_watchlist(ticker, watch)
     ruptura = w.get("ruptura") if w else None
 
@@ -1559,7 +1597,7 @@ def marcas_de(ticker: str, posiciones: list, ordenes: list, watch: list[dict]) -
                 continue
             if candidata.get("side") != "sell" or candidata.get("type") not in TIPOS_STOP:
                 continue
-            if candidata.get("status") in ESTADOS_ORDEN_MUERTA:
+            if not (_orden_sigue_viva and _orden_sigue_viva(candidata)):
                 continue
             precio = num(candidata.get("stop_price"))
             if precio is not None:

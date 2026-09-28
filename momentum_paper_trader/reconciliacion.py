@@ -20,8 +20,9 @@ trae solo el take-profit (`new`) y con `legs` vacío. El stop queda
 (MNST, 2026-09-28: padre `265e093f`, stop `f2d920f1` a $41.62, límite
 `bb5baab2` a $42.36). El chequeo pide
 `status=all&nested=true&symbols=<posiciones>` y cuenta una venta
-`stop` / `stop_limit` solo si su status es `held`, `new`, `accepted`
-o `pending_new`. Un status ausente no es un stop.
+`stop` / `stop_limit` / `trailing_stop` solo si su status es `held`,
+`new`, `accepted` o `pending_new`. `pending_cancel`, un status
+desconocido o ausente no es un stop.
 
 No coloca órdenes ni cambia umbrales. Si no se pueden leer las
 posiciones, no alerta y no inventa un "todo bien". Si no se pueden
@@ -65,20 +66,17 @@ def _ticker_seguido(revisiones: list[estado.RevisionIA]) -> set[str]:
     }
 
 
-def _cobertura(ordenes: list[dict] | None) -> tuple[set[str], set[str]] | None:
-    """(símbolos con stop de venta, símbolos con venta a mercado).
-    None si no hay listado: no se puede afirmar que falte el stop.
+def ventas_vivas(ordenes: list[dict] | None) -> list[dict] | None:
+    """Ventas (fila o pata) que todavía trabajan.
 
-    Mira la fila y sus `legs`. El padre de un bracket lleno es una
-    compra `filled`: no protege, pero sus patas sí pueden. Cuenta un
-    `stop` / `stop_limit` / `trailing_stop` de venta, o una venta a
-    mercado en curso, solo con status `held`, `new`, `accepted` o
-    `pending_new`. El take-profit es un `limit` y no entra. Una pata
-    `canceled` / `filled` / `expired` tampoco, aunque cuelgue del padre."""
+    None si no hay listado: no es una lista vacía. Solo entra lo que
+    `orden_sigue_viva` acepta (`held`, `new`, `accepted`, `pending_new`).
+    `pending_cancel`, un status desconocido o ausente, y una pata ya
+    `canceled` quedan fuera: una lista negra de "muertas" los contaría
+    como protección."""
     if ordenes is None:
         return None
-    stops: set[str] = set()
-    mercados: set[str] = set()
+    salida: list[dict] = []
     for o in ordenes_con_patas(ordenes):
         simbolo = o.get("_symbol")
         if not isinstance(simbolo, str) or not simbolo:
@@ -87,6 +85,27 @@ def _cobertura(ordenes: list[dict] | None) -> tuple[set[str], set[str]] | None:
             continue
         if str(o.get("side") or "").lower() != "sell":
             continue
+        salida.append(o)
+    return salida
+
+
+def cobertura(ordenes: list[dict] | None) -> tuple[set[str], set[str]] | None:
+    """(símbolos con stop de venta, símbolos con venta a mercado).
+    None si no hay listado: no se puede afirmar que falte el stop.
+
+    Mira la fila y sus `legs` vía `ventas_vivas`. El padre de un bracket
+    lleno es una compra `filled`: no protege, pero sus patas sí pueden.
+    Cuenta un `stop` / `stop_limit` / `trailing_stop` de venta, o una
+    venta a mercado en curso, solo con status `held`, `new`, `accepted`
+    o `pending_new`. El take-profit es un `limit` y no entra. Un stop
+    en `pending_cancel` tampoco."""
+    vivas = ventas_vivas(ordenes)
+    if vivas is None:
+        return None
+    stops: set[str] = set()
+    mercados: set[str] = set()
+    for o in vivas:
+        simbolo = o.get("_symbol")
         tipo = str(o.get("type") or "").lower()
         if tipo in _TIPOS_STOP:
             stops.add(simbolo)
@@ -104,7 +123,7 @@ def detectar(
     cuenta aunque su `qty` sea ilegible (estar en el listado es el dato;
     la cantidad ausente no la borra)."""
     seguidos = _ticker_seguido(revisiones)
-    cobertura = _cobertura(ordenes)
+    cobertura_de = cobertura(ordenes)
     problemas: list[Problema] = []
     vistos: set[str] = set()
     for p in posiciones:
@@ -115,10 +134,10 @@ def detectar(
             continue
         vistos.add(simbolo)
         sin_seguimiento = simbolo not in seguidos
-        if cobertura is None:
+        if cobertura_de is None:
             sin_stop = False
         else:
-            stops, mercados = cobertura
+            stops, mercados = cobertura_de
             sin_stop = simbolo not in stops and simbolo not in mercados
         if sin_seguimiento or sin_stop:
             problemas.append(Problema(simbolo, sin_seguimiento, sin_stop))
