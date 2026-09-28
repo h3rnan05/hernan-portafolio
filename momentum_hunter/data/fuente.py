@@ -10,6 +10,11 @@ La telemetría (`informe_datos`) dice qué fuente contestó de verdad, no
 cuál estaba configurada. `metadata` (float, ETF, nombre) no entra en
 esa cuenta: el feed de precios no la tiene y seguir pidiéndola a Yahoo
 no es un respaldo, es otro dato.
+
+`MOMENTUM_SIP_STREAM` (default `sombra`) no cambia este camino. Solo
+`primario`, y solo con feed `sip`, intenta servir el minuto desde el
+almacén del stream; si no cubre, sigue el REST de abajo. Ver
+`data/sip_stream.py`.
 """
 
 from __future__ import annotations
@@ -171,6 +176,24 @@ class ProveedorConRespaldo(DataProvider):
     def barras_intradia(
         self, tickers: list[str], intervalo: str = "1m", periodo: str = "5d",
     ) -> dict[str, BarraIntradia]:
+        # `primario` solo sustituye el minuto SIP, y solo si el almacén
+        # cubre el pedido entero. Sombra (el default) ni entra. Un None
+        # de `barras_si_cubren` no es "sin velas": es "seguí por REST".
+        if self._feed == "sip":
+            from momentum_hunter.data.sip_stream import barras_si_cubren
+            t0 = time.perf_counter()
+            try:
+                servidas = barras_si_cubren(tickers, intervalo, periodo)
+            except Exception as ex:
+                log.warning(
+                    "stream SIP ilegible (%s); este pedido de minuto va al REST",
+                    type(ex).__name__,
+                )
+                servidas = None
+            if servidas is not None:
+                self._uso_primario = True
+                self._marcar_tiempo(t0)
+                return servidas
         return self._completar(
             tickers,
             lambda ts: self._primario.barras_intradia(ts, intervalo, periodo),

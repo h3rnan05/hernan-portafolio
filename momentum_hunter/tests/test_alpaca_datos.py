@@ -4,7 +4,9 @@ estas pruebas no salen a la red ni usan claves de verdad."""
 from __future__ import annotations
 
 import json
+import re
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 import requests
@@ -232,6 +234,98 @@ def test_un_lote_caido_marca_solo_esos_simbolos(monkeypatch):
     out = p.barras(["AAA", "BBB"])
     assert "AAA" in out and "BBB" not in out
     assert p.fallidos == ["BBB"]
+
+
+def _catalogo(tmp_path, filas, *, usable=True):
+    from momentum_hunter.catalogo_activos import MINIMO_SIMBOLOS
+
+    assets = list(filas)
+    if usable:
+        vistos = {a.get("symbol") for a in assets if isinstance(a, dict)}
+        i = 0
+        while len(assets) < MINIMO_SIMBOLOS:
+            sym = f"ZZ{i:05d}"
+            i += 1
+            if sym in vistos:
+                continue
+            vistos.add(sym)
+            assets.append({
+                "symbol": sym, "exchange": "NASDAQ", "tradable": True,
+                "fractionable": False, "status": "active", "name": sym,
+            })
+    path = tmp_path / "alpaca_assets.json"
+    path.write_text(json.dumps({
+        "fecha_generacion": datetime.now(UTC).isoformat(timespec="seconds"),
+        "assets": assets,
+    }), encoding="utf-8")
+    return path
+
+
+def test_catalogo_fresco_pide_brk_como_esta_en_el_archivo(monkeypatch, tmp_path):
+    # BRK-B y BRK.B son la misma fila. Se pide una vez, con el símbolo
+    # del archivo, y las dos claves pedidas reciben la serie.
+    path = _catalogo(tmp_path, [{
+        "symbol": "BRK.B", "exchange": "NYSE", "tradable": True,
+        "fractionable": False, "status": "active", "name": "Berkshire",
+    }])
+    monkeypatch.setenv("MOMENTUM_CATALOGO_ACTIVOS", str(path))
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        syms = params["symbols"].split(",")
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    out = _provider().barras(["BRK-B", "BRK.B"])
+    assert vistos == ["BRK.B"]
+    assert set(out) == {"BRK-B", "BRK.B"}
+
+
+def test_catalogo_fresco_no_pide_un_guion_que_el_archivo_no_tiene(monkeypatch, tmp_path):
+    # Sin archivo, BH-A se mandaría como BH.A. Con el archivo fresco y
+    # sin esa fila, no se adivina: va a fallidos y el lote de al lado
+    # sigue saliendo.
+    path = _catalogo(tmp_path, [{
+        "symbol": "AAA", "exchange": "NASDAQ", "tradable": True,
+        "fractionable": True, "status": "active", "name": "Aaa",
+    }])
+    monkeypatch.setenv("MOMENTUM_CATALOGO_ACTIVOS", str(path))
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        syms = params["symbols"].split(",")
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    p = _provider()
+    out = p.barras(["BH-A", "AAA"])
+    assert vistos == ["AAA"]
+    assert "BH.A" not in (vistos[0] if vistos else "")
+    assert p.fallidos == ["BH-A"]
+    assert set(out) == {"AAA"}
+
+
+def test_catalogo_corto_no_apaga_la_traduccion_de_clase(monkeypatch, tmp_path):
+    # Menos de 5000 filas, aunque sean de hoy: el archivo no se usa.
+    # BH-A sigue pidiéndose con la traducción de siempre (BH.A).
+    path = _catalogo(tmp_path, [{
+        "symbol": "AAA", "exchange": "NASDAQ", "tradable": True,
+        "fractionable": True, "status": "active", "name": "Aaa",
+    }], usable=False)
+    monkeypatch.setenv("MOMENTUM_CATALOGO_ACTIVOS", str(path))
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        syms = params["symbols"].split(",")
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    out = _provider().barras(["BH-A", "AAA"])
+    assert vistos == ["BH.A,AAA"]
+    assert set(out) == {"BH-A", "AAA"}
 
 
 def test_simbolos_con_guion_se_piden_con_punto_y_vuelven_con_la_clave_pedida(monkeypatch):
@@ -623,6 +717,67 @@ def test_alpaca_en_el_entorno_arma_el_respaldo(monkeypatch):
     assert p.informe_datos().feed == "iex"
 
 
+@pytest.mark.parametrize("clave,secreto", [
+    (None, None),
+    ("", ""),
+    ("   ", "   "),
+    ("KEY", ""),
+    ("", "SECRET"),
+])
+def test_claves_ausentes_o_vacias_caen_a_yahoo_sin_romper(monkeypatch, clave, secreto):
+    # El respaldo de GitHub exporta alpaca/sip siempre. Un secret que no
+    # existe llega como cadena vacía: no es un fallo del job, es el mismo
+    # respaldo Yahoo de un ciclo que el feed no pudo atender.
+    monkeypatch.setenv("MOMENTUM_DATA_PROVIDER", "alpaca")
+    monkeypatch.setenv("ALPACA_DATA_FEED", "sip")
+    for nombre, valor in (
+        ("ALPACA_PAPER_API_KEY", clave),
+        ("ALPACA_PAPER_API_SECRET", secreto),
+    ):
+        if valor is None:
+            monkeypatch.delenv(nombre, raising=False)
+        else:
+            monkeypatch.setenv(nombre, valor)
+
+    def _boom(*a, **k):
+        raise AssertionError("sin claves no debía haber HTTP")
+
+    monkeypatch.setattr(ad.requests, "get", _boom)
+    yahoo = _Yahoo()
+    p = proveedor_configurado(construir_yahoo=lambda: yahoo)
+    assert p.barras(["AAA"])["AAA"].volume == [100.0]
+    assert p.barras_intradia(["BBB"]) == {}
+    assert yahoo.pedidos == [["AAA"], ["BBB"]]
+    info = p.informe_datos()
+    assert info.configurada == "alpaca"
+    assert info.fuente == "yahoo"
+    assert info.feed is None
+    assert info.fallbacks == 2
+
+
+def test_el_hunter_solo_habla_con_el_host_de_datos():
+    # Frontera con el ejecutor: el hunter puede leer el host de DATOS,
+    # REST o el websocket SIP (stream.data). Importar el cliente de
+    # órdenes, o nombrar el host de trading (paper o live), mezclaría
+    # las dos cosas. data.alpaca.markets no contiene la cadena
+    # api.alpaca.markets; paper-api sí.
+    raiz = Path(__file__).resolve().parents[1]
+    prohibido = ("alpaca_client", "place_order", "paper-api", "api.alpaca.markets")
+    hosts: set[str] = set()
+    vistos = 0
+    for path in raiz.rglob("*.py"):
+        if "tests" in path.parts or "__pycache__" in path.parts:
+            continue
+        texto = path.read_text(encoding="utf-8")
+        vistos += 1
+        for palabra in prohibido:
+            assert palabra not in texto, f"{path.relative_to(raiz)} menciona {palabra}"
+        hosts.update(re.findall(r"[\w.-]*alpaca\.markets", texto))
+    assert vistos > 0
+    assert hosts == {"data.alpaca.markets", "stream.data.alpaca.markets"}
+    assert ad.DATA_BASE == "https://data.alpaca.markets"
+
+
 # ------------------------- comparación (pura) -------------------------
 
 def _intradia():
@@ -710,3 +865,47 @@ def test_la_telemetria_guarda_la_fuente_y_el_reporte_ignora_el_rechequeo(tmp_pat
     texto = reporte_semanal.construir("2026-09-28", "2026-09-28", tmp_path)
     assert "Corridas registradas: 1" in texto
     assert "500" not in texto
+
+
+def test_metadata_de_alpaca_reusa_el_cache_diario_de_yahoo(monkeypatch, tmp_path):
+    """El feed no trae float ni nombre: AlpacaProvider.metadata delega en
+    Yahoo, y ese cache diario también vale por este camino."""
+    import sys
+
+    from momentum_hunter.data.provider import ENV_CACHE_METADATA
+    from momentum_hunter.models import Metadata
+
+    class _Ticker:
+        def __init__(self, info):
+            self._info = info
+
+        @property
+        def info(self):
+            return self._info
+
+    class _YF:
+        def __init__(self):
+            self.llamadas: list[str] = []
+
+        def Ticker(self, ticker):
+            self.llamadas.append(ticker)
+            return _Ticker({
+                "longName": "Acme Corp",
+                "quoteType": "EQUITY",
+                "exchange": "NMS",
+                "marketCap": 2_000_000,
+                "floatShares": 10_000,
+            })
+
+    yf = _YF()
+    monkeypatch.setitem(sys.modules, "yfinance", yf)
+    monkeypatch.setenv(ENV_CACHE_METADATA, str(tmp_path / "cache.json"))
+    p = _provider()
+    primera = p.metadata(["ACME"])["ACME"]
+    segunda = p.metadata(["ACME"])["ACME"]
+    assert yf.llamadas == ["ACME"]
+    assert isinstance(primera, Metadata)
+    assert segunda.market_cap == 2_000_000
+    assert segunda.shares_float == 10_000
+    assert segunda.nombre == "Acme Corp"
+    assert segunda == primera
