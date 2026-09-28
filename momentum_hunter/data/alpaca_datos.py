@@ -39,8 +39,10 @@ Alpaca las pide con punto y responde HTTP 400 al LOTE entero si uno
 no le sirve: un slot lleno de preferidas marcaba las 1000 como
 fallidas y las mandaba a Yahoo. La traducción es solo del query; la
 clave que ve el pipeline sigue siendo la pedida. Un sufijo no
-verificado no se manda. Un 400 que igual aparezca se parte en mitades
-hasta aislar el símbolo. 429, 5xx y auth no se parten.
+verificado no se manda (`-P` pelado incluido: no es `X.P`). Un 400 se
+parte en mitades hasta aislar el símbolo, salvo que el lote sea grande
+y las dos mitades también sean 400: eso no es un símbolo suelto y no
+vale la pena bajar hasta el singleton. 429, 5xx y auth no se parten.
 """
 
 from __future__ import annotations
@@ -68,6 +70,11 @@ LIMITE_PAGINA = 10_000
 MAX_PAGINAS = 40
 LOTE_DIARIO = 100
 LOTE_INTRADIA = 15
+# Un 400 en un lote de este tamaño (o más) se parte una sola vez. Si
+# las dos mitades también devuelven 400, se rinde el lote entero:
+# seguir hasta el singleton son ~2n pedidos y el feed está rechazando
+# el corte, no un símbolo. Por debajo sí se aísla al culpable.
+UMBRAL_CORTE_400 = 8
 ESPERA_MAX_S = 8.0
 
 _TIMEFRAMES = {
@@ -184,6 +191,13 @@ def timeframe_de(intervalo: str) -> str:
     return tf
 
 
+# Una sola letra es clase, salvo las que ya significan otra cosa y no
+# tienen traducción verificada. P es preferida sin serie (`ETI-P`):
+# pedirla como `ETI.P` puede enganchar otra serie, y una clase P de
+# verdad es rara. R es rights. Las dos van a fallidos.
+_NO_SON_CLASE = frozenset({"P", "R"})
+
+
 def _simbolo_para_query(ticker: str) -> str | None:
     """Símbolo del query, o None si ese guion no se manda al feed.
 
@@ -192,19 +206,13 @@ def _simbolo_para_query(ticker: str) -> str | None:
     ticker sin guion pasa igual.
 
     Orden cerrado, del sufijo más específico al más corto. La clase es
-    exactamente una letra; un patrón flojo se comería `-PB`, `-WT` o
-    `-UN` (y `-P` + letra dejaría de ser preferida).
+    exactamente una letra que no esté en `_NO_SON_CLASE`; un patrón
+    flojo se comería `-PB`, `-WT`, `-UN` o el `-P` pelado.
       - `WT` → `.WS` (warrant: `LZM-WT`)
       - `UN` → `.U` (unit: `KCAC-UN`)
       - `P` + una letra → `.PR` + esa letra (`CMS-PB` → `CMS.PRB`)
-      - una letra distinta de `R` → `.` + esa letra (`BH-A` → `BH.A`)
-      - cualquier otro (`-RI`, `-R`, `-WTA`, varios guiones) → None
-
-    `-R` es una sola letra y no se manda: es rights, no clase, y no
-    está verificado. `-P` pelado (`ETI-P`) sí cae en la regla de clase
-    y se pide como `ETI.P`. No se inventa `.PR`: esa forma no se
-    comprobó. Si el feed responde 400, el corte de abajo aísla ese
-    símbolo y el resto del lote sigue en Alpaca.
+      - una letra de clase → `.` + esa letra (`BH-A` → `BH.A`)
+      - cualquier otro (`-P`, `-R`, `-RI`, `-WTA`, varios guiones) → None
     """
     if "-" not in ticker:
         return ticker
@@ -217,19 +225,25 @@ def _simbolo_para_query(ticker: str) -> str | None:
         return f"{base}.U"
     if len(sufijo) == 2 and sufijo[0] == "P" and sufijo[1].isalpha():
         return f"{base}.PR{sufijo[1]}"
-    if len(sufijo) == 1 and sufijo.isalpha() and sufijo != "R":
+    if len(sufijo) == 1 and sufijo.isalpha() and sufijo not in _NO_SON_CLASE:
         return f"{base}.{sufijo}"
     return None
 
 
-def _pares(tickers: list[str]) -> tuple[list[tuple[str, str]], list[str]]:
-    """(query, pedido) enviables, y pedidos que van directo a fallidos.
+def _pares(tickers: list[str]) -> tuple[list[tuple[str, list[str]]], list[str]]:
+    """(query, pedidos) enviables, y pedidos que van directo a fallidos.
 
     La clave del dict de salida tiene que coincidir con lo pedido: el
     resto del pipeline busca `barras[ticker]` con esa cadena. El query
-    es otra cosa y solo vive en el parámetro `symbols`."""
+    es otra cosa y solo vive en el parámetro `symbols`.
+
+    Dos tickers que caen en el mismo símbolo (`BH-A` y `BH.A`, `X-WT`
+    y `X.WS`) se piden una vez. La serie vuelve a cada clave: descartar
+    una en silencio dejaría un hueco que el caller no puede distinguir
+    de "el feed no la tiene"."""
     vistos: set[str] = set()
-    enviables: list[tuple[str, str]] = []
+    por_query: dict[str, list[str]] = {}
+    orden: list[str] = []
     directos: list[str] = []
     for t in tickers:
         if not isinstance(t, str):
@@ -245,8 +259,18 @@ def _pares(tickers: list[str]) -> tuple[list[tuple[str, str]], list[str]]:
         if query is None:
             directos.append(pedido)
             continue
-        enviables.append((query, pedido))
-    return enviables, directos
+        if query not in por_query:
+            por_query[query] = []
+            orden.append(query)
+        por_query[query].append(pedido)
+    return [(query, por_query[query]) for query in orden], directos
+
+
+def _pedidos_de(lote: list[tuple[str, list[str]]]) -> list[str]:
+    out: list[str] = []
+    for _, pedidos in lote:
+        out.extend(pedidos)
+    return out
 
 
 def parsear_snapshot(crudo: object) -> dict:
@@ -372,69 +396,126 @@ class AlpacaProvider(DataProvider):
                 return paginas
         raise ErrorDatosAlpaca("paginacion")
 
-    def _incorporar_lote(
-        self, lote: list[tuple[str, str]], params: dict,
-        pedido_de: dict[str, str], crudas: dict[str, list],
-    ) -> str | None:
-        """Mete las velas del lote en `crudas`. None si el feed respondió
-        (aunque sea con series vacías). Un código si el lote no sirvió:
-        esos pedidos ya están en `fallidos`.
+    def _pausa_entre_lotes(self) -> None:
+        """La misma pausa que hay entre lotes del caller, también entre
+        las mitades de un 400: partir no puede martillar el feed."""
+        if self.pausa:
+            self._dormir(self.pausa)
 
-        HTTP 400 parte el lote en mitades y repite. Un símbolo inválido
-        rechaza el lote entero; partir aísla al culpable y el resto
-        queda en Alpaca. 429, 5xx y auth no se parten: un corte ahí
-        reintentaría un fallo que no es de símbolo y cambiaría el
-        comportamiento que ya tiene `_get`."""
+    def _marcar_fallidos(self, lote: list[tuple[str, list[str]]], codigo: str) -> str:
+        simbolos = _pedidos_de(lote)
+        self.ultimo_codigo = codigo
+        log.warning(
+            "datos: lote de %d símbolos falló (%s: %s)",
+            len(simbolos), codigo, ", ".join(simbolos[:8]),
+        )
+        self.fallidos.extend(simbolos)
+        return codigo
+
+    def _pedir_barras(
+        self, lote: list[tuple[str, list[str]]], params: dict,
+    ) -> tuple[list[dict] | None, str | None]:
         q = dict(params)
         q["symbols"] = ",".join(clave for clave, _ in lote)
         try:
-            paginas = self._paginas("/v2/stocks/bars", q)
+            return self._paginas("/v2/stocks/bars", q), None
         except ErrorDatosAlpaca as ex:
-            if ex.codigo == "http_400" and len(lote) > 1:
-                medio = len(lote) // 2
-                log.info(
-                    "datos: HTTP 400 en un lote de %d; se parte para aislar el símbolo",
-                    len(lote),
-                )
-                izq = self._incorporar_lote(lote[:medio], params, pedido_de, crudas)
-                der = self._incorporar_lote(lote[medio:], params, pedido_de, crudas)
-                if izq is None or der is None:
-                    return None
-                self.ultimo_codigo = der or izq
-                return self.ultimo_codigo
-            self.ultimo_codigo = ex.codigo
-            simbolos = [pedido for _, pedido in lote]
-            log.warning(
-                "datos: lote de %d símbolos falló (%s: %s)",
-                len(lote), ex.codigo, ", ".join(simbolos[:8]),
-            )
-            self.fallidos.extend(simbolos)
-            return ex.codigo
+            return None, ex.codigo
+
+    def _absorber(
+        self, lote: list[tuple[str, list[str]]], paginas: list[dict],
+        pedido_de: dict[str, list[str]], crudas: dict[str, list],
+    ) -> str | None:
+        """None si el 200 tenía la forma esperada. `cuerpo` si no: el
+        lote ya está en fallidos y no se queda una serie a medias."""
         for cuerpo in paginas:
             barras = cuerpo.get("bars")
             if not isinstance(barras, dict):
                 # 200 sin la forma esperada: no es "no hay velas".
-                simbolos = [pedido for _, pedido in lote]
-                self.fallidos.extend(simbolos)
-                self.ultimo_codigo = "cuerpo"
-                log.warning(
-                    "datos: lote de %d símbolos falló (%s: %s)",
-                    len(lote), "cuerpo", ", ".join(simbolos[:8]),
-                )
-                return "cuerpo"
+                return self._marcar_fallidos(lote, "cuerpo")
             for clave, serie in barras.items():
                 if not isinstance(clave, str):
                     continue
-                destino = pedido_de.get(clave.upper())
-                if destino is None:
+                destinos = pedido_de.get(clave.upper())
+                if not destinos:
                     continue
                 if not isinstance(serie, list):
-                    if destino not in self.fallidos:
-                        self.fallidos.append(destino)
+                    for destino in destinos:
+                        if destino not in self.fallidos:
+                            self.fallidos.append(destino)
                     self.ultimo_codigo = "cuerpo"
                     continue
-                crudas.setdefault(destino, []).extend(serie)
+                # Cada clave pedida recibe su propia lista. Compartir
+                # la del feed haría que la segunda paginación se
+                # escribiera dos veces en la misma.
+                for destino in destinos:
+                    crudas.setdefault(destino, []).extend(serie)
         return None
+
+    def _tras_400(
+        self, lote: list[tuple[str, list[str]]], params: dict,
+        pedido_de: dict[str, list[str]], crudas: dict[str, list],
+    ) -> str | None:
+        """El lote ya respondió 400. None si alguna mitad aportó velas.
+
+        En un lote grande, si las dos mitades también son 400, se deja
+        de partir: no es un símbolo suelto y el árbol completo son ~2n
+        pedidos. Por debajo del umbral se sigue hasta aislarlo."""
+        if len(lote) <= 1:
+            return self._marcar_fallidos(lote, "http_400")
+        medio = len(lote) // 2
+        izq, der = lote[:medio], lote[medio:]
+        self._pausa_entre_lotes()
+        pag_i, cod_i = self._pedir_barras(izq, params)
+        self._pausa_entre_lotes()
+        pag_d, cod_d = self._pedir_barras(der, params)
+        if (
+            len(lote) >= UMBRAL_CORTE_400
+            and cod_i == "http_400"
+            and cod_d == "http_400"
+        ):
+            log.info(
+                "datos: HTTP 400 en las dos mitades de un lote de %d; no se sigue partiendo",
+                len(lote),
+            )
+            return self._marcar_fallidos(lote, "http_400")
+        ri = self._resolver_mitad(izq, pag_i, cod_i, params, pedido_de, crudas)
+        rd = self._resolver_mitad(der, pag_d, cod_d, params, pedido_de, crudas)
+        if ri is None or rd is None:
+            return None
+        self.ultimo_codigo = rd or ri
+        return self.ultimo_codigo
+
+    def _resolver_mitad(
+        self, lote: list[tuple[str, list[str]]], paginas: list[dict] | None,
+        codigo: str | None, params: dict, pedido_de: dict[str, list[str]],
+        crudas: dict[str, list],
+    ) -> str | None:
+        if codigo is None:
+            return self._absorber(lote, paginas or [], pedido_de, crudas)
+        # Solo el 400 se parte. 429, 5xx y auth tumban la mitad entera:
+        # partirlos reintentaría un fallo que no es de símbolo.
+        if codigo == "http_400":
+            return self._tras_400(lote, params, pedido_de, crudas)
+        return self._marcar_fallidos(lote, codigo)
+
+    def _incorporar_lote(
+        self, lote: list[tuple[str, list[str]]], params: dict,
+        pedido_de: dict[str, list[str]], crudas: dict[str, list],
+    ) -> str | None:
+        """Mete las velas del lote en `crudas`. None si el feed respondió
+        (aunque sea con series vacías). Un código si el lote no sirvió:
+        esos pedidos ya están en `fallidos`."""
+        paginas, codigo = self._pedir_barras(lote, params)
+        if codigo is None:
+            return self._absorber(lote, paginas or [], pedido_de, crudas)
+        if codigo == "http_400" and len(lote) > 1:
+            log.info(
+                "datos: HTTP 400 en un lote de %d; se parte para aislar el símbolo",
+                len(lote),
+            )
+            return self._tras_400(lote, params, pedido_de, crudas)
+        return self._marcar_fallidos(lote, codigo)
 
     def _velas_de_lotes(
         self, tickers: list[str], params: dict, tamano: int, intradia: bool,
@@ -463,10 +544,10 @@ class AlpacaProvider(DataProvider):
         # claves, red), no uno genérico: el respaldo lo anota tal cual.
         ultimo_codigo = self.ultimo_codigo or "ciclo"
         crudas: dict[str, list] = {}
-        pedido_de: dict[str, str] = {}
+        pedido_de: dict[str, list[str]] = {}
         for lote in lotes:
-            for clave, pedido in lote:
-                pedido_de[clave] = pedido
+            for clave, pedidos in lote:
+                pedido_de.setdefault(clave, []).extend(pedidos)
             codigo = self._incorporar_lote(lote, params, pedido_de, crudas)
             if codigo is None:
                 ok += 1
@@ -547,14 +628,19 @@ class AlpacaProvider(DataProvider):
         alimenta el escaneo. Las barras sí, porque un símbolo inválido
         tira las cien."""
         self.fallidos = []
+        # Si no se limpia, el aviso del respaldo leería el código de
+        # la llamada de barras anterior.
+        self.ultimo_codigo = None
         enviables, directos = _pares(tickers)
-        self.fallidos.extend(directos)
+        if directos:
+            self.fallidos.extend(directos)
+            self.ultimo_codigo = "simbolo"
         lotes = [enviables[i:i + LOTE_DIARIO] for i in range(0, len(enviables), LOTE_DIARIO)]
         if not lotes:
             return {}
         out: dict[str, dict] = {}
         ok = 0
-        ultimo_codigo = "ciclo"
+        ultimo_codigo = self.ultimo_codigo or "ciclo"
         for lote in lotes:
             try:
                 cuerpo = self._get("/v2/stocks/snapshots", {
@@ -563,18 +649,23 @@ class AlpacaProvider(DataProvider):
                 })
             except ErrorDatosAlpaca as ex:
                 ultimo_codigo = ex.codigo
+                self.ultimo_codigo = ex.codigo
                 log.warning("datos: snapshots falló (%s)", ex.codigo)
-                self.fallidos.extend(pedido for _, pedido in lote)
+                self.fallidos.extend(_pedidos_de(lote))
                 continue
             ok += 1
             mapa = cuerpo.get("snapshots") if isinstance(cuerpo.get("snapshots"), dict) else cuerpo
             if not isinstance(mapa, dict):
-                self.fallidos.extend(pedido for _, pedido in lote)
+                self.fallidos.extend(_pedidos_de(lote))
+                self.ultimo_codigo = "cuerpo"
+                ultimo_codigo = "cuerpo"
                 ok -= 1
                 continue
             por_clave = {k.upper(): v for k, v in mapa.items() if isinstance(k, str)}
-            for clave, pedido in lote:
-                if clave in por_clave:
+            for clave, pedidos in lote:
+                if clave not in por_clave:
+                    continue
+                for pedido in pedidos:
                     out[pedido] = parsear_snapshot(por_clave[clave])
         if ok == 0:
             raise ErrorDatosAlpaca(ultimo_codigo)

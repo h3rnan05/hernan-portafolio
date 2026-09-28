@@ -271,6 +271,57 @@ def test_sufijo_no_verificado_no_se_envia_y_no_se_confunde_con_la_clase(monkeypa
     assert all(t not in out for t in p.fallidos)
 
 
+def test_preferida_sin_serie_no_se_pide_como_clase_p(monkeypatch):
+    # ETI-P es preferida sin letra de serie. `.P` no está verificado y
+    # una clase P de verdad es rara: va al respaldo, no al feed.
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        syms = params["symbols"].split(",")
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    p = _provider()
+    out = p.barras(["ETI-P", "AAA", "CMS-PB"])
+    assert vistos == ["AAA,CMS.PRB"]
+    assert "ETI.P" not in vistos[0]
+    assert p.fallidos == ["ETI-P"]
+    assert "ETI-P" not in out
+    assert set(out) == {"AAA", "CMS-PB"}
+
+
+def test_dos_tickers_al_mismo_simbolo_se_piden_una_vez_y_vuelven_los_dos(monkeypatch):
+    # BH-A y BH.A son el mismo símbolo del feed. Pedirlo dos veces, o
+    # quedarse con una sola clave, deja a la otra sin serie y sin
+    # fallback.
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        syms = params["symbols"].split(",")
+        assert len(syms) == len(set(syms))
+        return _Resp({"bars": {s: _diarias(20) for s in syms}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    out = _provider().barras(["BH-A", "BH.A", "LZM-WT", "LZM.WS"])
+    assert vistos == ["BH.A,LZM.WS"]
+    assert set(out) == {"BH-A", "BH.A", "LZM-WT", "LZM.WS"}
+    assert out["BH-A"].volume == out["BH.A"].volume
+    assert out["LZM-WT"].fechas == out["LZM.WS"].fechas
+
+    def _todo_400(url, params=None, headers=None, timeout=None):
+        vistos.append(params["symbols"])
+        return _Resp({}, status=400)
+
+    monkeypatch.setattr(ad.requests, "get", _todo_400)
+    p = _provider(reintentos=1)
+    with pytest.raises(ErrorDatosAlpaca):
+        p.barras(["X-WT", "X.WS"])
+    assert p.fallidos == ["X-WT", "X.WS"]
+    assert vistos[-1] == "X.WS"
+
+
 def test_http_400_en_un_lote_solo_manda_al_respaldo_el_simbolo_invalido(monkeypatch):
     # Un 400 rechaza el lote entero. Se parte hasta que el inválido
     # queda solo en fallidos; los otros 99 salen de Alpaca.
@@ -330,6 +381,44 @@ def test_ningun_lote_valido_no_se_convierte_en_cero(monkeypatch):
         p.barras(["AAA", "BBB"])
     assert exc.value.codigo == "http_400"
     assert p.fallidos == ["AAA", "BBB"]
+
+
+def test_http_400_de_un_lote_grande_no_baja_hasta_el_simbolo(monkeypatch):
+    # Si las dos mitades también son 400, no es un símbolo suelto.
+    # Partir hasta el singleton serían 2n-1 pedidos; se corta en tres
+    # (el lote y sus dos mitades) y se pausa entre esos sub-pedidos.
+    llamadas = []
+    dormidos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        llamadas.append(params["symbols"])
+        return _Resp({}, status=400)
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    n = ad.UMBRAL_CORTE_400
+    tickers = [f"T{i}" for i in range(n)]
+    p = _provider(reintentos=1, pausa=0.2, dormir=lambda s: dormidos.append(s))
+    with pytest.raises(ErrorDatosAlpaca) as exc:
+        p.barras(tickers)
+    assert exc.value.codigo == "http_400"
+    assert len(llamadas) == 3
+    assert len(llamadas) < 2 * n - 1
+    assert p.fallidos == tickers
+    assert dormidos == [0.2, 0.2]
+
+
+def test_snapshots_olvida_el_codigo_de_la_llamada_anterior(monkeypatch):
+    monkeypatch.setattr(
+        ad.requests, "get",
+        lambda *a, **k: _Resp({"AAA": {"latestTrade": {"p": 3.5}}}),
+    )
+    p = _provider()
+    p.ultimo_codigo = "http_400"
+    p.fallidos = ["VIEJO"]
+    out = p.snapshots(["AAA"])
+    assert out["AAA"]["precio"] == 3.5
+    assert p.ultimo_codigo is None
+    assert p.fallidos == []
 
 
 # ------------------------- respaldo -------------------------
