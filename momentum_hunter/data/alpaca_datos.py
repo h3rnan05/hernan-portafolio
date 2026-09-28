@@ -621,12 +621,15 @@ class AlpacaProvider(DataProvider):
         log.info("barras intradía del feed: %d/%d tickers", len(out), len(tickers))
         return out
 
-    def snapshots(self, tickers: list[str]) -> dict[str, dict]:
-        """Último trade / vela de minuto. Solo lectura, para comparar.
-        Si el ciclo falla, lanza `ErrorDatosAlpaca` (el caller decide).
-        El 400 de un lote de snapshots no se parte: este camino no
-        alimenta el escaneo. Las barras sí, porque un símbolo inválido
-        tira las cien."""
+    def snapshots_crudos(self, tickers: list[str]) -> dict[str, dict]:
+        """Cuerpo del snapshot por ticker pedido, sin resumir.
+
+        Lo usa el comparador (vía `snapshots`) y la lectura de halts:
+        las condiciones del trade y de la quote viven en el cuerpo, y
+        resumirlas a un precio las tiraría. Un símbolo que el feed no
+        trae no entra en el mapa: ausencia no es un snapshot vacío.
+        Si ningún lote respondió, lanza `ErrorDatosAlpaca`. El 400 no
+        se parte: este camino no alimenta el escaneo."""
         self.fallidos = []
         # Si no se limpia, el aviso del respaldo leería el código de
         # la llamada de barras anterior.
@@ -663,13 +666,20 @@ class AlpacaProvider(DataProvider):
                 continue
             por_clave = {k.upper(): v for k, v in mapa.items() if isinstance(k, str)}
             for clave, pedidos in lote:
-                if clave not in por_clave:
+                crudo = por_clave.get(clave)
+                if crudo is None:
                     continue
                 for pedido in pedidos:
-                    out[pedido] = parsear_snapshot(por_clave[clave])
+                    out[pedido] = crudo
         if ok == 0:
             raise ErrorDatosAlpaca(ultimo_codigo)
         return out
+
+    def snapshots(self, tickers: list[str]) -> dict[str, dict]:
+        """Último trade / vela de minuto. Solo lectura, para comparar.
+        Si el ciclo falla, lanza `ErrorDatosAlpaca` (el caller decide)."""
+        crudos = self.snapshots_crudos(tickers)
+        return {t: parsear_snapshot(v) for t, v in crudos.items()}
 
     def metadata(self, tickers: list[str]) -> dict[str, Metadata]:
         """Float, ETF y nombre no vienen en el feed de precios. Siguen

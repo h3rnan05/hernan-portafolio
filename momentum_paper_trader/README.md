@@ -490,6 +490,64 @@ sin cambios: `revisiones.json` + `client_order_id`. Apagar y costo en
 minutos: ver el comentario de ese workflow y `docs/RUNBOOK-PAPER-CEO.md`.
 No cambia umbrales, riesgo ni el endpoint paper.
 
+## Halts y bandas LULD
+
+El ejecutor puede frenar una entrada si el símbolo está en halt o si
+no hay un dato fresco que diga lo contrario. La detección usa solo el
+host de datos (`data.alpaca.markets`): el snapshot REST
+`GET /v2/stocks/snapshots` (último trade y última quote, con sus
+condiciones) y, si existe, el almacén del stream SIP
+(`$MOMENTUM_ESTADO_DIR/sip_stream/`, default
+`/var/lib/momentum/estado/sip_stream/`). No abre un websocket propio:
+el PR #207 es el único dueño de `wss://stream.data.alpaca.markets/v2/sip`.
+Cuando ese proceso sume los canales `statuses` y `lulds`, este módulo
+lee las líneas `T=s` / `T=l` que deje en `eventos/YYYY-MM-DD.jsonl`.
+Hasta entonces manda el snapshot. Un campo ausente no cuenta como
+"no hay halt".
+
+`MOMENTUM_HALTS`:
+
+- `observar` (default, y también cualquier texto que no sea los otros
+  dos): registra y, si hay posición abierta en halt, manda un Telegram.
+  No frena la entrada.
+- `enforce`: además no envía la orden de entrada. La razón en la
+  telemetría es `BLOQUEO_HALT`. No quema la señal: el halt se levanta.
+- `off`: no consulta y no avisa. Tiene que escribirse así, explícito.
+
+No vende ni cancela el stop. El aviso es como máximo uno por símbolo
+y por episodio de halt (no uno por tick, y un segundo halt el mismo
+día sí avisa). El registro queda en
+`$MOMENTUM_ESTADO_DIR/halts/YYYY-MM-DD.jsonl` (fecha de Nueva York),
+no en `watchlist.json`.
+
+Revisar una sesión en observar:
+
+```bash
+DIA=$(TZ=America/New_York date +%F)
+jq -c 'select(.situacion=="halt" or .situacion=="luld" or .accion=="aviso" or .accion=="bloqueada")' \
+  /var/lib/momentum/estado/halts/$DIA.jsonl
+journalctl -u momentum-vigia.service --since today | grep 'fuente '
+```
+
+En observar no hay `BLOQUEO_HALT` en el panel: no se bloqueó nada. El
+jsonl es la fuente. En enforce el mismo código sale como
+`bloqueo_riesgo`.
+
+Deploy (el vigía lanza `python -m momentum_paper_trader.run` en cada
+tick, así que el código nuevo entra con el pull; el flag se lee del
+entorno del proceso, que nace del `paper.env` cargado al arrancar el
+servicio):
+
+```bash
+cd /opt/hernan-portafolio
+git pull --rebase origin main
+# el default ya es observar: no hace falta tocar paper.env
+```
+
+Rollback sin revertir el código: en `/etc/momentum/paper.env` poner
+`MOMENTUM_HALTS=off` y `sudo systemctl restart momentum-vigia`. No
+borrar `/var/lib/momentum/estado/halts/` ni `sip_stream/`.
+
 ## Variables de entorno
 
 - `ALPACA_PAPER_API_KEY` / `ALPACA_PAPER_API_SECRET` -- credenciales del
@@ -504,6 +562,11 @@ No cambia umbrales, riesgo ni el endpoint paper.
 - `MOMENTUM_TELEGRAM_BOT_TOKEN`/`_CHAT_ID` (o su fallback) -- las mismas
   que ya usa `momentum_hunter`. Un chat. Sin ellas, no se avisa (nunca
   es error fatal).
+- `MOMENTUM_HALTS` -- `observar` (default), `enforce` o `off`. Ver la
+  sección de halts. Un valor desconocido se queda en observar.
+- `MOMENTUM_ESTADO_DIR` -- raíz del estado fuera del repo (default
+  `/var/lib/momentum/estado`). Ahí caen `halts/` y, si el stream SIP
+  está corriendo, `sip_stream/`.
 
 ## Seguridad
 

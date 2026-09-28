@@ -28,7 +28,7 @@ import logging
 import os
 from datetime import UTC, datetime
 
-from momentum_paper_trader import archivo, cierre, reconciliacion, seguimiento, telemetria
+from momentum_paper_trader import archivo, cierre, halts, reconciliacion, seguimiento, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import CONFIG
 from momentum_paper_trader.executor import ejecutar
@@ -136,6 +136,14 @@ def main() -> None:
             # stop, se avisa. No coloca ni cambia lo que el cierre acaba
             # de intentar.
             reconciliacion.revisar(client)
+
+            # Halt con posición abierta: solo avisa. No vende, no
+            # cancela stops y no escribe la watchlist. Un fallo de
+            # este aviso no puede frenar el resto del tick.
+            try:
+                halts.revisar_posiciones_abiertas(datetime.now(UTC))
+            except Exception as ex:
+                log.warning("avisos de halt omitidos (%s)", type(ex).__name__)
 
         metricas = telemetria.Metricas()
         nuevas = ejecutar(client, CONFIG, dry_run=args.dry_run, metricas=metricas)
