@@ -1,0 +1,22 @@
+{
+ "url": "https://api.finra.org/data/group/otcMarket/name/consolidatedShortInterest",
+ "metodo": "POST",
+ "params": {
+  "limit": 5000,
+  "offset": 0,
+  "compareFilters": [
+   {
+    "fieldName": "settlementDate",
+    "compareType": "EQUAL",
+    "fieldValue": "2026-08-31"
+   }
+  ]
+ },
+ "status": 200,
+ "headers": {
+  "Content-Type": "text/csv"
+ },
+ "texto": "settlementDate,symbolCode,issueName,marketClassCode,currentShortPositionQuantity,previousShortPositionQuantity,changePercent,averageDailyVolumeQuantity,daysToCoverQuantity,stockSplitFlag,revisionFlag\n2026-08-31,FICA,FICTICIA A CORP,NNM,2000000,1800000,11.11,500000,4.0,,\n",
+ "ficticio": true,
+ "nota": "FICTICIO: el entorno de desarrollo no llega a api.finra.org. Formato público del CSV consolidatedShortInterest con emisores inventados. Reemplazar con `python -m fuentes grabar finra_short AAAA-MM-DD` desde el VPS."
+}

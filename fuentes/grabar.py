@@ -38,11 +38,12 @@ def cargar(fuente: str, nombre: str) -> dict:
 
 
 def guardar(fuente: str, nombre: str, url: str, params: dict | None, status: int, headers: dict,
-            texto: str, ficticio: bool, nota: str = "", directorio: Path | None = None) -> Path:
+            texto: str, ficticio: bool, nota: str = "", directorio: Path | None = None, metodo: str = "GET") -> Path:
+    """`params` es la query de un GET o el cuerpo JSON de un POST (`metodo`)."""
     base = directorio if directorio is not None else DIR_RESPUESTAS
     ruta = base / fuente / f"{nombre}.json"
     ruta.parent.mkdir(parents=True, exist_ok=True)
-    reg = {"url": url, "params": params or {}, "status": status,
+    reg = {"url": url, "metodo": metodo, "params": params or {}, "status": status,
            "headers": {k: v for k, v in headers.items() if k.lower() in ("content-type", "date", "last-modified")},
            "texto": texto, "ficticio": ficticio, "nota": nota}
     ruta.write_text(json.dumps(reg, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -70,7 +71,10 @@ class TransporteGrabado:
         self.pedidos: list[tuple[str, dict]] = []
 
     @staticmethod
-    def clave(url: str, params: dict | None) -> str:
+    def clave(url: str, params: dict | None, cuerpo: dict | None = None) -> str:
+        """URL + params ordenados; un POST se distingue por su cuerpo JSON."""
+        if cuerpo is not None:
+            return url + " POST " + json.dumps(cuerpo, sort_keys=True)
         if params:
             return url + "?" + urlencode(sorted(params.items()), doseq=True)
         return url
@@ -78,9 +82,9 @@ class TransporteGrabado:
     def agregar(self, url: str, params: dict | None, reg: dict) -> None:
         self.registros[self.clave(url, params)] = reg
 
-    def __call__(self, url, params=None, headers=None, timeout=None):
-        self.pedidos.append((url, dict(params or {})))
-        k = self.clave(url, params)
+    def __call__(self, url, params=None, headers=None, timeout=None, json=None):
+        self.pedidos.append((url, dict(params or {}) if json is None else {"json": json}))
+        k = self.clave(url, params, json)
         if k in self.fallar:
             raise requests.ConnectionError("simulado")
         if k not in self.registros:
@@ -102,5 +106,8 @@ def transporte_desde(fuente: str, nombres: list[str], fallar: set[str] | None = 
     t = TransporteGrabado(fallar=fallar)
     for n in nombres:
         reg = cargar(fuente, n)
-        t.agregar(reg["url"], reg.get("params") or None, reg)
+        if reg.get("metodo") == "POST":
+            t.registros[t.clave(reg["url"], None, reg.get("params"))] = reg
+        else:
+            t.agregar(reg["url"], reg.get("params") or None, reg)
     return t
