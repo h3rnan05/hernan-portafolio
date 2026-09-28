@@ -80,9 +80,10 @@ def desenlace_paper(r: estado.RevisionIA) -> str | None:
     archivo.
 
     Los motivos deterministas (`estado.MOTIVOS_NO_OPERADA`: fuera de
-    banda, precio fuera de alcance) van ANTES de `rechazo_ia`: todos
-    tienen `entro=False`, pero uno es "la IA dijo que no" y los otros
-    "nunca fue operable, dijera lo que dijera la IA (o sin preguntarle)".
+    banda, precio fuera de alcance, niveles rancios ya fuera de la
+    ventana de refresco) van ANTES de `rechazo_ia`: todos tienen
+    `entro=False`, pero uno es "la IA dijo que no" y los otros "nunca
+    fue operable, dijera lo que dijera la IA (o sin preguntarle)".
     Archivarlos igual borraría la distinción que `estado.ia_entraria`
     existe para conservar."""
     if r.motivo_no_operada in estado.MOTIVOS_NO_OPERADA:
@@ -221,6 +222,15 @@ def archivar_revisadas(
             continue
         r = por_clave.get(_clave(e.ticker, e.creado_en))
         if r is None or not revision_es_terminal(r):
+            continue
+        # El paper trader llama con persistir_watchlist=True y eso
+        # escribe watchlist.json. `expirada_niveles_rancios` no va por
+        # ahí: el ejecutor es de solo lectura sobre la watchlist y el
+        # filtro de las corridas siguientes ya está en revisiones.json.
+        # El buscador sí la archiva (`_archivar_triggered_ya_revisadas`
+        # pasa persistir_watchlist=False y después persiste él la lista).
+        if (persistir_watchlist
+                and r.motivo_no_operada == estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS):
             continue
         registro = registro_auditoria(e, r, ahora, causa_raiz=causa_raiz)
         if not watchlist.marcar_archivada(e, _motivo_transicion(registro), ahora):

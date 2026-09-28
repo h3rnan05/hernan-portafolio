@@ -14,7 +14,7 @@ from momentum_hunter.alerts import CandidatoDiario
 from momentum_hunter.catalysts.detector import Catalizador
 from momentum_hunter.models import FactoresMomentum, Metadata
 from momentum_hunter.scoring import Puntuacion
-from momentum_paper_trader import embudo, estado
+from momentum_paper_trader import archivo, embudo, estado
 
 DIA = "2026-09-22"
 AHORA = datetime(2026, 9, 22, 14, 0, tzinfo=UTC)
@@ -213,3 +213,24 @@ def test_embudo_muestra_bloqueos_del_ejecutor_por_codigo(tmp_path):
     texto = embudo.formatear(emb)
     assert "bloqueos del ejecutor por código: MAXIMO_POSICIONES 2, DATO_FALTANTE:niveles 2" in texto
     assert "corridas sin capacidad (límite global lleno): MAXIMO_POSICIONES 2" in texto
+
+
+def test_expirada_niveles_rancios_no_entra_en_el_conteo_de_rechazos_ia():
+    """La IA no se consultó (`ia_entraria is None`). Cuenta en el motivo
+    propio, no como veredicto ni como `rechazo_ia`."""
+    emb = embudo.Embudo(desde=DIA, hasta=DIA)
+    rechazo = estado.RevisionIA(
+        ticker="GS", creado_en=f"{DIA}T14:00:00+00:00", entro=False, confianza=3,
+        razonamiento="no", timestamp=f"{DIA}T15:00:00+00:00", ia_entraria=False)
+    expirada = estado.RevisionIA(
+        ticker="ZOMB", creado_en=f"{DIA}T13:00:00+00:00", entro=False, confianza=0,
+        razonamiento="ventana de refresco cerrada", timestamp=f"{DIA}T15:01:00+00:00",
+        ia_entraria=None, motivo_no_operada=estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS)
+    embudo._revisiones(emb, [rechazo, expirada], DIA, DIA)
+
+    assert emb.revisiones == 2 and emb.ia_consultada == 1 and emb.entraron == 0
+    assert emb.ia_confianza == {"3": 1}
+    assert emb.no_operadas_por_motivo == {estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS: 1}
+    assert archivo.desenlace_paper(rechazo) == "rechazo_ia"
+    assert archivo.desenlace_paper(expirada) == estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS
+    assert sum(1 for r in (rechazo, expirada) if archivo.desenlace_paper(r) == "rechazo_ia") == 1
