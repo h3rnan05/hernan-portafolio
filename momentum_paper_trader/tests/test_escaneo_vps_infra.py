@@ -37,12 +37,21 @@ def test_scripts_del_vps_pasan_bash_n_y_son_ejecutables():
 
 def test_timer_del_escaneo_cada_30_min_en_sesion_sin_pisar_al_rechequeo():
     texto = SCAN_TIMER.read_text(encoding="utf-8")
-    assert "OnCalendar=Mon..Fri *-*-* 13..20:01,31:00 UTC" in texto
+    # :20, no :00: el pre-pull no puede seguir vivo cuando el vigía escribe a los :05.
+    assert "OnCalendar=Mon..Fri *-*-* 13..20:01,31:20 UTC" in texto
     assert "Persistent=false" in texto
     assert "Unit=momentum-scan.service" in texto
     servicio = SCAN_SERVICE.read_text(encoding="utf-8")
     assert "ExecStart=/opt/momentum/bin/run_scan_paper.sh" in servicio
     assert "User=momentum" in servicio and "EnvironmentFile=/etc/momentum/paper.env" in servicio
+
+
+def test_el_pre_pull_espera_al_segundo_20_sin_tener_el_candado():
+    """Dormir CON el flock retrasaría el persist del vigía. La espera va
+    antes, para que un timer viejo (disparo a los :00) tampoco pise el :05."""
+    texto = SCAN_SH.read_text(encoding="utf-8")
+    assert texto.index("sleep $((20 - _seg))") < texto.index("flock -w 120 9")
+    assert texto.index("MOMENTUM_SCAN_VPS") < texto.index("sleep $((20 - _seg))")
 
 
 def test_el_escaneo_corre_sin_candado_y_solo_se_bloquea_para_git():

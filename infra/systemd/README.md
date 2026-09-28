@@ -30,10 +30,10 @@ Alpaca.
 | `momentum-watchlist-watchdog.timer` | `/etc/systemd/system/` | cada 10 min, Lun–Vie 13–20 UTC |
 | `bin/run_watchlist_paper.sh` | `/opt/momentum/bin/` | el wrapper (ver abajo por qué vive fuera del árbol). Un `git pull` NO lo actualiza: cada cambio en él exige volver a hacer `install` |
 | `momentum-scan.service` | `/etc/systemd/system/` | oneshot: **escaneo completo** (`--limit 1000`, slot rotativo) + paper trader + persist (desde 2026-09-21; antes vivía en GitHub Actions) |
-| `momentum-scan.timer` | `/etc/systemd/system/` | cada 30 min en :01 y :31, Lun–Vie 13–20 UTC |
+| `momentum-scan.timer` | `/etc/systemd/system/` | cada 30 min en :01:20 y :31:20, Lun–Vie 13–20 UTC |
 | `bin/run_scan_paper.sh` | `/opt/momentum/bin/` | wrapper del escaneo: sin candado durante el escaneo; candado solo al escribir la watchlist y al commitear |
-| `momentum-movers-sombra.service` / `.timer` | **NO se instala solo** | ejemplo: descubrimiento "movers" en sombra cada 5 min (:02, :07, …), solo telemetría (`momentum_hunter/movers.py`) |
-| `bin/run_movers_sombra.sh` | `/opt/momentum/bin/` (solo si se instala la sombra) | wrapper: no-op salvo `MOMENTUM_MOVERS_SOMBRA=1`; flock solo contra sí mismo |
+| `momentum-movers-sombra.service` / `.timer` | **NO se instala solo** | descubrimiento "movers" en sombra cada 5 min al segundo :30, solo telemetría (`momentum_hunter/movers.py`) |
+| `bin/run_movers_sombra.sh` | `/opt/momentum/bin/` (solo si se instala la sombra) | wrapper: no-op salvo `MOMENTUM_MOVERS_SOMBRA=1`; flock propio y, mientras escribe, el mismo candado que el persist |
 
 **No versionado a propósito:** `/etc/momentum/paper.env` (credenciales;
 viven en el VPS y en GitHub Secrets, nunca en el repo).
@@ -189,9 +189,27 @@ sudo systemctl daemon-reload && sudo systemctl enable --now momentum-movers-somb
 ```
 
 Apagar: `sudo systemctl disable --now momentum-movers-sombra.timer` (y quitar la
-variable, aunque sin ella el wrapper ya es no-op). No bloquea al escaneo ni al
-rechequeo: por decisión del dueño nada los espera; la convivencia con Yahoo la
+variable, aunque sin ella el wrapper ya es no-op). El escaneo sigue sin candado
+durante sus ~9 min. La sombra sí toma `/tmp/momentum-paper-git.lock` mientras
+escribe `movers.jsonl`: el 2026-09-28 esa escritura cayó entre el stash y el
+pop del vigía y el stash entero quedó abandonado, con `revisiones.json` (la
+entrada viva), `alertas_enviadas.json` y la auditoría adentro. Si el persist
+tiene el candado, la sombra espera hasta 60 s y, si no lo consigue, se salta
+esa corrida: mejor perder un snapshot que pisar el pull. El timer dispara al
+segundo 30 de cada 5 min, fuera del tick :05. La convivencia con Yahoo la
 resuelve el archivo de pausa del bot.
+
+**Actualizar un VPS que ya tiene la sombra** (un `git pull` no actualiza
+`/opt/momentum/bin/` ni las unidades; hace falta instalar y rearmar el timer):
+
+```bash
+cd /opt/hernan-portafolio
+sudo install -m 755 infra/systemd/bin/run_movers_sombra.sh /opt/momentum/bin/
+sudo cp infra/systemd/momentum-movers-sombra.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl restart momentum-movers-sombra.timer
+systemctl list-timers momentum-movers-sombra.timer
+```
 
 ## Vigía (2026-09-22): rechequeo + paper cada 60 s, sin timer
 
@@ -262,10 +280,30 @@ GIT_PULL_ESTADO_DRY_RUN=1 bash scripts/git_pull_con_estado_local.sh
 ```
 
 No hace falta reiniciar el vigía: el próximo persist (cada 5 min) ejecuta
-el wrapper nuevo. Si `git stash pop` avisa conflicto, el estado sigue en
-`git stash list` (no se descarta). Vuelta atrás del script: reinstalar
-el wrapper del commit anterior; el helper no se usa si el wrapper no lo
-llama.
+el wrapper nuevo, y el helper vive en el árbol (entra con ese pull). Si
+`stash pop` falla, el helper restaura archivo por archivo (checkout si
+nadie más tocó el path; en un JSONL que cambió, anexa las líneas del
+stash sin duplicar). Solo si queda algo sin restaurar el stash sigue en
+`git stash list`, se loguea ERROR y sale `persist_fallido` (Telegram a
+lo sumo una vez por día). Nunca se descarta. Vuelta atrás del script:
+reinstalar el wrapper del commit anterior; el helper no se usa si el
+wrapper no lo llama.
+
+El pre-pull del escaneo ya tomaba el mismo candado, pero el timer
+disparaba a los :01:00/:31:00 y el pull seguía vivo a los :05, encima
+del tick del vigía. Ahora dispara a los :20 y el wrapper, si arranca
+antes, espera a ese segundo sin tener el candado. Actualizar timer y
+wrapper (el vigía no se reinicia):
+
+```bash
+cd /opt/hernan-portafolio
+sudo install -m 755 infra/systemd/bin/run_scan_paper.sh \
+  infra/systemd/bin/run_watchlist_paper.sh /opt/momentum/bin/
+sudo cp infra/systemd/momentum-scan.timer /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl restart momentum-scan.timer
+systemctl list-timers momentum-scan.timer
+```
 
 Vuelta atrás del vigía (un comando cada uno):
 

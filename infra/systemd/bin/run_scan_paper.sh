@@ -41,6 +41,19 @@ export MOMENTUM_YAHOO_PAUSA_ARCHIVO="${MOMENTUM_YAHOO_PAUSA_ARCHIVO:-/var/lib/mo
 LIMIT="${MOMENTUM_SCAN_LIMIT:-1000}"
 LOCK="${MOMENTUM_GIT_LOCK:-/tmp/momentum-paper-git.lock}"
 
+# El tick del vigía escribe estado a los :05. Este pre-pull, si arranca
+# en el segundo 0, sigue en el stash/pop cuando ese tick ensucia el árbol
+# y el pop aborta. Se espera al segundo 20, ya fuera de ese tick y antes
+# del siguiente, SIN tomar el candado: dormirlo con el flock tomado
+# retrasaría el persist. El timer ya dispara a los :20; esto cubre el
+# timer viejo hasta que se haga daemon-reload.
+_seg="$(date -u +%S)"
+_seg=$((10#$_seg))
+if [ "$_seg" -lt 20 ]; then
+  echo "INFO: pre-pull espera hasta el segundo 20 para no pisar el tick :05 del vigía"
+  sleep $((20 - _seg))
+fi
+
 # Sync corto bajo el candado de git (nunca abre el escaneo con un pull a medias).
 (
   flock -w 120 9 || { echo "WARN: git flock timeout en el pull; se escanea con el árbol actual"; exit 0; }
