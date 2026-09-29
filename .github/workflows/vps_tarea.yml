@@ -81,6 +81,9 @@ jobs:
           DESDE: ${{ inputs.desde }}
           HASTA: ${{ inputs.hasta }}
         run: |
+          # Sin pipefail, `| tee` escondía el fallo del ssh: el run 36594735221
+          # terminó "success" con "Permission denied (publickey)".
+          set -o pipefail
           echo "tarea: $TAREA · ref: $REF · fuentes: $REF_FUENTES · $DESDE..$HASTA"
           ssh -i ~/.ssh/vps -o BatchMode=yes -o ConnectTimeout=20 "$VPS_USER@$VPS_HOST" \
             "TAREA=$TAREA REF=$REF REF_FUENTES=$REF_FUENTES DESDE=$DESDE HASTA=$HASTA bash -s" \
