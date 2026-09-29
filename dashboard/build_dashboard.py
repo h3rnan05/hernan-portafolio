@@ -69,6 +69,14 @@ except Exception:  # pragma: no cover - sin paper trader instalado
     _cobertura = None
     _ventas_vivas = None
 
+# Los topes del ejecutor, para mostrar cuánto se usa de cada uno. Se leen
+# de la MISMA config que aplica el ejecutor: si el panel los copiara, un
+# cambio allá dejaría al panel mintiendo. Sin config, "sin dato".
+try:
+    from momentum_paper_trader.config import CONFIG as _CONFIG_PAPER
+except Exception:  # pragma: no cover - sin paper trader instalado
+    _CONFIG_PAPER = None
+
 ALPACA_PAPER = "https://paper-api.alpaca.markets"  # fijo: el panel nunca habla con la cuenta real
 REPO = Path(__file__).resolve().parents[1]
 # Sin DASH_CACHE_VELAS la caché va al directorio temporal del sistema,
@@ -718,6 +726,47 @@ def filtrar_watchlist(items: list[dict], desde: datetime) -> list[dict]:
     return sorted(visibles, key=lambda w: (not activo(w), -(w.get("actualizado") or minimo).timestamp()))
 
 
+def uso_de_limites(posiciones, abiertas, filas_pos, equity, efectivo, config) -> dict:
+    """Cuánto se usa AHORA de cada tope determinista del ejecutor.
+
+    Cupo: el ejecutor cuenta tickers comprometidos = símbolos con
+    posición ∪ símbolos con cualquier orden abierta
+    (`executor._leer_cuenta`). Se cuenta igual, para que el panel diga
+    lo mismo que el ejecutor va a decidir. Concentración: valor de
+    mercado de la posición contra el equity, el mismo denominador que
+    `maximo_pct_efectivo_por_posicion`. Un dato que falta deja su parte
+    en None; nunca se cuenta como 0."""
+    tope_cupo = getattr(config, "maximo_posiciones_abiertas", None) if config is not None else None
+    tope_conc = getattr(config, "maximo_pct_efectivo_por_posicion", None) if config is not None else None
+    comprometidos = None
+    if posiciones is not None and abiertas is not None:
+        simbolos = {p.get("symbol") for p in posiciones if isinstance(p, dict)}
+        simbolos |= {o.get("symbol") for o in abiertas if isinstance(o, dict)}
+        simbolos.discard(None)
+        comprometidos = sorted(simbolos)
+    concentracion = []
+    for f in filas_pos or []:
+        pct = (f["valor"] / equity * 100) if f.get("valor") is not None and equity else None
+        concentracion.append({"ticker": f["ticker"], "pct": pct})
+    riesgos = [f.get("riesgo") for f in filas_pos or []]
+    riesgo_total = (round(sum(r for r in riesgos if r > 0), 2)
+                    if filas_pos is not None and riesgos and all(r is not None for r in riesgos) else
+                    (0.0 if filas_pos == [] else None))
+    valores = [f.get("valor") for f in filas_pos or []]
+    expuesto = (sum(valores) if filas_pos is not None and all(v is not None for v in valores) else None)
+    return {
+        "comprometidos": comprometidos,
+        "tope_cupo": tope_cupo,
+        "concentracion": concentracion,
+        "tope_concentracion_pct": None if tope_conc is None else tope_conc * 100,
+        "riesgo_total": riesgo_total,
+        "riesgo_total_pct": (riesgo_total / equity * 100) if riesgo_total is not None and equity else None,
+        "expuesto": expuesto,
+        "expuesto_pct": (expuesto / equity * 100) if expuesto is not None and equity else None,
+        "efectivo": efectivo,
+    }
+
+
 def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) -> dict:
     desde = inicio_dia_ny(ahora)
     en_sesion = sesion_abierta(ahora)
@@ -992,6 +1041,12 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
             fuentes_cierre.append(historicas)
         filas_cerradas = cierres_de_hoy(
             _unir_aplanadas(*fuentes_cierre), _simbolos(lista_posiciones), desde)
+    limites = uso_de_limites(
+        lista_posiciones if err_p is None else None,
+        abiertas_lista if err_a is None else None,
+        filas_pos, equity, num(cuenta.get("cash")) if isinstance(cuenta, dict) else None,
+        _CONFIG_PAPER,
+    )
     avisos, nota_seguimiento = contrastar_broker(
         lista_posiciones if err_p is None else None,
         ordenes_simbolo,
@@ -1007,6 +1062,9 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         "cerradas_hoy": filas_cerradas,
         "avisos_broker": avisos,
         "nota_seguimiento": nota_seguimiento,
+        "limites": limites,
+        "minutos_entrada_max": (getattr(_CONFIG_PAPER, "minutos_maximos_entrada_sin_llenar", None)
+                                if _CONFIG_PAPER is not None else None),
         "fuente_datos": fuente_datos_activa(cfg.get("telem_hunter"), ahora),
         "problemas": problemas, "etapas": etapas,
         "equity": equity, "pnl": pnl, "pnl_pct": pnl_pct, "cuenta_numero": cuenta_numero,
@@ -1389,6 +1447,26 @@ def salidas_de(ticker: str, ordenes: list | None) -> dict:
     }
 
 
+def riesgo_de(entrada: float | None, stop: float | None, objetivo: float | None,
+              qty: float | None) -> dict:
+    """Dólares que se pierden si toca el stop, y la relación
+    beneficio/riesgo (R) hasta el objetivo. Solo largos: este bot no
+    abre cortos. Cualquier dato que falte deja su resultado en None.
+
+    Un stop en o por encima de la entrada no es riesgo: es ganancia
+    asegurada (`riesgo` <= 0) y el R no tiene sentido (None)."""
+    riesgo = rr = None
+    if None not in (entrada, stop, qty):
+        riesgo = round((entrada - stop) * qty, 2)
+        if entrada - stop > 1e-9 and objetivo is not None:
+            rr = (objetivo - entrada) / (entrada - stop)
+    return {"riesgo": riesgo, "rr": rr}
+
+
+def _precio(nivel: dict | None) -> float | None:
+    return nivel.get("precio") if isinstance(nivel, dict) else None
+
+
 def fila_posicion(p: dict, ordenes_vivas: list, ordenes_conocidas: bool = True) -> dict:
     """Una posición tal como la manda Alpaca. El P&L abierto es el campo
     `unrealized_pl`; si falta, es None, no un cálculo con un precio que
@@ -1402,17 +1480,20 @@ def fila_posicion(p: dict, ordenes_vivas: list, ordenes_conocidas: bool = True) 
     else:
         salidas = {"stop": None, "tp": None, "mercado": False}
     plpc = num(p.get("unrealized_plpc"))
+    qty, entrada = num(p.get("qty")), num(p.get("avg_entry_price"))
     return {
         "ticker": p.get("symbol"),
-        "qty": num(p.get("qty")),
-        "entrada": num(p.get("avg_entry_price")),
+        "qty": qty,
+        "entrada": entrada,
         "actual": num(p.get("current_price")),
+        "valor": num(p.get("market_value")),
         "pnl": num(p.get("unrealized_pl")),
         "pnl_pct": None if plpc is None else plpc * 100,
         "stop": salidas["stop"],
         "tp": salidas["tp"],
         "mercado": salidas["mercado"],
         "salidas_conocidas": ordenes_conocidas,
+        **riesgo_de(entrada, _precio(salidas["stop"]), _precio(salidas["tp"]), qty),
     }
 
 
@@ -1437,15 +1518,22 @@ def filas_pendientes(abiertas: list, simbolos_abiertos: set[str]) -> list[dict]:
             continue
         salidas = salidas_de(simbolo, [o])
         status = o.get("status")
+        qty, limite = num(o.get("qty")), num(o.get("limit_price"))
+        # El riesgo de una compra pendiente es el que tendría si llena al
+        # límite. Una venta pendiente no abre riesgo nuevo.
+        riesgo = (riesgo_de(limite, _precio(salidas["stop"]), _precio(salidas["tp"]), qty)
+                  if lado == "buy" else {"riesgo": None, "rr": None})
         filas.append({
             "ticker": simbolo,
             "lado": lado,
-            "qty": num(o.get("qty")),
-            "limite": num(o.get("limit_price")),
+            "qty": qty,
+            "limite": limite,
             "stop": salidas["stop"],
             "tp": salidas["tp"],
             "mercado": salidas["mercado"],
             "estado": str(status).lower() if status else None,
+            "colocada": parse_ts(o.get("submitted_at")) or parse_ts(o.get("created_at")),
+            **riesgo,
         })
     return filas
 
@@ -1786,20 +1874,118 @@ def marcas_de(ticker: str, posiciones: list, ordenes: list, watch: list[dict]) -
         if pos is not None:
             entrada_precio = num(pos.get("avg_entry_price"))
 
-    stops = []
+    stops, objetivos = [], []
+    minimo = datetime.min.replace(tzinfo=timezone.utc)
     for o in ordenes:
+        # El símbolo de la pata se hereda del padre: Alpaca a veces no lo repite.
+        simbolo_padre = o.get("symbol", ticker)
         for candidata in [o, *(o.get("legs") or [])]:
-            if not isinstance(candidata, dict) or candidata.get("symbol", ticker) != ticker:
+            if not isinstance(candidata, dict) or candidata.get("symbol", simbolo_padre) != ticker:
                 continue
-            if candidata.get("side") != "sell" or candidata.get("type") not in TIPOS_STOP:
+            if candidata.get("side") != "sell":
                 continue
             if not (_orden_sigue_viva and _orden_sigue_viva(candidata)):
                 continue
-            precio = num(candidata.get("stop_price"))
-            if precio is not None:
-                stops.append((parse_ts(candidata.get("submitted_at")) or datetime.min.replace(tzinfo=timezone.utc), precio))
+            momento = parse_ts(candidata.get("submitted_at")) or minimo
+            if candidata.get("type") in TIPOS_STOP:
+                precio = num(candidata.get("stop_price"))
+                if precio is not None:
+                    stops.append((momento, precio))
+            elif candidata.get("type") == "limit":
+                # El take-profit del bracket. Un límite de venta vivo del
+                # ticker es el objetivo; si no hay, no se dibuja.
+                precio = num(candidata.get("limit_price"))
+                if precio is not None:
+                    objetivos.append((momento, precio))
     stop = sorted(stops)[-1][1] if stops else None
-    return {"ruptura": ruptura, "entrada_precio": entrada_precio, "entrada_hora": entrada_hora, "stop": stop}
+    objetivo = sorted(objetivos)[-1][1] if objetivos else None
+    return {"ruptura": ruptura, "entrada_precio": entrada_precio, "entrada_hora": entrada_hora,
+            "stop": stop, "objetivo": objetivo}
+
+
+# Ventana del gráfico (2026-09-29). Antes se dibujaba desde las 02:00 con
+# todo el premarket: en CCL (29/9) el hueco de $21.92 a $25 aplastaba la
+# zona donde vive la operación. Se arranca 15 min antes de la apertura
+# regular de Nueva York, si con eso quedan velas suficientes; si no (un
+# ticker que solo tiene premarket), se deja la serie entera. Es un recorte
+# de lo que se ve, no de los datos: el caché guarda la serie completa.
+MINUTOS_ANTES_DE_APERTURA = 15
+_MINIMO_VELAS_VENTANA = 5
+# Separación mínima (px del viewBox) entre etiquetas de marcas. El 29/9
+# "ruptura", "entrada" y "stop" de CCL quedaban encimadas en el borde.
+_SEPARACION_ETIQUETAS = 11.0
+
+
+def _apertura_ny(momento: datetime) -> datetime:
+    local = momento.astimezone(NY)
+    return local.replace(hour=9, minute=30, second=0, microsecond=0)
+
+
+def recortar_a_sesion(velas: dict) -> dict:
+    """Las velas desde 15 min antes de la apertura de NY. Si el recorte
+    deja menos de 5 velas, o falta una hora, se devuelve la serie tal
+    cual: mejor el día entero que un gráfico vacío."""
+    marcas = [parse_ts(t) for t in velas.get("timestamps") or []]
+    if not marcas or any(m is None for m in marcas):
+        return velas
+    corte = _apertura_ny(marcas[-1]) - timedelta(minutes=MINUTOS_ANTES_DE_APERTURA)
+    idx = next((i for i, m in enumerate(marcas) if m >= corte), None)
+    if idx is None or idx == 0 or len(marcas) - idx < _MINIMO_VELAS_VENTANA:
+        return velas
+    return {k: (v[idx:] if isinstance(v, list) else v) for k, v in velas.items()}
+
+
+def vwap_de_sesion(velas: dict) -> list[float | None]:
+    """VWAP acumulado desde la apertura regular, vela a vela, calculado con
+    las MISMAS velas del gráfico (precio típico × volumen). Antes de la
+    apertura es None. Si a una vela de la sesión le falta el volumen, el
+    VWAP se corta ahí (None de ahí en adelante): un volumen ausente no es
+    un cero, y un VWAP con un hueco dentro no es el VWAP."""
+    ts = [parse_ts(t) for t in velas.get("timestamps") or []]
+    vol = velas.get("volume")
+    n = len(velas.get("close") or [])
+    if not isinstance(vol, list) or len(vol) != n or len(ts) != n:
+        return [None] * n
+    out: list[float | None] = []
+    suma_pv = suma_v = 0.0
+    roto = False
+    for i in range(n):
+        if ts[i] is None or ts[i] < _apertura_ny(ts[i]):
+            out.append(None)
+            continue
+        v = num(vol[i])
+        h, lw, c = num(velas["high"][i]), num(velas["low"][i]), num(velas["close"][i])
+        if roto or v is None or v < 0 or None in (h, lw, c):
+            roto = True
+            out.append(None)
+            continue
+        suma_pv += (h + lw + c) / 3 * v
+        suma_v += v
+        out.append(suma_pv / suma_v if suma_v > 0 else None)
+    return out
+
+
+def repartir_etiquetas(ys: list[float], arriba: float, abajo: float,
+                       separacion: float = _SEPARACION_ETIQUETAS) -> list[float]:
+    """Mueve las etiquetas lo mínimo para que no se encimen, dentro de
+    [arriba, abajo]. Devuelve las nuevas y en el MISMO orden de entrada.
+    Las líneas se quedan en su precio; solo el texto se desplaza."""
+    if not ys:
+        return []
+    orden = sorted(range(len(ys)), key=lambda i: ys[i])
+    pos = [ys[i] for i in orden]
+    pos[0] = max(pos[0], arriba)
+    for k in range(1, len(pos)):
+        pos[k] = max(pos[k], pos[k - 1] + separacion)
+    # Si se pasó por abajo, se empuja el bloque hacia arriba.
+    if pos[-1] > abajo:
+        pos[-1] = abajo
+        for k in range(len(pos) - 2, -1, -1):
+            pos[k] = min(pos[k], pos[k + 1] - separacion)
+    out = [0.0] * len(ys)
+    for k, i in enumerate(orden):
+        out[i] = pos[k]
+    return out
 
 
 def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime) -> str:
@@ -1818,15 +2004,17 @@ def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime) -> str:
         partes.append("</svg>")
         return "".join(partes)
 
+    velas = recortar_a_sesion(velas)
     n = len(velas["close"])
     marcas_ts = [parse_ts(t) for t in velas["timestamps"]]
     minimo, maximo = min(velas["low"]), max(velas["high"])
     rango = maximo - minimo
     if rango < 1e-9:
         rango = max(0.01, minimo * 0.002)
+    objetivo = marcas.get("objetivo")
     # Una marca a menos de un rango completo de distancia entra al eje; más
     # lejos, se anota en el borde.
-    dentro = [v for v in (marcas["ruptura"], marcas["entrada_precio"], marcas["stop"])
+    dentro = [v for v in (marcas["ruptura"], marcas["entrada_precio"], marcas["stop"], objetivo)
               if v is not None and minimo - rango <= v <= maximo + rango]
     lo = min([minimo, *dentro]) - rango * 0.08
     hi = max([maximo, *dentro]) + rango * 0.08
@@ -1850,20 +2038,49 @@ def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime) -> str:
         partes.append(f'<rect class="vela {cls}" x="{x(i)-cuerpo/2:.1f}" y="{y(top):.1f}" width="{cuerpo:.1f}" '
                       f'height="{max(1.0, y(base)-y(top)):.1f}"/>')
 
+    # VWAP: línea continua fina, solo donde hay dato.
+    vwap = vwap_de_sesion(velas)
+    tramo: list[str] = []
+    tramos: list[list[str]] = []
+    for i, v in enumerate(vwap):
+        if v is None:
+            if tramo:
+                tramos.append(tramo)
+            tramo = []
+            continue
+        tramo.append(f"{x(i):.1f},{y(v):.1f}")
+    if tramo:
+        tramos.append(tramo)
+    for t in tramos:
+        if len(t) > 1:
+            partes.append(f'<polyline class="marca-vwap m-vwap" fill="none" stroke-width="1.2" points="{" ".join(t)}"/>')
+
+    etiquetas: list[tuple[float, str]] = []   # (y deseada, svg sin la y)
+
     def marca_horizontal(valor, nombre, clase, dash):
         if valor is None:
             return
         if lo <= valor <= hi:
             yv = y(valor)
             partes.append(f'<line class="marca-{nombre} {clase}" x1="{x0}" y1="{yv:.1f}" x2="{x1}" y2="{yv:.1f}" stroke-width="1.2" stroke-dasharray="{dash}"/>')
-            partes.append(f'<text x="{x1}" y="{yv-4:.1f}" text-anchor="end" class="eje {clase}-txt">{esc(nombre)} {esc(fmt_dinero(valor))}</text>')
+            etiquetas.append((yv - 4, f'text-anchor="end" class="eje {clase}-txt">{esc(nombre)} {esc(fmt_dinero(valor))}'))
         else:
             yv = y1 + 10 if valor > hi else y0 - 6
-            partes.append(f'<text class="eje marca-{nombre}-fuera {clase}-txt" x="{x1}" y="{yv:.1f}" text-anchor="end">{esc(nombre)} {esc(fmt_dinero(valor))} (fuera del gráfico)</text>')
+            etiquetas.append((yv, f'text-anchor="end" class="eje marca-{nombre}-fuera {clase}-txt">{esc(nombre)} {esc(fmt_dinero(valor))} (fuera del gráfico)'))
 
+    marca_horizontal(objetivo, "objetivo", "m-objetivo", "8 3")
     marca_horizontal(marcas["ruptura"], "ruptura", "m-ruptura", "6 4")
     marca_horizontal(marcas["stop"], "stop", "m-stop", "3 3")
     marca_horizontal(marcas["entrada_precio"], "entrada", "m-entrada", "1 3")
+    ultimo_vwap = next((v for v in reversed(vwap) if v is not None), None)
+    if ultimo_vwap is not None:
+        etiquetas.append((y(ultimo_vwap) - 4, f'text-anchor="end" class="eje m-vwap-txt">VWAP {esc(fmt_dinero(ultimo_vwap))}'))
+    nuevas = repartir_etiquetas([e[0] for e in etiquetas], y1 + 8, y0 - 3)
+    for (_, cuerpo_txt), yv in zip(etiquetas, nuevas):
+        # El CSS le pone un borde del color del panel (paint-order) para
+        # que se lea encima de las velas.
+        partes.append(f'<text x="{x1}" y="{yv:.1f}" {cuerpo_txt}</text>')
+
     hora = marcas["entrada_hora"]
     if hora is not None and marcas_ts and marcas_ts[0] is not None:
         # Vela más cercana al fill real (sin interpolar entre velas).
@@ -1885,10 +2102,12 @@ def _pie_marcas(marcas: dict, tz, ahora: datetime) -> str:
         return fmt_dinero(v) if v is not None else "sin dato"
     entrada = dinero(marcas["entrada_precio"])
     if marcas["entrada_precio"] is not None:
-        entrada += f" a las {_hora(marcas['entrada_hora'], tz, ahora=ahora)}" if marcas["entrada_hora"] else " (hora sin dato)"
-    return (f'<div class="stats"><div><span class="mono">Ruptura</span><b>{esc(dinero(marcas["ruptura"]))}</b></div>'
+        # "· 10:18" y no "a las 10:18": con cuatro columnas el texto largo partía la línea.
+        entrada += f" · {_hora(marcas['entrada_hora'], tz, ahora=ahora)}" if marcas["entrada_hora"] else " (hora sin dato)"
+    return (f'<div class="stats s4"><div><span class="mono">Ruptura</span><b>{esc(dinero(marcas["ruptura"]))}</b></div>'
             f'<div><span class="mono">Entrada</span><b>{esc(entrada)}</b></div>'
-            f'<div><span class="mono">Stop</span><b>{esc(dinero(marcas["stop"]))}</b></div></div>')
+            f'<div><span class="mono">Stop</span><b>{esc(dinero(marcas["stop"]))}</b></div>'
+            f'<div><span class="mono">Objetivo</span><b>{esc(dinero(marcas.get("objetivo")))}</b></div></div>')
 
 
 def _marca_fuente_velas(origen_fuente) -> str | None:
@@ -2059,6 +2278,8 @@ td.tk{color:var(--tinta);font-weight:700}
 .duda p{margin:0;font-size:13px;color:var(--gris2)}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;font-family:var(--mono)}
 .stats b{display:block;font-size:18px;font-weight:500}
+.stats.s4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media (max-width:640px){.stats.s4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 svg{width:100%;height:auto}.eje{font-family:var(--mono);font-size:10px;fill:var(--gris)}.eje.rojo{fill:var(--rojo)}
 .rejilla{stroke:var(--rejilla)}.ink{fill:var(--tinta)}.zona-riesgo{fill:var(--zona-riesgo)}
 .serie{stroke:var(--acento)}.serie-punto{fill:var(--acento)}.base-punteada{stroke:var(--gris)}
@@ -2066,6 +2287,9 @@ svg{width:100%;height:auto}.eje{font-family:var(--mono);font-size:10px;fill:var(
 .m-ruptura{stroke:var(--acento)}.m-ruptura-txt{fill:var(--acento)}
 .m-stop{stroke:var(--rojo)}.m-stop-txt{fill:var(--rojo)}
 .m-entrada{stroke:var(--gris)}.m-entrada-txt{fill:var(--gris)}
+.m-objetivo{stroke:var(--verde)}.m-objetivo-txt{fill:var(--verde)}
+.m-vwap{stroke:#b7791f}.m-vwap-txt{fill:#b7791f}
+.m-ruptura-txt,.m-stop-txt,.m-entrada-txt,.m-objetivo-txt,.m-vwap-txt{paint-order:stroke;stroke:var(--papel);stroke-width:3px;stroke-linejoin:round}
 .barra-ok{fill:var(--acento)}.barra-alta{fill:var(--rojo)}.limite{stroke:var(--rojo)}
 .nota{margin-top:auto;padding:10px 12px;background:var(--mal-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--mal-fg)}
 .nota-info{margin-top:auto;padding:10px 12px;background:var(--duda-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--gris2)}
@@ -2075,6 +2299,12 @@ tr.historial td,tr.historial td.tk,h3.historial{color:var(--gris);font-weight:40
 h3{margin:12px 0 0;font-size:13px;letter-spacing:.04em;font-weight:500}
 .badge{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--acento);color:var(--acento)}
 .scroll{overflow-x:auto}
+details.terminales summary{cursor:pointer;padding:8px 0}details.terminales td{color:var(--gris)}
+.est-triggered{color:var(--acento);font-weight:700}
+.usos{display:flex;flex-direction:column;gap:10px;padding-bottom:6px;border-bottom:1px dashed var(--linea)}
+.uso{display:flex;flex-direction:column;gap:3px}.uso b{font-family:var(--mono);font-size:13px;font-weight:500}
+.barra-uso{height:6px;background:var(--linea2);border-radius:3px;overflow:hidden}
+.barra-uso div{height:100%;background:var(--acento)}.barra-uso div.alto{background:#b7791f}.barra-uso div.lleno{background:var(--rojo)}
 .operaciones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 @media (max-width:900px){.operaciones{grid-template-columns:1fr}}
 @media (max-width:1100px){.c5{grid-template-columns:repeat(3,minmax(0,1fr))}.c4{grid-template-columns:repeat(2,minmax(0,1fr))}.c2,.c3{grid-template-columns:1fr}}
@@ -2100,17 +2330,58 @@ def _html_pnl(pnl, pct=None) -> str:
     return f'<span class="{clase}">{esc(fmt_dinero(pnl, signo=True) + extra)}</span>'
 
 
-def _html_nivel(nivel, mercado: bool = False, conocido: bool = True) -> str:
+# Qué significa `held` depende de dónde está la pata (2026-09-29). En una
+# posición ya llena, el stop `held` es la mitad OCO del bracket: Alpaca lo
+# vigila y se dispara solo, o sea que SÍ protege. En una compra pendiente,
+# las patas esperan a que llene la entrada. "held" a secas no decía
+# ninguna de las dos cosas.
+TEXTO_HELD = {"posicion": "activo (OCO)", "pendiente": "tras el fill"}
+
+
+def _html_nivel(nivel, mercado: bool = False, conocido: bool = True, rol: str = "posicion") -> str:
     if not conocido:
         return "sin datos"
     if mercado and (not nivel or nivel.get("precio") is None):
         return "venta a mercado"
     if not nivel or nivel.get("precio") is None:
         return "—"
-    texto = fmt_dinero(nivel["precio"])
+    texto = esc(fmt_dinero(nivel["precio"]))
     if nivel.get("estado") == "held":
-        texto += " · held"
-    return esc(texto)
+        texto += f' <span class="mono" title="Alpaca: held">· {esc(TEXTO_HELD.get(rol, "held"))}</span>'
+    return texto
+
+
+def _html_riesgo_fila(f: dict, equity: float | None) -> str:
+    # Órdenes del símbolo ilegibles: no se sabe el stop, así que tampoco
+    # el riesgo. "—" se leería como "no hay".
+    if f.get("salidas_conocidas") is False:
+        return "sin datos"
+    r = f.get("riesgo")
+    if r is None:
+        return "—"
+    if r <= 0:
+        return f'<span class="pos">asegura {esc(fmt_dinero(-r, signo=True))}</span>'
+    pct = f" ({r / equity * 100:.2f}%)" if equity else ""
+    return esc(fmt_dinero(r) + pct)
+
+
+def _html_rr(f: dict) -> str:
+    if f.get("salidas_conocidas") is False:
+        return "sin datos"
+    rr = f.get("rr")
+    return "—" if rr is None else esc(f"{rr:.1f}R")
+
+
+def _html_espera(colocada, ahora: datetime, maximo) -> str:
+    """Minutos que lleva la compra sin llenar, contra el tope después del
+    cual el seguimiento la cancela. Sin hora, "—"."""
+    if colocada is None:
+        return "—"
+    minutos = max(0.0, (ahora - colocada).total_seconds() / 60)
+    if maximo is None:
+        return esc(f"{minutos:.0f} min")
+    clase = ' class="neg"' if minutos > maximo else ""
+    return f"<span{clase}>{esc(f'{minutos:.0f} / {maximo:.0f} min')}</span>"
 
 
 def _frase_aviso(a: dict) -> str:
@@ -2163,8 +2434,10 @@ def _html_broker(ctx: dict) -> str:
             f"<td>{_html_pnl(p['pnl'], p.get('pnl_pct'))}</td>"
             f"<td>{_html_nivel(p.get('stop'), p.get('mercado'), p.get('salidas_conocidas', True))}</td>"
             f"<td>{_html_nivel(p.get('tp'), conocido=p.get('salidas_conocidas', True))}</td>"
+            f"<td>{_html_riesgo_fila(p, ctx.get('equity'))}</td><td>{_html_rr(p)}</td>"
             "</tr>" for p in pos)
-        pos_html = tabla(("Ticker", "Cant.", "Entrada", "Actual", "P&L abierto", "Stop", "Objetivo"), filas)
+        pos_html = tabla(("Ticker", "Cant.", "Entrada", "Actual", "P&L abierto", "Stop", "Objetivo",
+                          "Riesgo al stop", "Obj./riesgo"), filas)
     else:
         pos_html = ""
 
@@ -2175,11 +2448,14 @@ def _html_broker(ctx: dict) -> str:
             f"<td class='tk'>{esc(p['ticker'])}</td>"
             f"<td>{esc({'buy': 'compra', 'sell': 'venta'}.get(p.get('lado'), p.get('lado') or '—'))}</td>"
             f"<td>{esc(fmt_qty(p['qty']))}</td><td>{esc(fmt_dinero(p.get('limite')))}</td>"
-            f"<td>{_html_nivel(p.get('stop'), p.get('mercado'))}</td>"
-            f"<td>{_html_nivel(p.get('tp'))}</td>"
+            f"<td>{_html_nivel(p.get('stop'), p.get('mercado'), rol='pendiente')}</td>"
+            f"<td>{_html_nivel(p.get('tp'), rol='pendiente')}</td>"
+            f"<td>{_html_riesgo_fila(p, ctx.get('equity'))}</td><td>{_html_rr(p)}</td>"
+            f"<td>{_html_espera(p.get('colocada'), ctx['ahora'], ctx.get('minutos_entrada_max')) if p.get('lado') == 'buy' else '—'}</td>"
             f"<td>{esc(ESTADOS_ORDEN.get(p.get('estado'), p.get('estado') or '—'))}</td>"
             "</tr>" for p in pend)
-        pend_html = tabla(("Ticker", "Lado", "Cant.", "Límite", "Stop", "Objetivo", "Estado"), filas)
+        pend_html = tabla(("Ticker", "Lado", "Cant.", "Límite", "Stop", "Objetivo",
+                           "Riesgo si llena", "Obj./riesgo", "Esperando", "Estado"), filas)
     else:
         pend_html = ""
 
@@ -2212,7 +2488,51 @@ def _html_intervalo(fila: dict, n: int, unidad: str) -> str:
     return f"desde {esc(fila['desde'])} hasta {esc(fila['hasta'])} ({n} {unidad})"
 
 
+def _barra_uso(etiqueta: str, valor: float | None, tope: float | None, texto: str) -> str:
+    """Una fila de uso de un tope: barra + texto. Sin valor o sin tope,
+    solo el texto (que ya dice "sin dato")."""
+    if valor is None or not tope:
+        return f'<div class="uso"><span class="mono">{esc(etiqueta)}</span><b>{esc(texto)}</b></div>'
+    frac = max(0.0, min(1.0, valor / tope))
+    clase = "lleno" if valor >= tope else ("alto" if frac >= 0.8 else "")
+    return (f'<div class="uso"><span class="mono">{esc(etiqueta)}</span><b>{esc(texto)}</b>'
+            f'<div class="barra-uso"><div class="{clase}" style="width:{frac * 100:.0f}%"></div></div></div>')
+
+
+def _html_uso_limites(ctx: dict) -> str:
+    lim = ctx.get("limites") or {}
+    filas = []
+    comp, tope = lim.get("comprometidos"), lim.get("tope_cupo")
+    if comp is None:
+        filas.append(_barra_uso("Cupo de jugadas", None, None, "sin dato"))
+    else:
+        detalle = f" · {', '.join(comp)}" if comp else ""
+        texto = f"{len(comp)} / {tope}{detalle}" if tope else f"{len(comp)} (tope sin dato){detalle}"
+        filas.append(_barra_uso("Cupo de jugadas", float(len(comp)), tope, texto))
+    tope_c = lim.get("tope_concentracion_pct")
+    for c in lim.get("concentracion") or []:
+        texto = ("sin dato" if c["pct"] is None
+                 else f"{c['pct']:.1f}%" + (f" / {tope_c:.0f}%" if tope_c else ""))
+        filas.append(_barra_uso(f"Concentración {c['ticker']}", c["pct"], tope_c, texto))
+    rt = lim.get("riesgo_total")
+    filas.append(_barra_uso(
+        "Riesgo total al stop", None, None,
+        "sin dato" if rt is None else fmt_dinero(rt) + (
+            f" ({lim['riesgo_total_pct']:.2f}% del equity)" if lim.get("riesgo_total_pct") is not None else "")))
+    exp = lim.get("expuesto")
+    ef = lim.get("efectivo")
+    filas.append(_barra_uso(
+        "Invertido / efectivo", None, None,
+        ("—" if exp is None else fmt_dinero(exp) + (f" ({lim['expuesto_pct']:.0f}%)" if lim.get("expuesto_pct") is not None else ""))
+        + " · efectivo " + fmt_dinero(ef)))
+    return '<div class="usos">' + "".join(filas) + "</div>"
+
+
 def _html_riesgo(ctx: dict) -> str:
+    return _html_uso_limites(ctx) + _html_bloqueos(ctx)
+
+
+def _html_bloqueos(ctx: dict) -> str:
     """Panel de límites. Lo activo va en su sección; el día, en gris,
     con desde/hasta y cuándo se vio por última vez. El rojo (`nota`)
     solo si la ventana activa pide revisar. MERCADO_CERRADO no se
@@ -2304,6 +2624,59 @@ def _html_riesgo(ctx: dict) -> str:
     return "".join(partes)
 
 
+ESTADOS_WATCH = {
+    "triggered": "disparada", "watching": "vigilando", "expired": "expirada",
+    "invalidated": "invalidada", "missed": "perdida", "archived": "archivada",
+}
+
+
+def _html_watchlist(ctx: dict) -> tuple[str, str]:
+    """Activas arriba (disparadas primero), terminales de hoy plegadas.
+
+    El 29/9 la tabla tenía ~40 filas y las expiradas de ayer se mezclaban
+    con las vivas; ETN y CDNS salían dos veces sin que se viera que una
+    era la entrada vieja. Las terminales siguen ahí, solo plegadas."""
+    tz, ahora = ctx["tz"], ctx["ahora"]
+    todas = ctx.get("watch") or []
+    if not todas:
+        return '<p class="vacio">Sin tickers en observación ni cambios de estado hoy.</p>', ""
+
+    def estado(w):
+        return str(w.get("estado") or "").lower()
+
+    minimo = datetime.min.replace(tzinfo=timezone.utc)
+    activas = sorted((w for w in todas if estado(w) in ESTADOS_ACTIVOS),
+                     key=lambda w: (estado(w) != "triggered", -(w.get("detectado") or minimo).timestamp()))
+    terminales = [w for w in todas if estado(w) not in ESTADOS_ACTIVOS]
+
+    def filas(items):
+        return "".join(
+            f"<tr><td class='tk'>{esc(w['ticker'])}</td><td>{esc(w['cap'])}</td><td>{esc(w['catalizador'])}</td>"
+            f"<td>{_hora(w['detectado'], tz, ahora=ahora)}</td>"
+            f"<td><span class='est est-{esc(estado(w))}' title='{esc(w['estado'])}'>"
+            f"{esc(ESTADOS_WATCH.get(estado(w), w['estado']))}</span></td></tr>" for w in items)
+
+    cab = "<thead><tr><th>Ticker</th><th>Cap</th><th>Catalizador</th><th>Detectado</th><th>Estado</th></tr></thead>"
+    partes = []
+    if activas:
+        partes.append(f"<div class='scroll'><table>{cab}<tbody>{filas(activas)}</tbody></table></div>")
+    else:
+        partes.append('<p class="vacio">Sin tickers activos ahora.</p>')
+    if terminales:
+        partes.append(f"<details class='terminales'><summary class='mono'>Cerradas hoy en la watchlist "
+                      f"({len(terminales)}): expiradas, invalidadas, archivadas</summary>"
+                      f"<div class='scroll'><table>{cab}<tbody>{filas(terminales)}</tbody></table></div></details>")
+    n_disp = sum(1 for w in activas if estado(w) == "triggered")
+    n_vig = len(activas) - n_disp
+    bandas: dict[str, int] = {}
+    for w in activas:
+        clave = str(w.get("cap") or "—")
+        bandas[clave] = bandas.get(clave, 0) + 1
+    txt_bandas = " · ".join(f"{n} {b}" for b, n in sorted(bandas.items()))
+    resumen = f"{n_disp} disparadas · {n_vig} vigilando" + (f" · {txt_bandas}" if txt_bandas else "") + " · "
+    return "".join(partes), resumen
+
+
 def render(ctx: dict) -> str:
     tz = ctx["tz"]
     etiqueta_tz = "UTC" if str(tz) == "UTC" else str(tz)
@@ -2337,13 +2710,7 @@ def render(ctx: dict) -> str:
         f'<div class="panel kpi"><span class="mono">{esc(a)}</span><span class="valor {c}">{esc(b)}</span><span class="mono">{esc(d)}</span></div>'
         for a, b, c, d in kpis)
 
-    if ctx["watch"]:
-        filas = "".join(
-            f"<tr><td class='tk'>{esc(w['ticker'])}</td><td>{esc(w['cap'])}</td><td>{esc(w['catalizador'])}</td>"
-            f"<td>{_hora(w['detectado'], tz, ahora=ctx['ahora'])}</td><td>{esc(w['estado'])}</td></tr>" for w in ctx["watch"])
-        watch = f"<div class='scroll'><table><thead><tr><th>Ticker</th><th>Cap</th><th>Catalizador</th><th>Detectado</th><th>Estado</th></tr></thead><tbody>{filas}</tbody></table></div>"
-    else:
-        watch = '<p class="vacio">Sin tickers en observación ni cambios de estado hoy.</p>'
+    watch, resumen_watch = _html_watchlist(ctx)
 
     if ctx["stream"]:
         filas = "".join(
@@ -2454,7 +2821,7 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap">
 <style>{CSS}</style>
 </head>
-<body>
+<body data-generado="{int(ctx['ahora'].timestamp())}">
 <main>
 <header>
   <div class="marca">
@@ -2464,6 +2831,7 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
   <div class="pildoras">
     <span class="pildora paper">PAPER · ALPACA</span>{fuente_datos}{sesion}{alpaca}{persist}{ia}
     <span class="pildora">Actualizado {_hora(ctx['ahora'], tz, segundos=True)} {esc(etiqueta_tz)}</span>
+    <span class="pildora mal" id="panel-viejo" hidden></span>
     <span class="pildora">Solo lectura</span>
     <button class="pildora" id="tema-toggle" type="button" aria-label="Cambiar entre tema claro y oscuro" title="Cambiar tema claro/oscuro">Tema</button>
   </div>
@@ -2478,7 +2846,7 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
   {operaciones}
 </section>
 <section class="fila c2">
-  <div class="panel"><div class="titulo"><h2>Watchlist actual</h2><span class="mono">generada {_hora(ctx['wl_momento'], tz, ahora=ctx['ahora'])}</span></div>{watch}</div>
+  <div class="panel"><div class="titulo"><h2>Watchlist actual</h2><span class="mono">{esc(resumen_watch)}generada {_hora(ctx['wl_momento'], tz, ahora=ctx['ahora'])}</span></div>{watch}</div>
   <div class="panel"><div class="titulo"><h2>Latencia</h2><span class="mono">ruptura → orden, velas de 1 min</span></div>
     {_grafico_latencia(ctx)}
     <div class="stats"><div><span class="mono">Mediana</span><b>{fmt_num(ctx['lat_mediana'])}</b></div><div><span class="mono">P90</span><b>{fmt_num(ctx['lat_p90'])}</b></div><div><span class="mono">Fuera de presupuesto</span><b class="neg">{fmt_num(ctx['lat_fuera'])}</b></div></div>
@@ -2490,6 +2858,19 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
   <div class="panel"><div class="titulo"><h2>Límites de riesgo</h2><span class="mono">fail-closed</span></div>{riesgo}</div>
 </section>
 </main>
+<script>/* Panel viejo (2026-09-29): el HTML se regenera cada minuto y el
+navegador lo recarga cada 60 s. Si el generador se para pero el servidor
+HTTP sigue, la página recargada es la MISMA copia vieja y todo se ve
+"OK". Se compara la hora de generación con el reloj del navegador. */
+(function(){{
+  var gen=parseInt(document.body.dataset.generado||"0",10)*1000;
+  var p=document.getElementById("panel-viejo");if(!gen||!p)return;
+  function revisa(){{
+    var min=Math.floor((Date.now()-gen)/60000);
+    if(min>=3){{p.hidden=false;p.textContent="Panel sin regenerarse hace "+min+" min";}}
+  }}
+  revisa();setInterval(revisa,30000);
+}})();</script>
 <script>/* Botón de tema: alterna claro/oscuro y guarda la elección en el
 navegador (por dispositivo). Sin elección previa parte de lo que pide el
 sistema. Todo entre try por si el navegador bloquea el almacenamiento. */

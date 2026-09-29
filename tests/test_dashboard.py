@@ -1012,7 +1012,8 @@ def test_velas_reales_se_grafican_con_las_tres_marcas_y_la_hora_del_fill(tmp_pat
     ctx = bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)
     m = ctx["operaciones"][0]["marcas"]
     assert m == {"ruptura": 5.05, "entrada_precio": 5.12,
-                 "entrada_hora": datetime(2026, 9, 18, 14, 32, 10, tzinfo=timezone.utc), "stop": 4.90}
+                 "entrada_hora": datetime(2026, 9, 18, 14, 32, 10, tzinfo=timezone.utc), "stop": 4.90,
+                 "objetivo": None}
     html = bd.render(ctx)
     svg = _svg_velas(html, "AAA")
     assert svg.count('class="vela ') == 5
@@ -1020,7 +1021,7 @@ def test_velas_reales_se_grafican_con_las_tres_marcas_y_la_hora_del_fill(tmp_pat
         assert marca in svg, marca
     assert "ruptura $5.05" in svg and "stop $4.90" in svg and "entrada $5.12" in svg
     assert "5 velas · Yahoo 15:00" in html
-    assert "$5.12 a las 14:32" in html
+    assert "$5.12 · 14:32" in html
 
 
 def test_marcas_que_faltan_no_se_dibujan_y_dicen_sin_dato(tmp_path):
@@ -1034,7 +1035,9 @@ def test_marcas_que_faltan_no_se_dibujan_y_dicen_sin_dato(tmp_path):
     svg = _svg_velas(html, "AAA")
     assert "marca-ruptura" not in svg and "marca-stop" not in svg and "marca-entrada-hora" not in svg
     assert "marca-entrada" in svg
-    assert html.count("<b>sin dato</b>") == 2 and "$5.10 (hora sin dato)" in html
+    # ruptura, stop y objetivo sin dato.
+    velas_html = html.split("Velas de posiciones abiertas", 1)[1].split("Watchlist", 1)[0]
+    assert velas_html.count("<b>sin dato</b>") == 3 and "$5.10 (hora sin dato)" in html
     assert 'class="vela ' in svg
 
 
@@ -1193,7 +1196,7 @@ def test_el_panel_sigue_al_broker_y_no_grafica_lo_cerrado_hoy(tmp_path):
     html = bd.render(ctx)
     assert 'class="badge">pendiente</span>' in html
     assert "Cerradas hoy" in html and "DLB" in html and "−$5.00" in html
-    assert "$41.62 · held" in html
+    assert '$41.62 <span class="mono" title="Alpaca: held">· activo (OCO)</span>' in html
     assert "no tiene stop" not in html and "no hay una revisión viva" not in html
     # El gráfico de la cerrada no está. El de la pendiente sí, marcado.
     assert _svg_velas(html, "DLB") is None
@@ -1393,7 +1396,7 @@ def test_stop_held_del_padre_filled_no_dispara_falso_sin_stop(tmp_path):
     assert fila["tp"] == {"precio": 42.36, "estado": "new"}
     html = bd.render(ctx)
     assert "no tiene stop de venta abierto" not in html
-    assert "<td>$41.62 · held</td><td>$42.36</td>" in html
+    assert '<td>$41.62 <span class="mono" title="Alpaca: held">· activo (OCO)</span></td><td>$42.36</td>' in html
     pedidos = [p for _r, p in llamadas if p and p.get("symbols")]
     assert pedidos == [bd._parametros_ordenes_de_simbolos(["MNST"])]
 
@@ -2287,3 +2290,110 @@ def test_el_panel_ofrece_tema_oscuro_por_boton_y_por_preferencia_del_sistema(tmp
         assert fijo not in html, fijo
     # El modo claro sigue igual: variable de fondo crema intacta.
     assert "--fondo:#f3f1ea" in html
+
+
+# ───────── 2026-09-29: ventana, VWAP, objetivo, riesgo, uso de límites ─────────
+
+def _serie(inicio, n, vol=1000.0):
+    from datetime import timedelta
+    ts = [(inicio + timedelta(minutes=i)).isoformat(timespec="seconds") for i in range(n)]
+    return {"timestamps": ts, "open": [10.0] * n, "close": [10.0] * n,
+            "high": [11.0] * n, "low": [9.0] * n, "volume": [vol] * n}
+
+
+def test_recorte_quita_el_premarket_y_deja_15_min_antes_de_la_apertura():
+    # 12:00 UTC = 08:00 ET. Apertura 13:30 UTC; corte 13:15 UTC.
+    velas = _serie(datetime(2026, 9, 29, 12, 0, tzinfo=timezone.utc), 120)
+    rec = bd.recortar_a_sesion(velas)
+    assert rec["timestamps"][0] == "2026-09-29T13:15:00+00:00"
+    assert len(rec["close"]) == 120 - 75
+    assert all(len(rec[k]) == len(rec["close"]) for k in ("open", "high", "low", "volume", "timestamps"))
+
+
+def test_recorte_no_deja_un_grafico_vacio_si_solo_hay_premarket():
+    velas = _serie(datetime(2026, 9, 29, 12, 0, tzinfo=timezone.utc), 30)   # termina 08:29 ET
+    assert bd.recortar_a_sesion(velas) is velas
+
+
+def test_vwap_empieza_en_la_apertura_y_se_corta_si_falta_un_volumen():
+    velas = _serie(datetime(2026, 9, 29, 13, 28, tzinfo=timezone.utc), 5)
+    velas["high"] = [11.0, 11.0, 12.0, 14.0, 14.0]
+    velas["low"] = [9.0, 9.0, 12.0, 14.0, 14.0]
+    velas["close"] = [10.0, 10.0, 12.0, 14.0, 14.0]
+    velas["volume"] = [500.0, 500.0, 100.0, 300.0, None]
+    v = bd.vwap_de_sesion(velas)
+    assert v[0] is None and v[1] is None            # 13:28 y 13:29 UTC: antes de 09:30 ET
+    assert v[2] == pytest.approx(12.0)
+    assert v[3] == pytest.approx((12 * 100 + 14 * 300) / 400)
+    assert v[4] is None                              # volumen ausente: no es cero
+
+
+def test_etiquetas_no_se_enciman_y_conservan_su_orden():
+    ys = [50.0, 52.0, 51.0, 180.0]
+    nuevas = bd.repartir_etiquetas(ys, 20.0, 190.0)
+    ordenadas = sorted(nuevas)
+    assert all(b - a >= bd._SEPARACION_ETIQUETAS - 1e-9 for a, b in zip(ordenadas, ordenadas[1:]))
+    # 50 < 51 < 52 se mantiene
+    assert nuevas[0] < nuevas[2] < nuevas[1]
+    assert all(20.0 <= y <= 190.0 for y in nuevas)
+
+
+def test_riesgo_de_una_posicion():
+    r = bd.riesgo_de(24.77, 24.54, 25.23, 29)
+    assert r["riesgo"] == pytest.approx(6.67) and r["rr"] == pytest.approx(2.0, abs=0.01)
+    assert bd.riesgo_de(24.77, None, 25.23, 29) == {"riesgo": None, "rr": None}
+    subido = bd.riesgo_de(24.77, 24.90, 25.23, 29)   # stop ya por encima de la entrada
+    assert subido["riesgo"] < 0 and subido["rr"] is None
+
+
+def test_uso_de_limites_cuenta_como_el_ejecutor():
+    class Cfg:
+        maximo_posiciones_abiertas = 5
+        maximo_pct_efectivo_por_posicion = 0.15
+    posiciones = [{"symbol": "CCL"}, {"symbol": "ETN"}]
+    abiertas = [{"symbol": "CCL"}, {"symbol": "NVS"}, {"symbol": "NTAP"}]   # el TP de CCL no cuenta doble
+    filas = [{"ticker": "CCL", "valor": 723.84, "riesgo": 6.67},
+             {"ticker": "ETN", "valor": 432.78, "riesgo": 3.57}]
+    lim = bd.uso_de_limites(posiciones, abiertas, filas, 4913.71, 3700.0, Cfg())
+    assert lim["comprometidos"] == ["CCL", "ETN", "NTAP", "NVS"] and lim["tope_cupo"] == 5
+    assert lim["concentracion"][0]["pct"] == pytest.approx(14.73, abs=0.01)
+    assert lim["tope_concentracion_pct"] == 15
+    assert lim["riesgo_total"] == pytest.approx(10.24)
+    # Un riesgo desconocido no se suma como 0.
+    filas[1]["riesgo"] = None
+    assert bd.uso_de_limites(posiciones, abiertas, filas, 4913.71, 3700.0, Cfg())["riesgo_total"] is None
+    # Órdenes ilegibles: el cupo es "sin dato", no 2.
+    assert bd.uso_de_limites(posiciones, None, filas, 4913.71, 3700.0, Cfg())["comprometidos"] is None
+
+
+def test_objetivo_del_bracket_se_dibuja_y_la_fila_trae_riesgo(tmp_path):
+    _watchlist_con_ruptura(tmp_path)
+    compra = _compra()
+    compra["legs"].append({"id": "leg-tp", "symbol": "AAA", "side": "sell", "type": "limit",
+                           "status": "new", "limit_price": "5.30", "submitted_at": "2026-09-18T14:32:00Z"})
+    get = alpaca_falso({"equity": "5000", "cash": "4000"},
+                       **{"/v2/positions": [_posicion()], "/v2/orders": [compra]})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)
+    assert ctx["operaciones"][0]["marcas"]["objetivo"] == 5.30
+    html = bd.render(ctx)
+    svg = _svg_velas(html, "AAA")
+    assert "marca-objetivo" in svg and "objetivo $5.30" in svg
+    assert "marca-vwap" in svg
+    assert "Riesgo al stop" in html and "Cupo de jugadas" in html
+
+
+def test_watchlist_pliega_las_terminales_y_pone_las_disparadas_primero(tmp_path):
+    (tmp_path / "watchlist.json").write_text(json.dumps({"entradas": [
+        _entrada("VIG", "watching"), _entrada("DIS", "triggered"), _entrada("EXP", "expired")]}))
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=alpaca_falso({"equity": "5000"}), velas=velas_ok))
+    bloque = html.split("Watchlist actual", 1)[1].split("Latencia", 1)[0]
+    activas, plegadas = bloque.split("<details", 1) if "<details" in bloque else (bloque, "")
+    assert activas.index(">DIS<") < activas.index(">VIG<")
+    assert "disparada" in activas and "vigilando" in activas
+    # EXP cambió hoy (13:40 UTC): va plegada, no entre las activas.
+    assert ">EXP<" in plegadas and ">EXP<" not in activas
+
+
+def test_panel_lleva_la_hora_de_generacion_para_el_aviso_de_viejo(tmp_path):
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=alpaca_falso({"equity": "5000"}), velas=velas_ok))
+    assert f'data-generado="{int(AHORA.timestamp())}"' in html and 'id="panel-viejo" hidden' in html
