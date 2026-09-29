@@ -96,7 +96,7 @@ LIMITACIONES_PEAD = [
     "MANTIENE POSICIONES DE UN DÍA PARA OTRO: rompe la regla de cierre diario de la v1 y necesitaría gestión de "
     "riesgo nueva (gap nocturno, tamaño, halts fuera de sesión). Solo para medir.",
     "Entrada al cierre diario (barra diaria) + slippage; stop 6 % mirado sobre mínimos diarios: si el día abre por "
-    "debajo del stop, se sale a la apertura. R = 6 %.",
+    "debajo del stop, se sale a la apertura (motivo `stop_gap`, pérdida > 1 R). R = 6 %.",
     "Evento = 8-K 2.02 aceptado entre el cierre previo y la apertura (EDGAR, Z = UTC). Sin dato EDGAR el símbolo-día "
     "se excluye, nunca cuenta como «sin 8-K».",
     "RVOL diario = volumen del día / promedio de 20 sesiones previas (barras diarias con ajuste split).",
@@ -294,7 +294,10 @@ def correr_pead(cfg, cliente, cache: datos.Cache, universo: list, desde: date, h
             for f in siguientes:
                 _, fo, fh, fl, fc, _ = f
                 if fo <= stop:
-                    salida_p, motivo, salida_t = fo, "stop", _fecha(f)
+                    # El gap nocturno pasó por encima del stop: se sale a la
+                    # apertura y la pérdida es mayor que 1 R. Motivo aparte
+                    # para medir cuánto cuesta dormir con la posición.
+                    salida_p, motivo, salida_t = fo, "stop_gap", _fecha(f)
                     minimo = min(minimo, fo)
                     break
                 if fl <= stop:

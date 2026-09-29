@@ -145,7 +145,7 @@ def test_metricas_y_criterios():
     assert m["expectativa_r"] == pytest.approx(0.2) and m["factor_beneficio"] == pytest.approx(8 / 6)
     assert m["drawdown_max"] == pytest.approx(150 / 5100)
     assert m["mfe_mediana_r"] == 0.5 and m["mae_mediana_r"] == 0.4
-    assert m["salidas"] == {"stop": 6, "tiempo": 0, "objetivo": 4, "breakeven": 0, "cierre": 0}
+    assert m["salidas"] == {"stop": 6, "stop_gap": 0, "tiempo": 0, "objetivo": 4, "breakeven": 0, "cierre": 0}
     veredicto = informe.evaluar(m, informe.Criterios())
     assert [ok for _, _, ok in veredicto] == [False, False, True, True]   # 10 trades; 0,2 no es > 0,2
 
@@ -602,6 +602,32 @@ def test_pead_entra_al_cierre_y_sale_al_dia_3_o_por_stop(tmp_path, monkeypatch):
     assert a.senal.ticker == "ACME" and a.llenado == 10.2 and a.motivo == "cierre" and a.salida == 10.9
     assert a.r == pytest.approx((10.9 - 10.2) / (10.2 * 0.06)) and a.mfe_r == pytest.approx((11.0 - 10.2) / 0.612)
     assert b.motivo == "stop" and b.salida == pytest.approx(10.2 * 0.94) and b.r == pytest.approx(-1.0)
+
+
+def test_pead_apertura_bajo_el_stop_es_stop_gap_y_pierde_mas_de_1r(tmp_path, monkeypatch):
+    from shadow_alpaca.backtest_v2 import informe, planb
+    from shadow_alpaca.backtest_v2.datos import Cache
+    ses = _sesiones(26, date(2026, 9, 25))
+    d0 = ses[21]
+    filas = _diarias_falsas(ses[:22])
+    # Día 1 abre un 12 % abajo (bajo el stop del 6 %): se sale a la apertura, no al stop.
+    for k, (o, h, l, c) in enumerate([(8.976, 9.2, 8.9, 9.0), (9.0, 9.1, 8.8, 8.9), (8.9, 9.0, 8.7, 8.8)]):
+        filas.append([f"{ses[22 + k].isoformat()}T04:00:00Z", o, h, l, c, 100.0])
+    cand = motor.Candidatos(["ACME"], ses, ses[20:], {"ACME": filas}, {d0: {"ACME": 0.06}})
+    monkeypatch.setattr(planb, "candidatos_gap", lambda *a, **k: cand)
+
+    class _Edgar:
+        fallos = 0
+
+        def ochok_202(self, t):
+            return [datetime.combine(d0 - timedelta(days=1), time(20, 30), tzinfo=UTC)]
+    res = planb.correr_pead(CFG, None, Cache(tmp_path), [], ses[20], ses[-1], motor.Parametros(slippage=0.0), _Edgar())
+    (t,) = res.trades
+    assert t.motivo == "stop_gap" and t.salida == pytest.approx(8.976) and t.r == pytest.approx(-2.0)
+    m = informe.metricas(res.trades)
+    assert m["salidas"]["stop_gap"] == 1 and m["salidas"]["stop"] == 0
+    texto = "\n".join(informe.desgloses(res.trades))
+    assert "| stop_gap | 1 |" in texto and "### Por año (de la señal)" in texto and f"| {d0.year} | 1 |" in texto
 
 
 def test_pead_sin_8k_o_sin_edgar_no_entra(tmp_path, monkeypatch):

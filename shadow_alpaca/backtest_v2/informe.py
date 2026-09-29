@@ -30,7 +30,7 @@ FRANJAS = ((time(9, 36), time(10, 0), "09:36–09:59"), (time(10, 0), time(10, 3
 RANGOS_PRECIO = ((2, 10, "$2–10"), (10, 20, "$10–20"), (20, 50.01, "$20–50"))
 # Cortes de la distribución del MFE (en R) de los trades que salieron por tiempo.
 CORTES_MFE = (0.0, 0.25, 0.5, 1.0, 1.5)
-SALIDAS = ("stop", "tiempo", "objetivo", "breakeven", "cierre")
+SALIDAS = ("stop", "stop_gap", "tiempo", "objetivo", "breakeven", "cierre")
 
 
 def _mediana(xs: list[float]) -> float | None:
@@ -130,9 +130,12 @@ def desgloses(trades) -> list[str]:
     precios = [(n, [t for t in trades if lo <= t.entrada_ref < hi]) for lo, hi, n in RANGOS_PRECIO]
     salidas = sorted({t.motivo for t in trades})
     por_salida = [(m, [t for t in trades if t.motivo == m]) for m in salidas]
+    anios = sorted({t.senal.dia.year for t in trades})
+    por_anio = [(str(a), [t for t in trades if t.senal.dia.year == a]) for a in anios]
     return (_tabla("Por nivel de catalizador", por_nivel)
             + _tabla("Por hora de entrada (NY; 09:36 NY = 13:36 UTC en verano = 07:36 Monterrey)", franjas)
             + _tabla("Por rango de precio", precios)
+            + _tabla("Por año (de la señal)", por_anio)
             + _tabla("Por motivo de salida", por_salida))
 
 

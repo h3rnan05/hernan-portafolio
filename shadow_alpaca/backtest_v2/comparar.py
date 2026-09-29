@@ -34,7 +34,7 @@ def _cargar(rutas: list[Path]) -> list[dict]:
 def _fila_metricas(nombre: str, m: dict) -> str:
     s = m.get("salidas", {})
     return (f"| {nombre} | {m['trades']} | {_p(m['acierto'])} | {_r(m['expectativa_r'])} | {_f(m['factor_beneficio'])} | "
-            f"{_p(m['drawdown_max'])} | {s.get('stop', 0)} / {s.get('tiempo', 0)} / {s.get('objetivo', 0)} / "
+            f"{_p(m['drawdown_max'])} | {s.get('stop', 0) + s.get('stop_gap', 0)} / {s.get('tiempo', 0)} / {s.get('objetivo', 0)} / "
             f"{s.get('breakeven', 0)} / {s.get('cierre', 0)} | {_r(m['mfe_r'])} / {_r(m['mfe_mediana_r'])} | "
             f"{_r(m['mae_r'])} / {_r(m['mae_mediana_r'])} |")
 
