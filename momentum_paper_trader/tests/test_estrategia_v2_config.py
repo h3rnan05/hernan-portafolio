@@ -64,7 +64,7 @@ def test_los_valores_del_yaml_son_los_aprobados():
     assert s.minutos_maximos_niveles == 5
 
     assert r.riesgo_pct_equity == 0.005 and r.tope_posicion_pct_equity == 0.25
-    assert (r.stop_min_pct, r.stop_max_pct) == (0.015, 0.06)
+    assert (r.stop_min_pct, r.stop_max_pct) == (0.015, 0.04)
     assert r.stop_origen == "minimo_rango_apertura" and r.stop_si_excede_max == "no_entrar"
     assert r.objetivo_r == 2.0 and r.breakeven_en_r == 1.0
     assert (r.stop_tiempo_minutos, r.stop_tiempo_r_minimo) == (30, 0.5)

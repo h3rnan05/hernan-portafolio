@@ -4,8 +4,13 @@ name: backtest-v2
 # producción: no toca la watchlist ni coloca órdenes. Solo lee el host de
 # DATOS de Alpaca, Yahoo (float actual) y clasifica catalizadores con la
 # IA. Se dispara al cambiar docs/backtests/solicitud_v2.json en la rama del
-# backtest (o a mano), y deja el informe markdown en docs/backtests/ con un
-# commit [skip ci] (no se vuelve a disparar).
+# backtest (o a mano).
+#
+# Un job por variante (`variantes` en la solicitud; ver
+# shadow_alpaca/backtest_v2/variantes.py): cada uno corre el backtest
+# entero con UN cambio sobre la base, deja su informe y un JSON de
+# métricas como artifact. El job final junta los informes, arma el
+# comparativo y hace un solo commit [skip ci] en docs/backtests/.
 on:
   push:
     branches: [claude/paper-trading-operations-analysis-xt40oo-v2-backtest]
@@ -20,9 +25,37 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  preparar:
+    runs-on: ubuntu-latest
+    outputs:
+      variantes: ${{ steps.leer.outputs.variantes }}
+      args: ${{ steps.leer.outputs.args }}
+      prefijo: ${{ steps.leer.outputs.prefijo }}
+      desde: ${{ steps.leer.outputs.desde }}
+      hasta: ${{ steps.leer.outputs.hasta }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: leer
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          s = json.load(open("docs/backtests/solicitud_v2.json"))
+          print("variantes=" + json.dumps(s.get("variantes", ["base"])))
+          print(f"args=--desde {s['desde']} --hasta {s['hasta']} --equity {s['equity']} "
+                f"--slippage {s['slippage']} --max-llamadas-ia {s['max_llamadas_ia']}")
+          print("prefijo=" + s["salida_prefijo"])
+          print("desde=" + s["desde"])
+          print("hasta=" + s["hasta"])
+          PY
+
   correr:
+    needs: preparar
     runs-on: ubuntu-latest
     timeout-minutes: 340
+    strategy:
+      fail-fast: false
+      matrix:
+        variante: ${{ fromJson(needs.preparar.outputs.variantes) }}
     steps:
       - uses: actions/checkout@v4
 
@@ -35,15 +68,15 @@ jobs:
 
       # El almacén (velas, noticias, subastas, clasificaciones) se guarda
       # entre corridas: repetir el backtest no vuelve a pedir ni a pagar
-      # lo mismo.
+      # lo mismo. Todas las variantes restauran el más reciente.
       - name: Restaurar almacén
         uses: actions/cache/restore@v4
         with:
           path: /tmp/almacen_v2
-          key: backtest-v2-${{ github.run_id }}
+          key: backtest-v2-${{ github.run_id }}-${{ matrix.variante }}
           restore-keys: backtest-v2-
 
-      - name: Correr backtest
+      - name: Correr backtest (variante ${{ matrix.variante }})
         env:
           # El universo (#200) guarda su caché en el directorio de estado;
           # en el runner no existe /var/lib/momentum. Sin esto, la escritura
@@ -53,49 +86,75 @@ jobs:
           ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          python - <<'PY' > /tmp/args.txt
-          import json
-          s = json.load(open("docs/backtests/solicitud_v2.json"))
-          print(f"--desde {s['desde']} --hasta {s['hasta']} --equity {s['equity']} "
-                f"--slippage {s['slippage']} --max-llamadas-ia {s['max_llamadas_ia']} --salida {s['salida']}")
-          PY
-          mkdir -p /tmp/estado_momentum/momentum_hunter
-          python -m shadow_alpaca.backtest_v2 $(cat /tmp/args.txt) --almacen /tmp/almacen_v2 --refrescar-universo 2>&1 | tee /tmp/backtest_v2.log
+          mkdir -p /tmp/estado_momentum/momentum_hunter /tmp/salida
+          python -m shadow_alpaca.backtest_v2 ${{ needs.preparar.outputs.args }} \
+            --variante ${{ matrix.variante }} \
+            --salida /tmp/salida/${{ needs.preparar.outputs.prefijo }}_${{ matrix.variante }}.md \
+            --metricas /tmp/salida/metricas_${{ matrix.variante }}.json \
+            --almacen /tmp/almacen_v2 --refrescar-universo 2>&1 | tee /tmp/salida/backtest_v2_${{ matrix.variante }}.log
 
       - name: Guardar almacén
         if: always()
         uses: actions/cache/save@v4
         with:
           path: /tmp/almacen_v2
-          key: backtest-v2-${{ github.run_id }}
+          key: backtest-v2-${{ github.run_id }}-${{ matrix.variante }}
 
-      - name: Auditoría de la IA junto al informe
-        if: always()
+      - name: Auditoría de la IA (solo la base la commitea)
+        if: always() && matrix.variante == 'base'
         run: |
           if [ -f /tmp/almacen_v2/v2/clasificaciones/auditoria.jsonl ]; then
-            gzip -c /tmp/almacen_v2/v2/clasificaciones/auditoria.jsonl > docs/backtests/estrategia_v2_auditoria_ia.jsonl.gz
+            gzip -c /tmp/almacen_v2/v2/clasificaciones/auditoria.jsonl > /tmp/salida/estrategia_v2_auditoria_ia.jsonl.gz
           fi
 
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: backtest-v2-${{ github.run_id }}
-          path: |
-            /tmp/backtest_v2.log
-            /tmp/almacen_v2/v2/clasificaciones/
+          name: backtest-v2-${{ github.run_id }}-${{ matrix.variante }}
+          path: /tmp/salida/
           retention-days: 90
 
-      - name: Commit del informe
-        if: always()
+  comparativo:
+    needs: [preparar, correr]
+    if: always() && needs.preparar.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: pip install -q -r momentum_hunter/requirements.txt -r momentum_paper_trader/requirements.txt
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: backtest-v2-${{ github.run_id }}-*
+          path: /tmp/artefactos
+          merge-multiple: true
+
+      - name: Informes y comparativo
+        run: |
+          ls -la /tmp/artefactos
+          cp /tmp/artefactos/*.md docs/backtests/ || true
+          cp /tmp/artefactos/estrategia_v2_auditoria_ia.jsonl.gz docs/backtests/ || true
+          if ls /tmp/artefactos/metricas_*.json >/dev/null 2>&1; then
+            python -m shadow_alpaca.backtest_v2.comparar /tmp/artefactos/metricas_*.json \
+              --desde ${{ needs.preparar.outputs.desde }} --hasta ${{ needs.preparar.outputs.hasta }} \
+              --salida docs/backtests/${{ needs.preparar.outputs.prefijo }}_comparativo.md
+          else
+            echo "sin métricas: ninguna variante terminó"
+          fi
+
+      - name: Commit de los informes
         run: |
           git config user.name "backtest-v2[bot]"
           git config user.email "backtest-v2@users.noreply.github.com"
-          # -A sobre la carpeta: un patrón sin coincidencias (p. ej. sin
-          # auditoría) hacía que `git add` no agregara NADA.
           git add -A docs/backtests
           if git diff --cached --quiet; then
             echo "sin informe nuevo"
             exit 0
           fi
-          git commit -m "backtest v2: informe ${GITHUB_RUN_ID} [skip ci]"
+          git commit -m "backtest v2: informes ${GITHUB_RUN_ID} [skip ci]"
           git push origin HEAD:${GITHUB_REF_NAME}

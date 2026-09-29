@@ -5,8 +5,14 @@
   "equity": 5000,
   "slippage": 0.0015,
   "max_llamadas_ia": 3000,
-  "salida": "docs/backtests/estrategia_v2_2025-09-26_2026-09-25.md",
-  "intento": 4,
-  "nota_intento_3": "stop_max_pct 0.04 -> 0.06; lectura de la IA con bloque de código + reintento; embudo etapa por etapa. Caché de clasificaciones válidas reutilizada.",
-  "nota_intento_4": "Corrige el embudo etapa por etapa: catalizador solo cuenta si la vela pasó spread, SPY y ventana (en el intento 3 daba 285 > 219). Sin cambios de estrategia; caché completa."
+  "salida_prefijo": "estrategia_v2_2025-09-26_2026-09-25",
+  "variantes": [
+    "base",
+    "v1",
+    "v2",
+    "v3",
+    "v4"
+  ],
+  "intento": 5,
+  "nota_intento_5": "Base con stop 4 % y cuatro variantes de un solo cambio (variantes.py), un job por variante, comparativo al final. Caché de clasificaciones completa."
 }

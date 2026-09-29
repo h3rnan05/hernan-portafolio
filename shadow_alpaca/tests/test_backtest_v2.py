@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections import Counter
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 
 import pytest
 
@@ -108,7 +108,7 @@ def test_limites_de_cartera_posiciones_y_entradas():
 
 def test_stop_mas_lejos_que_el_maximo_no_entra():
     res = motor.Resultado()
-    s = _senal(orb_bajo=9.3)   # 7 % > tope 6 %
+    s = _senal(orb_bajo=9.4)   # 6 % > tope 4 %
     motor.simular([s], _velas_por([s], [(10.0, 10.05, 9.95, 10.0)]), CFG, P, res)
     assert res.trades == [] and res.no_entradas["stop_mayor_al_maximo"] == 1
 
@@ -137,12 +137,15 @@ def test_metricas_y_criterios():
     class T_:
         def __init__(self, r):
             self.r, self.pnl, self.mfe_r, self.mae_r = r, r * 25, max(r, 0) + 0.5, 0.4
+            self.motivo = "objetivo" if r > 0 else "stop"
     trades = [T_(2.0)] * 4 + [T_(-1.0)] * 6
     curva = [(None, 5000.0), (None, 5100.0), (None, 4950.0), (None, 5200.0)]
     m = informe.metricas(trades, curva)
     assert m["trades"] == 10 and m["acierto"] == 0.4
     assert m["expectativa_r"] == pytest.approx(0.2) and m["factor_beneficio"] == pytest.approx(8 / 6)
     assert m["drawdown_max"] == pytest.approx(150 / 5100)
+    assert m["mfe_mediana_r"] == 0.5 and m["mae_mediana_r"] == 0.4
+    assert m["salidas"] == {"stop": 6, "tiempo": 0, "objetivo": 4, "breakeven": 0, "cierre": 0}
     veredicto = informe.evaluar(m, informe.Criterios())
     assert [ok for _, _, ok in veredicto] == [False, False, True, True]   # 10 trades; 0,2 no es > 0,2
 
@@ -323,7 +326,7 @@ def test_embudo_etapa_por_etapa_cuenta_en_orden():
 
 def test_stop_requerido_y_etapa_stop_en_simular():
     res = motor.Resultado()
-    senales = [_senal(orb_bajo=9.7), _senal(orb_bajo=9.3, ticker="B"), _senal(orb_bajo=9.45, ticker="C")]
+    senales = [_senal(orb_bajo=9.7), _senal(orb_bajo=9.3, ticker="B"), _senal(orb_bajo=9.65, ticker="C")]
     motor.simular(senales, {}, CFG, P, res)
     assert res.embudo_etapas["stop"] == 2 and len(res.stop_requerido) == 3
     assert [round(d, 3) for d in res.stop_descartado] == [0.07]
@@ -340,6 +343,96 @@ def test_informe_trae_embudo_etapa_por_etapa_y_distribucion_del_stop():
     assert "## Embudo etapa por etapa" in texto
     assert "| universo (símbolos × sesiones) | 30 | — |" in texto
     assert "| RVOL ≥ mínimo | 3 | 75.0% |" in texto
-    assert "| stop ≤ 6% | 1 | 100.0% |" in texto
+    assert "| stop ≤ 4% | 1 | 100.0% |" in texto
     assert "| 6%–8% | 1 | 1 |" in texto and "| ≥ 15% | 0 | 0 |" in texto
     assert "mediana 12.0%" in texto
+
+
+# ------------------------------------------------------------------- variantes
+
+
+def test_variantes_cambian_una_sola_cosa():
+    from dataclasses import asdict
+
+    from shadow_alpaca.backtest_v2 import variantes
+    base = asdict(CFG)
+    esperado = {"v1": {("riesgo", "stop_origen"): "minimo_vela_ruptura"},
+                "v2": {("senal", "spread_max_pct"): 0.006},
+                "v3": {("senal", "rango_apertura_fin"): time(9, 45), ("senal", "ventana_inicio"): time(9, 46)},
+                "v4": {("riesgo", "stop_tiempo_minutos"): 60.0}}
+    assert asdict(variantes.aplicar(CFG, "base")) == base
+    for nombre, cambios in esperado.items():
+        v = asdict(variantes.aplicar(CFG, nombre))
+        difs = {(sec, k): v[sec][k] for sec in ("senal", "riesgo", "universo", "catalizador")
+                for k in v[sec] if v[sec][k] != base[sec][k]}
+        assert difs == cambios, nombre
+    with pytest.raises(KeyError):
+        variantes.aplicar(CFG, "v9")
+    assert CFG.riesgo.stop_max_pct == 0.04 and CFG.senal.spread_max_pct == 0.003   # la base no se toca
+
+
+def test_v1_usa_el_minimo_de_la_vela_de_ruptura():
+    from dataclasses import replace
+
+    from shadow_alpaca.backtest_v2 import variantes
+    cfg1 = variantes.aplicar(CFG, "v1")
+    s = motor.Senal("ACME", DIA, T, 10.0, 9.4, 1, 0.06, 4.0, "t", vela_bajo=9.9)
+    assert motor.origen_stop(s, CFG.riesgo) == 9.4 and motor.origen_stop(s, cfg1.riesgo) == 9.9
+    res = motor.Resultado()
+    motor.simular([s], _velas_por([s], [(10.0, 10.05, 9.95, 10.0)] * 3), cfg1, P, res)
+    assert len(res.trades) == 1 and res.trades[0].stop_inicial == pytest.approx(9.85)   # 1 % < 1,5 %: se aleja al mínimo
+    res2 = motor.Resultado()
+    motor.simular([s], _velas_por([s], [(10.0, 10.05, 9.95, 10.0)] * 3), CFG, P, res2)
+    assert res2.trades == [] and res2.no_entradas["stop_mayor_al_maximo"] == 1   # con el ORB (6 %) no entra
+    sin_vela = replace(s, vela_bajo=None)
+    assert motor.origen_stop(sin_vela, cfg1.riesgo) == 9.4   # sin dato de la vela, el ORB (no se inventa)
+
+
+def test_la_senal_guarda_el_minimo_de_la_vela_de_ruptura():
+    velas, previos, spy, buena = _dia_de_prueba()
+    res = motor.Resultado()
+    s = motor.senal_del_dia("ACME", DIA, velas, previos, spy, 0.06, [buena],
+                            lambda n: cat.Clasificacion(True, 1, "c", "alcista", 0.9), lambda m: 0.001, CFG, res)
+    assert s.vela_bajo == 10.3 and s.orb_bajo == 10.0
+
+
+def test_informe_mfe_de_salidas_por_tiempo_y_rangos_de_precio():
+    res = motor.Resultado()
+    for k, (motivo, mfe, precio) in enumerate([("tiempo", 0.1, 5.0), ("tiempo", 0.6, 15.0), ("tiempo", 1.2, 25.0),
+                                              ("objetivo", 2.1, 8.0), ("stop", 0.2, 30.0)]):
+        s = _senal(precio=precio, orb_bajo=precio * 0.97, ticker=f"T{k}")
+        res.trades.append(motor.Trade(s, 10, precio, s.orb_bajo, precio * 1.06, T, precio, T, precio, motivo,
+                                      2.0 if motivo == "objetivo" else -0.3, 0.0, mfe, 0.3))
+    texto = informe.markdown(res, CFG, DIA, DIA, P, informe.Criterios(), [], sesiones=1, variante="v4", descripcion="stop 60")
+    assert "variante v4" in texto and "**Variante `v4`:** stop 60" in texto
+    assert "### MFE de los trades que salieron por tiempo (3)" in texto
+    assert "| < 0.00 R | 0 |" in texto and "| 0.00–0.25 R | 1 |" in texto and "| 0.50–1.00 R | 1 |" in texto and "| 1.00–1.50 R | 1 |" in texto
+    assert "| $2–10 | 2 |" in texto and "| $10–20 | 1 |" in texto and "| $20–50 | 2 |" in texto
+    assert "MFE promedio / mediana" in texto
+    j = informe.metricas_json(res, "v4", "stop 60")
+    assert j["metricas"]["salidas"]["tiempo"] == 3 and j["mfe_tiempo"]["0.50–1.00 R"] == 1
+    assert set(j["por_precio"]) == {"$2–10", "$10–20", "$20–50"} and j["por_nivel"]["nivel 1"]["trades"] == 5
+
+
+def test_comparativo_de_variantes(tmp_path):
+    from shadow_alpaca.backtest_v2 import comparar
+    res = motor.Resultado()
+    s = _senal()
+    res.trades.append(motor.Trade(s, 10, 10.0, 9.7, 10.6, T, 10.0, T, 10.3, "tiempo", 1.0, 3.0, 1.2, 0.2))
+    res.senales.append(s)
+    base = tmp_path / "base.json"
+    base.write_text(json.dumps(informe.metricas_json(res, "base", "config")), encoding="utf-8")
+    v4 = tmp_path / "v4.json"
+    v4.write_text(json.dumps(informe.metricas_json(motor.Resultado(), "v4", "stop 60")), encoding="utf-8")
+    salida = tmp_path / "comp.md"
+    assert comparar.main([str(v4), str(base), "--salida", str(salida), "--desde", "2025-09-26", "--hasta", "2026-09-25"]) == 0
+    texto = salida.read_text(encoding="utf-8")
+    assert texto.index("| base |") < texto.index("| v4 |")      # la base primero
+    assert "| base | 1 | 100.0% | +1.00 R | ∞ | — | 0 / 1 / 0 / 0 / 0 | +1.20 R / +1.20 R | +0.20 R / +0.20 R |" in texto
+    assert "| v4 | 0 | — | — | — | — | 0 / 0 / 0 / 0 / 0 | — / — | — / — |" in texto
+    assert "## MFE de los trades que salieron por tiempo" in texto and "| base | 0 | 0 | 0 | 0 | 1 | 0 | 1 |" in texto
+    assert "| base $10–20 | 1 |" in texto and "| base $2–10 | 0 |" in texto and "| v4 nivel 1 | 0 |" in texto
+    ajeno = tmp_path / "ajeno.json"
+    ajeno.write_text("{}", encoding="utf-8")
+    with pytest.raises(ValueError):
+        comparar._cargar([ajeno])

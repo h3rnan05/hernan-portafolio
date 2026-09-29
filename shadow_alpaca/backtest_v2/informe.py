@@ -27,7 +27,32 @@ class Criterios:
 # Cortes del desglose (dimensiones del informe, no reglas de la estrategia).
 FRANJAS = ((time(9, 36), time(10, 0), "09:36–09:59"), (time(10, 0), time(10, 30), "10:00–10:29"),
            (time(10, 30), time(11, 1), "10:30–11:00"))
-RANGOS_PRECIO = ((2, 5, "$2–5"), (5, 10, "$5–10"), (10, 20, "$10–20"), (20, 50.01, "$20–50"))
+RANGOS_PRECIO = ((2, 10, "$2–10"), (10, 20, "$10–20"), (20, 50.01, "$20–50"))
+# Cortes de la distribución del MFE (en R) de los trades que salieron por tiempo.
+CORTES_MFE = (0.0, 0.25, 0.5, 1.0, 1.5)
+SALIDAS = ("stop", "tiempo", "objetivo", "breakeven", "cierre")
+
+
+def _mediana(xs: list[float]) -> float | None:
+    if not xs:
+        return None
+    o = sorted(xs)
+    n = len(o)
+    return o[n // 2] if n % 2 else (o[n // 2 - 1] + o[n // 2]) / 2
+
+
+def distribucion_mfe(trades) -> list[tuple[str, int]]:
+    """Histograma del MFE en R (los trades que se pasan son los que salieron por tiempo)."""
+    vals = [t.mfe_r for t in trades]
+    filas, previo = [], None
+    for corte in CORTES_MFE:
+        if previo is None:
+            filas.append((f"< {corte:.2f} R", sum(1 for v in vals if v < corte)))
+        else:
+            filas.append((f"{previo:.2f}–{corte:.2f} R", sum(1 for v in vals if previo <= v < corte)))
+        previo = corte
+    filas.append((f"≥ {previo:.2f} R", sum(1 for v in vals if v >= previo)))
+    return filas
 
 
 def metricas(trades, curva=None) -> dict:
@@ -51,6 +76,9 @@ def metricas(trades, curva=None) -> dict:
         "drawdown_max": dd,
         "mfe_r": sum(t.mfe_r for t in trades) / len(trades) if trades else None,
         "mae_r": sum(t.mae_r for t in trades) / len(trades) if trades else None,
+        "mfe_mediana_r": _mediana([t.mfe_r for t in trades]),
+        "mae_mediana_r": _mediana([t.mae_r for t in trades]),
+        "salidas": {m: sum(1 for t in trades if t.motivo == m) for m in SALIDAS},
         "pnl": sum(t.pnl for t in trades),
     }
 
@@ -161,14 +189,30 @@ def embudo_etapas(res, cfg, sesiones: int) -> list[str]:
     return out + [""]
 
 
-def markdown(res, cfg, desde, hasta, params, criterios: Criterios, notas: list[str], sesiones: int = 0) -> str:
+def metricas_json(res, variante: str, descripcion: str) -> dict:
+    """Lo que el comparativo necesita de una corrida, serializable."""
+    m = metricas(res.trades, res.curva)
+    por_tiempo = [t for t in res.trades if t.motivo == "tiempo"]
+    return {
+        "variante": variante, "descripcion": descripcion, "metricas": m,
+        "mfe_tiempo": dict(distribucion_mfe(por_tiempo)),
+        "por_precio": {n: metricas([t for t in res.trades if lo <= t.entrada_ref < hi]) for lo, hi, n in RANGOS_PRECIO},
+        "por_nivel": {f"nivel {n}": metricas([t for t in res.trades if t.senal.nivel == n]) for n in (1, 2)},
+        "senales": len(res.senales), "no_entradas": dict(res.no_entradas),
+    }
+
+
+def markdown(res, cfg, desde, hasta, params, criterios: Criterios, notas: list[str], sesiones: int = 0,
+             variante: str = "base", descripcion: str = "") -> str:
     m = metricas(res.trades, res.curva)
     veredicto = evaluar(m, criterios)
     pasa = all(ok for _, _, ok in veredicto)
     ahora = datetime.now(UTC)
     lineas = [
-        f"# Backtest estrategia v2 — {desde} a {hasta}",
+        f"# Backtest estrategia v2 — {desde} a {hasta}" + (f" — variante {variante}" if variante != "base" else ""),
         "",
+        *([f"**Variante `{variante}`:** {descripcion}. Un solo cambio sobre la config base; el YAML no cambia.", ""]
+          if variante != "base" else []),
         f"Generado {ahora:%Y-%m-%d %H:%M} UTC / {ahora.astimezone(MTY):%H:%M} Monterrey (UTC−6). "
         f"Config: `{cfg.ruta.name}` (versión {cfg.version}, prompt v{cfg.catalizador.prompt_version}, "
         f"modelo `{cfg.catalizador.modelo}`). Equity inicial ${params.equity_inicial:,.0f}, "
@@ -193,14 +237,23 @@ def markdown(res, cfg, desde, hasta, params, criterios: Criterios, notas: list[s
         f"| expectativa por trade | {_r(m['expectativa_r'])} |",
         f"| factor de beneficio | {_f(m['factor_beneficio'])} |",
         f"| drawdown máximo | {_p(m['drawdown_max'])} |",
-        f"| MFE promedio | {_r(m['mfe_r'])} |",
-        f"| MAE promedio | {_r(m['mae_r'])} |",
+        f"| MFE promedio / mediana | {_r(m['mfe_r'])} / {_r(m['mfe_mediana_r'])} |",
+        f"| MAE promedio / mediana | {_r(m['mae_r'])} / {_r(m['mae_mediana_r'])} |",
         f"| P&L simulado | ${m['pnl']:,.2f} |",
         "",
         "## Desglose",
         "",
     ]
     lineas += desgloses(res.trades)
+    por_tiempo = [t for t in res.trades if t.motivo == "tiempo"]
+    lineas += [f"### MFE de los trades que salieron por tiempo ({len(por_tiempo)})", "",
+               "Cuánto llegó a ir a favor cada uno antes de que el stop de tiempo lo cerrara:", "",
+               "| MFE | trades |", "|---|---:|"]
+    lineas += [f"| {k} | {v} |" for k, v in distribucion_mfe(por_tiempo)]
+    if por_tiempo:
+        mt = metricas(por_tiempo)
+        lineas += ["", f"Promedio {_r(mt['mfe_r'])}, mediana {_r(mt['mfe_mediana_r'])}; resultado medio {_r(mt['expectativa_r'])}."]
+    lineas += [""]
     lineas += embudo_etapas(res, cfg, sesiones)
     lineas += ["## Embudo (etapas alcanzadas, sin orden)", "", "| etapa | símbolo-días |", "|---|---:|"]
     lineas += [f"| {k} | {v} |" for k, v in res.embudo.items()]

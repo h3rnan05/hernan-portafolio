@@ -91,6 +91,15 @@ class Senal:
     gap: float
     rvol: float
     catalizador: str
+    vela_bajo: float | None = None   # mínimo de la vela de ruptura (variante v1 del stop)
+
+
+def origen_stop(s: Senal, r) -> float:
+    """De dónde sale el stop: el mínimo del rango de apertura (config) o,
+    en la variante `minimo_vela_ruptura`, el mínimo de la vela de ruptura."""
+    if r.stop_origen == "minimo_vela_ruptura" and s.vela_bajo is not None:
+        return s.vela_bajo
+    return s.orb_bajo
 
 
 @dataclass
@@ -270,7 +279,7 @@ def senal_del_dia(
             etapas.update({n for n, _ in ETAPAS} | {"catalizador"})
             elegida = next(n for n, c in clasif if cat.operable(c, cfg.catalizador) and c.nivel == nivel)
             _contar_etapas()
-            return Senal(ticker, dia, cierre, vela.c, ev.orb_bajo, nivel, gap, rv, elegida.titular)
+            return Senal(ticker, dia, cierre, vela.c, ev.orb_bajo, nivel, gap, rv, elegida.titular, vela.l)
         peor = ev.fallos
     _contar_etapas()
     if peor:
@@ -334,9 +343,9 @@ def simular(senales: list[Senal], velas_de: dict[tuple[str, date], list[Vela]], 
     # TODAS las señales (antes de los límites de cartera).
     for s in senales:
         if s.precio > 0:
-            d = (s.precio - s.orb_bajo) / s.precio
+            d = (s.precio - origen_stop(s, r)) / s.precio
             res.stop_requerido.append(d)
-            if reglas.stop_inicial(s.precio, s.orb_bajo, r) is None:
+            if reglas.stop_inicial(s.precio, origen_stop(s, r), r) is None:
                 res.stop_descartado.append(d)
             else:
                 res.embudo_etapas["stop"] += 1
@@ -371,7 +380,7 @@ def simular(senales: list[Senal], velas_de: dict[tuple[str, date], list[Vela]], 
         if entradas_dia >= r.max_entradas_dia:
             res.no_entradas["max_entradas_dia"] += 1
             continue
-        stop0 = reglas.stop_inicial(s.precio, s.orb_bajo, r)
+        stop0 = reglas.stop_inicial(s.precio, origen_stop(s, r), r)
         if stop0 is None:
             res.no_entradas["stop_mayor_al_maximo"] += 1
             continue

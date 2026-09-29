@@ -15,7 +15,7 @@ from pathlib import Path
 
 from estrategia_v2.config import cargar
 
-from shadow_alpaca.backtest_v2 import datos, informe, motor
+from shadow_alpaca.backtest_v2 import datos, informe, motor, variantes
 from shadow_alpaca.backtest_v2.clasificador import Clasificador, llamada_anthropic
 from shadow_alpaca.cliente import ClienteDatos
 from shadow_alpaca.jsonl_log import exigir_directorio_aislado
@@ -40,12 +40,15 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--sin-ia", action="store_true")
     ap.add_argument("--refrescar-universo", action="store_true")
     ap.add_argument("--simbolos", default=None, help="limitar a estos tickers (pruebas)")
+    ap.add_argument("--variante", default="base", choices=sorted(variantes.VARIANTES),
+                    help="un solo cambio sobre la config base (ver variantes.py)")
+    ap.add_argument("--metricas", type=Path, default=None, help="JSON con las métricas para el comparativo")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 
     exigir_directorio_aislado(args.almacen)
     exigir_directorio_aislado(args.salida.parent)
-    cfg = cargar()
+    cfg = variantes.aplicar(cargar(), args.variante)
     from momentum_hunter import universe
     universo = universe.cargar(refrescar=args.refrescar_universo, excluir_etf=False)
     if args.simbolos:
@@ -69,8 +72,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.simbolos:
         notas.insert(0, f"Universo recortado a: {args.simbolos}.")
     args.salida.parent.mkdir(parents=True, exist_ok=True)
-    args.salida.write_text(informe.markdown(res, cfg, args.desde, args.hasta, params, informe.Criterios(), notas, res.sesiones),
-                           encoding="utf-8")
+    args.salida.write_text(informe.markdown(res, cfg, args.desde, args.hasta, params, informe.Criterios(), notas, res.sesiones,
+                                            args.variante, variantes.descripcion(args.variante)), encoding="utf-8")
+    if args.metricas is not None:
+        import json
+        exigir_directorio_aislado(args.metricas.parent)
+        args.metricas.parent.mkdir(parents=True, exist_ok=True)
+        args.metricas.write_text(json.dumps(informe.metricas_json(res, args.variante, variantes.descripcion(args.variante)),
+                                            ensure_ascii=False, indent=1), encoding="utf-8")
     log.info("informe: %s · trades=%d · llamadas IA=%d · reintentos=%d · inválidas=%d", args.salida, len(res.trades),
              clasificador.llamadas, clasificador.reintentos, clasificador.invalidas)
     return 0
