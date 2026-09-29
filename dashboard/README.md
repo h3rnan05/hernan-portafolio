@@ -234,3 +234,30 @@ panel contaba eventos crudos. Desde entonces:
   si GitHub Actions (`momentum_hunter.yml`, el respaldo) lleva más de
   `DASH_GHA_MAX_MIN` (45) minutos sin una corrida exitosa en sesión. Sin
   dato de Actions no se inventa alerta.
+
+## Riesgo, velas y watchlist (2026-09-29)
+
+- **Velas**: la ventana arranca 15 min antes de la apertura de Nueva York
+  (`recortar_a_sesion`); si con eso quedan menos de 5 velas se deja la serie
+  entera. Se dibuja el **objetivo** (límite de venta vivo del bracket) y el
+  **VWAP** acumulado desde la apertura, calculado con las mismas velas del
+  gráfico; si a una vela de la sesión le falta el volumen, el VWAP se corta
+  ahí. Las etiquetas se reparten para no encimarse (`repartir_etiquetas`):
+  las líneas quedan en su precio, solo el texto se mueve.
+- **`held`** se muestra según dónde está la pata: en una posición llena es
+  "activo (OCO)" (Alpaca lo vigila y protege); en una compra pendiente,
+  "tras el fill".
+- **Riesgo por fila**: (entrada − stop) × cantidad y objetivo/riesgo en R.
+  En pendientes, el riesgo si llena al límite y cuánto lleva esperando
+  contra `minutos_maximos_entrada_sin_llenar`. Un stop por encima de la
+  entrada se muestra como ganancia asegurada.
+- **Uso de límites** (panel Límites de riesgo): cupo de jugadas contado
+  como `executor._leer_cuenta` (símbolos con posición ∪ con orden abierta)
+  contra `maximo_posiciones_abiertas`; concentración por posición contra
+  `maximo_pct_efectivo_por_posicion`; riesgo total al stop; invertido y
+  efectivo. Los topes se leen de `momentum_paper_trader.config.CONFIG`,
+  no se copian. Un dato que falta es "sin dato", nunca 0.
+- **Watchlist**: activas arriba (disparadas primero); las terminales de hoy
+  quedan plegadas. El título resume disparadas, vigilando y banda de cap.
+- **Panel viejo**: el HTML lleva su hora de generación; si el navegador ve
+  que tiene 3 min o más, aparece una píldora roja en la cabecera.
