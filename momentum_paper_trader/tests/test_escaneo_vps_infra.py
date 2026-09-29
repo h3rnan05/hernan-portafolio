@@ -39,6 +39,7 @@ def test_timer_del_escaneo_cada_30_min_en_sesion_sin_pisar_al_rechequeo():
     texto = SCAN_TIMER.read_text(encoding="utf-8")
     # :20, no :00: el pre-pull no puede seguir vivo cuando el vigía escribe a los :05.
     assert "OnCalendar=Mon..Fri *-*-* 13..20:01,31:20 UTC" in texto
+    assert "OnCalendar=Mon..Fri *-*-* 21:01:20 UTC" in texto
     assert "Persistent=false" in texto
     assert "Unit=momentum-scan.service" in texto
     servicio = SCAN_SERVICE.read_text(encoding="utf-8")

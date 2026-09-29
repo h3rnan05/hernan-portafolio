@@ -1,0 +1,40 @@
+# Stream SIP de barras de minuto. PAPER DATA ONLY.
+# Una conexión al feed de datos (el host está en el código, no acá).
+# No coloca órdenes. Modo sombra: el hunter no lee este almacén para
+# decidir. NO se enciende solo.
+#
+# Desde /opt/hernan-portafolio, con main al día:
+#
+#   .venv/bin/pip install -r momentum_hunter/requirements.txt
+#   sudo install -m 755 infra/systemd/bin/run_sip_stream.sh /opt/momentum/bin/
+#   sudo cp infra/systemd/momentum-sip-stream.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now momentum-sip-stream.service
+#
+# Apagar:
+#   sudo systemctl disable --now momentum-sip-stream.service
+
+[Unit]
+Description=Stream SIP de barras de minuto (dueño único, modo sombra, solo datos)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=/etc/momentum/paper.env
+ExecStart=/opt/momentum/bin/run_sip_stream.sh
+# on-failure: el flag 0 sale con 0 y no debe reabrir el socket en bucle.
+# Una caída (exit 1) sí vuelve.
+Restart=on-failure
+RestartSec=15
+Nice=10
+KillMode=mixed
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

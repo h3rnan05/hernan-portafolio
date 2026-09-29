@@ -307,6 +307,24 @@ def formatear_colocada(
     ])
 
 
+def formatear_halt(
+    *,
+    ticker: str,
+    detalle: str | None = None,
+    fuente: str | None = None,
+) -> str:
+    """Posición abierta y el símbolo está en halt. No es una orden:
+    no se vendió ni se canceló el stop. El detalle es el código que
+    vimos, no el cuerpo de una respuesta."""
+    origen = f"fuente {fuente}" if fuente else None
+    return _armar(ESTADO_ERROR, [
+        _linea_ticker(ticker, "halt"),
+        escapar(_razon_corta(detalle)) if _razon_corta(detalle) else None,
+        escapar(origen) if origen else None,
+        "Hay posición abierta. No se vende ni se cancela el stop.",
+    ])
+
+
 def formatear_cancelada(
     *,
     ticker: str,

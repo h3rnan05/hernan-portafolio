@@ -62,6 +62,11 @@ local_data/
 /momentum_paper_trader/revisiones.json
 /momentum_paper_trader/archivo_triggered.jsonl
 
+# Red de seguridad. El catálogo ya no se escribe acá: vive en
+# /var/lib/momentum/estado/datos/. Si alguien apunta
+# MOMENTUM_CATALOGO_ACTIVOS de vuelta al árbol, igual no entra a git.
+momentum_hunter/datos/alpaca_assets.json
+
 # Logs rotativos que genera el SDK de Webull al correr las sondas
 webull_trade_sdk.log*
 dashboard_site/

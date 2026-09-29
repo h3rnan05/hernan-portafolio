@@ -5,6 +5,8 @@ preguntas de la narrativa estén presentes, y que el mensaje sea corto."""
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from momentum_hunter.alerts import CandidatoIntradia
 from momentum_hunter.catalysts.detector import Catalizador
 from momentum_hunter.config import CONFIG
@@ -271,7 +273,12 @@ def test_ventana_estimada_por_patron_y_hora():
 
 def test_ventana_acotada_por_el_cierre():
     c = _candidato(patron="gap_and_go")   # base 30 min, pero quedan ~6 min de sesión
-    o = construir_oportunidad(c, CONFIG.velas_maximas_desde_patron, hora_utc=19.9)
+    # 26/8/2026 es horario de verano: el cierre de un día normal es 20:00 UTC.
+    # La fecha va fija para que el calendario no dependa del reloj de la CI.
+    o = construir_oportunidad(
+        c, CONFIG.velas_maximas_desde_patron, hora_utc=19.9,
+        momento=datetime(2026, 8, 26, 19, 54, tzinfo=UTC),
+    )
     assert "≈15 minutos" in o.ventana_texto
 
 

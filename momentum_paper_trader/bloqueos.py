@@ -44,6 +44,7 @@ CIERRE_CERCANO = "CIERRE_CERCANO"
 MAXIMO_POSICIONES = "MAXIMO_POSICIONES"
 DATO_FALTANTE_RELOJ = dato_faltante("reloj_mercado")     # /v2/clock ilegible
 DATO_FALTANTE_CUENTA = dato_faltante("cuenta")           # cash/equity ilegibles o ausentes
+DATO_FALTANTE_CALENDARIO = dato_faltante("calendario_sesion")  # archivo de sesión ausente o sin el día
 
 # -- Por señal (`bloqueo_riesgo`) --
 DATO_FALTANTE_NIVELES = dato_faltante("niveles")                   # TRIGGERED sin entrada/stop/objetivo
@@ -56,15 +57,19 @@ PRECIO_FUERA_DE_ALCANCE = "PRECIO_FUERA_DE_ALCANCE"
 ACTIVO_NO_OPERABLE = "ACTIVO_NO_OPERABLE"
 FUERA_DE_BANDA = "FUERA_DE_BANDA"
 FRACCION_INSUFICIENTE = "FRACCION_INSUFICIENTE"
+# Halt, LULD que restringe, o dato de halt ausente/viejo en enforce.
+# No es DATO_FALTANTE: el panel lo agrupa con esta razón, y el detalle
+# (situacion) dice si faltó el dato o había un halt de verdad.
+BLOQUEO_HALT = "BLOQUEO_HALT"
 
 CODIGOS_GLOBALES = frozenset({
     MERCADO_CERRADO, CIERRE_CERCANO, MAXIMO_POSICIONES,
-    DATO_FALTANTE_RELOJ, DATO_FALTANTE_CUENTA,
+    DATO_FALTANTE_RELOJ, DATO_FALTANTE_CUENTA, DATO_FALTANTE_CALENDARIO,
 })
 CODIGOS_POR_SENAL = frozenset({
     DATO_FALTANTE_NIVELES, DATO_FALTANTE_NIVELES_VIEJOS, DATO_FALTANTE_ACTIVO,
     RIESGO_POR_OPERACION, TICKER_COMPROMETIDO, CONCENTRACION, PRECIO_FUERA_DE_ALCANCE,
-    ACTIVO_NO_OPERABLE, FUERA_DE_BANDA, FRACCION_INSUFICIENTE,
+    ACTIVO_NO_OPERABLE, FUERA_DE_BANDA, FRACCION_INSUFICIENTE, BLOQUEO_HALT,
 })
 CODIGOS_CONOCIDOS = CODIGOS_GLOBALES | CODIGOS_POR_SENAL
 
@@ -74,6 +79,7 @@ CODIGO_POR_LIMITE_LEGADO = {
     "mercado_cerrado": MERCADO_CERRADO,
     "cierre_cercano": CIERRE_CERCANO,
     "cuenta_ilegible": DATO_FALTANTE_CUENTA,
+    "calendario_sesion": DATO_FALTANTE_CALENDARIO,
     "niveles_rancios": DATO_FALTANTE_NIVELES_VIEJOS,
     "riesgo_por_operacion": RIESGO_POR_OPERACION,
     "ticker_comprometido": TICKER_COMPROMETIDO,
@@ -82,6 +88,7 @@ CODIGO_POR_LIMITE_LEGADO = {
     "activo_no_operable": ACTIVO_NO_OPERABLE,
     "fuera_de_banda": FUERA_DE_BANDA,
     "fraccion_insuficiente": FRACCION_INSUFICIENTE,
+    "halt": BLOQUEO_HALT,
 }
 
 

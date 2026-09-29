@@ -1,0 +1,15 @@
+[Unit]
+Description=Timer del catálogo de activos paper (diario 12:05 UTC). NO se habilita solo
+Requires=momentum-assets.service
+
+[Timer]
+# 12:05 UTC, antes de la ventana de escaneo (13:00). Persistent=true
+# a propósito, al revés que el escaneo: si el VPS estaba apagado a las
+# 12:05, al volver corre y el archivo todavía cubre ese día UTC. Un
+# escaneo atrasado no sirve; esta foto sí.
+OnCalendar=*-*-* 12:05:00 UTC
+Persistent=true
+Unit=momentum-assets.service
+
+[Install]
+WantedBy=timers.target

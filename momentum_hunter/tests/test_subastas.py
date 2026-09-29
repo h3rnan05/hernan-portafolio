@@ -135,11 +135,21 @@ def _bi(ticker="ACME"):
                          [50.1, 56.6, 57.0], [49.9, 55.8, 56.3], [1000.0, 5000.0, 4000.0])
 
 
-def test_el_gap_oficial_gana_sobre_el_de_velas():
+def test_el_gap_oficial_gana_sobre_el_de_velas_en_enforce(monkeypatch):
     from momentum_hunter.config import MomentumConfig
+    monkeypatch.setenv("MOMENTUM_GAP_OFICIAL", "enforce")
     c = run_mod._construir_candidato_intradia(
         "ACME", None, None, None, False, 1.0, 50.0, 50.0, _bi(), MomentumConfig(), gap_oficial=0.10)
     assert c.factores.gap_pct == pytest.approx(0.10)       # velas dirían +12 %
+
+
+def test_observar_no_cambia_el_gap_de_velas(monkeypatch):
+    """Default del encargo: medir sin alterar la entrada de la v1."""
+    from momentum_hunter.config import MomentumConfig
+    monkeypatch.delenv("MOMENTUM_GAP_OFICIAL", raising=False)
+    c = run_mod._construir_candidato_intradia(
+        "ACME", None, None, None, False, 1.0, 50.0, 50.0, _bi(), MomentumConfig(), gap_oficial=0.10)
+    assert c.factores.gap_pct == pytest.approx(0.12)
 
 
 def test_sin_gap_oficial_queda_el_de_velas():

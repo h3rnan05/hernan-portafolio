@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from momentum_hunter import classification, evaluator
+from momentum_hunter import calendario, classification, evaluator
 from momentum_hunter.alerts import CandidatoIntradia
 from momentum_hunter.config import MomentumConfig
 from momentum_hunter.models import FactoresIntradia, Oportunidad
@@ -82,13 +82,19 @@ _VENTANA_MINUTOS: dict[str, int | None] = {
     "high_tight_flag": 15,
     "trend_continuation": None,
 }
-_HORA_CIERRE_UTC = 20.0
 
 
-def _ventana_texto(patron: str, hora_utc: float | None) -> str:
+def _ventana_texto(patron: str, hora_utc: float | None, momento: datetime | None = None) -> str:
     if hora_utc is None:
         return ""
-    minutos_a_cierre = max(0.0, (_HORA_CIERRE_UTC - hora_utc) * 60.0)
+    # El cierre sale del calendario de ESE día (16:00 NY en un día normal,
+    # 13:00 en una media sesión, 13:00 NY si el archivo no cubre la fecha).
+    # `hora_utc` sigue siendo la hora del mensaje: los tests y el caller
+    # la inyectan, y no tiene por qué ser el reloj de pared.
+    cierre_utc = calendario.hora_cierre_utc(momento or datetime.now(UTC))
+    if cierre_utc is None:
+        return "La sesión ya está cerrando -- casi no queda ventana."
+    minutos_a_cierre = max(0.0, (cierre_utc - hora_utc) * 60.0)
     base = _VENTANA_MINUTOS.get(patron)
     minutos = minutos_a_cierre if base is None else min(float(base), minutos_a_cierre)
     if minutos <= 0:
@@ -325,6 +331,7 @@ def construir_oportunidad(
     n_evaluados: int = 0, rank: int = 0, n_universo: int = 0,
     confianza_texto: str = "", calidad_historica: str = "",
     hora_utc: float | None = None, cfg: MomentumConfig | None = None,
+    momento: datetime | None = None,
 ) -> Oportunidad:
     """Ensambla la `Oportunidad` final -- ya se decidió que se manda
     (accionable + sobrevivió al abogado del diablo + la última
@@ -356,7 +363,7 @@ def construir_oportunidad(
         else "Si pierde el nivel que activó la entrada, se cancela la idea."
     )
 
-    ahora = datetime.now(UTC)
+    ahora = momento or datetime.now(UTC)
     return Oportunidad(
         ticker=candidato.ticker, nombre=candidato.nombre,
         urgencia=_NOMBRE_URGENCIA[urgencia_clave], urgencia_emoji=_EMOJI_URGENCIA[urgencia_clave],
@@ -378,7 +385,7 @@ def construir_oportunidad(
         rank=rank, n_universo=n_universo,
         por_que_unica=_por_que_unica(candidato, niveles["stop"]),
         confianza_texto=confianza_texto, calidad_historica=calidad_historica,
-        ventana_texto=_ventana_texto(patron, hora_utc),
+        ventana_texto=_ventana_texto(patron, hora_utc, ahora),
         señales_confirman=_SEÑALES_CONFIRMAN.get(patron, []),
         señales_fallan=_SEÑALES_FALLAN.get(patron, []),
         zona_entrada_baja=zona_baja, zona_entrada_alta=zona_alta,

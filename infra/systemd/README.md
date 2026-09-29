@@ -37,6 +37,10 @@ Alpaca.
 | `shadow/momentum-shadow-noticias.service` / `.timer` | **NO se instala solo** | sombra B1: noticias Alpaca+Yahoo, JSONL fuera del repo (`shadow_alpaca/`) |
 | `shadow/momentum-shadow-screener.service` / `.timer` | **NO se instala solo** | sombra B2: most-actives y movers cada 5 min; no filtra market cap |
 | `bin/run_shadow_noticias.sh`, `bin/run_shadow_screener.sh` | `/opt/momentum/bin/` (solo si se instala la sombra Alpaca) | no-op salvo `SHADOW_ALPACA=1`; no hacen git ni tocan la watchlist |
+| `momentum-assets.service` / `.timer` | **NO se habilita solo** | diario 12:05 UTC: `GET /v2/assets` del host paper → `/var/lib/momentum/estado/datos/alpaca_assets.json` (fuera del repo). El hunter solo lee ese archivo |
+| `bin/run_assets.sh` | `/opt/momentum/bin/` (solo si se habilita el catálogo) | wrapper del job de activos; no filtra ni coloca órdenes |
+| `momentum-sip-stream.service` | **NO se instala solo** | proceso permanente: UNA conexión websocket SIP de barras de minuto, modo sombra (`momentum_hunter/data/sip_stream.py`). No decide |
+| `bin/run_sip_stream.sh` | `/opt/momentum/bin/` (solo si se instala el stream) | wrapper: fuerza `MOMENTUM_SIP_STREAM=sombra`; no coloca órdenes |
 
 **No versionado a propósito:** `/etc/momentum/paper.env` (credenciales;
 viven en el VPS y en GitHub Secrets, nunca en el repo).
@@ -65,6 +69,8 @@ Desde `/opt/hernan-portafolio` con `main` al día:
 
 ```bash
 # El glob no entra en shadow/: esas unidades no son del camino operativo.
+# Copia momentum-sip-stream.service al disco y no lo habilita. Encenderlo
+# es la sección "Stream SIP en sombra", a mano, y nunca con primario.
 sudo cp infra/systemd/*.service infra/systemd/*.timer /etc/systemd/system/
 sudo mkdir -p /etc/systemd/system/momentum-watchlist.service.d
 sudo cp infra/systemd/momentum-watchlist.service.d/*.conf \
@@ -215,11 +221,122 @@ sudo systemctl restart momentum-movers-sombra.timer
 systemctl list-timers momentum-movers-sombra.timer
 ```
 
+## Catálogo de activos paper (NO se habilita solo)
+
+Un proceso distinto del escaneo y del vigía. Una vez al día, a las
+12:05 UTC, pide `GET /v2/assets?status=active&asset_class=us_equity` al
+host que ya está fijo en `alpaca_client._BASE_URL`
+(`https://paper-api.alpaca.markets`) con `ALPACA_PAPER_API_KEY` /
+`ALPACA_PAPER_API_SECRET`, y escribe
+`/var/lib/momentum/estado/datos/alpaca_assets.json`. La ruta sale de
+`MOMENTUM_ESTADO_DIR` (default `/var/lib/momentum/estado`); el archivo
+es `datos/alpaca_assets.json` debajo. No vive en el árbol git. La
+entrada de `.gitignore` sobre `momentum_hunter/datos/alpaca_assets.json`
+se queda por si alguien apunta el archivo de vuelta al repo.
+
+El hunter no llama a ese endpoint y no crea el directorio. Si el
+archivo falta, tiene más de 36 h, no es de hoy (UTC) o trae menos de
+5000 símbolos, no filtra por él y deja `assets_desconocido` junto con
+`assets_motivo` (`ausente`, `viejo` o `pocos`) en la telemetría. Un
+catálogo corto se escribe igual: es lo que devolvió el host. Quien
+no lo usa para filtrar es el hunter.
+
+`Persistent=true` porque una corrida atrasada todavía cubre el día. El
+escaneo, que sí pierde el slot si llega tarde, sigue en `Persistent=false`.
+
+El `cp` de arriba copia la unidad junto con las demás. No la habilita.
+Para encenderla, a mano, desde `/opt/hernan-portafolio` con `main` al día:
+
+```bash
+sudo mkdir -p /var/lib/momentum/estado/datos
+sudo chown momentum:momentum /var/lib/momentum/estado /var/lib/momentum/estado/datos
+sudo install -m 755 infra/systemd/bin/run_assets.sh /opt/momentum/bin/
+sudo cp infra/systemd/momentum-assets.service infra/systemd/momentum-assets.timer /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now momentum-assets.timer
+# una pasada ahora, sin esperar a las 12:05:
+sudo systemctl start momentum-assets.service
+sudo journalctl -u momentum-assets.service -n 40 --no-pager
+```
+
+La unidad también declara `StateDirectory=momentum/estado/datos` (crea
+ese directorio con dueño `momentum` antes de arrancar) y
+`ReadWritePaths=/var/lib/momentum/estado`. El `mkdir` y el `chown` de
+arriba dejan el mismo sitio listo para una corrida a mano, antes de
+que systemd lo cree.
+
+Tiene que quedar una línea `catálogo de activos escrito: N símbolos` y
+el archivo en `/var/lib/momentum/estado/datos/alpaca_assets.json`. Si
+faltan las claves o el HTTP no es 200, la unidad falla y el archivo
+anterior no se toca.
+
+Apagar: `sudo systemctl disable --now momentum-assets.timer`. El hunter
+vuelve solo al comportamiento de antes (no filtra por este dato). No
+hace falta revertir código.
+
+## Stream SIP en sombra (2026-09-28): NO se instala solo
+
+Un proceso dueño del websocket de datos `wss://stream.data.alpaca.markets/v2/sip`
+(barras de minuto de la watchlist viva y de las posiciones abiertas que ya
+están en `revisiones.json`). No llama a `/v2/orders` ni a `/v2/positions`.
+Alpaca deja una sola conexión a ese endpoint en este plan: el candado del
+almacén impide un segundo proceso, y no se suscribe al wildcard `*`.
+
+**Sombra durante 3 sesiones.** `MOMENTUM_SIP_STREAM` queda en `sombra` (es
+el default del código y lo fuerza el wrapper). El hunter y el ejecutor no
+leen este almacén para decidir. `primario` está implementado —si el
+almacén está viejo, caído o incompleto, el minuto sigue por REST y un dato
+ausente no cuenta como cero— y no se enciende acá. El proceso no se
+promociona solo al tercer día.
+
+Escribe fuera del repo, en `$MOMENTUM_ESTADO_DIR/sip_stream/`
+(default `/var/lib/momentum/estado/sip_stream/`): `barras/YYYY-MM-DD.jsonl`,
+`estado.json` (atómico) y `telemetria/YYYY-MM-DD.jsonl` del comparador.
+Nada de eso entra al árbol git.
+
+Comparar un día (no opera):
+
+```bash
+.venv/bin/python -m momentum_hunter.data.sip_stream_comparar --dia YYYY-MM-DD --pedir-rest
+```
+
+Instalar, a mano, desde `/opt/hernan-portafolio` con `main` al día:
+
+```bash
+cd /opt/hernan-portafolio
+git pull --rebase origin main
+.venv/bin/pip install -r momentum_hunter/requirements.txt
+sudo install -m 755 infra/systemd/bin/run_sip_stream.sh /opt/momentum/bin/
+sudo cp infra/systemd/momentum-sip-stream.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now momentum-sip-stream.service
+sudo systemctl status momentum-sip-stream.service
+```
+
+No hace falta reiniciar el vigía: con el flag en sombra el minuto sigue
+saliendo del REST. No poner `MOMENTUM_SIP_STREAM=primario` en
+`/etc/momentum/paper.env` en estas sesiones.
+
+Apagar:
+
+```bash
+sudo systemctl disable --now momentum-sip-stream.service
+```
+
+El directorio de estado no se borra al apagar. Un rollback del código
+deja el REST como estaba; las barras acumuladas se quedan en
+`/var/lib/momentum/estado/sip_stream/`.
+
+La watchlist y las revisiones que suscribe son las de #200:
+`$MOMENTUM_ESTADO_DIR/momentum_hunter/watchlist.json` y
+`$MOMENTUM_ESTADO_DIR/momentum_paper_trader/revisiones.json`. Si el
+destino no existe y el legado del repo sí, se copia una vez. Un
+archivo ausente no se trata como cero símbolos.
+
 ## Vigía (2026-09-22): rechequeo + paper cada 60 s, sin timer
 
 Pedido del dueño: "que corra todo el tiempo sin pararse cada 5 minutos; al
 tiro". `momentum-vigia.service` es un proceso permanente
-(`momentum_paper_trader/vigia.py`) que en sesión (Lun–Vie 13:00–20:00 UTC)
+(`momentum_paper_trader/vigia.py`) que en sesión (la ventana sale del calendario de Alpaca, no de un 13:00–20:01 UTC fijo)
 corre a los :05 de cada minuto `momentum_hunter.run --solo-watchlist` y
 `momentum_paper_trader.run`, y cada 5 ticks (y al cerrar la ventana) llama
 al wrapper del rechequeo en modo `MOMENTUM_WRAPPER_SOLO_PERSISTIR=1` para
@@ -248,6 +365,53 @@ sudo systemctl disable --now momentum-watchlist.timer
 sudo systemctl enable --now momentum-vigia.service
 sudo journalctl -u momentum-vigia.service -f
 ```
+
+## Calendario de sesión (2026-09-28)
+
+El horario ya no es 9:30–16:00 fijo ni 13:00–20:01 UTC. Un job del lado
+paper lee `GET /v2/calendar` y `GET /v2/clock` (host paper, no el de
+datos) y escribe `/var/lib/momentum/calendario_alpaca.json`. El hunter
+solo lee ese archivo. El vigía abre la ventana media hora antes de la
+apertura del día y la cierra un minuto después del cierre, así el cierre
+diario corre en invierno (21:00 UTC) y en una media sesión. Los timers
+de systemd quedan en un tramo ancho **13:00–21:30 UTC**; el código es el
+que gatea. Sin archivo, o si no cubre hoy: no hay entradas nuevas, el
+cierre usa las 13:00 America/New_York y sale un Telegram (una vez al día).
+
+Hay que **reiniciar el vigía**: el proceso ya cargado no ve el código
+nuevo en el tick siguiente.
+
+Desde `/opt/hernan-portafolio` con `main` al día, fuera del tramo
+13:00–21:35 UTC (o con el deploy forzado, sabiendo que se cruza con un
+persist):
+
+```bash
+cd /opt/hernan-portafolio
+git pull --rebase origin main
+sudo install -m 755 infra/systemd/bin/run_calendario.sh infra/systemd/bin/run_vigia.sh /opt/momentum/bin/
+sudo cp infra/systemd/momentum-calendario.service infra/systemd/momentum-calendario.timer \
+        infra/systemd/momentum-vigia.service \
+        infra/systemd/momentum-scan.timer \
+        infra/systemd/momentum-watchlist.timer \
+        infra/systemd/momentum-watchlist-watchdog.timer \
+        infra/systemd/momentum-movers-sombra.timer \
+        /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now momentum-calendario.timer
+sudo systemctl restart momentum-vigia.service
+systemctl start momentum-calendario.service
+systemctl list-timers 'momentum*'
+journalctl -u momentum-calendario.service -n 40 --no-pager
+```
+
+`MOMENTUM_CALENDARIO_PATH` en `paper.env` cambia la ruta; si no está,
+el default es `/var/lib/momentum/calendario_alpaca.json`. El timer de
+las 12:15 UTC y el arranque del vigía refrescan. Si Alpaca no responde,
+el archivo anterior se conserva.
+
+Vuelta atrás del corte de invierno, sin borrar el archivo: reinstalar
+las unidades del commit anterior y `sudo systemctl restart momentum-vigia.service`.
+El timer nuevo se apaga con `sudo systemctl disable --now momentum-calendario.timer`.
 
 ### Estado fuera del repo (2026-09-28)
 
@@ -322,7 +486,7 @@ hace la copia a `/var/lib/momentum/estado` antes del `git pull --rebase
 origin main` e instala los wrappers en `/opt/momentum/bin/`. No reinicia
 servicios (el daemon-reload y el restart son del operador), no usa
 `--force` ni `reset --hard`,
-y se niega a correr en sesión (13:00-20:05 UTC) salvo que se marque
+y se niega a correr en el tramo ancho (13:00-21:35 UTC) salvo que se marque
 `forzar_en_sesion`.
 
 Secretos del repositorio (Settings → Secrets and variables → Actions):

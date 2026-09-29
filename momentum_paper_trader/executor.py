@@ -24,6 +24,10 @@ criterio de la IA -- los límites de riesgo nunca dependen de un LLM):
   - nunca una orden con el mercado cerrado (quedaría encolada para la
     apertura siguiente, con un precio de hoy -- ver `_mercado_cerrado`),
   - nunca un símbolo que Alpaca no marque como operable,
+  - nunca una entrada con el símbolo en halt, con la banda LULD
+    dejando el precio afuera, o sin un dato fresco de que se puede
+    negociar, cuando `MOMENTUM_HALTS=enforce` (en `observar`, el
+    default, solo se registra y se avisa; ver `halts.py`),
   - cada orden lleva un `client_order_id` derivado de la señal, para que
     un reintento del workflow no pueda duplicarla (ver `_id_de_orden`),
   - si la cuenta, el reloj o la ficha del activo no se pueden leer, no
@@ -34,9 +38,10 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta
 
-from momentum_hunter import sesion, watchlist
+from momentum_hunter import calendario as calendario_sesion, sesion, watchlist
 
-from momentum_paper_trader import aviso_fallo_ia, bloqueos, estado, ia_decision, notify, telemetria
+from momentum_hunter.data.halts import desconocido as _desconocido_halt
+from momentum_paper_trader import aviso_fallo_ia, bloqueos, estado, halts, ia_decision, notify, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig, banda_de
 
@@ -298,10 +303,9 @@ def _activo_no_operable(client: AlpacaPaperClient, ticker: str) -> str | None:
     """Motivo por el que NO se debe operar este símbolo, o `None` si se
     puede.
 
-    Alpaca no expone un campo de "halted" intradía, así que `tradable`
-    es lo más cerca que se puede estar sin una fuente externa de halts.
-    No cubre un halt que empezó hace cinco minutos -- limitación real,
-    documentada, no resuelta.
+    `tradable` es la ficha del activo (se puede negociar en Alpaca), no
+    el halt intradía. Ese lo mira `halts.py` con el feed de datos: un
+    halt de hace cinco minutos no cambia esta ficha.
 
     FAIL-CLOSED: si la ficha del activo no se puede leer, no se opera.
     Mismo criterio que el reloj y la cuenta."""
@@ -491,6 +495,22 @@ def ejecutar(
 
     cuenta: _EstadoCuenta | None = None
     if not dry_run:
+        # Sin calendario para hoy no se abre nada, aunque el reloj en vivo
+        # diga que el mercado está abierto: no sabemos si es media sesión
+        # o feriado. La señal sigue viva. El aviso es una vez por día.
+        if calendario_sesion.consultar(ahora).desconocido:
+            try:
+                from momentum_paper_trader.aviso_calendario import avisar_si_desconocido
+                avisar_si_desconocido(ahora)
+            except Exception as ex:
+                log.warning("calendario: no se pudo avisar (%s)", type(ex).__name__)
+            motivo = "no hay calendario de sesión para hoy -- no se abren entradas (fail-closed)"
+            log.info("no se colocan órdenes en esta corrida: %s", motivo)
+            _capacidad_llena(dry_run, metricas, codigo=bloqueos.DATO_FALTANTE_CALENDARIO,
+                             limite="calendario_sesion", motivo=motivo, n_pendientes=len(pendientes))
+            if metricas is not None:
+                metricas.cerrar_corrida()
+            return nuevas
         # Antes que nada: ¿el mercado está abierto? Una orden colocada
         # fuera de sesión no falla, queda encolada para mañana (ver
         # `_mercado_cerrado`). No se registra ninguna revisión: la señal
@@ -546,6 +566,19 @@ def ejecutar(
             if metricas is not None:
                 metricas.cerrar_corrida()
             return nuevas
+
+    # Halt / LULD una sola vez por corrida, para todos los tickers que
+    # todavía pueden llegar a una orden. `off` no consulta. Observar
+    # anota y sigue; enforce no manda la entrada si no se puede afirmar
+    # que el símbolo está negociando (ver `halts.py`).
+    lecturas_halt: dict = {}
+    modo_halt = halts.MODO_OFF if dry_run else halts.modo()
+    if modo_halt != halts.MODO_OFF:
+        lecturas_halt = halts.lecturas_de(
+            [e.ticker for e in pendientes],
+            ahora,
+            {e.ticker: e.ultima_entrada for e in pendientes},
+        )
 
     for e in pendientes:
         _evento(dry_run, "deteccion", ticker=e.ticker, creado_en=e.creado_en,
@@ -680,6 +713,34 @@ def ejecutar(
             _bloqueo(dry_run, metricas, codigo=codigo_activo, ticker=e.ticker,
                      limite="activo_no_operable", motivo=motivo_activo)
             continue
+
+        if modo_halt != halts.MODO_OFF:
+            clave_halt = e.ticker.strip().upper()
+            lectura_halt = lecturas_halt.get(clave_halt)
+            if lectura_halt is None:
+                lectura_halt = _desconocido_halt(
+                    clave_halt, fuente="ausente", detalle="sin lectura de halt",
+                )
+            frena = halts.impide_entrada(lectura_halt, modo_halt)
+            halts.registrar(
+                lectura_halt, modo_halt, "bloqueada" if frena else "observada", ahora,
+            )
+            if lectura_halt.en_halt is True or lectura_halt.restringe_luld is True or frena:
+                log.info(
+                    "%s: %s (%s, fuente %s, modo %s)",
+                    e.ticker, lectura_halt.detalle, lectura_halt.situacion,
+                    lectura_halt.fuente, modo_halt,
+                )
+            if frena:
+                # No se registra la revisión: el halt se levanta y la
+                # señal sigue siendo la misma. Tampoco se toca una
+                # posición ya abierta ni su stop.
+                _bloqueo(
+                    dry_run, metricas, codigo=bloqueos.BLOQUEO_HALT, ticker=e.ticker,
+                    limite="halt", motivo=lectura_halt.detalle,
+                    situacion=lectura_halt.situacion, fuente=lectura_halt.fuente,
+                )
+                continue
 
         decision = ia_decision.decidir(e, cuenta.contexto_para_ia())
         ia_decision_ts = _ahora_iso()
