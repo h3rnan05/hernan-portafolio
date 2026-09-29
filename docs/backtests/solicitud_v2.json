@@ -7,17 +7,13 @@
   "max_llamadas_ia": 3000,
   "salida_prefijo": "estrategia_v2_2025-09-26_2026-09-25",
   "variantes": [
-    "base",
-    "diagnostico",
-    "e1",
-    "e2",
-    "e3",
-    "u1",
-    "pead",
-    "seguimiento"
+    "u1_obj15",
+    "u1_st45",
+    "peadnoticia"
   ],
-  "intento": 7,
+  "intento": 8,
   "nota_intento_5": "Base con stop 4 % y cuatro variantes de un solo cambio (variantes.py), un job por variante, comparativo al final. Caché de clasificaciones completa.",
   "nota_intento_6": "Fase 1 (diagnóstico de entrada, sin trades) y Fase 2 (entradas e1/e2/e3 y universo u1), un job por variante; base repetida para el comparativo.",
-  "nota_intento_7": "Repite el intento 6 (su commit final falló por un push durante la corrida) y suma los planes B (pead, seguimiento) de la fase 5, solo lectura."
+  "nota_intento_7": "Repite el intento 6 (su commit final falló por un push durante la corrida) y suma los planes B (pead, seguimiento) de la fase 5, solo lectura.",
+  "nota_intento_8": "Fase 3: u1 (única con expectativa > 0 y MFE mediana > 0,4 R) con objetivo 1,5 R y con stop de tiempo 45 min. Plan B PEAD con titular de resultados porque sec.gov da 403 a los runners."
 }

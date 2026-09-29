@@ -686,3 +686,21 @@ def test_seguimiento_compra_la_ruptura_del_maximo_del_dia_1(tmp_path, monkeypatc
     assert t.senal.dia == d2 and t.llenado == 10.6 and t.stop_inicial == pytest.approx(10.6 * 0.96)
     assert t.motivo == "cierre" and t.salida == 10.6 and t.r == pytest.approx(0.0)
     assert t.mfe_r == pytest.approx((10.9 - 10.6) / (10.6 * 0.04))
+
+
+def test_pead_con_titular_de_resultados(tmp_path, monkeypatch):
+    from shadow_alpaca.backtest_v2 import datos as datos_mod
+    from shadow_alpaca.backtest_v2 import planb
+    from shadow_alpaca.backtest_v2.datos import Cache
+    assert planb.titular_de_resultados("Acme Reports Third Quarter 2026 Financial Results")
+    assert not planb.titular_de_resultados("Acme announces FDA approval")
+    ses = _sesiones(26, date(2026, 9, 25))
+    d0 = ses[21]
+    filas = _diarias_falsas(ses[:22]) + [[f"{d.isoformat()}T04:00:00Z", 10.3, 10.6, 10.2, 10.5, 100.0] for d in ses[22:25]]
+    cand = motor.Candidatos(["ACME", "OTRA"], ses, ses[20:], {"ACME": filas, "OTRA": filas}, {d0: {"ACME": 0.06, "OTRA": 0.05}})
+    monkeypatch.setattr(planb, "candidatos_gap", lambda *a, **k: cand)
+    n = Noticia("n", "Acme reports second quarter results", "", datetime.combine(d0, time(11, 0), tzinfo=UTC), ("ACME",))
+    monkeypatch.setattr(datos_mod, "noticias", lambda *a, **k: [n])
+    res = planb.correr_pead(CFG, None, Cache(tmp_path), [], ses[20], ses[-1], motor.Parametros(slippage=0.0), evento="titular")
+    assert len(res.trades) == 1 and res.trades[0].senal.ticker == "ACME" and res.embudo["con_titular_resultados"] == 1
+    assert res.descartes_senal["sin_titular_resultados"] == 1 and "edgar_fallos" not in res.clasificaciones

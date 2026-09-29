@@ -66,14 +66,18 @@ def main(argv: list[str] | None = None) -> int:
     params = motor.Parametros(equity_inicial=args.equity, slippage=args.slippage,
                               entrada=variantes.entrada_de(args.variante))
     partes = variantes.partes(args.variante)
-    if "pead" in partes or "seguimiento" in partes:
+    if "pead" in partes or "peadnoticia" in partes or "seguimiento" in partes:
         from shadow_alpaca.backtest_v2 import planb
-        if "pead" in partes:
-            res = planb.correr_pead(cfg, ClienteDatos(), datos.Cache(args.almacen), universo, args.desde, args.hasta, params)
+        if "pead" in partes or "peadnoticia" in partes:
+            res = planb.correr_pead(cfg, ClienteDatos(), datos.Cache(args.almacen), universo, args.desde, args.hasta, params,
+                                    evento="titular" if "peadnoticia" in partes else "edgar")
         else:
             res = planb.correr_seguimiento(cfg, ClienteDatos(), datos.Cache(args.almacen), universo, args.desde, args.hasta,
                                            clasificador, params)
-        notas = list(planb.LIMITACIONES_PEAD if "pead" in partes else planb.LIMITACIONES_SEGUIMIENTO)
+        notas = list(planb.LIMITACIONES_SEGUIMIENTO if "seguimiento" in partes else planb.LIMITACIONES_PEAD)
+        if "peadnoticia" in partes:
+            notas.insert(0, "Evento = titular de resultados de Benzinga entre el cierre previo y la apertura (sin IA), "
+                            "porque sec.gov responde 403 a los runners de GitHub Actions. Es un proxy más ruidoso que el 8-K 2.02.")
     else:
         res = motor.correr(cfg, ClienteDatos(), datos.Cache(args.almacen), universo, args.desde, args.hasta,
                            clasificador, params)

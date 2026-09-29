@@ -32,6 +32,13 @@ En los dos, el tamaño es 0,5 % del equity inicial entre el riesgo por
 acción (sin capitalizar, sin límites de cartera): aquí interesa la
 expectativa por trade, no la curva.
 
+`peadnoticia` es el mismo PEAD con otro evento: en vez del 8-K 2.02, un
+titular de Benzinga publicado entre el cierre previo y la apertura que
+nombre resultados (`PALABRAS_RESULTADOS`, sin IA). Existe porque los
+runners de GitHub Actions reciben 403 de sec.gov (verificado el
+2026-09-29: 1.943 de 1.943 pedidos); no reemplaza al 8-K, es un proxy
+más ruidoso (un titular con "results" puede ser un ensayo clínico).
+
 Los datos EDGAR se piden aquí con un cliente mínimo (`company_tickers` +
 `submissions`, User-Agent con contacto en `FUENTES_SEC_USER_AGENT`, 8
 pedidos/s, caché en el almacén) porque el paquete `fuentes/` (PRs #210–
@@ -66,6 +73,18 @@ PEAD_DIAS = 3
 SEG_STOP = 0.04
 SEG_DESDE, SEG_HASTA = time(9, 31), time(15, 30)   # hora de cierre de la vela que rompe
 RIESGO_EQUITY = 0.005
+PALABRAS_RESULTADOS = ("financial results", "quarterly results", "reports first quarter", "reports second quarter",
+                       "reports third quarter", "reports fourth quarter", "reports q1", "reports q2", "reports q3",
+                       "reports q4", "fiscal year results", "full year results", "full-year results", "reports fiscal",
+                       "earnings results", "reports earnings", "announces first quarter", "announces second quarter",
+                       "announces third quarter", "announces fourth quarter", "quarter 2025 results",
+                       "quarter 2026 results", "year-end results", "year end results", "reports record revenue",
+                       "reports revenue", "reports net income", "reports results")
+
+
+def titular_de_resultados(titular: str) -> bool:
+    t = (titular or "").lower()
+    return any(p in t for p in PALABRAS_RESULTADOS)
 
 URL_TICKERS = "https://www.sec.gov/files/company_tickers.json"
 URL_SUBMISSIONS = "https://data.sec.gov/submissions/"
@@ -194,13 +213,26 @@ def rvol_diario(filas: list[list], i: int, n: int = 20) -> float | None:
 
 
 def correr_pead(cfg, cliente, cache: datos.Cache, universo: list, desde: date, hasta: date, p: Parametros,
-                edgar: EdgarMinimo | None = None) -> Resultado:
+                edgar: EdgarMinimo | None = None, evento: str = "edgar") -> Resultado:
     res = Resultado()
     cand = candidatos_gap(cfg, cliente, cache, universo, desde, hasta, res)
-    edgar = edgar or EdgarMinimo(cache)
+    edgar = edgar or (EdgarMinimo(cache) if evento == "edgar" else None)
     sesiones_idx = {d: i for i, d in enumerate(cand.todas)}
     eventos: dict[str, list[datetime] | None] = {}
+    noticias_dia: dict[date, list | None] = {}
+
+    def _titulares(d: date, previa: date | None, simbolos: list[str]) -> list | None:
+        """Noticias de resultados entre el cierre previo y la apertura de `d` (una vez por día)."""
+        if d not in noticias_dia:
+            desde_n = _en_ny(previa, CIERRE) if previa else _en_ny(d - timedelta(days=1), CIERRE)
+            try:
+                nots = datos.noticias(cliente, cache, simbolos, desde_n, _en_ny(d, APERTURA))
+                noticias_dia[d] = [n for n in nots if titular_de_resultados(n.titular)]
+            except ErrorDatos:
+                noticias_dia[d] = None
+        return noticias_dia[d]
     for d in sorted(cand.por_dia):
+        simbolos_dia = list(cand.por_dia[d])
         for t, gap in cand.por_dia[d].items():
             filas = cand.diarias.get(t, [])
             idx = next((i for i, f in enumerate(filas) if _fecha(f) == d), None)
@@ -219,20 +251,33 @@ def correr_pead(cfg, cliente, cache: datos.Cache, universo: list, desde: date, h
                 res.descartes_senal["rvol"] += 1
                 continue
             res.embudo["gap_rvol_precio"] += 1
-            if t not in eventos:
-                eventos[t] = edgar.ochok_202(t)
-            acc = eventos[t]
-            if acc is None:
-                res.sin_dato["edgar"] += 1
-                continue
             i_ses = sesiones_idx.get(d)
             previa = cand.todas[i_ses - 1] if i_ses else None
-            desde_ev = _en_ny(previa, CIERRE) if previa else _en_ny(d - timedelta(days=1), CIERRE)
-            hasta_ev = _en_ny(d, APERTURA)
-            if not any(desde_ev <= a <= hasta_ev for a in acc):
-                res.descartes_senal["sin_8k_202"] += 1
-                continue
-            res.embudo["con_8k_202"] += 1
+            if evento == "edgar":
+                if t not in eventos:
+                    eventos[t] = edgar.ochok_202(t)
+                acc = eventos[t]
+                if acc is None:
+                    res.sin_dato["edgar"] += 1
+                    continue
+                desde_ev = _en_ny(previa, CIERRE) if previa else _en_ny(d - timedelta(days=1), CIERRE)
+                hasta_ev = _en_ny(d, APERTURA)
+                if not any(desde_ev <= a <= hasta_ev for a in acc):
+                    res.descartes_senal["sin_8k_202"] += 1
+                    continue
+                res.embudo["con_8k_202"] += 1
+                catalizador = "8-K 2.02"
+            else:
+                nots = _titulares(d, previa, simbolos_dia)
+                if nots is None:
+                    res.sin_dato["noticias"] += 1
+                    continue
+                propias = [n for n in nots if t in n.simbolos]
+                if not propias:
+                    res.descartes_senal["sin_titular_resultados"] += 1
+                    continue
+                res.embudo["con_titular_resultados"] += 1
+                catalizador = propias[0].titular
             entrada = c * (1 + p.slippage)
             stop = entrada * (1 - PEAD_STOP)
             r_unidad = entrada - stop
@@ -262,7 +307,7 @@ def correr_pead(cfg, cliente, cache: datos.Cache, universo: list, desde: date, h
                 salida_p, motivo, salida_t = siguientes[-1][4], "cierre", _fecha(siguientes[-1])
             ejec = salida_p * (1 - p.slippage)
             momento = _en_ny(d, CIERRE)
-            senal = Senal(t, d, momento, entrada, stop, 1, gap, rv, "8-K 2.02")
+            senal = Senal(t, d, momento, entrada, stop, 1, gap, rv, catalizador)
             res.senales.append(senal)
             res.trades.append(Trade(senal, cantidad, entrada, stop, entrada + 2 * r_unidad, momento, entrada,
                                     _en_ny(salida_t, CIERRE), ejec, motivo, (ejec - entrada) / r_unidad,
@@ -270,7 +315,8 @@ def correr_pead(cfg, cliente, cache: datos.Cache, universo: list, desde: date, h
     res.embudo["senal"] = len(res.senales)
     res.embudo["trades"] = len(res.trades)
     res.sesiones = len(cand.sesiones)
-    res.clasificaciones["edgar_fallos"] = edgar.fallos
+    if edgar is not None:
+        res.clasificaciones["edgar_fallos"] = edgar.fallos
     return res
 
 
