@@ -85,6 +85,9 @@ jobs:
           ALPACA_PAPER_API_KEY: ${{ secrets.ALPACA_PAPER_API_KEY }}
           ALPACA_PAPER_API_SECRET: ${{ secrets.ALPACA_PAPER_API_SECRET }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Plan B (pead): EDGAR exige un User-Agent con contacto. Dirección
+          # noreply del runner, no un correo personal.
+          FUENTES_SEC_USER_AGENT: "hernan-portafolio backtest-v2 github-actions@users.noreply.github.com"
         run: |
           mkdir -p /tmp/estado_momentum/momentum_hunter /tmp/salida
           python -m shadow_alpaca.backtest_v2 ${{ needs.preparar.outputs.args }} \

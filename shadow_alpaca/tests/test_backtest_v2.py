@@ -552,3 +552,137 @@ def test_diagnostico_de_entrada():
     res2.senales.append(s)
     f2 = diagnostico.analizar(res2, CFG)[0]
     assert f2.velas == 0 and f2.retroceso_pct is None and f2.mfe_ruptura_r is None
+
+
+# --------------------------------------------------------------- planes B
+
+
+def _diarias_falsas(dias, base=10.0):
+    """Barras diarias [t, o, h, l, c, v] con volumen 100 salvo el último día (500 = RVOL 5)."""
+    filas = []
+    for k, d in enumerate(dias):
+        vol = 500.0 if k == len(dias) - 1 else 100.0
+        filas.append([f"{d.isoformat()}T04:00:00Z", base, base + 0.5, base - 0.3, base + 0.2, vol])
+    return filas
+
+
+def _sesiones(n, fin):
+    out, d = [], fin
+    while len(out) < n:
+        if d.weekday() < 5:
+            out.append(d)
+        d -= timedelta(days=1)
+    return sorted(out)
+
+
+def test_pead_entra_al_cierre_y_sale_al_dia_3_o_por_stop(tmp_path, monkeypatch):
+    from shadow_alpaca.backtest_v2 import planb
+    from shadow_alpaca.backtest_v2.datos import Cache
+    ses = _sesiones(26, date(2026, 9, 25))
+    d0 = ses[21]                       # evento; quedan 4 sesiones después
+    filas = _diarias_falsas(ses[:22])
+    # Días 1-3: sube, sube, cierra arriba (10.2 -> 10.9); ACME2 cae y toca el stop el día 2.
+    for k, (o, h, l, c) in enumerate([(10.3, 10.6, 10.2, 10.5), (10.5, 10.9, 10.4, 10.8), (10.8, 11.0, 10.7, 10.9)]):
+        filas.append([f"{ses[22 + k].isoformat()}T04:00:00Z", o, h, l, c, 100.0])
+    filas2 = _diarias_falsas(ses[:22])
+    for k, (o, h, l, c) in enumerate([(10.1, 10.2, 9.8, 9.9), (9.9, 9.95, 9.3, 9.4), (9.4, 9.6, 9.3, 9.5)]):
+        filas2.append([f"{ses[22 + k].isoformat()}T04:00:00Z", o, h, l, c, 100.0])
+    cand = motor.Candidatos(["ACME", "ACME2"], ses, ses[20:], {"ACME": filas, "ACME2": filas2},
+                            {d0: {"ACME": 0.06, "ACME2": 0.05}})
+    monkeypatch.setattr(planb, "candidatos_gap", lambda *a, **k: cand)
+
+    class _Edgar:
+        fallos = 0
+
+        def ochok_202(self, t):
+            return [datetime.combine(d0 - timedelta(days=1), time(20, 30), tzinfo=UTC)]   # 16:30 ET del día previo
+    res = planb.correr_pead(CFG, None, Cache(tmp_path), [], ses[20], ses[-1], motor.Parametros(slippage=0.0), _Edgar())
+    assert len(res.trades) == 2 and res.embudo["con_8k_202"] == 2
+    a, b = res.trades
+    assert a.senal.ticker == "ACME" and a.llenado == 10.2 and a.motivo == "cierre" and a.salida == 10.9
+    assert a.r == pytest.approx((10.9 - 10.2) / (10.2 * 0.06)) and a.mfe_r == pytest.approx((11.0 - 10.2) / 0.612)
+    assert b.motivo == "stop" and b.salida == pytest.approx(10.2 * 0.94) and b.r == pytest.approx(-1.0)
+
+
+def test_pead_sin_8k_o_sin_edgar_no_entra(tmp_path, monkeypatch):
+    from shadow_alpaca.backtest_v2 import planb
+    from shadow_alpaca.backtest_v2.datos import Cache
+    ses = _sesiones(26, date(2026, 9, 25))
+    d0 = ses[21]
+    cand = motor.Candidatos(["ACME"], ses, ses[20:], {"ACME": _diarias_falsas(ses[:22]) + _diarias_falsas(ses[22:25])},
+                            {d0: {"ACME": 0.06}})
+    monkeypatch.setattr(planb, "candidatos_gap", lambda *a, **k: cand)
+
+    class _Sin:
+        fallos = 0
+
+        def ochok_202(self, t):
+            return [datetime.combine(d0, time(20, 30), tzinfo=UTC)]   # tras el cierre del día 0: es evento del día 1
+    res = planb.correr_pead(CFG, None, Cache(tmp_path), [], ses[20], ses[-1], motor.Parametros(), _Sin())
+    assert res.trades == [] and res.descartes_senal["sin_8k_202"] == 1
+
+    class _Caido:
+        fallos = 1
+
+        def ochok_202(self, t):
+            return None
+    res = planb.correr_pead(CFG, None, Cache(tmp_path), [], ses[20], ses[-1], motor.Parametros(), _Caido())
+    assert res.trades == [] and res.sin_dato["edgar"] == 1
+
+
+def test_edgar_minimo_exige_user_agent_y_lee_los_202(tmp_path, monkeypatch):
+    from shadow_alpaca.backtest_v2 import planb
+    from shadow_alpaca.backtest_v2.datos import Cache
+    monkeypatch.delenv(planb.ENV_UA, raising=False)
+    e = planb.EdgarMinimo(Cache(tmp_path), transport=lambda *a, **k: None, dormir=lambda s: None)
+    assert e.ochok_202("AAPL") is None and e.fallos == 1
+    monkeypatch.setenv(planb.ENV_UA, "pruebas contacto@example.com")
+
+    class _R:
+        status_code = 200
+
+        def __init__(self, cuerpo):
+            self._c = cuerpo
+
+        def json(self):
+            return self._c
+    respuestas = {planb.URL_TICKERS: _R({"0": {"cik_str": 320193, "ticker": "AAPL", "title": "Apple"}}),
+                  planb.URL_SUBMISSIONS + "CIK0000320193.json": _R({"filings": {"recent": {
+                      "form": ["8-K", "8-K", "4"], "items": ["2.02,9.01", "5.02", ""],
+                      "acceptanceDateTime": ["2026-07-30T20:30:28.000Z", "2026-09-01T20:30:35.000Z", "x"]}}})}
+    pedidos = []
+
+    def transport(url, headers=None, timeout=None):
+        pedidos.append(headers["User-Agent"])
+        return respuestas[url]
+    e = planb.EdgarMinimo(Cache(tmp_path), transport=transport, dormir=lambda s: None)
+    assert e.ochok_202("AAPL") == [datetime(2026, 7, 30, 20, 30, 28, tzinfo=UTC)]
+    assert pedidos == ["pruebas contacto@example.com"] * 2 and e.ochok_202("ZZZZ") is None
+
+
+def test_seguimiento_compra_la_ruptura_del_maximo_del_dia_1(tmp_path, monkeypatch):
+    from shadow_alpaca.backtest_v2 import datos as datos_mod
+    from shadow_alpaca.backtest_v2 import planb
+    from shadow_alpaca.backtest_v2.datos import Cache
+    ses = _sesiones(26, date(2026, 9, 25))
+    d1, d2 = ses[-2], ses[-1]
+    filas = _diarias_falsas(ses[:-1])           # máximo del día 1 = 10.5
+    cand = motor.Candidatos(["ACME"], ses, ses[20:], {"ACME": filas}, {d1: {"ACME": 0.06}})
+    monkeypatch.setattr(planb, "candidatos_gap", lambda *a, **k: cand)
+    noticia = Noticia("n", "Acme wins contract", "", datetime.combine(d1, time(12, 0), tzinfo=UTC), ("ACME",))
+    monkeypatch.setattr(datos_mod, "noticias", lambda *a, **k: [noticia])
+    base = datetime.combine(d2, time(13, 30), tzinfo=UTC)
+    velas = [[(base + timedelta(minutes=k)).isoformat().replace("+00:00", "Z"), 10.3, 10.4, 10.2, 10.3, 100.0] for k in range(5)]
+    velas += [[(base + timedelta(minutes=5)).isoformat().replace("+00:00", "Z"), 10.3, 10.7, 10.3, 10.6, 500.0]]   # rompe 10.5
+    velas += [[(base + timedelta(minutes=6 + k)).isoformat().replace("+00:00", "Z"), 10.6, 10.9, 10.55, 10.8, 100.0] for k in range(400)]
+    monkeypatch.setattr(datos_mod, "minutos", lambda *a, **k: {"ACME": velas})
+
+    class _Clas:
+        def clasificar(self, n, cfg, res=None):
+            return cat.Clasificacion(True, 1, "contrato", "alcista", 0.9)
+    res = planb.correr_seguimiento(CFG, None, Cache(tmp_path), [], ses[20], ses[-1], _Clas(), motor.Parametros(slippage=0.0))
+    assert len(res.trades) == 1 and res.embudo["nivel_1"] == 1
+    t = res.trades[0]
+    assert t.senal.dia == d2 and t.llenado == 10.6 and t.stop_inicial == pytest.approx(10.6 * 0.96)
+    assert t.motivo == "cierre" and t.salida == 10.6 and t.r == pytest.approx(0.0)
+    assert t.mfe_r == pytest.approx((10.9 - 10.6) / (10.6 * 0.04))

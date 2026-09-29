@@ -424,9 +424,20 @@ def sesiones_de(spy_diarias: list[list]) -> list[date]:
     return [datetime.fromisoformat(f[0].replace("Z", "+00:00")).astimezone(NY).date() for f in spy_diarias]
 
 
-def correr(cfg: ConfigV2, cliente, cache: datos.Cache, universo: list, desde: date, hasta: date,
-           clasificador, p: Parametros, proveedor_meta=None) -> Resultado:
-    res = Resultado()
+@dataclass
+class Candidatos:
+    """Pasos 1-4 del embudo: sesiones, diarias y símbolo-días con gap
+    oficial y sin acción corporativa. Lo comparten el motor y los planes B."""
+
+    tickers: list[str]
+    todas: list[date]                 # sesiones de SPY (incluye el arranque para el RVOL)
+    sesiones: list[date]
+    diarias: dict[str, list[list]]
+    por_dia: dict[date, dict[str, float]]   # día -> {ticker: gap oficial}
+
+
+def candidatos_gap(cfg: ConfigV2, cliente, cache: datos.Cache, universo: list, desde: date, hasta: date,
+                   res: Resultado) -> Candidatos:
     s = cfg.senal
     permitidos = [u for u in universo if u.bolsa in cfg.universo.exchanges
                   and not (cfg.universo.excluir_etf and u.es_etf)]
@@ -471,6 +482,15 @@ def correr(cfg: ConfigV2, cliente, cache: datos.Cache, universo: list, desde: da
             if (t.upper(), d.isoformat()) in acciones:
                 del por_dia[d][t]
         res.embudo["sin_accion_corporativa"] += len(por_dia[d])
+    return Candidatos(tickers, todas, sesiones, diarias, por_dia)
+
+
+def correr(cfg: ConfigV2, cliente, cache: datos.Cache, universo: list, desde: date, hasta: date,
+           clasificador, p: Parametros, proveedor_meta=None) -> Resultado:
+    res = Resultado()
+    s = cfg.senal
+    cand = candidatos_gap(cfg, cliente, cache, universo, desde, hasta, res)
+    todas, sesiones, por_dia = cand.todas, cand.sesiones, cand.por_dia
 
     # Pasos 5-9.
     u = cfg.universo

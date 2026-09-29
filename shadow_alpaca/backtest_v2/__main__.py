@@ -65,9 +65,19 @@ def main(argv: list[str] | None = None) -> int:
     clasificador = Clasificador(args.almacen, llamar, args.max_llamadas_ia)
     params = motor.Parametros(equity_inicial=args.equity, slippage=args.slippage,
                               entrada=variantes.entrada_de(args.variante))
-    res = motor.correr(cfg, ClienteDatos(), datos.Cache(args.almacen), universo, args.desde, args.hasta,
-                       clasificador, params)
-    notas = list(informe.LIMITACIONES)
+    partes = variantes.partes(args.variante)
+    if "pead" in partes or "seguimiento" in partes:
+        from shadow_alpaca.backtest_v2 import planb
+        if "pead" in partes:
+            res = planb.correr_pead(cfg, ClienteDatos(), datos.Cache(args.almacen), universo, args.desde, args.hasta, params)
+        else:
+            res = planb.correr_seguimiento(cfg, ClienteDatos(), datos.Cache(args.almacen), universo, args.desde, args.hasta,
+                                           clasificador, params)
+        notas = list(planb.LIMITACIONES_PEAD if "pead" in partes else planb.LIMITACIONES_SEGUIMIENTO)
+    else:
+        res = motor.correr(cfg, ClienteDatos(), datos.Cache(args.almacen), universo, args.desde, args.hasta,
+                           clasificador, params)
+        notas = list(informe.LIMITACIONES)
     if args.sin_ia:
         notas.insert(0, "CORRIDA DE DIAGNÓSTICO --sin-ia: el catalizador no se clasificó; no es el resultado de la v2.")
     if args.simbolos:

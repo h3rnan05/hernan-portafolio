@@ -83,6 +83,9 @@ VARIANTES: dict[str, tuple[str, Callable[[ConfigV2], ConfigV2]]] = {
     "obj15": ("objetivo 1,5 R (base 2 R)", _obj15),
     "st45": ("stop de tiempo 45 min (base 30)", _st45),
     "diagnostico": ("base sin trades: diagnóstico de entrada (60 min tras la ruptura)", _base),
+    # Planes B (fase 5): otra estrategia, solo lectura. Ver planb.py.
+    "pead": ("plan B: deriva post-resultados (8-K 2.02, gap ≥ 4 %, RVOL ≥ 3, $2–20; cierre día 0 → cierre día 3 o stop 6 %)", _base),
+    "seguimiento": ("plan B: nivel 1 al día siguiente (ruptura del máximo del día 1 en el día 2, stop 4 %, cierre EOD)", _base),
 }
 ENTRADAS = {"e1": "e1", "e2": "e2", "e3": "e3"}
 
