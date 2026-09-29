@@ -795,7 +795,8 @@ def _actualizar_watchlist(
                 velas_desde_ruptura=getattr(c.factores, "velas_desde_ruptura", None))
             niveles = report.niveles_entrada_salida(c.factores, c.atr_diario)
             zona_baja, _ = report.zona_entrada(c, cfg)
-            watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
+            watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora,
+                                         **_contexto_niveles(c))
             disparadas[c.ticker] = e
         else:
             mensaje = _evaluar_no_disparada(
@@ -817,7 +818,8 @@ def _actualizar_watchlist(
             niveles = report.niveles_entrada_salida(candidato.factores, candidato.atr_diario)
             zona_baja, _ = report.zona_entrada(candidato, cfg)
             watchlist.actualizar_niveles(
-                e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
+                e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora,
+                **_contexto_niveles(candidato))
             mensajes_pendientes.append(report.mensaje_watching(candidato, cfg))
     for expirada in expiradas:
         mensajes_pendientes.append(report.mensaje_expired(expirada.ticker))
@@ -956,6 +958,16 @@ def _sin_bloqueo_corporativo(candidatos: list, guardia, ahora: datetime) -> list
     return permitidos
 
 
+def _contexto_niveles(candidato) -> dict:
+    """Patrón y VWAP con los que se calcularon los niveles de este chequeo,
+    para guardarlos junto a la ruptura (solo registro, 2026-09-29). Un
+    dato que no esté se guarda como None: ninguna regla los lee."""
+    resultado = getattr(candidato, "resultado", None)
+    factores = getattr(candidato, "factores", None)
+    return {"patron": getattr(resultado, "patron", None),
+            "vwap": getattr(factores, "vwap", None)}
+
+
 def _hay_tiempo(cfg: MomentumConfig, ahora: datetime, ticker: str) -> bool:
     """¿Queda sesión suficiente para que esta señal se pueda jugar?
 
@@ -1060,7 +1072,8 @@ def _evaluar_no_disparada(
     reutiliza el stop que el pipeline ya calculó."""
     niveles = report.niveles_entrada_salida(c.factores, c.atr_diario)
     zona_baja, _ = report.zona_entrada(c, cfg)
-    watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
+    watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora,
+                                 **_contexto_niveles(c))
     if clima is not None:
         e.clima_mercado = clima.veredicto
 
@@ -1220,7 +1233,8 @@ def _revisar_watchlist_cuerpo(
             niveles_t = report.niveles_entrada_salida(c_t.factores, c_t.atr_diario)
             zona_t, _ = report.zona_entrada(c_t, cfg)
             watchlist.actualizar_niveles(
-                e, niveles_t["entrada"], niveles_t["stop"], niveles_t["objetivo"], zona_t, ahora)
+                e, niveles_t["entrada"], niveles_t["stop"], niveles_t["objetivo"], zona_t, ahora,
+                **_contexto_niveles(c_t))
             log.info("%s: niveles refrescados (sigue TRIGGERED, sin orden todavía)", e.ticker)
         except Exception as ex:
             log.warning("%s: no se pudieron refrescar los niveles: %s", e.ticker, ex)
@@ -1289,7 +1303,7 @@ def _revisar_watchlist_cuerpo(
                 velas_desde_ruptura=getattr(candidato.factores, "velas_desde_ruptura", None))
             watchlist.actualizar_niveles(
                 e, oportunidad.entrada, oportunidad.stop, oportunidad.objetivo,
-                oportunidad.zona_entrada_baja, ahora)
+                oportunidad.zona_entrada_baja, ahora, **_contexto_niveles(candidato))
             pendientes.append(("triggered", e, oportunidad))
         else:
             mensaje = _evaluar_no_disparada(
