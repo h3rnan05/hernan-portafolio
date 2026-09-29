@@ -160,4 +160,7 @@ jobs:
             exit 0
           fi
           git commit -m "backtest v2: informes ${GITHUB_RUN_ID} [skip ci]"
+          # La rama pudo avanzar durante la corrida (código nuevo): se
+          # trae antes de empujar. Los informes no chocan con código.
+          git pull --rebase origin ${GITHUB_REF_NAME}
           git push origin HEAD:${GITHUB_REF_NAME}
