@@ -76,6 +76,8 @@ def main(argv: list[str] | None = None) -> int:
                                            clasificador, params)
         notas = list(planb.LIMITACIONES_SEGUIMIENTO if "seguimiento" in partes else planb.LIMITACIONES_PEAD)
         if "peadnoticia" in partes:
+            # El evento es otro: la nota del 8-K no aplica y se reemplaza, no se apila.
+            notas = [n for n in notas if not n.startswith("Evento = 8-K")]
             notas.insert(0, "Evento = titular de resultados de Benzinga entre el cierre previo y la apertura (sin IA), "
                             "porque sec.gov responde 403 a los runners de GitHub Actions. Es un proxy más ruidoso que el 8-K 2.02.")
     else:
