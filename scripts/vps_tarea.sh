@@ -5,9 +5,9 @@
 # `.github/workflows/vps_tarea.yml` con la misma llave que el deploy.
 #
 # NUNCA toca el checkout de producción (/opt/hernan-portafolio) ni su
-# estado (/var/lib/momentum): el código de la rama pedida se exporta con
-# `git archive` a un directorio de trabajo del usuario SSH, y el
-# backtest escribe su almacén y su directorio de estado ahí. Usa el venv
+# estado (/var/lib/momentum): el runner hace `git archive` de la rama
+# pedida y lo sube por ssh a un directorio de trabajo del usuario SSH
+# ($CODIGO), y el backtest escribe su almacén y su estado ahí. Usa el venv
 # de producción solo como intérprete (mismas dependencias). No coloca
 # órdenes, no versiona nada, no reinicia servicios.
 #
@@ -40,13 +40,16 @@ PAPER_ENV="${MOMENTUM_PAPER_ENV:-/etc/momentum/paper.env}"
 
 log() { printf '[vps_tarea] %s\n' "$*"; }
 
-exportar() {   # exportar <ref> <destino>: árbol limpio de esa ref, sin tocar el checkout
+exportar() {   # exportar <ref> <destino>: el código ya lo subió el workflow por ssh (tar)
+  # El checkout de producción es de otro usuario (`.git/FETCH_HEAD:
+  # Permission denied` el 2026-09-29) y no se toca: el runner de Actions
+  # hace `git archive` de la ref y lo manda por ssh a $CODIGO antes de
+  # correr este script. Aquí solo se comprueba que llegó.
   local ref="$1" destino="$2"
-  git -C "$REPO" fetch -q origin "$ref"
-  rm -rf "$destino"
-  mkdir -p "$destino"
-  git -C "$REPO" archive FETCH_HEAD | tar -x -C "$destino"
-  log "código de $ref ($(git -C "$REPO" rev-parse --short FETCH_HEAD)) en $destino"
+  if [ ! -s "$destino/CODIGO_REF" ]; then
+    log "ERROR: no hay código en $destino (el workflow debía subir $ref antes)"; exit 6
+  fi
+  log "código de $ref ($(cat "$destino/CODIGO_REF")) en $destino"
 }
 
 cargar_credenciales() {
