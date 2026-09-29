@@ -40,8 +40,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--sin-ia", action="store_true")
     ap.add_argument("--refrescar-universo", action="store_true")
     ap.add_argument("--simbolos", default=None, help="limitar a estos tickers (pruebas)")
-    ap.add_argument("--variante", default="base", choices=sorted(variantes.VARIANTES),
-                    help="un solo cambio sobre la config base (ver variantes.py)")
+    ap.add_argument("--variante", default="base",
+                    help="cambios contados sobre la config base, p. ej. e1 o e1_u1 (ver variantes.py)")
     ap.add_argument("--metricas", type=Path, default=None, help="JSON con las métricas para el comparativo")
     args = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -63,7 +63,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     llamar = None if args.sin_ia else llamada_anthropic(cfg.catalizador.modelo)
     clasificador = Clasificador(args.almacen, llamar, args.max_llamadas_ia)
-    params = motor.Parametros(equity_inicial=args.equity, slippage=args.slippage)
+    params = motor.Parametros(equity_inicial=args.equity, slippage=args.slippage,
+                              entrada=variantes.entrada_de(args.variante))
     res = motor.correr(cfg, ClienteDatos(), datos.Cache(args.almacen), universo, args.desde, args.hasta,
                        clasificador, params)
     notas = list(informe.LIMITACIONES)
@@ -72,6 +73,16 @@ def main(argv: list[str] | None = None) -> int:
     if args.simbolos:
         notas.insert(0, f"Universo recortado a: {args.simbolos}.")
     args.salida.parent.mkdir(parents=True, exist_ok=True)
+    if "diagnostico" in variantes.partes(args.variante):
+        from shadow_alpaca.backtest_v2 import diagnostico
+        filas = diagnostico.analizar(res, cfg)
+        args.salida.write_text(diagnostico.markdown(filas, args.desde, args.hasta), encoding="utf-8")
+        if args.metricas is not None:
+            ruta = args.metricas.with_name("diagnostico.json")
+            ruta.parent.mkdir(parents=True, exist_ok=True)
+            ruta.write_text(diagnostico.a_json(filas), encoding="utf-8")
+        log.info("diagnóstico: %s · señales=%d", args.salida, len(filas))
+        return 0
     args.salida.write_text(informe.markdown(res, cfg, args.desde, args.hasta, params, informe.Criterios(), notas, res.sesiones,
                                             args.variante, variantes.descripcion(args.variante)), encoding="utf-8")
     if args.metricas is not None:

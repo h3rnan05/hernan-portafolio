@@ -436,3 +436,119 @@ def test_comparativo_de_variantes(tmp_path):
     ajeno.write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError):
         comparar._cargar([ajeno])
+
+
+# ------------------------------------------------------------- entradas e1/e2/e3
+
+
+def _senal_base_con_velas():
+    """Señal base a las 09:40 NY con precio 10.4, ORB 10.0–10.2; velas posteriores controladas."""
+    base = datetime(2026, 9, 25, 13, 30, tzinfo=UTC)
+    velas, _, spy, _ = _dia_de_prueba()
+    s = motor.Senal("ACME", DIA, base + timedelta(minutes=11), 10.4, 10.0, 1, 0.06, 4.0, "t", 10.3, 10.2)
+    return s, velas, base
+
+
+def test_e1_entra_al_reconquistar_el_nivel_con_stop_en_el_minimo_del_retroceso():
+    from shadow_alpaca.backtest_v2 import entradas
+    s, velas, base = _senal_base_con_velas()
+    t0 = s.momento
+    # VWAP de la señal < ORB alto (10.2): el nivel es 10.2. Velas: baja a 10.1 (toca), luego cierra 10.25.
+    velas = velas + [Vela(t0, 10.4, 10.42, 10.1, 10.15, 900.0), Vela(t0 + timedelta(minutes=1), 10.15, 10.3, 10.12, 10.25, 900.0)]
+    e = entradas.transformar("e1", s, velas, CFG)
+    assert e is not None and e.precio == 10.25 and e.momento == t0 + timedelta(minutes=2)
+    assert e.stop_base == 10.1 and motor.origen_stop(e, CFG.riesgo) == 10.1 and e.nivel == 1
+    # Sin toque no hay entrada; tampoco después de 20 min.
+    assert entradas.transformar("e1", s, velas[:-2] + [Vela(t0, 10.4, 10.5, 10.3, 10.45, 900.0)], CFG) is None
+    tarde = velas[:-2] + [Vela(t0 + timedelta(minutes=25), 10.4, 10.42, 10.1, 10.25, 900.0)]
+    assert entradas.transformar("e1", s, tarde, CFG) is None
+
+
+def test_e2_orden_limite_en_el_maximo_del_orb():
+    from shadow_alpaca.backtest_v2 import entradas
+    s, velas, base = _senal_base_con_velas()
+    t0 = s.momento
+    velas2 = velas + [Vela(t0, 10.4, 10.45, 10.3, 10.35, 900.0), Vela(t0 + timedelta(minutes=3), 10.3, 10.35, 10.18, 10.3, 900.0)]
+    e = entradas.transformar("e2", s, velas2, CFG)
+    assert e is not None and e.precio == 10.2 and e.llenado_fijo and e.momento == t0 + timedelta(minutes=3)
+    assert e.stop_base == 10.0
+    # El simulador llena a 10.2 exacto, sin slippage, y el stop es el ORB (2 %).
+    res = motor.Resultado()
+    motor.simular([e], {("ACME", DIA): velas2 + [Vela(t0 + timedelta(minutes=4), 10.3, 10.7, 10.25, 10.65, 900.0)]},
+                  CFG, motor.Parametros(slippage=0.01), res)
+    assert res.trades and res.trades[0].llenado == 10.2 and res.trades[0].stop_inicial == 10.0
+    # Sin toque en 15 min: sin trade.
+    assert entradas.transformar("e2", s, velas + [Vela(t0 + timedelta(minutes=16), 10.3, 10.35, 10.1, 10.3, 900.0)], CFG) is None
+
+
+def test_e3_ruptura_del_premercado_entre_0931_y_0945():
+    from shadow_alpaca.backtest_v2 import entradas
+    base = datetime(2026, 9, 25, 13, 30, tzinfo=UTC)
+    # Premercado con máximo 10.3; velas regulares: 09:30 (10.1), 09:31 rompe 10.3 con volumen 5x.
+    pm = [Vela(base - timedelta(minutes=30), 10.0, 10.3, 9.9, 10.2, 500.0)]
+    velas = [Vela(base, 10.1, 10.2, 10.0, 10.1, 1000.0), Vela(base + timedelta(minutes=1), 10.1, 10.45, 10.05, 10.4, 5000.0)]
+    velas += [Vela(base + timedelta(minutes=k), 10.4, 10.45, 10.35, 10.4, 1000.0) for k in range(2, 12)]
+    spy = [Vela(base + timedelta(minutes=k), 500 + k, 500.5 + k, 499.5 + k, 500.4 + k, 1e5) for k in range(12)]
+    tope = motor._minutos_de_ventana(CFG, DIA)
+    previos = [[100.0 * (m + 1) for m in range(tope + 1)] for _ in range(CFG.senal.rvol_dias)]
+    buena = Noticia("a", "Acme wins $20M Army contract", "", base - timedelta(hours=2), ("ACME",))
+    ok = lambda n: cat.Clasificacion(True, 1, "contrato", "alcista", 0.9)  # noqa: E731
+    res = motor.Resultado()
+    s = entradas.senal_e3_del_dia("ACME", DIA, velas, pm, previos, spy, 0.06, [buena], ok, lambda m: 0.001, CFG, res)
+    assert s is not None and s.precio == 10.4 and s.momento == base + timedelta(minutes=2)
+    assert s.stop_base == 10.0 and s.orb_alto == 10.3   # mínimo de los 3 primeros minutos; el "ORB alto" es el máx. premercado
+    # Sin premercado: sin señal, contado.
+    res2 = motor.Resultado()
+    assert entradas.senal_e3_del_dia("ACME", DIA, velas, [], previos, spy, 0.06, [buena], ok, lambda m: 0.001, CFG, res2) is None
+    assert res2.descartes_senal["sin_premercado"] == 1
+    # Ruptura después de las 09:45 no cuenta.
+    tarde = [Vela(base + timedelta(minutes=k), 10.1, 10.2, 10.0, 10.1, 1000.0) for k in range(20)]
+    tarde.append(Vela(base + timedelta(minutes=20), 10.1, 10.45, 10.05, 10.4, 5000.0))
+    spy2 = [Vela(base + timedelta(minutes=k), 500 + k, 500.5 + k, 499.5 + k, 500.4 + k, 1e5) for k in range(22)]
+    res3 = motor.Resultado()
+    assert entradas.senal_e3_del_dia("ACME", DIA, tarde, pm, previos, spy2, 0.06, [buena], ok, lambda m: 0.001, CFG, res3) is None
+
+
+def test_variantes_de_entrada_y_compuestas():
+    from shadow_alpaca.backtest_v2 import variantes
+    assert variantes.entrada_de("e1_u1") == "e1" and variantes.entrada_de("u1") == "orb"
+    assert variantes.aplicar(CFG, "e1_u1").universo.precio_max == 20.0
+    assert variantes.aplicar(CFG, "obj15").riesgo.objetivo_r == 1.5 and variantes.aplicar(CFG, "st45").riesgo.stop_tiempo_minutos == 45.0
+    with pytest.raises(KeyError):
+        variantes.entrada_de("e1_e2")
+    assert "diagnostico" in variantes.partes("diagnostico")
+
+
+# ------------------------------------------------------------------ diagnóstico
+
+
+def test_diagnostico_de_entrada():
+    from shadow_alpaca.backtest_v2 import diagnostico
+    s, velas, base = _senal_base_con_velas()
+    t0 = s.momento
+    tras = [Vela(t0, 10.4, 10.45, 10.25, 10.3, 900.0),                       # min 1: no toca 10.2
+            Vela(t0 + timedelta(minutes=1), 10.3, 10.32, 10.15, 10.2, 900.0),   # min 2: retest del ORB alto (10.2), mínimo 10.15
+            Vela(t0 + timedelta(minutes=2), 10.2, 10.9, 10.18, 10.85, 900.0),   # máximo 10.9 tras el retroceso
+            Vela(t0 + timedelta(minutes=3), 10.85, 10.88, 10.6, 10.7, 900.0)]
+    res = motor.Resultado()
+    res.senales.append(s)
+    res.velas_de[("ACME", DIA)] = velas + tras
+    filas = diagnostico.analizar(res, CFG)
+    f = filas[0]
+    assert f.velas == 4 and f.retest_max_min == 2 and f.retroceso_min == 2
+    assert f.retroceso_pct == pytest.approx((10.4 - 10.15) / 10.4)
+    assert f.max_tras_retroceso_r == pytest.approx((10.9 - 10.4) / (10.4 - 10.15))
+    # R de la ruptura: ORB bajo 10.0 = 3,85 % -> dentro de 1,5–4 %.
+    assert f.mfe_ruptura_r == pytest.approx((10.9 - 10.4) / (10.4 - 10.0))
+    # Retest del máximo: entrada 10.2, mínimo del retroceso 10.15 (0,5 % < piso 1,5 %) -> R = 1,5 %.
+    assert f.mfe_retest_max_r == pytest.approx((10.9 - 10.2) / (10.2 * 0.015))
+    r = diagnostico.resumen(filas)
+    assert r["pct_retest_max"] == 1.0 and r["mfe_ruptura_mayor_05"] == 1
+    md = diagnostico.markdown(filas, DIA, DIA)
+    assert "| volvió al máximo del ORB | 100.0% (minuto mediano 2) |" in md and "| ACME | 2026-09-25 |" in md
+    assert json.loads(diagnostico.a_json(filas))["resumen"]["senales"] == 1
+    # Sin velas después: todo "—", nada en cero.
+    res2 = motor.Resultado()
+    res2.senales.append(s)
+    f2 = diagnostico.analizar(res2, CFG)[0]
+    assert f2.velas == 0 and f2.retroceso_pct is None and f2.mfe_ruptura_r is None

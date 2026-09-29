@@ -78,6 +78,9 @@ class Parametros:
     equity_inicial: float = 5_000.0
     slippage: float = 0.0015
     comision: float = 0.0
+    # Regla de entrada del experimento (ver `entradas.py`): "orb" es la de
+    # la estrategia (cierre de la vela de ruptura); e1/e2/e3 son variantes.
+    entrada: str = "orb"
 
 
 @dataclass
@@ -92,11 +95,17 @@ class Senal:
     rvol: float
     catalizador: str
     vela_bajo: float | None = None   # mínimo de la vela de ruptura (variante v1 del stop)
+    orb_alto: float | None = None    # máximo del rango de apertura (entradas por retroceso)
+    stop_base: float | None = None   # origen del stop fijado por la regla de entrada (e1, e3)
+    llenado_fijo: bool = False       # True: se llena exactamente a `precio` (orden límite, e2)
 
 
 def origen_stop(s: Senal, r) -> float:
-    """De dónde sale el stop: el mínimo del rango de apertura (config) o,
-    en la variante `minimo_vela_ruptura`, el mínimo de la vela de ruptura."""
+    """De dónde sale el stop: lo que fijó la regla de entrada (`stop_base`),
+    el mínimo de la vela de ruptura (variante v1) o el mínimo del rango de
+    apertura (config)."""
+    if s.stop_base is not None:
+        return s.stop_base
     if r.stop_origen == "minimo_vela_ruptura" and s.vela_bajo is not None:
         return s.vela_bajo
     return s.orb_bajo
@@ -138,6 +147,11 @@ class Resultado:
     stop_requerido: list[float] = field(default_factory=list)
     stop_descartado: list[float] = field(default_factory=list)
     sesiones: int = 0
+    # Señales de la regla base (cierre de ruptura) antes de aplicar una
+    # entrada alternativa, y las velas del día de cada símbolo-día con
+    # señal: lo que el diagnóstico de entrada necesita.
+    senales_base: list = field(default_factory=list)
+    velas_de: dict = field(default_factory=dict)
 
 
 # Orden del embudo etapa por etapa y qué fallo de `evaluar_ruptura` lo
@@ -279,7 +293,7 @@ def senal_del_dia(
             etapas.update({n for n, _ in ETAPAS} | {"catalizador"})
             elegida = next(n for n, c in clasif if cat.operable(c, cfg.catalizador) and c.nivel == nivel)
             _contar_etapas()
-            return Senal(ticker, dia, cierre, vela.c, ev.orb_bajo, nivel, gap, rv, elegida.titular, vela.l)
+            return Senal(ticker, dia, cierre, vela.c, ev.orb_bajo, nivel, gap, rv, elegida.titular, vela.l, ev.orb_alto)
         peor = ev.fallos
     _contar_etapas()
     if peor:
@@ -300,7 +314,8 @@ def _salida(senal: Senal, velas: list[Vela], cantidad: int, stop0: float, obj: f
     if not tras:
         return None
     fv = tras[0]
-    llenado = fv.o * (1 + p.slippage)
+    # Orden límite (e2): se llena exactamente al precio, sin slippage de entrada.
+    llenado = senal.precio if senal.llenado_fijo else fv.o * (1 + p.slippage)
     r_unidad = senal.precio - stop0
     liquidacion = datetime.combine(senal.dia, CIERRE, tzinfo=NY) - timedelta(minutes=MINUTOS_ANTES_DEL_CIERRE)
     stop, en_be = stop0, False
@@ -493,6 +508,8 @@ def correr(cfg: ConfigV2, cliente, cache: datos.Cache, universo: list, desde: da
         previas = todas[max(0, idx - s.rvol_dias):idx]
         hoy_full = datos.minutos(cliente, cache, con_noticia + [s.indice_referencia], d, APERTURA, CIERRE)
         prev_min = {f: datos.minutos(cliente, cache, con_noticia, f, APERTURA, s.ventana_fin) for f in previas}
+        premercado = (datos.minutos(cliente, cache, con_noticia, d, time(4, 0), APERTURA)
+                      if p.entrada == "e3" else {})
         spy_hoy = _velas_regulares(hoy_full.get(s.indice_referencia, []), cfg)
         tope = _minutos_de_ventana(cfg, d)
         for t in con_noticia:
@@ -503,10 +520,23 @@ def correr(cfg: ConfigV2, cliente, cache: datos.Cache, universo: list, desde: da
             velas_de[(t, d)] = velas_hoy
             previos = [_acumulado_por_minuto(_velas_regulares(prev_min[f].get(t, []), cfg), cfg, tope)
                        for f in previas]
-            senal = senal_del_dia(
-                t, d, [v for v in velas_hoy if v.t < fin_ventana], previos, spy_hoy, cands[t], por_sim[t],
-                lambda n: clasificador.clasificar(n, cfg, res), lambda m, t=t: datos.spread_pct(cliente, cache, t, m),
-                cfg, res, meta_ok=lambda t=t: meta_ok(t))
+            clasificar = lambda n: clasificador.clasificar(n, cfg, res)                 # noqa: E731
+            spread = lambda m, t=t: datos.spread_pct(cliente, cache, t, m)              # noqa: E731
+            if p.entrada == "e3":
+                from shadow_alpaca.backtest_v2 import entradas
+                senal = entradas.senal_e3_del_dia(
+                    t, d, velas_hoy, datos.a_velas(premercado.get(t, [])), previos, spy_hoy, cands[t], por_sim[t],
+                    clasificar, spread, cfg, res, meta_ok=lambda t=t: meta_ok(t))
+            else:
+                senal = senal_del_dia(
+                    t, d, [v for v in velas_hoy if v.t < fin_ventana], previos, spy_hoy, cands[t], por_sim[t],
+                    clasificar, spread, cfg, res, meta_ok=lambda t=t: meta_ok(t))
+                if senal is not None and p.entrada != "orb":
+                    from shadow_alpaca.backtest_v2 import entradas
+                    res.senales_base.append(senal)
+                    senal = entradas.transformar(p.entrada, senal, velas_hoy, cfg)
+                    if senal is None:
+                        res.no_entradas[f"sin_entrada_{p.entrada}"] += 1
             if senal is not None:
                 res.senales.append(senal)
                 res.embudo["senal"] += 1
@@ -515,4 +545,5 @@ def correr(cfg: ConfigV2, cliente, cache: datos.Cache, universo: list, desde: da
     simular(res.senales, velas_de, cfg, p, res)
     res.embudo["trades"] = len(res.trades)
     res.sesiones = len(sesiones)
+    res.velas_de = velas_de
     return res
