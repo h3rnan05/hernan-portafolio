@@ -71,6 +71,25 @@ jobs:
           ssh-keyscan -T 10 -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
           ssh-keygen -lf ~/.ssh/known_hosts | sed 's/^/huella del host: /'
 
+      # El checkout de producción del VPS es de otro usuario: el usuario SSH
+      # no puede hacer fetch ahí. El código sale de aquí: git archive de la
+      # ref pedida, por ssh, a ~/momentum-tareas/codigo.
+      - name: Subir el código de la ref al VPS
+        if: inputs.tarea == 'verificar_fuentes' || inputs.tarea == 'pead_lanzar'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER || 'ubuntu' }}
+          REF: ${{ inputs.tarea == 'verificar_fuentes' && inputs.ref_fuentes || (inputs.ref != '' && inputs.ref || github.ref_name) }}
+        run: |
+          set -o pipefail
+          git fetch --depth=1 origin "refs/heads/$REF"
+          sha=$(git rev-parse --short FETCH_HEAD)
+          echo "subiendo $REF ($sha)"
+          git archive --format=tar.gz FETCH_HEAD > /tmp/codigo.tgz
+          ssh -i ~/.ssh/vps -o BatchMode=yes -o ConnectTimeout=20 "$VPS_USER@$VPS_HOST" \
+            "rm -rf ~/momentum-tareas/codigo && mkdir -p ~/momentum-tareas/codigo && tar -xz -C ~/momentum-tareas/codigo && echo '$REF@$sha' > ~/momentum-tareas/codigo/CODIGO_REF" \
+            < /tmp/codigo.tgz
+
       - name: Correr la tarea (script por stdin)
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
