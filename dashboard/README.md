@@ -261,3 +261,32 @@ panel contaba eventos crudos. Desde entonces:
   quedan plegadas. El título resume disparadas, vigilando y banda de cap.
 - **Panel viejo**: el HTML lleva su hora de generación; si el navegador ve
   que tiene 3 min o más, aparece una píldora roja en la cabecera.
+
+## Datos consistentes (2026-09-29)
+
+- **Ruptura al decidir vs actual.** La ruptura de la watchlist se sigue
+  refrescando después de la orden (en los patrones que no son gap_and_go ni
+  opening_range_breakout es la EMA9 o el VWAP, y se mueve). El panel la
+  mostraba como si fuera la de la compra: NVS, entrada $144.79 y "ruptura"
+  $145.24. Ahora el evento `orden` trae `ruptura_al_decidir`,
+  `patron_al_decidir`, `vwap_al_decidir` y `precio_entrada` (solo
+  registro; el hunter guarda `ultimo_patron` / `ultimo_vwap` junto a la
+  ruptura). La gráfica y el pie dicen "ruptura al decidir" y, aparte,
+  "ruptura actual". Una orden sin esos campos dice "sin dato", nunca la
+  actual en su lugar.
+- **Velas.** Con el plan gratis, Alpaca responde 403 a las velas SIP de los
+  últimos 15 min. El panel lo detecta, deja de pedir el feed por 6 h
+  (`alpaca_feed_pausa.json` en `DASH_CACHE_VELAS`) y rotula las velas
+  "Yahoo" (no "respaldo"), con un aviso en la sección. Otro fallo del feed
+  sigue siendo "Yahoo (respaldo)" y el aviso trae su código.
+- **Hunter.** La última corrida de GitHub va aparte, en gris, como
+  "respaldo GitHub (histórico)". El estado lo decide el escaneo del VPS.
+- **P&L.** La gráfica de hoy termina en un punto "en vivo" con el equity de
+  la cuenta, el mismo número que la tarjeta P&L del día. Sin punto en vivo,
+  "Último" dice de qué vela es.
+- **Latencia.** Cada barra separa la reacción del bot de la espera por cupo
+  lleno (gris), reconstruida con los eventos `MAXIMO_POSICIONES` entre la
+  ruptura y la orden. Las cifras y "Llegaron tarde" cuentan solo la
+  reacción. Las compras sin barra se listan con su motivo (el evento no
+  trae las velas, o Alpaca tiene la compra y el log no). El eje va de 0 al
+  doble del límite; una barra más alta se corta con su total escrito.

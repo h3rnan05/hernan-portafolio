@@ -1,3 +1,4 @@
+import re
 import json
 import pytest
 from datetime import date, datetime, timedelta, timezone
@@ -561,8 +562,8 @@ def test_hunter_corrio_bien_sin_cambiar_la_watchlist_es_ok(tmp_path):
                        gha=gha_ok(datetime(2026, 9, 18, 14, 46, tzinfo=timezone.utc)))
     hunter = _hunter(ctx)
     assert hunter["estado"] == "ok" and hunter["donde"] == "VPS"
-    assert hunter["detalle"] == ("escaneo VPS de las 14:52 · slot 3/8 · 0 evaluadas · watchlist del jue 22:33"
-                                 " · GitHub #218 de las 14:46")
+    assert hunter["detalle"] == "escaneo VPS de las 14:52 · slot 3/8 · 0 evaluadas · watchlist del jue 22:33"
+    assert hunter["nota"] == "respaldo GitHub (histórico): #218 de las 14:46"
     assert ctx["hunter_momento"] == datetime(2026, 9, 18, 14, 52, tzinfo=timezone.utc)
 
 
@@ -584,7 +585,8 @@ def test_sin_escaneo_del_vps_es_sin_datos_aunque_github_y_la_watchlist_sean_fres
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca,
                        gha=gha_ok(datetime(2026, 9, 18, 14, 56, tzinfo=timezone.utc)))
     assert _hunter(ctx)["estado"] == "sin-datos" and ctx["hunter_momento"] is None
-    assert _hunter(ctx)["detalle"] == "sin escaneo del VPS hoy · watchlist de las 14:55 · GitHub #218 de las 14:56"
+    assert _hunter(ctx)["detalle"] == "sin escaneo del VPS hoy · watchlist de las 14:55"
+    assert _hunter(ctx)["nota"] == "respaldo GitHub (histórico): #218 de las 14:56"
     assert "Sin datos" in bd.render(ctx)
 
 
@@ -789,7 +791,9 @@ def test_equity_datos_reales_se_grafican_con_la_inicial(tmp_path):
     assert len(coords) == 4
     assert "inicial $5,000.00" in svg and 'stroke-dasharray="5 4"' in svg
     assert "Sin datos" not in svg
-    assert "14:00" in svg and "14:15" in svg   # eje X en la zona del panel (UTC)
+    # Eje X en la zona del panel (UTC). El extremo derecho es el punto en
+    # vivo (equity de la cuenta a las 15:00), no la última vela de 14:15.
+    assert "14:00" in svg and "15:00 en vivo" in svg
     assert "<h2>Equity de hoy</h2>" in bd.render(ctx) and "vie 18 sep · velas de 5 min" in bd.render(ctx)
     assert "Sin sesión hoy todavía" not in bd.render(ctx)
 
@@ -1011,15 +1015,18 @@ def test_velas_reales_se_grafican_con_las_tres_marcas_y_la_hora_del_fill(tmp_pat
     get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": [_compra()]})
     ctx = bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)
     m = ctx["operaciones"][0]["marcas"]
-    assert m == {"ruptura": 5.05, "entrada_precio": 5.12,
+    # Sin evento `orden` no se sabe la ruptura al decidir; la de la
+    # watchlist es la ACTUAL y se rotula así.
+    assert m == {"ruptura": None, "ruptura_actual": 5.05, "patron": None, "vwap_al_decidir": None,
+                 "entrada_precio": 5.12,
                  "entrada_hora": datetime(2026, 9, 18, 14, 32, 10, tzinfo=timezone.utc), "stop": 4.90,
                  "objetivo": None}
     html = bd.render(ctx)
     svg = _svg_velas(html, "AAA")
     assert svg.count('class="vela ') == 5
-    for marca in ("marca-ruptura", "marca-stop", "marca-entrada", "marca-entrada-hora"):
+    for marca in ("marca-ruptura-actual", "marca-stop", "marca-entrada", "marca-entrada-hora"):
         assert marca in svg, marca
-    assert "ruptura $5.05" in svg and "stop $4.90" in svg and "entrada $5.12" in svg
+    assert "ruptura actual $5.05" in svg and "stop $4.90" in svg and "entrada $5.12" in svg
     assert "5 velas · Yahoo 15:00" in html
     assert "$5.12 · 14:32" in html
 
@@ -1081,8 +1088,8 @@ def test_marca_fuera_de_rango_se_anota_en_el_borde_sin_aplastar_las_velas(tmp_pa
     _watchlist_con_ruptura(tmp_path, ruptura=50.0)   # lejísimos de velas de $5
     get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": []})
     svg = _svg_velas(bd.render(bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)), "AAA")
-    assert "marca-ruptura-fuera" in svg and "fuera del gráfico" in svg
-    assert '<line class="marca-ruptura"' not in svg
+    assert "marca-ruptura-actual-fuera" in svg and "fuera del gráfico" in svg
+    assert '<line class="marca-ruptura-actual' not in svg
 
 
 def test_tope_de_tickers_por_corrida(tmp_path):
@@ -2252,7 +2259,8 @@ def test_github_actions_atrasado_no_pinta_el_hunter_en_rojo_ni_es_problema(tmp_p
     hunter = _hunter(ctx)
     assert hunter["estado"] == "ok"                       # lo decide el escaneo del VPS
     assert "GitHub lleva" not in hunter["detalle"]        # sin la alerta vieja
-    assert "GitHub #218" in hunter["detalle"]             # pero sí como dato informativo
+    assert "#218" in hunter["nota"] and "histórico" in hunter["nota"]   # dato aparte, rotulado
+    assert 'class="mono historico">respaldo GitHub (histórico): #218' in bd.render(ctx)
     assert not any("momentum_hunter.yml" in p for p in ctx["problemas"])   # y sin banner "Datos incompletos"
     # La señal real de un Hunter caído es que el ESCANEO DEL VPS se atrase;
     # eso lo cubren los tests de frescura del escaneo. Acá solo se fija que
@@ -2447,3 +2455,186 @@ def test_escala_sin_sesion_suficiente_usa_toda_la_serie():
     marcas = {"ruptura": None, "entrada_precio": None, "entrada_hora": None, "stop": None, "objetivo": None}
     svg = bd._grafico_velas({"velas": velas}, marcas, ZoneInfo("UTC"), datetime(2026, 9, 29, 13, 0, tzinfo=timezone.utc))
     assert "fuera de escala" not in svg
+
+
+
+# ───────── 2026-09-29: ruptura al decidir vs actual ─────────
+
+def test_ruptura_al_decidir_sale_del_evento_orden_y_la_actual_va_aparte(tmp_path):
+    # NVS: el ejecutor decidió con la EMA9 en $144.78; la watchlist, que se
+    # sigue refrescando, dice ahora $145.24. El panel muestra las dos.
+    _watchlist_con_ruptura(tmp_path, ruptura=5.24)
+    eventos(tmp_path, {"ts": "2026-09-18T14:32:05+00:00", "tipo": "orden", "ticker": "AAA", "estado": "enviada",
+                       "lado": "buy", "ruptura_al_decidir": 5.08, "patron_al_decidir": "momentum_continuo",
+                       "vwap_al_decidir": 5.15, "precio_entrada": 5.12})
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": [_compra()]})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)
+    m = ctx["operaciones"][0]["marcas"]
+    assert m["ruptura"] == 5.08 and m["ruptura_actual"] == 5.24
+    assert m["patron"] == "momentum_continuo" and m["vwap_al_decidir"] == 5.15
+    html = bd.render(ctx)
+    svg = _svg_velas(html, "AAA")
+    assert "ruptura al decidir $5.08" in svg and "ruptura actual $5.24" in svg
+    assert "Ruptura al decidir" in html and "actual $5.24" in html
+    assert "patrón momentum_continuo · VWAP al decidir $5.15" in html
+
+
+def test_ruptura_al_decidir_sin_dato_no_se_rellena_con_la_actual(tmp_path):
+    # Una orden de antes de este registro: el evento no trae el campo.
+    _watchlist_con_ruptura(tmp_path, ruptura=5.24)
+    eventos(tmp_path, {"ts": "2026-09-18T14:32:05+00:00", "tipo": "orden", "ticker": "AAA",
+                       "estado": "enviada", "lado": "buy"})
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": [_compra()]})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)
+    m = ctx["operaciones"][0]["marcas"]
+    assert m["ruptura"] is None and m["ruptura_actual"] == 5.24
+    html = bd.render(ctx)
+    velas_html = html.split("Velas de posiciones abiertas", 1)[1].split("Watchlist", 1)[0]
+    assert "Ruptura al decidir</span><b>sin dato</b>" in velas_html
+
+
+# ───────── 2026-09-29: el plan de Alpaca no da SIP en vivo ─────────
+
+def test_feed_rechazado_por_el_plan_usa_yahoo_sin_decir_respaldo_y_no_insiste(tmp_path):
+    from momentum_hunter.data.alpaca_datos import ErrorDatosAlpaca
+    llamadas = []
+
+    def alpaca_403(ticker):
+        llamadas.append(ticker)
+        raise ErrorDatosAlpaca("auth")
+
+    cache = tmp_path / "cache"
+    r = dv.obtener("AAA", AHORA, cache, ttl_seg=0, fuente=lambda t: _velas(), alpaca=alpaca_403)
+    assert r["origen_fuente"] == "yahoo" and r["aviso_feed"] == dv.AVISO_FEED_PLAN
+    assert bd._marca_fuente_velas(r["origen_fuente"]) == "Yahoo"
+    # Un minuto después no se vuelve a pedir el feed: el 403 no cambia solo.
+    r2 = dv.obtener("BBB", AHORA + timedelta(minutes=1), cache, ttl_seg=0,
+                    fuente=lambda t: _velas(), alpaca=alpaca_403)
+    assert llamadas == ["AAA"] and r2["aviso_feed"] == dv.AVISO_FEED_PLAN
+
+
+def test_otro_fallo_del_feed_se_avisa_con_su_codigo_y_sigue_siendo_respaldo(tmp_path):
+    from momentum_hunter.data.alpaca_datos import ErrorDatosAlpaca
+
+    def alpaca_500(ticker):
+        raise ErrorDatosAlpaca("http_500")
+
+    r = dv.obtener("AAA", AHORA, tmp_path / "cache", ttl_seg=0, fuente=lambda t: _velas(), alpaca=alpaca_500)
+    assert r["origen_fuente"] == "yahoo (respaldo)"
+    assert "http_500" in r["aviso_feed"]
+    assert not (tmp_path / "cache" / dv.ARCHIVO_PAUSA_FEED).exists()
+
+
+def test_el_aviso_del_plan_aparece_una_vez_en_la_seccion_de_velas(tmp_path):
+    def velas_plan(ticker):
+        return {"velas": _velas(), "obtenido": AHORA, "origen": "fuente", "origen_fuente": "yahoo",
+                "error": None, "aviso_feed": dv.AVISO_FEED_PLAN}
+
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion("AAA"), _posicion("BBB")],
+                                             "/v2/orders": []})
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_plan))
+    assert html.count(dv.AVISO_FEED_PLAN) == 1
+    assert "Yahoo (el plan no da SIP en vivo)" in html and "Yahoo (respaldo)" not in html
+
+
+
+# ───────── 2026-09-29: un solo P&L del día ─────────
+
+def test_la_grafica_de_hoy_termina_en_el_equity_en_vivo_y_cuadra_con_el_pnl(tmp_path):
+    # Arriba +$13.60 (equity en vivo vs cierre anterior) y la gráfica
+    # +$11.93 (última vela de 5 min): ahora la gráfica termina en vivo.
+    get = alpaca_falso({"equity": "5013.60", "last_equity": "5000"},
+                       **{HIST: _historial([5000, 5006, 5011.93], base=5000)})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get)
+    assert ctx["equity_dia"]["vivo"] == (AHORA, 5013.60)
+    assert [v for _, v in ctx["equity_dia"]["puntos"]] == [5000, 5006, 5011.93]   # historial intacto
+    html = bd.render(ctx)
+    assert "Último · en vivo 15:00" in html and "+$13.60" in html
+    resumen = html.split("Equity de hoy", 1)[1].split("Equity del último mes", 1)[0]
+    assert "+$11.93" not in resumen
+    assert 'class="serie-vivo"' in _svgs_equity(html)[0]
+
+
+def test_sin_equity_o_con_la_sesion_de_otro_dia_no_hay_punto_en_vivo(tmp_path):
+    hist = {"puntos": [(AHORA - timedelta(minutes=30), 5000.0)], "base": 5000.0, "es_hoy": True}
+    assert "vivo" not in bd.con_punto_en_vivo(hist, None, AHORA)
+    assert "vivo" not in bd.con_punto_en_vivo({**hist, "es_hoy": False}, 5010.0, AHORA)
+    assert "vivo" not in bd.con_punto_en_vivo({**hist, "puntos": []}, 5010.0, AHORA)
+    # Sin punto en vivo, "Último" dice de qué vela es.
+    assert "Último · vela de las 14:30" in bd._resumen_equity(hist, ZoneInfo("UTC"))
+
+
+# ───────── 2026-09-29: latencia, espera de cupo separada de la reacción ─────────
+
+def _cupo_lleno_cada_minuto(desde, hasta):
+    t, salida = desde, []
+    while t <= hasta:
+        salida.append({"ts": t.isoformat(), "tipo": "capacidad_llena", "codigo": "MAXIMO_POSICIONES",
+                       "limite": "maximo_posiciones"})
+        t += timedelta(minutes=1)
+    return salida
+
+
+def test_la_espera_por_cupo_no_cuenta_como_tarde(tmp_path):
+    # RCL: ruptura 12:26, cupo lleno de 12:30 a 14:39, compra 14:41 (145 min).
+    # CCL: compra sin cupo lleno en su ventana, 4 min de reacción.
+    orden_rcl = {"ts": "2026-09-18T14:41:00+00:00", "tipo": "orden", "ticker": "RCL", "estado": "enviada",
+                 "velas": 135.0, "medida": "ruptura_a_orden", "velas_desde_ruptura": 2, "velas_desde_disparo": 133.0}
+    orden_ccl = {"ts": "2026-09-18T12:10:00+00:00", "tipo": "orden", "ticker": "CCL", "estado": "enviada",
+                 "velas": 4.0, "medida": "ruptura_a_orden", "velas_desde_ruptura": 2, "velas_desde_disparo": 2.0}
+    eventos(tmp_path, orden_ccl,
+            *_cupo_lleno_cada_minuto(datetime(2026, 9, 18, 12, 30, tzinfo=timezone.utc),
+                                     datetime(2026, 9, 18, 14, 39, tzinfo=timezone.utc)),
+            orden_rcl)
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    rcl = next(d for d in ctx["lat_detalle"] if d["ticker"] == "RCL")
+    assert rcl["total"] == 135.0 and rcl["espera"] == 130.0 and rcl["reaccion"] == 5.0
+    assert ctx["lat_fuera"] == 0                       # nadie llegó tarde por reaccionar
+    assert dict(ctx["lat"]) == {"CCL": 4.0, "RCL": 5.0}
+    html = bd.render(ctx)
+    assert "Esperando cupo (no cuenta como tarde): RCL 130 min." in html
+    assert "Bien: todas las compras de hoy salieron dentro del límite." in html
+
+
+def test_sin_eventos_de_cupo_toda_la_latencia_es_reaccion(tmp_path):
+    eventos(tmp_path, {"ts": "2026-09-18T14:41:00+00:00", "tipo": "orden", "ticker": "RCL", "estado": "enviada",
+                       "velas": 88.0, "medida": "ruptura_a_orden"})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert ctx["lat_detalle"][0]["espera"] == 0 and ctx["lat_fuera"] == 1
+
+
+def test_compras_sin_barra_se_listan_con_su_motivo(tmp_path):
+    eventos(tmp_path,
+            {"ts": "2026-09-18T14:00:00+00:00", "tipo": "rechequeo"},
+            {"ts": "2026-09-18T14:10:00+00:00", "tipo": "orden", "ticker": "LEN", "estado": "enviada",
+             "velas": None, "medida": "ruptura_a_orden", "velas_desde_ruptura": None, "velas_desde_disparo": 3.0})
+    compra_sin_evento = {"id": "o-cdns", "symbol": "CDNS", "side": "buy", "status": "filled",
+                         "submitted_at": "2026-09-18T14:20:00Z"}
+    get = alpaca_falso({"equity": "5000"}, **{"/v2/orders": [compra_sin_evento]})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=get)
+    assert ctx["lat_sin_barra"] == [
+        {"ticker": "LEN", "motivo": "el hunter no contó las velas desde la ruptura"},
+        {"ticker": "CDNS", "motivo": "compra en Alpaca sin evento en el log"}]
+    assert "Compras sin barra: LEN (el hunter no contó las velas desde la ruptura) · CDNS" in bd.render(ctx)
+    # Sin ninguna compra con dato no hay veredicto; con alguna, no dice "todas".
+    ctx2 = {"lat_mediana": 4.0, "lat_fuera": 0, "presupuesto": 8.0, "lat": [("CCL", 4.0)],
+            "lat_sin_barra": ctx["lat_sin_barra"]}
+    assert "la compra con dato salió dentro del límite (2 sin dato)" in bd._veredicto_latencia(ctx2)
+
+
+def test_sin_log_no_se_afirma_que_falte_el_evento_de_una_compra(tmp_path):
+    compra = {"id": "o-cdns", "symbol": "CDNS", "side": "buy", "status": "filled"}
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=alpaca_falso({"equity": "5000"}, **{"/v2/orders": [compra]}))
+    assert ctx["lat_sin_barra"] == []
+
+
+def test_eje_de_latencia_con_pocas_marcas_y_la_barra_atipica_cortada():
+    ctx = {"presupuesto": 8.0, "lat_detalle": [
+        {"ticker": "CCL", "total": 3.0, "espera": 0.0, "reaccion": 3.0},
+        {"ticker": "RCL", "total": 88.0, "espera": 0.0, "reaccion": 88.0}]}
+    svg = bd._grafico_latencia(ctx)
+    marcas = re.findall(r'text-anchor="end" class="eje">([^<]+)</text>', svg)
+    assert marcas == ["0", "8", "16"]                  # no 0,4,...,88 amontonados
+    assert "▲ 88" in svg
+    # La etiqueta del límite se dibuja después de las barras: no queda tapada.
+    assert svg.index("límite 8 min") > svg.rindex('<rect class="barra-')
