@@ -34,6 +34,7 @@ VARIABLES DE ENTORNO
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 from collections.abc import Callable
@@ -81,6 +82,7 @@ from momentum_hunter.data.provider import DataProvider, YahooProvider
 from momentum_hunter.factors import intradia as fi
 from momentum_hunter.factors import momentum as mom
 from momentum_hunter.models import Barras, Metadata
+from momentum_hunter.rutas_estado import RutaEstado
 from momentum_hunter.scoring import puntuar
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -1355,6 +1357,55 @@ def _log_embudo_corrida(metricas: telemetria.Metricas) -> None:
     log.info("rechazos universo -- %s", dict(metricas.rechazos_universo))
 
 
+# Aviso de "noticias ciegas" (2026-09-29): 4 escaneos seguidos con
+# cientos de operables y titulares_total=0, sin un solo error contado
+# (yfinance se tragaba el HTTP 500 de Yahoo). Solo avisa: no cambia qué
+# se evalúa ni ningún umbral de la estrategia. Un aviso por día.
+PATH_ALERTA_NOTICIAS = RutaEstado("momentum_hunter/alerta_noticias_ciegas.json")
+# Con pocos operables, cero titulares puede ser real. Con 20 o más, no.
+MIN_OPERABLES_ALERTA_NOTICIAS = 20
+
+
+def _alertar_noticias_ciegas(
+    metricas: telemetria.Metricas | None, con_catalizadores: bool, dry_run: bool,
+    ahora: datetime | None = None,
+) -> bool:
+    """True si el escaneo quedó ciego (>= MIN operables y 0 titulares).
+    Loguea ERROR siempre; manda Telegram una sola vez por día UTC y
+    nunca en dry-run. Best-effort: un fallo aquí no tumba la corrida."""
+    if metricas is None or not con_catalizadores:
+        return False
+    operables = sum(metricas.operables.values())
+    if operables < MIN_OPERABLES_ALERTA_NOTICIAS or metricas.titulares_total > 0:
+        return False
+    errores = {k: v for k, v in metricas.errores.items() if k.startswith("noticias")}
+    log.error("noticias ciegas -- operables=%d titulares_total=0 errores_noticias=%s", operables, errores)
+    if dry_run:
+        return True
+    ahora = ahora or datetime.now(UTC)
+    hoy = ahora.astimezone(UTC).date().isoformat()
+    try:
+        try:
+            previo = json.loads(PATH_ALERTA_NOTICIAS.read_text()).get("fecha")
+        except (OSError, ValueError, AttributeError):
+            previo = None
+        if previo == hoy:
+            return True
+        texto = (
+            f"⚠️ Noticias ciegas: el escaneo de las {ahora.astimezone(UTC):%H:%M} UTC tuvo "
+            f"{operables} tickers operables y 0 titulares. Sin titulares no hay "
+            "catalizadores: el hunter no genera alertas mientras dure. "
+            f"Errores de la fuente: {errores or 'ninguno contado'}. "
+            "(Aviso único por día.)"
+        )
+        enviar_telegram(texto)
+        PATH_ALERTA_NOTICIAS.write_text(json.dumps(
+            {"fecha": hoy, "ts": ahora.astimezone(UTC).isoformat(timespec="seconds"), "operables": operables}))
+    except Exception as ex:  # noqa: BLE001 -- el aviso nunca tumba el escaneo
+        log.warning("aviso de noticias ciegas falló: %s", ex)
+    return True
+
+
 def _persistir_telemetria_escaneo(metricas: telemetria.Metricas, dry_run: bool) -> None:
     """En dry-run no se persiste -- igual que el resto del estado."""
     if dry_run:
@@ -1518,6 +1569,7 @@ def main() -> None:
         candidatos_diarios = construir_candidatos_diarios(
             validos, barras, provider, CONFIG, not args.no_catalizadores, bandas, metricas,
             ahora=inicio)
+        _alertar_noticias_ciegas(metricas, not args.no_catalizadores, args.dry_run, ahora=inicio)
         shortlist = candidatos_para_etapa_intradia(candidatos_diarios, CONFIG)
         log.info("etapa 1 -- candidatos con catalizador confirmado: %d -- pasan a intradía: %d",
                   sum(1 for c in candidatos_diarios if c.catalizador is not None), len(shortlist))
