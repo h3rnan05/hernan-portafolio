@@ -1911,6 +1911,8 @@ def marcas_de(ticker: str, posiciones: list, ordenes: list, watch: list[dict]) -
 # de lo que se ve, no de los datos: el caché guarda la serie completa.
 MINUTOS_ANTES_DE_APERTURA = 15
 _MINIMO_VELAS_VENTANA = 5
+# Hasta cuántos rangos de las velas puede estar un nivel para dibujarse como línea.
+_RANGOS_MARCAS = 2.0
 # Separación mínima (px del viewBox) entre etiquetas de marcas. El 29/9
 # "ruptura", "entrada" y "stop" de CCL quedaban encimadas en el borde.
 _SEPARACION_ETIQUETAS = 11.0
@@ -1988,7 +1990,22 @@ def repartir_etiquetas(ys: list[float], arriba: float, abajo: float,
     return out
 
 
-def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime) -> str:
+def rango_de_escala(velas: dict) -> tuple[float, float]:
+    """(mínimo, máximo) de precio que fija la escala del gráfico.
+
+    Sale de las velas desde la apertura, no del cuarto de hora de
+    premarket que también se dibuja. El 29/9 CCL traía en el premarket
+    velas cerca de $21.59 contra una sesión de ~$24.5: con ellas en la
+    escala, la zona donde vive la operación quedaba aplastada en una
+    franja. Con menos de 5 velas de sesión (antes de abrir o recién
+    abierto) se usa la serie entera: mejor esa escala que ninguna."""
+    ts = [parse_ts(t) for t in velas.get("timestamps") or []]
+    sesion = [i for i, m in enumerate(ts) if m is not None and m >= _apertura_ny(m)]
+    base = sesion if len(sesion) >= _MINIMO_VELAS_VENTANA else range(len(velas["close"]))
+    return min(velas["low"][i] for i in base), max(velas["high"][i] for i in base)
+
+
+def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime, clave: str = "") -> str:
     """Velas de 1 min en SVG, sin librerías. Las marcas que faltan no se
     dibujan (el pie del panel dice "sin dato"). Una marca fuera del rango
     de precios de las velas se anota en el borde en vez de aplastar las
@@ -2007,15 +2024,18 @@ def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime) -> str:
     velas = recortar_a_sesion(velas)
     n = len(velas["close"])
     marcas_ts = [parse_ts(t) for t in velas["timestamps"]]
-    minimo, maximo = min(velas["low"]), max(velas["high"])
+    minimo, maximo = rango_de_escala(velas)
     rango = maximo - minimo
     if rango < 1e-9:
         rango = max(0.01, minimo * 0.002)
     objetivo = marcas.get("objetivo")
-    # Una marca a menos de un rango completo de distancia entra al eje; más
-    # lejos, se anota en el borde.
+    # Una marca a menos de dos rangos de distancia entra al eje; más lejos,
+    # se anota en el borde. Eran uno, pero desde que la escala sale solo
+    # de la sesión (más ajustada) el objetivo de CCL a 2R quedaba afuera
+    # justo cuando es la línea que más interesa ver.
+    margen = rango * _RANGOS_MARCAS
     dentro = [v for v in (marcas["ruptura"], marcas["entrada_precio"], marcas["stop"], objetivo)
-              if v is not None and minimo - rango <= v <= maximo + rango]
+              if v is not None and minimo - margen <= v <= maximo + margen]
     lo = min([minimo, *dentro]) - rango * 0.08
     hi = max([maximo, *dentro]) + rango * 0.08
 
@@ -2030,6 +2050,12 @@ def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime) -> str:
 
     for valor in (minimo, maximo):
         partes.append(f'<text x="{x0-6}" y="{y(valor)+4:.1f}" text-anchor="end" class="eje">{esc(fmt_dinero(valor))}</text>')
+    # Una vela de premarket fuera de la escala se recorta al área del
+    # gráfico (no se estira ni se mueve: lo que se ve es su tramo real
+    # dentro de la escala) y la nota de abajo dice a qué precio llegó.
+    id_recorte = "recorte-" + re.sub(r"[^A-Za-z0-9_-]", "", clave or str(id(res)))
+    partes.append(f'<clipPath id="{id_recorte}"><rect x="{x0}" y="{y1}" width="{x1-x0}" height="{y0-y1}"/></clipPath>')
+    partes.append(f'<g clip-path="url(#{id_recorte})">')
     for i in range(n):
         o, c, h, lw = velas["open"][i], velas["close"][i], velas["high"][i], velas["low"][i]
         cls = "vela-sube" if c >= o else "vela-baja"
@@ -2037,6 +2063,14 @@ def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime) -> str:
         top, base = max(o, c), min(o, c)
         partes.append(f'<rect class="vela {cls}" x="{x(i)-cuerpo/2:.1f}" y="{y(top):.1f}" width="{cuerpo:.1f}" '
                       f'height="{max(1.0, y(base)-y(top)):.1f}"/>')
+    partes.append("</g>")
+    bajas = [velas["low"][i] for i in range(n) if velas["low"][i] < lo]
+    altas = [velas["high"][i] for i in range(n) if velas["high"][i] > hi]
+    if bajas or altas:
+        extremos = ([f"mín {fmt_dinero(min(bajas))}"] if bajas else []) + ([f"máx {fmt_dinero(max(altas))}"] if altas else [])
+        # Abajo, entre las dos horas del eje: ahí no tapa ninguna vela.
+        partes.append(f'<text class="eje nota-escala" x="{(x0+x1)/2:.0f}" y="{alto-6}" text-anchor="middle">'
+                      f'premarket fuera de escala: {esc(" · ".join(extremos))}</text>')
 
     # VWAP: línea continua fina, solo donde hay dato.
     vwap = vwap_de_sesion(velas)
@@ -2300,7 +2334,7 @@ svg{width:100%;height:auto}.eje{font-family:var(--mono);font-size:10px;fill:var(
 .m-entrada{stroke:var(--gris)}.m-entrada-txt{fill:var(--gris)}
 .m-objetivo{stroke:var(--verde)}.m-objetivo-txt{fill:var(--verde)}
 .m-vwap{stroke:#b7791f}.m-vwap-txt{fill:#b7791f}
-.m-ruptura-txt,.m-stop-txt,.m-entrada-txt,.m-objetivo-txt,.m-vwap-txt{paint-order:stroke;stroke:var(--papel);stroke-width:3px;stroke-linejoin:round}
+.m-ruptura-txt,.m-stop-txt,.m-entrada-txt,.m-objetivo-txt,.m-vwap-txt,.nota-escala{paint-order:stroke;stroke:var(--papel);stroke-width:3px;stroke-linejoin:round}
 .barra-ok{fill:var(--acento)}.barra-alta{fill:var(--rojo)}.limite{stroke:var(--rojo)}
 .explica{margin:0 0 8px;font-size:13px;line-height:1.45;color:var(--gris2)}
 .nota{margin-top:auto;padding:10px 12px;background:var(--mal-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--mal-fg)}
@@ -2773,7 +2807,7 @@ def render(ctx: dict) -> str:
             return (
                 f'<div class="panel"><div class="titulo"><h2>{esc(op["ticker"])}</h2>'
                 f'<span class="mono">{esc(_subtitulo_velas(op["velas"], tz, ctx["ahora"]))} {marca_pendiente}</span></div>'
-                f'{_grafico_velas(op["velas"], op["marcas"], tz, ctx["ahora"])}'
+                f'{_grafico_velas(op["velas"], op["marcas"], tz, ctx["ahora"], clave=op["ticker"])}'
                 f'{nota_velas}{nota_pendiente}{_pie_marcas(op["marcas"], tz, ctx["ahora"])}</div>'
             )
 
