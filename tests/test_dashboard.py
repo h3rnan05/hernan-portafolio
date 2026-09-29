@@ -2408,3 +2408,42 @@ def test_latencia_en_lenguaje_llano_con_veredicto():
     assert "1 compra llegó tarde" in bd._veredicto_latencia({**base, "lat_fuera": 1})
     # Sin compras con el dato completo no hay veredicto, ni un "Bien" falso.
     assert bd._veredicto_latencia({**base, "lat_mediana": None, "lat_fuera": None}) == ""
+
+
+# ───────── 2026-09-29: la escala sale de la sesión, no del premarket (CCL) ─────────
+
+def _sesion_con_premarket_raro():
+    # 13:15–13:29 UTC premarket con un precio aislado de $21.59; desde 13:30
+    # (09:30 ET) la sesión se mueve entre 24 y 25.
+    velas = _serie(datetime(2026, 9, 29, 13, 15, tzinfo=timezone.utc), 40)
+    for campo, valor in (("open", 24.5), ("close", 24.5), ("high", 25.0), ("low", 24.0)):
+        velas[campo] = [valor] * 40
+    for i in range(3):
+        velas["low"][i] = 21.59
+    return velas
+
+
+def test_escala_ignora_el_premarket_y_lo_avisa():
+    velas = _sesion_con_premarket_raro()
+    assert bd.rango_de_escala(velas) == (24.0, 25.0)
+    marcas = {"ruptura": None, "entrada_precio": None, "entrada_hora": None, "stop": None, "objetivo": None}
+    ahora = datetime(2026, 9, 29, 14, 0, tzinfo=timezone.utc)
+    svg = bd._grafico_velas({"velas": velas}, marcas, ZoneInfo("UTC"), ahora, clave="CCL")
+    # El eje va de la sesión, no de $21.59.
+    assert "$24.00" in svg and "$25.00" in svg and ">$21.59<" not in svg
+    # Las velas raras siguen ahí, recortadas al área, y la nota dice el precio.
+    assert 'clip-path="url(#recorte-CCL)"' in svg
+    assert "premarket fuera de escala: mín $21.59" in svg
+    # Un objetivo a 2R de una sesión ajustada sigue siendo una línea, no una nota al borde.
+    con_objetivo = bd._grafico_velas({"velas": velas}, {**marcas, "objetivo": 26.5}, ZoneInfo("UTC"), ahora, clave="CCL")
+    assert '<line class="marca-objetivo' in con_objetivo and "fuera del gráfico" not in con_objetivo
+
+
+def test_escala_sin_sesion_suficiente_usa_toda_la_serie():
+    # Antes de la apertura no hay velas de sesión: no se inventa una escala.
+    velas = _serie(datetime(2026, 9, 29, 12, 0, tzinfo=timezone.utc), 30)
+    velas["low"][0] = 7.5
+    assert bd.rango_de_escala(velas) == (7.5, 11.0)
+    marcas = {"ruptura": None, "entrada_precio": None, "entrada_hora": None, "stop": None, "objetivo": None}
+    svg = bd._grafico_velas({"velas": velas}, marcas, ZoneInfo("UTC"), datetime(2026, 9, 29, 13, 0, tzinfo=timezone.utc))
+    assert "fuera de escala" not in svg
