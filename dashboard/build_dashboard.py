@@ -2194,13 +2194,24 @@ def fmt_num(v, sufijo: str = "") -> str:
     return texto + sufijo
 
 
+def _veredicto_latencia(ctx: dict) -> str:
+    """Una frase en lenguaje llano. Solo lee lo ya calculado; no cambia la medida."""
+    if ctx["lat_mediana"] is None:
+        return ""
+    fuera = ctx["lat_fuera"] or 0
+    if fuera == 0:
+        return '<div class="nota-info">Bien: todas las compras de hoy salieron dentro del límite.</div>'
+    compras = "compra llegó" if fuera == 1 else "compras llegaron"
+    return f'<div class="nota">Ojo: {fuera} {compras} tarde hoy (más de {esc(fmt_num(ctx["presupuesto"]))} min).</div>'
+
+
 def _grafico_latencia(ctx: dict) -> str:
     ancho, alto, x0, y0, y1 = 480, 230, 36, 200, 10
     valores = [v for _, v in ctx["lat"]][-40:]
     tope = max([12.0, ctx["presupuesto"] + 4, *valores])
     y = lambda v: y0 - (v / tope) * (y0 - y1)
     partes = [
-        f'<svg viewBox="0 0 {ancho} {alto}" role="img" aria-label="Latencia ruptura a orden por operación, en velas de 1 minuto">',
+        f'<svg viewBox="0 0 {ancho} {alto}" role="img" aria-label="Minutos entre la señal de ruptura y la compra, una barra por compra">',
         f'<rect x="{x0+1}" y="{y1}" width="{ancho-x0-10}" height="{y(ctx["presupuesto"])-y1:.1f}" class="zona-riesgo"/>',
         f'<line x1="{x0}" y1="{y1}" x2="{x0}" y2="{y0}" class="rejilla"/>',
         f'<line x1="{x0}" y1="{y0}" x2="{ancho-10}" y2="{y0}" class="rejilla"/>',
@@ -2209,7 +2220,7 @@ def _grafico_latencia(ctx: dict) -> str:
         partes.append(f'<text x="{x0-8}" y="{y(marca)+4:.1f}" text-anchor="end" class="eje">{marca}</text>')
     yp = y(ctx["presupuesto"])
     partes.append(f'<line x1="{x0}" y1="{yp:.1f}" x2="{ancho-10}" y2="{yp:.1f}" class="limite" stroke-width="1.5" stroke-dasharray="6 4"/>')
-    partes.append(f'<text x="{ancho-14}" y="{yp-8:.1f}" text-anchor="end" class="eje rojo">presupuesto {fmt_num(ctx["presupuesto"])} velas</text>')
+    partes.append(f'<text x="{ancho-14}" y="{yp-8:.1f}" text-anchor="end" class="eje rojo">límite {fmt_num(ctx["presupuesto"])} min</text>')
     if valores:
         paso = (ancho - x0 - 20) / len(valores)
         barra = max(3.0, paso * 0.7)
@@ -2217,7 +2228,7 @@ def _grafico_latencia(ctx: dict) -> str:
             cls = "barra-alta" if v > ctx["presupuesto"] else "barra-ok"
             partes.append(f'<rect class="{cls}" x="{x0 + 6 + i*paso:.1f}" y="{y(v):.1f}" width="{barra:.1f}" height="{y0-y(v):.1f}"/>')
     else:
-        mensaje = "Sin órdenes con latencia completa (ruptura → orden) hoy."
+        mensaje = "Todavía no hay compras hoy con el dato completo."
         partes.append(f'<text x="{(ancho+x0)/2}" y="120" text-anchor="middle" class="eje">{esc(mensaje)}</text>')
     partes.append("</svg>")
     return "".join(partes)
@@ -2291,6 +2302,7 @@ svg{width:100%;height:auto}.eje{font-family:var(--mono);font-size:10px;fill:var(
 .m-vwap{stroke:#b7791f}.m-vwap-txt{fill:#b7791f}
 .m-ruptura-txt,.m-stop-txt,.m-entrada-txt,.m-objetivo-txt,.m-vwap-txt{paint-order:stroke;stroke:var(--papel);stroke-width:3px;stroke-linejoin:round}
 .barra-ok{fill:var(--acento)}.barra-alta{fill:var(--rojo)}.limite{stroke:var(--rojo)}
+.explica{margin:0 0 8px;font-size:13px;line-height:1.45;color:var(--gris2)}
 .nota{margin-top:auto;padding:10px 12px;background:var(--mal-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--mal-fg)}
 .nota-info{margin-top:auto;padding:10px 12px;background:var(--duda-bg);border-radius:4px;font-family:var(--mono);font-size:12px;color:var(--gris2)}
 /* Historial del día: ya no está pasando. Gris, nunca el rojo de Revisar. */
@@ -2697,14 +2709,15 @@ def render(ctx: dict) -> str:
     signo = "" if ctx["pnl"] is None else ("pos" if ctx["pnl"] >= 0 else "neg")
     pct = "" if ctx["pnl_pct"] is None else f" ({ctx['pnl_pct']:+.2f}%)"
     ordenes_sub = "—" if ctx["n_rech"] is None else f"{ctx['n_rech']} rechazadas"
-    lat_sub = "sin órdenes hoy" if ctx["lat_mediana"] is None else f"mediana del día · presupuesto {fmt_num(ctx['presupuesto'])}"
+    lat_sub = ("sin compras hoy" if ctx["lat_mediana"] is None
+               else f"lo típico hoy en comprar · límite {fmt_num(ctx['presupuesto'])} min")
     kpis = [
         ("Equity paper", fmt_dinero(ctx["equity"]),
          "", f"cuenta paper {ctx['cuenta_numero']}" if ctx["cuenta_numero"] else "cuenta de práctica Alpaca"),
         ("P&L del día", fmt_dinero(ctx["pnl"], signo=True), signo, f"vs cierre anterior{pct}"),
         ("Posiciones", fmt_num(ctx["n_pos"]), "", "abiertas ahora"),
         ("Órdenes hoy", fmt_num(ctx["n_ord"]), "", ordenes_sub),
-        ("Latencia", fmt_num(ctx["lat_mediana"], " velas"), "", lat_sub),
+        ("Latencia (reacción)", fmt_num(ctx["lat_mediana"], " min"), "", lat_sub),
     ]
     kpis_html = "".join(
         f'<div class="panel kpi"><span class="mono">{esc(a)}</span><span class="valor {c}">{esc(b)}</span><span class="mono">{esc(d)}</span></div>'
@@ -2847,9 +2860,11 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
 </section>
 <section class="fila c2">
   <div class="panel"><div class="titulo"><h2>Watchlist actual</h2><span class="mono">{esc(resumen_watch)}generada {_hora(ctx['wl_momento'], tz, ahora=ctx['ahora'])}</span></div>{watch}</div>
-  <div class="panel"><div class="titulo"><h2>Latencia</h2><span class="mono">ruptura → orden, velas de 1 min</span></div>
+  <div class="panel"><div class="titulo"><h2>Latencia</h2><span class="mono">qué tan rápido compra el bot</span></div>
+    <p class="explica">Minutos entre que el precio rompe (la señal) y que el bot manda la compra. Menos es mejor: si tarda, compra más caro. Cada barra es una compra de hoy; la línea roja es el límite de {fmt_num(ctx['presupuesto'])} min.</p>
     {_grafico_latencia(ctx)}
-    <div class="stats"><div><span class="mono">Mediana</span><b>{fmt_num(ctx['lat_mediana'])}</b></div><div><span class="mono">P90</span><b>{fmt_num(ctx['lat_p90'])}</b></div><div><span class="mono">Fuera de presupuesto</span><b class="neg">{fmt_num(ctx['lat_fuera'])}</b></div></div>
+    <div class="stats"><div><span class="mono">Lo típico</span><b>{fmt_num(ctx['lat_mediana'], ' min')}</b></div><div><span class="mono">9 de cada 10</span><b>{'—' if ctx['lat_p90'] is None else '≤ ' + fmt_num(ctx['lat_p90'], ' min')}</b></div><div><span class="mono">Llegaron tarde</span><b class="{'neg' if ctx['lat_fuera'] else 'pos'}">{fmt_num(ctx['lat_fuera'])}</b></div></div>
+    {_veredicto_latencia(ctx)}
   </div>
 </section>
 <section class="fila c3">

@@ -2397,3 +2397,14 @@ def test_watchlist_pliega_las_terminales_y_pone_las_disparadas_primero(tmp_path)
 def test_panel_lleva_la_hora_de_generacion_para_el_aviso_de_viejo(tmp_path):
     html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=alpaca_falso({"equity": "5000"}), velas=velas_ok))
     assert f'data-generado="{int(AHORA.timestamp())}"' in html and 'id="panel-viejo" hidden' in html
+
+
+def test_latencia_en_lenguaje_llano_con_veredicto():
+    # Misma medida (velas de 1 min = minutos); solo cambia cómo se dice.
+    base = {"lat_mediana": 4.0, "lat_fuera": 0, "presupuesto": 8.0}
+    assert "Bien: todas las compras de hoy" in bd._veredicto_latencia(base)
+    tarde = bd._veredicto_latencia({**base, "lat_fuera": 2})
+    assert 'class="nota"' in tarde and "2 compras llegaron tarde" in tarde and "más de 8 min" in tarde
+    assert "1 compra llegó tarde" in bd._veredicto_latencia({**base, "lat_fuera": 1})
+    # Sin compras con el dato completo no hay veredicto, ni un "Bien" falso.
+    assert bd._veredicto_latencia({**base, "lat_mediana": None, "lat_fuera": None}) == ""
