@@ -1012,3 +1012,34 @@ def test_escaneo_entrada_vigente_sigue_disparando_igual(monkeypatch, tmp_path):
     assert disparadas["RKLB"] is entradas[0]
     assert entradas[0].estado == watchlist.ESTADO_TRIGGERED
     assert mensajes == []
+
+
+# ------------------------- patrón y VWAP junto a la ruptura (2026-09-29, solo registro) -------------------------
+
+def test_niveles_guardan_patron_y_vwap_y_viajan_en_el_overlay():
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    watchlist.actualizar_niveles(e, 5.30, 5.00, 5.90, 5.25, AHORA, patron="gap_and_go", vwap=5.18)
+    assert (e.ultimo_patron, e.ultimo_vwap) == ("gap_and_go", 5.18)
+    # Sin pasarlos (llamada vieja): None, no se conserva un valor rancio.
+    watchlist.actualizar_niveles(e, 5.30, 5.00, 5.90, 5.25, AHORA)
+    assert (e.ultimo_patron, e.ultimo_vwap) == (None, None)
+    # El rechequeo del VPS los escribe en el overlay, como la ruptura.
+    assert "ultimo_patron" in watchlist.CAMPOS_OVERLAY and "ultimo_vwap" in watchlist.CAMPOS_OVERLAY
+
+
+def test_contexto_de_niveles_sale_del_candidato_y_tolera_faltantes():
+    c = _candidato_intradia("RKLB")
+    ctx = run_mod._contexto_niveles(c)
+    assert ctx["patron"] == c.resultado.patron and ctx["vwap"] == c.factores.vwap
+    assert run_mod._contexto_niveles(SimpleNamespace()) == {"patron": None, "vwap": None}
+
+
+def test_una_watchlist_vieja_sin_estos_campos_sigue_cargando():
+    e = watchlist.desde_candidato_diario(_candidato_diario("RKLB"), AHORA)
+    d = watchlist.a_dict(e) if hasattr(watchlist, "a_dict") else None
+    if d is None:
+        from dataclasses import asdict
+        d = asdict(e)
+    d.pop("ultimo_patron"); d.pop("ultimo_vwap")
+    (cargada,) = watchlist.parsear({"entradas": [d]})
+    assert cargada.ultimo_patron is None and cargada.ultimo_vwap is None
