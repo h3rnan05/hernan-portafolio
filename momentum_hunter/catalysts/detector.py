@@ -25,12 +25,18 @@ ningún comportamiento de la ventana de días."""
 
 from __future__ import annotations
 
+import logging
+import os
+import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from email.utils import parsedate_to_datetime
 
 from momentum_hunter.config import MomentumConfig
 from momentum_hunter.models import Catalizador
+
+log = logging.getLogger(__name__)
 
 # Orden de prioridad cuando un titular (o varios, el mismo día) califican
 # para más de un tipo -- los catalizadores estructuralmente más fuertes
@@ -186,37 +192,117 @@ class NewsProvider(ABC):
         """Titulares recientes de un ticker. Lista vacía si falla o no hay."""
 
 
+# Respaldo de noticias (2026-09-29). Ese día el endpoint que usa
+# yfinance 1.7.0 para `.news` (POST finance.yahoo.com/xhr/ncp) respondía
+# HTTP 500 `{"message":"Internal Server Error"}` a todo el mundo, desde
+# el VPS y desde otra red. yfinance se traga ese 500 y devuelve `[]` sin
+# excepción: el hunter corrió 4 escaneos con titulares_total=0 sin que
+# nada lo contara como error. El RSS por ticker de Yahoo seguía en 200.
+YAHOO_RSS_URL = "https://feeds.finance.yahoo.com/rss/2.0/headline"
+YAHOO_RSS_TIMEOUT_S = 10
+# `0` apaga el respaldo sin redeploy (rollback: editar el env y listo).
+ENV_RSS_FALLBACK = "MOMENTUM_NOTICIAS_RSS_FALLBACK"
+# El RSS no trae el medio. No se inventa: todos sus titulares llevan la
+# misma fuente, así un rumor nunca junta dos fuentes distintas con el RSS
+# solo (la regla de rumores queda igual o más estricta, nunca más laxa).
+FUENTE_RSS = "desconocida"
+
+
+def rss_fallback_activo() -> bool:
+    return os.environ.get(ENV_RSS_FALLBACK, "1").strip() != "0"
+
+
+def parsear_rss_yahoo(xml_texto: str) -> list[Titular]:
+    """Cuerpo del RSS `headline?s=TICKER` → titulares, mismo formato que
+    `YahooNewsProvider._parsear`: fecha ISO completa en UTC. Un XML
+    ilegible lanza `ET.ParseError` (el caller lo cuenta como error de la
+    fuente, no como 'no había noticias')."""
+    texto = xml_texto.lstrip("\ufeff").strip()
+    raiz = ET.fromstring(texto)
+    out: list[Titular] = []
+    for item in raiz.iter("item"):
+        titulo = (item.findtext("title") or "").strip()
+        if not titulo:
+            continue
+        fecha = None
+        crudo = (item.findtext("pubDate") or "").strip()
+        if crudo:
+            try:
+                momento = parsedate_to_datetime(crudo)
+            except (TypeError, ValueError, IndexError):
+                momento = None
+            if momento is not None:
+                if momento.tzinfo is None:
+                    momento = momento.replace(tzinfo=UTC)
+                fecha = momento.astimezone(UTC).isoformat(timespec="seconds")
+        out.append(Titular(titulo, FUENTE_RSS, fecha))
+    return out
+
+
+def titulares_rss_yahoo(ticker: str, timeout: float = YAHOO_RSS_TIMEOUT_S) -> list[Titular]:
+    """GET al RSS por ticker de Yahoo. Lanza ante HTTP != 200, red o XML
+    roto: el caller decide cómo contarlo."""
+    import requests
+
+    r = requests.get(
+        YAHOO_RSS_URL,
+        params={"s": ticker, "region": "US", "lang": "en-US"},
+        headers={"User-Agent": "Mozilla/5.0"},
+        timeout=timeout,
+    )
+    r.raise_for_status()
+    return parsear_rss_yahoo(r.text)
+
+
 class YahooNewsProvider(NewsProvider):
     """Vía `yfinance`. Best-effort: si yfinance no está instalado o la
     llamada falla, devuelve lista vacía (el pipeline entonces no
-    encuentra catalizador y descarta el ticker -- nunca inventa uno)."""
+    encuentra catalizador y descarta el ticker -- nunca inventa uno).
 
-    def __init__(self, metricas=None) -> None:
+    Respaldo (2026-09-29): si yfinance no dio ningún titular (vacío o
+    excepción), se pide el RSS por ticker de Yahoo. Cuando yfinance sí
+    trae titulares, el resultado es idéntico al de siempre. Apagable con
+    `MOMENTUM_NOTICIAS_RSS_FALLBACK=0`."""
+
+    def __init__(self, metricas=None, rss=None) -> None:
         """`metricas` opcional (`telemetria.Metricas`): si viene, se
         registra CADA fallo de la fuente de noticias en vez de que
         desaparezca en el `except` de abajo. Sin él, el comportamiento
-        es idéntico al de siempre -- ninguna llamada existente se rompe."""
+        es idéntico al de siempre -- ninguna llamada existente se rompe.
+
+        `rss` inyectable para pruebas (callable ticker -> titulares);
+        por defecto `titulares_rss_yahoo`."""
         self._metricas = metricas
+        self._rss = rss if rss is not None else titulares_rss_yahoo
+
+    def _registrar(self, origen: str, ex: BaseException) -> None:
+        if self._metricas is not None:
+            self._metricas.registrar_error(origen, ex)
 
     def titulares(self, ticker: str) -> list[Titular]:
+        items: list = []
         try:
             import yfinance as yf
             items = yf.Ticker(ticker).news or []
         except Exception as ex:
-            # Se sigue devolviendo [] -- un ticker que falla nunca tumba
-            # la corrida. Pero ahora el fallo queda CONTADO: hasta el
-            # 2026-08-24 desaparecía en silencio, y "no había
-            # catalizadores" era indistinguible de "la fuente estaba
-            # caída". Ver `telemetria.py`.
-            if self._metricas is not None:
-                self._metricas.registrar_error("noticias", ex)
-            return []
+            # Un ticker que falla nunca tumba la corrida. Pero el fallo
+            # queda CONTADO: hasta el 2026-08-24 desaparecía en silencio,
+            # y "no había catalizadores" era indistinguible de "la fuente
+            # estaba caída". Ver `telemetria.py`.
+            self._registrar("noticias", ex)
+            items = []
         out = []
         for item in items:
             t = self._parsear(item)
             if t is not None:
                 out.append(t)
-        return out
+        if out or not rss_fallback_activo():
+            return out
+        try:
+            return self._rss(ticker)
+        except Exception as ex:  # noqa: BLE001 -- el respaldo nunca tumba la corrida
+            self._registrar("noticias_rss", ex)
+            return []
 
     @staticmethod
     def _parsear(item: dict) -> Titular | None:
