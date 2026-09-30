@@ -1,0 +1,152 @@
+{
+ "variante": "pead_u1",
+ "descripcion": "plan B: deriva post-resultados (8-K 2.02, gap ≥ 4 %, RVOL ≥ 3, $2–20; cierre día 0 → cierre día 3 o stop 6 %); universo solo $2–20",
+ "metricas": {
+  "trades": 1804,
+  "acierto": 0.4129711751662971,
+  "ganancia_media_r": 1.5296718440335526,
+  "perdida_media_r": -0.8977767350839456,
+  "expectativa_r": 0.10468955728996576,
+  "factor_beneficio": 1.19864406294324,
+  "drawdown_max": null,
+  "mfe_r": 1.337368247949502,
+  "mae_r": 0.9687031624298997,
+  "mfe_mediana_r": 0.8642322368685404,
+  "mae_mediana_r": 0.8722388821477548,
+  "salidas": {
+   "stop": 737,
+   "stop_gap": 73,
+   "tiempo": 0,
+   "objetivo": 0,
+   "breakeven": 0,
+   "cierre": 994
+  },
+  "pnl": 4688.922846641
+ },
+ "mfe_tiempo": {
+  "< 0.00 R": 0,
+  "0.00–0.25 R": 0,
+  "0.25–0.50 R": 0,
+  "0.50–1.00 R": 0,
+  "1.00–1.50 R": 0,
+  "≥ 1.50 R": 0
+ },
+ "por_precio": {
+  "$2–10": {
+   "trades": 997,
+   "acierto": 0.38716148445336007,
+   "ganancia_media_r": 1.7581492195148627,
+   "perdida_media_r": -0.9246031418365376,
+   "expectativa_r": 0.11405524480502757,
+   "factor_beneficio": 1.2012861273035267,
+   "drawdown_max": null,
+   "mfe_r": 1.4811328356163114,
+   "mae_r": 1.0476011085384533,
+   "mfe_mediana_r": 0.9612125022342981,
+   "mae_mediana_r": 0.9850608702331124,
+   "salidas": {
+    "stop": 444,
+    "stop_gap": 48,
+    "tiempo": 0,
+    "objetivo": 0,
+    "breakeven": 0,
+    "cierre": 505
+   },
+   "pnl": 2839.0421012914003
+  },
+  "$10–20": {
+   "trades": 737,
+   "acierto": 0.44776119402985076,
+   "ganancia_media_r": 1.2776665484545502,
+   "perdida_media_r": -0.8573869187487606,
+   "expectativa_r": 0.09860717104376665,
+   "factor_beneficio": 1.2082594537482632,
+   "drawdown_max": null,
+   "mfe_r": 1.1518472903024315,
+   "mae_r": 0.8611696347716281,
+   "mfe_mediana_r": 0.7758809520603633,
+   "mae_mediana_r": 0.7501934063831065,
+   "salidas": {
+    "stop": 261,
+    "stop_gap": 24,
+    "tiempo": 0,
+    "objetivo": 0,
+    "breakeven": 0,
+    "cierre": 452
+   },
+   "pnl": 1786.0402884566497
+  },
+  "$20–50": {
+   "trades": 56,
+   "acierto": 0.44642857142857145,
+   "ganancia_media_r": 1.098680226270555,
+   "perdida_media_r": -0.858760221323494,
+   "expectativa_r": 0.015097121352420645,
+   "factor_beneficio": 1.0317576647591395,
+   "drawdown_max": null,
+   "mfe_r": 0.9916357894771338,
+   "mae_r": 0.9259186032845831,
+   "mfe_mediana_r": 0.723431294064704,
+   "mae_mediana_r": 0.7811305851096475,
+   "salidas": {
+    "stop": 22,
+    "stop_gap": 1,
+    "tiempo": 0,
+    "objetivo": 0,
+    "breakeven": 0,
+    "cierre": 33
+   },
+   "pnl": 23.176517941350074
+  }
+ },
+ "por_nivel": {
+  "nivel 1": {
+   "trades": 1804,
+   "acierto": 0.4129711751662971,
+   "ganancia_media_r": 1.5296718440335526,
+   "perdida_media_r": -0.8977767350839456,
+   "expectativa_r": 0.10468955728996576,
+   "factor_beneficio": 1.19864406294324,
+   "drawdown_max": null,
+   "mfe_r": 1.337368247949502,
+   "mae_r": 0.9687031624298997,
+   "mfe_mediana_r": 0.8642322368685404,
+   "mae_mediana_r": 0.8722388821477548,
+   "salidas": {
+    "stop": 737,
+    "stop_gap": 73,
+    "tiempo": 0,
+    "objetivo": 0,
+    "breakeven": 0,
+    "cierre": 994
+   },
+   "pnl": 4688.922846641
+  },
+  "nivel 2": {
+   "trades": 0,
+   "acierto": null,
+   "ganancia_media_r": null,
+   "perdida_media_r": null,
+   "expectativa_r": null,
+   "factor_beneficio": null,
+   "drawdown_max": null,
+   "mfe_r": null,
+   "mae_r": null,
+   "mfe_mediana_r": null,
+   "mae_mediana_r": null,
+   "salidas": {
+    "stop": 0,
+    "stop_gap": 0,
+    "tiempo": 0,
+    "objetivo": 0,
+    "breakeven": 0,
+    "cierre": 0
+   },
+   "pnl": 0
+  }
+ },
+ "senales": 1804,
+ "no_entradas": {
+  "sin_dias_posteriores": 1
+ }
+}

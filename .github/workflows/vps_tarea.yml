@@ -115,7 +115,11 @@ jobs:
           VPS_USER: ${{ secrets.VPS_USER || 'ubuntu' }}
         run: |
           mkdir -p /tmp/salida
-          scp -i ~/.ssh/vps -o BatchMode=yes "$VPS_USER@$VPS_HOST:momentum-tareas/salida/*" /tmp/salida/
+          # Solo los archivos del informe. `salida/*` también trae la carpeta
+          # `fuentes/` que deja verificar_fuentes, y scp sin -r se corta ahí
+          # ("not a regular file", run 36689282987) sin bajar nada.
+          r="$VPS_USER@$VPS_HOST:momentum-tareas/salida"
+          scp -i ~/.ssh/vps -o BatchMode=yes "$r/*.md" "$r/metricas_*.json" "$r/*.log" /tmp/salida/
           ls -la /tmp/salida
 
       - uses: actions/upload-artifact@v4

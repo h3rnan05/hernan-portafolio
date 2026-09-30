@@ -192,6 +192,17 @@ precio quedaron como «sin dato EDGAR», nunca como «sin 8-K». No hay número
 que reportar; el código y la variante quedan listos para correr desde el VPS,
 donde el hunter ya habla con sec.gov sin 403.
 
+**Actualización 2026-09-30: medido desde el VPS.** Variante `pead_u1`
+(universo solo $2–20), 3 años (2023-09-26 a 2026-09-25), sin IA, 0 fallos de
+EDGAR. **No aprueba:** 1.804 trades, acierto 41,3 %, expectativa +0,10 R,
+factor de beneficio 1,20, MFE mediana +0,86 R. Por año se degrada sin pausa:
+2023 +0,28 R (FB 1,68) · 2024 +0,22 R (1,49) · 2025 +0,08 R (1,16) ·
+2026 −0,05 R (0,92). Las 994 salidas al cierre del día 3 dan +1,06 R; las
+737 por stop −1,02 R y las 73 con apertura bajo el stop −1,52 R. Informe
+completo en `estrategia_v2_2023-09-26_2026-09-25_pead_u1.md` y métricas en
+`metricas/metricas_pead_u1.json`. Ojo: es un periodo tres veces más largo
+que el del resto de este informe, no la misma ventana de un año.
+
 ### 4b. PEAD con titular de resultados (`peadnoticia`) — proxy
 
 Mismo plan, con el evento tomado de Benzinga: un titular entre el cierre
@@ -277,6 +288,10 @@ con stop más ancho o entrada más tarde es otra hipótesis, no una calibración
   (8-K 2.02) desde el VPS, donde sec.gov no da 403, y ver si con el evento
   real se sostiene. Si se sostiene, la decisión de aceptar posiciones
   nocturnas es del dueño y viene antes que cualquier código.
+  **Resultado (2026-09-30, §4a):** con el 8-K real y 3 años no se sostiene:
+  +0,10 R / FB 1,20 sobre 1.804 trades, y el último año ya es negativo
+  (−0,05 R). El +0,22 R del proxy de titulares no se confirma con el evento
+  correcto.
 - El rango $2–10 es donde ambos planes B y la v2 se ven menos mal ($2–10:
   peadnoticia +0,41 R, u1 +0,45 R, seguimiento −0,04 R). Con estas muestras
   es una coincidencia hasta que se demuestre lo contrario.
