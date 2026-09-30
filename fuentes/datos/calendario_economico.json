@@ -1,0 +1,289 @@
+{
+ "_nota": "Fechas curadas. `cobertura` dice qué años cubre cada tipo: un día de un año no cubierto vale FALTANTE. Las de 2026 se verificaron el 2026-09-28 contra las páginas oficiales (Fed fomccalendars.htm, BLS cpi.htm y empsit.htm, BEA news/schedule/full) con `python -m fuentes grabar calendario_economico`. 2025 NO está cubierto: las páginas solo muestran la cola de 2025 (CPI nov-2025 el 18-dic-2025, nóminas nov-2025 el 16-dic-2025, FOMC 9-10 dic) y varias fechas de fines de 2025 se movieron; hay que cargarlas de las tablas archivadas, no estimarlas.",
+ "cobertura": {
+  "FOMC": [
+   2026
+  ],
+  "CPI": [
+   2026
+  ],
+  "NOMINAS": [
+   2026
+  ],
+  "PIB": [
+   2026
+  ]
+ },
+ "eventos": [
+  {
+   "tipo": "FOMC",
+   "fecha": "2026-01-28",
+   "hora": "14:00",
+   "verificado": true
+  },
+  {
+   "tipo": "FOMC",
+   "fecha": "2026-03-18",
+   "hora": "14:00",
+   "verificado": true
+  },
+  {
+   "tipo": "FOMC",
+   "fecha": "2026-04-29",
+   "hora": "14:00",
+   "verificado": true
+  },
+  {
+   "tipo": "FOMC",
+   "fecha": "2026-06-17",
+   "hora": "14:00",
+   "verificado": true
+  },
+  {
+   "tipo": "FOMC",
+   "fecha": "2026-07-29",
+   "hora": "14:00",
+   "verificado": true
+  },
+  {
+   "tipo": "FOMC",
+   "fecha": "2026-09-16",
+   "hora": "14:00",
+   "verificado": true
+  },
+  {
+   "tipo": "FOMC",
+   "fecha": "2026-10-28",
+   "hora": "14:00",
+   "verificado": true
+  },
+  {
+   "tipo": "FOMC",
+   "fecha": "2026-12-09",
+   "hora": "14:00",
+   "verificado": true
+  },
+  {
+   "tipo": "CPI",
+   "fecha": "2026-01-13",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "CPI",
+   "fecha": "2026-02-13",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "CPI",
+   "fecha": "2026-03-11",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "CPI",
+   "fecha": "2026-04-10",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "CPI",
+   "fecha": "2026-05-12",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "CPI",
+   "fecha": "2026-06-10",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "CPI",
+   "fecha": "2026-07-14",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "CPI",
+   "fecha": "2026-08-12",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "CPI",
+   "fecha": "2026-09-11",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "CPI",
+   "fecha": "2026-10-14",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "CPI",
+   "fecha": "2026-11-10",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "CPI",
+   "fecha": "2026-12-10",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "NOMINAS",
+   "fecha": "2026-01-09",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "NOMINAS",
+   "fecha": "2026-02-11",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "NOMINAS",
+   "fecha": "2026-03-06",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "NOMINAS",
+   "fecha": "2026-04-03",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "NOMINAS",
+   "fecha": "2026-05-08",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "NOMINAS",
+   "fecha": "2026-06-05",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "NOMINAS",
+   "fecha": "2026-07-02",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "NOMINAS",
+   "fecha": "2026-08-07",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "NOMINAS",
+   "fecha": "2026-09-04",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "NOMINAS",
+   "fecha": "2026-10-02",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "NOMINAS",
+   "fecha": "2026-11-06",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "NOMINAS",
+   "fecha": "2026-12-04",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-01-22",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-02-20",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-03-13",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-04-09",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-04-30",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-05-28",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-06-25",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-07-30",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-08-26",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-09-30",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-10-29",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-11-25",
+   "hora": "08:30",
+   "verificado": true
+  },
+  {
+   "tipo": "PIB",
+   "fecha": "2026-12-23",
+   "hora": "08:30",
+   "verificado": true
+  }
+ ]
+}

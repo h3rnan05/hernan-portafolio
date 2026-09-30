@@ -77,7 +77,7 @@ class Reporte:
 
 def cliente_finra(transport=None, transport_post=None, dormir=None) -> Cliente:
     kw = {"dormir": dormir} if dormir is not None else {}
-    return Cliente("finra", "hernan-portafolio fuentes", limitador=Limitador(10, 60.0), transport=transport,
+    return Cliente("finra", "hernan-portafolio fuentes", limitador=Limitador(10, 60.0, **kw), transport=transport,
                    transport_post=transport_post, headers={"Accept": "application/json"}, **kw)
 
 

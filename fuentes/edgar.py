@@ -96,7 +96,7 @@ def user_agent_configurado() -> str:
 
 def cliente_edgar(transport=None, dormir=None) -> Cliente:
     kw = {"dormir": dormir} if dormir is not None else {}
-    return Cliente("edgar", user_agent_configurado(), limitador=Limitador(8, 1.0), transport=transport,
+    return Cliente("edgar", user_agent_configurado(), limitador=Limitador(8, 1.0, **kw), transport=transport,
                    headers={"Accept-Encoding": "gzip, deflate"}, **kw)
 
 
