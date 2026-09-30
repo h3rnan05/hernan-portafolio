@@ -64,7 +64,8 @@ class Respuesta:
 class Cliente:
     def __init__(self, fuente: str, user_agent: str, limitador: Limitador | None = None,
                  timeout: float = 20.0, reintentos: int = 3, transport=None,
-                 dormir: Callable[[float], None] = time.sleep, headers: dict | None = None) -> None:
+                 dormir: Callable[[float], None] = time.sleep, headers: dict | None = None,
+                 transport_post=None) -> None:
         if not user_agent or not user_agent.strip():
             raise ErrorFuente("sin_user_agent", fuente)
         self.fuente = fuente
@@ -73,6 +74,7 @@ class Cliente:
         self.timeout = timeout
         self.reintentos = max(1, reintentos)
         self._transport = transport or requests.get
+        self._transport_post = transport_post or requests.post
         self._dormir = dormir
         self._headers = dict(headers or {})
         self.llamadas = 0
@@ -86,6 +88,14 @@ class Cliente:
         return min(ESPERA_MAX_S, 0.5 * (2 ** intento))
 
     def get(self, url: str, params: dict | None = None, headers: dict | None = None) -> Respuesta:
+        return self._pedir("GET", url, params, headers, None)
+
+    def post(self, url: str, cuerpo: dict, headers: dict | None = None) -> Respuesta:
+        """POST con cuerpo JSON (FINRA filtra así). Mismos reintentos y
+        códigos que `get`."""
+        return self._pedir("POST", url, None, headers, cuerpo)
+
+    def _pedir(self, metodo: str, url: str, params: dict | None, headers: dict | None, cuerpo: dict | None) -> Respuesta:
         h = {"User-Agent": self.user_agent, **self._headers, **(headers or {})}
         ultimo = "sin_respuesta"
         respuesta = None
@@ -96,7 +106,10 @@ class Cliente:
                 self.limitador.esperar()
             self.llamadas += 1
             try:
-                respuesta = self._transport(url, params=params or {}, headers=h, timeout=self.timeout)
+                if metodo == "POST":
+                    respuesta = self._transport_post(url, json=cuerpo, headers=h, timeout=self.timeout)
+                else:
+                    respuesta = self._transport(url, params=params or {}, headers=h, timeout=self.timeout)
             except requests.RequestException as ex:
                 ultimo, respuesta = "red", None
                 log.warning("%s: fallo de red (intento %d, %s)", self.fuente, intento + 1, type(ex).__name__)

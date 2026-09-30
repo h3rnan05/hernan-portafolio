@@ -1,0 +1,23 @@
+{
+ "url": "https://api.finra.org/data/group/otcMarket/name/consolidatedShortInterest",
+ "metodo": "POST",
+ "params": {
+  "limit": 5000,
+  "offset": 0,
+  "compareFilters": [
+   {
+    "fieldName": "settlementDate",
+    "compareType": "EQUAL",
+    "fieldValue": "2026-09-15"
+   }
+  ]
+ },
+ "status": 400,
+ "headers": {
+  "Date": "Mon, 28 Sep 2026 23:06:14 GMT",
+  "Content-Type": "application/json"
+ },
+ "texto": "{\"statusCode\":400,\"statusDescription\":\"Bad Request\",\"requestId\":\"54214541-77a7-4896-861b-fd0d3b9ab85b\",\"message\":\"Dataset does not support user requested text/csv format.\",\"dataRequest\":{\"async\":false,\"offset\":0,\"compareFilters\":[{\"fieldName\":\"settlementDate\",\"compareType\":\"EQUAL\",\"fieldValue\":\"2026-09-15\"}],\"dataVersion\":1,\"delimiter\":\",\",\"datasetName\":\"consolidatedshortinterest\",\"format\":\"text/csv\",\"limit\":5000,\"datasetGroup\":\"otcmarket\",\"quoteValues\":true,\"versionedDatasetName\":\"consolidatedshortinterest\"}}",
+ "ficticio": false,
+ "nota": "REAL: lo que pide hoy el código (Accept: text/csv). Grabado 2026-09-28T23:06:14Z."
+}
