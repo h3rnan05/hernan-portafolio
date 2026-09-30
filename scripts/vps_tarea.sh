@@ -66,9 +66,12 @@ cargar_credenciales() {
     log "ERROR: faltan las claves de Alpaca en $PAPER_ENV"; exit 4
   fi
   export ALPACA_PAPER_API_KEY ALPACA_PAPER_API_SECRET
-  # La SEC exige un contacto en el User-Agent. Si paper.env no trae
-  # uno, se usa la dirección noreply del repo (igual que en Actions).
-  export FUENTES_SEC_USER_AGENT="${FUENTES_SEC_USER_AGENT:-hernan-portafolio vps-tarea github-actions@users.noreply.github.com}"
+  # La SEC exige "Nombre correo@dominio" en el User-Agent y devuelve 403
+  # con la dirección noreply de GitHub (run 36599503227, desde el VPS,
+  # mientras el hunter con su UA de siempre sí bajaba el listado de la
+  # SEC). Si paper.env no trae uno, se usa el mismo UA que ya usa
+  # momentum_hunter/universe.py: no es un dato nuevo, ya está en el repo.
+  export FUENTES_SEC_USER_AGENT="${FUENTES_SEC_USER_AGENT:-momentum-opportunity-hunter hernanlv2005@gmail.com}"
 }
 
 case "$TAREA" in
