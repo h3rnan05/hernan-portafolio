@@ -234,3 +234,59 @@ panel contaba eventos crudos. Desde entonces:
   si GitHub Actions (`momentum_hunter.yml`, el respaldo) lleva más de
   `DASH_GHA_MAX_MIN` (45) minutos sin una corrida exitosa en sesión. Sin
   dato de Actions no se inventa alerta.
+
+## Riesgo, velas y watchlist (2026-09-29)
+
+- **Velas**: la ventana arranca 15 min antes de la apertura de Nueva York
+  (`recortar_a_sesion`); si con eso quedan menos de 5 velas se deja la serie
+  entera. Se dibuja el **objetivo** (límite de venta vivo del bracket) y el
+  **VWAP** acumulado desde la apertura, calculado con las mismas velas del
+  gráfico; si a una vela de la sesión le falta el volumen, el VWAP se corta
+  ahí. Las etiquetas se reparten para no encimarse (`repartir_etiquetas`):
+  las líneas quedan en su precio, solo el texto se mueve.
+- **`held`** se muestra según dónde está la pata: en una posición llena es
+  "activo (OCO)" (Alpaca lo vigila y protege); en una compra pendiente,
+  "tras el fill".
+- **Riesgo por fila**: (entrada − stop) × cantidad y objetivo/riesgo en R.
+  En pendientes, el riesgo si llena al límite y cuánto lleva esperando
+  contra `minutos_maximos_entrada_sin_llenar`. Un stop por encima de la
+  entrada se muestra como ganancia asegurada.
+- **Uso de límites** (panel Límites de riesgo): cupo de jugadas contado
+  como `executor._leer_cuenta` (símbolos con posición ∪ con orden abierta)
+  contra `maximo_posiciones_abiertas`; concentración por posición contra
+  `maximo_pct_efectivo_por_posicion`; riesgo total al stop; invertido y
+  efectivo. Los topes se leen de `momentum_paper_trader.config.CONFIG`,
+  no se copian. Un dato que falta es "sin dato", nunca 0.
+- **Watchlist**: activas arriba (disparadas primero); las terminales de hoy
+  quedan plegadas. El título resume disparadas, vigilando y banda de cap.
+- **Panel viejo**: el HTML lleva su hora de generación; si el navegador ve
+  que tiene 3 min o más, aparece una píldora roja en la cabecera.
+
+## Datos consistentes (2026-09-29)
+
+- **Ruptura al decidir vs actual.** La ruptura de la watchlist se sigue
+  refrescando después de la orden (en los patrones que no son gap_and_go ni
+  opening_range_breakout es la EMA9 o el VWAP, y se mueve). El panel la
+  mostraba como si fuera la de la compra: NVS, entrada $144.79 y "ruptura"
+  $145.24. Ahora el evento `orden` trae `ruptura_al_decidir`,
+  `patron_al_decidir`, `vwap_al_decidir` y `precio_entrada` (solo
+  registro; el hunter guarda `ultimo_patron` / `ultimo_vwap` junto a la
+  ruptura). La gráfica y el pie dicen "ruptura al decidir" y, aparte,
+  "ruptura actual". Una orden sin esos campos dice "sin dato", nunca la
+  actual en su lugar.
+- **Velas.** Con el plan gratis, Alpaca responde 403 a las velas SIP de los
+  últimos 15 min. El panel lo detecta, deja de pedir el feed por 6 h
+  (`alpaca_feed_pausa.json` en `DASH_CACHE_VELAS`) y rotula las velas
+  "Yahoo" (no "respaldo"), con un aviso en la sección. Otro fallo del feed
+  sigue siendo "Yahoo (respaldo)" y el aviso trae su código.
+- **Hunter.** La última corrida de GitHub va aparte, en gris, como
+  "respaldo GitHub (histórico)". El estado lo decide el escaneo del VPS.
+- **P&L.** La gráfica de hoy termina en un punto "en vivo" con el equity de
+  la cuenta, el mismo número que la tarjeta P&L del día. Sin punto en vivo,
+  "Último" dice de qué vela es.
+- **Latencia.** Cada barra separa la reacción del bot de la espera por cupo
+  lleno (gris), reconstruida con los eventos `MAXIMO_POSICIONES` entre la
+  ruptura y la orden. Las cifras y "Llegaron tarde" cuentan solo la
+  reacción. Las compras sin barra se listan con su motivo (el evento no
+  trae las velas, o Alpaca tiene la compra y el log no). El eje va de 0 al
+  doble del límite; una barra más alta se corta con su total escrito.
