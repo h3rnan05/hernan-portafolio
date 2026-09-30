@@ -1,0 +1,16 @@
+{
+ "url": "https://finnhub.io/api/v1/company-news",
+ "metodo": "GET",
+ "params": {
+  "symbol": "ROTO",
+  "from": "2026-09-23",
+  "to": "2026-09-25"
+ },
+ "status": 200,
+ "headers": {
+  "Content-Type": "application/json; charset=utf-8"
+ },
+ "ficticio": true,
+ "texto": "{\"error\": \"You don't have access to this resource.\"}",
+ "nota": "FICTICIO: Finnhub responde a veces un objeto {error} con 200; debe leerse como FALTANTE."
+}
