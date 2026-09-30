@@ -1,0 +1,22 @@
+[Unit]
+Description=Momentum metadata en sombra: Yahoo vs Finnhub, 5 sesiones (solo telemetría, PAPER ONLY oneshot). NO se instala solo
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+Environment=MOMENTUM_ESTADO_DIR=/var/lib/momentum/estado
+EnvironmentFile=/etc/momentum/paper.env
+StateDirectory=momentum/estado/sombra_metadata
+ReadWritePaths=/var/lib/momentum/estado
+ExecStart=/opt/momentum/bin/run_metadata_sombra.sh
+Nice=15
+# 40 tickers × 2 proveedores con pausa: ~3 min como mucho.
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

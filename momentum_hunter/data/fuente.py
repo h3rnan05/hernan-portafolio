@@ -32,6 +32,11 @@ log = logging.getLogger("momentum_hunter.data.fuente")
 
 ENV_PROVEEDOR = "MOMENTUM_DATA_PROVIDER"
 ENV_FEED = "ALPACA_DATA_FEED"
+# Solo la metadata (nombre, bolsa, market cap). `yahoo` (default) deja
+# todo como hoy; `finnhub` la pide a Finnhub y las barras siguen saliendo
+# del proveedor de precios. Antes de poner `finnhub` en el VPS corre la
+# sombra de cinco sesiones (`momentum_hunter/sombra_metadata.py`).
+ENV_METADATA = "MOMENTUM_METADATA_PROVIDER"
 
 
 @dataclass(frozen=True)
@@ -221,10 +226,54 @@ class ProveedorConRespaldo(DataProvider):
         )
 
 
+class ConMetadataAparte(DataProvider):
+    """Barras del proveedor de precios; `metadata` de otro objeto.
+    `informe_datos` sigue midiendo solo los precios."""
+
+    def __init__(self, precios: DataProvider, metadata) -> None:
+        self._precios = precios
+        self._metadata = metadata
+
+    def barras(self, tickers: list[str], dias: int = 280) -> dict[str, Barras]:
+        return self._precios.barras(tickers, dias)
+
+    def barras_intradia(
+        self, tickers: list[str], intervalo: str = "1m", periodo: str = "5d",
+    ) -> dict[str, BarraIntradia]:
+        return self._precios.barras_intradia(tickers, intervalo, periodo)
+
+    def metadata(self, tickers: list[str]) -> dict[str, Metadata]:
+        return self._metadata.metadata(tickers)
+
+    def informe_datos(self):
+        fn = getattr(self._precios, "informe_datos", None)
+        return fn() if callable(fn) else None
+
+
+def proveedor_metadata_configurado() -> str:
+    """`yahoo` o `finnhub`; cualquier otra cosa se queda en yahoo y avisa."""
+    nombre = os.environ.get(ENV_METADATA, "yahoo").strip().lower()
+    if nombre in ("", "yahoo"):
+        return "yahoo"
+    if nombre != "finnhub":
+        log.warning("%s=%s no es yahoo ni finnhub; se queda en yahoo", ENV_METADATA, nombre)
+        return "yahoo"
+    return "finnhub"
+
+
 def proveedor_configurado(construir_yahoo=None) -> DataProvider:
     """Lee el entorno una vez por proceso. `construir_yahoo` existe para
     que el hunter pueda inyectar su `YahooProvider` (los tests lo
     parchean ahí) sin que este módulo importe el nombre al revés."""
+    precios = _proveedor_precios(construir_yahoo)
+    if proveedor_metadata_configurado() == "finnhub":
+        from momentum_hunter.data.finnhub_metadata import FinnhubMetadata
+        log.info("datos: metadata por finnhub (sin float en el plan gratis); precios sin cambio")
+        return ConMetadataAparte(precios, FinnhubMetadata())
+    return precios
+
+
+def _proveedor_precios(construir_yahoo=None) -> DataProvider:
     construir = construir_yahoo or YahooProvider
     nombre = os.environ.get(ENV_PROVEEDOR, "yahoo").strip().lower()
     if nombre in ("", "yahoo"):

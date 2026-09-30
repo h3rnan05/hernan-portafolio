@@ -39,6 +39,8 @@ Alpaca.
 | `bin/run_shadow_noticias.sh`, `bin/run_shadow_screener.sh` | `/opt/momentum/bin/` (solo si se instala la sombra Alpaca) | no-op salvo `SHADOW_ALPACA=1`; no hacen git ni tocan la watchlist |
 | `momentum-assets.service` / `.timer` | **NO se habilita solo** | diario 12:05 UTC: `GET /v2/assets` del host paper → `/var/lib/momentum/estado/datos/alpaca_assets.json` (fuera del repo). El hunter solo lee ese archivo |
 | `bin/run_assets.sh` | `/opt/momentum/bin/` (solo si se habilita el catálogo) | wrapper del job de activos; no filtra ni coloca órdenes |
+| `momentum-metadata-sombra.service` / `.timer` | **NO se instala solo** | Lun–Vie 13:00 UTC: metadata Yahoo vs Finnhub sobre una muestra, 5 sesiones, JSONL en `/var/lib/momentum/estado/sombra_metadata/` (`momentum_hunter/sombra_metadata.py`). No cambia `MOMENTUM_METADATA_PROVIDER` |
+| `bin/run_metadata_sombra.sh` | `/opt/momentum/bin/` (solo si se instala la sombra) | no-op salvo `MOMENTUM_METADATA_SOMBRA=1`; necesita `FINNHUB_API_KEY`; no hace git ni toca la watchlist |
 | `momentum-sip-stream.service` | **NO se instala solo** | proceso permanente: UNA conexión websocket SIP de barras de minuto, modo sombra (`momentum_hunter/data/sip_stream.py`). No decide |
 | `bin/run_sip_stream.sh` | `/opt/momentum/bin/` (solo si se instala el stream) | wrapper: fuerza `MOMENTUM_SIP_STREAM=sombra`; no coloca órdenes |
 
@@ -220,6 +222,25 @@ sudo systemctl daemon-reload
 sudo systemctl restart momentum-movers-sombra.timer
 systemctl list-timers momentum-movers-sombra.timer
 ```
+
+## Sombra de metadata Yahoo vs Finnhub (NO se instala solo)
+
+Cinco sesiones a las 13:00 UTC comparando la metadata de los dos proveedores
+antes de decidir `MOMENTUM_METADATA_PROVIDER=finnhub`. Lo despliega otro
+agente cuando el dueño lo pida; este PR solo versiona las unidades.
+
+```
+# en /etc/momentum/paper.env: MOMENTUM_METADATA_SOMBRA=1 y FINNHUB_API_KEY=...
+sudo install -m 0755 infra/systemd/bin/run_metadata_sombra.sh /opt/momentum/bin/run_metadata_sombra.sh
+sudo cp infra/systemd/momentum-metadata-sombra.service infra/systemd/momentum-metadata-sombra.timer /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now momentum-metadata-sombra.timer
+```
+
+Tras 5 archivos en `/var/lib/momentum/estado/sombra_metadata/` el módulo
+imprime `SOMBRA COMPLETA` y no pide nada más; el informe se arma leyendo
+esos JSONL. Limitación conocida: el plan gratis de Finnhub no trae el
+float, así que `float_faltaria_con_finnhub` cuenta cuántos tickers
+quedarían excluidos con `float_faltante: excluir`.
 
 ## Catálogo de activos paper (NO se habilita solo)
 
