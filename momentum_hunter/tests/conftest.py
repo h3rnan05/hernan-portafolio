@@ -38,3 +38,14 @@ def _guardia_corporativa_sin_red(monkeypatch):
 @pytest.fixture(autouse=True)
 def _catalogo_de_activos_ausente(tmp_path, monkeypatch):
     monkeypatch.setenv("MOMENTUM_CATALOGO_ACTIVOS", str(tmp_path / "sin_catalogo_activos.json"))
+
+
+@pytest.fixture(autouse=True)
+def _rss_noticias_sin_red(monkeypatch):
+    """3) Respaldo RSS de noticias (`detector.titulares_rss_yahoo`): las
+    pruebas que corren el pipeline con el proveedor real de noticias no
+    salen a la red por él. Las pruebas del respaldo inyectan su propio
+    `rss=` o vuelven a parchear."""
+    from momentum_hunter.catalysts import detector
+
+    monkeypatch.setattr(detector, "titulares_rss_yahoo", lambda ticker, *a, **k: [])
