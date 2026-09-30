@@ -148,6 +148,47 @@ def test_casi_pasan_ancla_ventana_y_rumor():
     assert f["motivo"] in nl.MOTIVOS_CASI
 
 
+def test_motivo_de_la_fila_coincide_con_explicar_rechazos_keyword():
+    """El motivo de la fila sale de los motivos por titular de
+    `explicar_rechazos_keyword`: cuando todos los titulares con keyword
+    dicen lo mismo, la fila dice exactamente eso."""
+    from momentum_hunter.catalysts.keyword_rechazos import explicar_rechazos_keyword
+    casos = [
+        # dos titulares con keyword fuera de ventana + uno sin keyword
+        [Titular("Acme awarded contract", "Reuters", VIEJA),
+         Titular("Acme wins contract", "AP", VIEJA),
+         Titular("Acme opens office", "AP", HOY)],
+        # dos rumores en ventana de UNA sola fuente
+        [Titular("Acme reportedly in talks", "Reuters", HOY),
+         Titular("Acme is said to be exploring sale", "Reuters", HOY)],
+    ]
+    for titulares in casos:
+        assert detectar_catalizador(titulares, CONFIG) is None
+        rechazos = explicar_rechazos_keyword("ACME", titulares, CONFIG)
+        con_kw = {t.texto for t in titulares if nl.keyword_de(t.texto)}
+        esperados = {r["motivo"] for r in rechazos if r["titular"] in con_kw}
+        assert len(esperados) == 1
+        f = _clas(titulares)
+        assert f["motivo"] == next(iter(esperados)) and f["motivo"] in nl.MOTIVOS_CASI
+        # Y por titular, lo mismo que explicar_rechazos_keyword.
+        por_titular = {r["titular"]: r["motivo"] for r in rechazos}
+        assert {n["titular"]: n["motivo"] for n in f["noticias"]} == por_titular
+
+
+def test_motivos_mezclados_o_faltantes_son_sin_dato():
+    # Un rumor en ventana (rumor_sin_fuentes) y un contrato viejo
+    # (fuera_ventana): no hay un motivo claro, no se elige uno.
+    f = _clas([Titular("Acme reportedly in talks", "Reuters", HOY),
+               Titular("Acme awarded contract", "Reuters", VIEJA)])
+    assert (f["resultado"], f["motivo"]) == (nl.SIN_CATALIZADOR, nl.SIN_DATO)
+    assert f["motivo"] not in nl.MOTIVOS_CASI and f["keyword"] is not None
+    assert nl.motivo_de_fila([]) == nl.SIN_DATO
+    assert nl.motivo_de_fila([{"fuera_ventana"}, None]) == nl.SIN_DATO           # uno sin motivo
+    assert nl.motivo_de_fila([{"fuera_ventana", "rumor_sin_fuentes"}]) == nl.SIN_DATO
+    assert nl.motivo_de_fila([{"sin_keyword"}]) == nl.SIN_DATO                    # no es de "casi"
+    assert nl.motivo_de_fila([{"fuera_ventana"}, {"fuera_ventana"}]) == "fuera_ventana"
+
+
 def test_sin_keyword_sin_noticias_error_y_sin_dato():
     f = _clas([Titular("Acme opens office", "Reuters", HOY)])
     assert (f["resultado"], f["motivo"], f["keyword"]) == (nl.SIN_CATALIZADOR, "sin_keyword", None)

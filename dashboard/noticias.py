@@ -48,6 +48,7 @@ MOTIVOS = {
     "fuera_ventana": "keyword, pero fuera de la ventana de días",
     "rumor_sin_fuentes": "rumor sin suficientes fuentes distintas",
     MOTIVO_SIN_KEYWORD: "ninguna keyword coincidió",
+    SIN_DATO: "motivo sin dato (los titulares no dan uno claro)",
 }
 # Orden de la lista: lo que pasó, lo que casi pasa, lo que no tuvo keyword...
 ORDEN = {"con": 0, "casi": 1, "sinkw": 2, SIN_NOTICIAS: 3, ERROR_LECTURA: 4}

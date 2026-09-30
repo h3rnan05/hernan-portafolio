@@ -2670,6 +2670,8 @@ ACCIONES_NOTICIAS = [
     {"ticker": "VACIO", "resultado": "sin_noticias", "n_noticias": 0, "noticias": []},
     {"ticker": "ROTO", "resultado": "error_lectura", "n_noticias": 0, "noticias": []},
     {"ticker": "RARO"},   # todo faltante
+    {"ticker": "MIXTO", "resultado": "sin_catalizador", "motivo": "sin_dato", "tipo": "rumor",
+     "keyword": "reportedly", "n_noticias": 2, "noticias": []},   # motivos mezclados
 ]
 
 
@@ -2688,7 +2690,8 @@ def test_noticias_pagina_con_hora_hace_y_aviso_no_en_vivo(tmp_path):
     assert destino.name == "noticias.html"
     assert "2026-09-18 14:30 UTC" in html and "hace 12 min" in html
     assert "No es en vivo" in html
-    assert "Casi pasan (2)" in html and "Sin keyword (1)" in html and "Todas (7)" in html
+    assert "Casi pasan (2)" in html and "Sin keyword (1)" in html and "Todas (8)" in html
+    assert "motivo sin dato" in html
     assert 'class="acc g-casi"' in html and 'class="acc g-sinkw"' in html
     assert 'href="https://x.test/1"' in html
     assert 'href="javascript' not in html and "link no válido" in html

@@ -29,7 +29,9 @@ Resultado por acción:
   sin_catalizador   había titulares y ninguno terminó en catalizador;
                     `motivo`: sin_ancla | fuera_ventana |
                     rumor_sin_fuentes (hubo keyword pero otra regla la
-                    frenó: "casi pasan") o sin_keyword (ninguno coincidió)
+                    frenó: "casi pasan"), sin_keyword (ninguno coincidió)
+                    o sin_dato (los motivos por titular de
+                    `explicar_rechazos_keyword` no dan uno claro)
   sin_noticias      la fuente respondió sin titulares
   error_lectura     la fuente de noticias falló
   sin_dato          no se sabe cómo terminó la lectura (no se inventa)
@@ -42,13 +44,12 @@ from __future__ import annotations
 import json
 import logging
 import os
-from datetime import date, datetime
+from datetime import datetime
 
 from momentum_hunter.catalysts.detector import (
     CATALYST_KEYWORDS,
     ORDEN_PRIORIDAD,
     Titular,
-    dentro_de_ventana,
 )
 from momentum_hunter.catalysts.keyword_rechazos import (
     MOTIVO_FUERA_VENTANA,
@@ -102,6 +103,23 @@ def _noticia(t: Titular, motivo: str | None) -> dict:
     }
 
 
+def motivo_de_fila(motivos_con_keyword: list[set[str] | None]) -> str:
+    """Motivo de la fila cuando hubo keyword y el detector no confirmó,
+    derivado SOLO de los motivos por titular de `explicar_rechazos_keyword`
+    (uno por cada titular con keyword). Si todos dicen lo mismo
+    (fuera_ventana o rumor_sin_fuentes), ese es el motivo. Si se mezclan,
+    si alguno no tiene motivo o si el motivo no es de "casi pasan", no hay
+    uno claro: `sin_dato`, no se adivina."""
+    if not motivos_con_keyword or any(not m for m in motivos_con_keyword):
+        return SIN_DATO
+    todos = set().union(*motivos_con_keyword)
+    if len(todos) == 1:
+        (m,) = todos
+        if m in (MOTIVO_FUERA_VENTANA, MOTIVO_RUMOR_SIN_FUENTES):
+            return m
+    return SIN_DATO
+
+
 def clasificar(
     ticker: str, estado_fuente: str | None, titulares: list[Titular],
     catalizador_detector, catalizador_final, cfg: MomentumConfig,
@@ -126,12 +144,20 @@ def clasificar(
             fila["resultado"] = SIN_NOTICIAS
         return fila
 
-    motivos: dict[str, str] = {}
+    # Motivos por titular: los de `explicar_rechazos_keyword`, tal cual.
+    # Por texto, con TODOS los motivos que tuvo ese texto (el mismo titular
+    # puede venir dos veces con fechas distintas).
+    motivos: dict[str, set[str]] = {}
     if catalizador_detector is None:
         # Mismo "hoy" por defecto que el detector (date.today()).
         for r in explicar_rechazos_keyword(ticker, titulares, cfg):
-            motivos.setdefault(r["titular"], r["motivo"])
-    fila["noticias"] = [_noticia(t, motivos.get(t.texto)) for t in titulares[:MAX_NOTICIAS_POR_ACCION]]
+            motivos.setdefault(r["titular"], set()).add(r["motivo"])
+
+    def _unico(texto: str) -> str | None:
+        m = motivos.get(texto)
+        return next(iter(m)) if m and len(m) == 1 else None
+
+    fila["noticias"] = [_noticia(t, _unico(t.texto)) for t in titulares[:MAX_NOTICIAS_POR_ACCION]]
 
     if catalizador_final is not None:
         fila["resultado"] = CON_CATALIZADOR
@@ -146,11 +172,8 @@ def clasificar(
         if not con_kw:
             fila["motivo"] = MOTIVO_SIN_KEYWORD
             return fila
-        # Hubo keyword: si alguna estaba en ventana y aun así no confirmó,
-        # es un rumor sin fuentes; si no, todas estaban fuera de ventana.
-        vigentes = [t for t in con_kw if dentro_de_ventana(t.fecha, date.today(), cfg.dias_ventana_catalizador)]
-        fila["motivo"] = MOTIVO_RUMOR_SIN_FUENTES if vigentes else MOTIVO_FUERA_VENTANA
-        principal = (vigentes or con_kw)[0].texto
+        fila["motivo"] = motivo_de_fila([motivos.get(t.texto) for t in con_kw])
+        principal = next((t.texto for t in con_kw if motivos.get(t.texto) == {fila["motivo"]}), con_kw[0].texto)
     kw = keyword_de(principal or "")
     if kw:
         fila["tipo"], fila["keyword"] = kw
