@@ -1,0 +1,15 @@
+[Unit]
+Description=Timer de la sombra de metadata (Lun-Vie 13:00 UTC, 5 sesiones). NO se instala solo
+Requires=momentum-metadata-sombra.service
+
+[Timer]
+# 13:00 UTC = 07:00 Monterrey (UTC−6), antes de la apertura (13:30 UTC en
+# verano). Persistent=false: una sesión atrasada compararía metadata de
+# otra hora y no es lo que se quiere medir. Tras 5 archivos el módulo
+# no pide nada más aunque el timer siga disparando.
+OnCalendar=Mon..Fri *-*-* 13:00:00 UTC
+Persistent=false
+Unit=momentum-metadata-sombra.service
+
+[Install]
+WantedBy=timers.target

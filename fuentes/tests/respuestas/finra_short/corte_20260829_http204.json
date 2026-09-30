@@ -1,0 +1,22 @@
+{
+ "url": "https://api.finra.org/data/group/otcMarket/name/consolidatedShortInterest",
+ "metodo": "POST",
+ "params": {
+  "limit": 5,
+  "offset": 0,
+  "compareFilters": [
+   {
+    "fieldName": "settlementDate",
+    "compareType": "EQUAL",
+    "fieldValue": "2026-08-29"
+   }
+  ]
+ },
+ "status": 204,
+ "headers": {
+  "Date": "Mon, 28 Sep 2026 23:06:16 GMT"
+ },
+ "texto": "",
+ "ficticio": false,
+ "nota": "REAL: corte inexistente -> 204 sin cuerpo. Grabado 2026-09-28T23:06:16Z."
+}

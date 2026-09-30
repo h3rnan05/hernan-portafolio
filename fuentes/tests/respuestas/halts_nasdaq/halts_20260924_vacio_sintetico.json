@@ -1,0 +1,15 @@
+{
+ "url": "https://www.nasdaqtrader.com/rss.aspx",
+ "metodo": "GET",
+ "params": {
+  "feed": "tradehalts",
+  "haltdate": "09242026"
+ },
+ "status": 200,
+ "headers": {
+  "Content-Type": "text/xml"
+ },
+ "texto": "﻿<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<rss version=\"2.0\" xmlns:ndaq=\"http://www.nasdaqtrader.com/\"><channel><title>NASDAQTrader.com</title><ndaq:numItems>0</ndaq:numItems></channel></rss>",
+ "ficticio": true,
+ "nota": "SINTÉTICO: canal con numItems=0 y BOM al inicio, como el que devolvía haltdate=MM/DD/YYYY (formato equivocado) el 2026-09-28. Sirve para probar que un día hábil pasado sin ítems es FALTANTE y que el BOM no rompe el XML. El 24/9/2026 real sí tuvo halts."
+}

@@ -1,0 +1,25 @@
+{
+  "_nota": "Mapa a mano sponsor FDA -> ticker. Se completa con `python -m fuentes grabar fda AAAA-MM` (lista los sponsors del mes). `confianza`: alta = el sponsor ES el emisor cotizado; dudosa = subsidiaria, licenciante o fusión y la columna vale FALTANTE. Las entradas reales salen de las aprobaciones ORIG de septiembre 2026; \"Ficticia C/D\" son ejemplos para las pruebas.",
+  "laboratorios": {
+    "SCHOLAR ROCK INC": {
+      "ticker": "SRRK",
+      "confianza": "alta"
+    },
+    "IONIS PHARMS INC": {
+      "ticker": "IONS",
+      "confianza": "alta"
+    },
+    "ELI LILLY AND CO": {
+      "ticker": "LLY",
+      "confianza": "alta"
+    },
+    "Ficticia C Biopharma, Inc.": {
+      "ticker": "FICC",
+      "confianza": "alta"
+    },
+    "Ficticia D Therapeutics": {
+      "ticker": "FICD",
+      "confianza": "dudosa"
+    }
+  }
+}
