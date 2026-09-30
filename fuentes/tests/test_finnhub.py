@@ -17,8 +17,8 @@ from fuentes.grabar import TransporteGrabado, cargar, transporte_desde
 from fuentes.http import Limitador
 
 TOKEN = "clave-secreta-finnhub"
-NOTICIAS = ["noticias_FICA_20260923_20260925", "noticias_FICA_20260926_20260928_vacio",
-            "noticias_ROTO_20260923_20260925_error", "noticias_SINHORA_20260923_20260925"]
+NOTICIAS = ["noticias_FICA_20260923", "noticias_FICA_20260924", "noticias_FICA_20260925", "noticias_FICA_20260927",
+            "noticias_FICA_20260928", "noticias_ROTO_20260924", "noticias_SINHORA_20260924"]
 # 09:40 NY del viernes 25/9/2026: el calendario ficticio pone FICA amc el 24.
 SENAL = datetime(2026, 9, 25, 13, 40, tzinfo=UTC)
 
@@ -49,6 +49,8 @@ def _fuente(tmp_path, monkeypatch, token=TOKEN, hoy=date(2026, 10, 1), fallar=No
     t.agregar(url, params, reg)
     for sim in ("ROTO", "SINHORA"):
         t.fallar.add(TransporteGrabado.clave(*_calendario(sim)))
+        # Su día 25 (la ventana de 60 min de SENAL) también falla: cada día roto por su lado.
+        t.fallar.add(TransporteGrabado.clave(fh.URL_NOTICIAS, _dia(sim, "2026-09-25")))
     dormidas: list[float] = []
     c = resultados.cliente_finnhub(transport=t, dormir=dormidas.append)
     return fh.Finnhub(Cache(tmp_path / "c"), c, hoy=hoy), t, dormidas
@@ -58,14 +60,32 @@ def _noticias(t: TransporteGrabado) -> list[dict]:
     return [p for u, p in t.pedidos if u == fh.URL_NOTICIAS]
 
 
+def _dia(sim: str, d: str) -> dict:
+    return {"symbol": sim, "from": d, "to": d}
+
+
+def _articulos(n: int, desde_ts: int, sim: str = "MUCHO") -> str:
+    """n artículos sintéticos, uno por minuto desde `desde_ts`."""
+    import json
+    return json.dumps([{"datetime": desde_ts + 60 * i, "id": 900000 + i, "headline": f"a{i}", "related": sim}
+                       for i in range(n)])
+
+
 # ------------------------------------------------------------ parser
 
 
 def test_leer_noticias_quita_duplicados_y_lee_utc():
-    lista = fh.leer_noticias(__import__("json").loads(cargar("finnhub", "noticias_FICA_20260923_20260925")["texto"]))
-    assert len(lista) == 7   # 8 artículos, el 103 repetido
-    horas = {i: h for i, h in lista}
+    import json
+    lista = fh.leer_noticias(json.loads(cargar("finnhub", "noticias_FICA_20260924")["texto"]))
+    assert [i for i, _ in lista] == [103, 102, 101]   # 4 artículos, el 103 repetido
+    horas = dict(fh.leer_noticias(json.loads(cargar("finnhub", "noticias_FICA_20260925")["texto"])))
     assert horas[105] == datetime(2026, 9, 25, 13, 10, tzinfo=UTC)
+
+
+def test_unir_deduplica_entre_dias():
+    h = datetime(2026, 9, 24, 20, 5, tzinfo=UTC)
+    otra = datetime(2026, 9, 25, 13, 10, tzinfo=UTC)
+    assert fh.unir([[(103, h), (102, h)], [(105, otra), (103, h)]]) == [(103, h), (102, h), (105, otra)]
 
 
 def test_cuerpo_de_error_o_articulo_sin_hora_invalida_la_respuesta():
@@ -78,10 +98,14 @@ def test_cuerpo_de_error_o_articulo_sin_hora_invalida_la_respuesta():
     assert fh.leer_noticias([]) == []
 
 
-def test_rango_pedido_cubre_la_fecha_ny_y_la_utc():
-    # 00:30 UTC del 25 = 20:30 NY del 24: la ventana empieza el 24 UTC (23 NY).
-    assert fh.rango_pedido(datetime(2026, 9, 25, 0, 30, tzinfo=UTC)) == (date(2026, 9, 23), date(2026, 9, 25))
-    assert fh.rango_pedido(SENAL) == (date(2026, 9, 23), date(2026, 9, 25))
+def test_dias_de_cubren_la_fecha_ny_y_la_utc():
+    # 24 h antes de las 00:30 UTC del 25 = 20:30 NY del 23: del 23 (NY) al 25 (UTC).
+    m = datetime(2026, 9, 25, 0, 30, tzinfo=UTC)
+    assert fh.dias_de(m - fh.VENTANA_24H, m) == [date(2026, 9, 23), date(2026, 9, 24), date(2026, 9, 25)]
+    assert fh.dias_de(SENAL - fh.VENTANA_24H, SENAL) == [date(2026, 9, 24), date(2026, 9, 25)]
+    # 60 min antes de las 00:30 UTC del 25 son las 19:30 NY del 24: dos días.
+    assert fh.dias_de(m - fh.VENTANA_60MIN, m) == [date(2026, 9, 24), date(2026, 9, 25)]
+    assert fh.dias_de(SENAL - fh.VENTANA_60MIN, SENAL) == [date(2026, 9, 25)]
 
 
 # ------------------------------------------------------ point-in-time
@@ -92,9 +116,19 @@ def test_columnas_solo_cuentan_lo_estrictamente_anterior(tmp_path, monkeypatch):
     fila = f.columnas("FICA", SENAL)
     # 24 h: 13:10 del 25, 20:05 del 24 (una vez) y 13:40:00 del 24 (borde inferior incluido).
     # Fuera: 13:40 del 25 (misma marca que la señal), 14:00 del 25 (posterior), 13:39:59 del 24.
+    # El 103 llega bajo el 24 (dos veces) y bajo el 25: cuenta una vez.
     assert fila == {"finnhub_noticias_24h": 3, "finnhub_noticia_60min": True,
                     "finnhub_earnings_hoy": False, "finnhub_earnings_ayer": True}
-    assert _noticias(t) == [{"symbol": "FICA", "from": "2026-09-23", "to": "2026-09-25"}]
+    # Un pedido por día, from = to; la ventana de 60 min reusa el 25 sin volver a pedir.
+    assert _noticias(t) == [_dia("FICA", "2026-09-24"), _dia("FICA", "2026-09-25")]
+
+
+def test_ventana_de_tres_dias_se_parte_en_tres_pedidos(tmp_path, monkeypatch):
+    f, t, _ = _fuente(tmp_path, monkeypatch)
+    fila = f.columnas("FICA", datetime(2026, 9, 25, 0, 30, tzinfo=UTC))
+    assert _noticias(t) == [_dia("FICA", "2026-09-23"), _dia("FICA", "2026-09-24"), _dia("FICA", "2026-09-25")]
+    # [24 00:30, 25 00:30): 103 (una vez), 102, 101; el 100 (23 22:00) queda antes.
+    assert fila["finnhub_noticias_24h"] == 3 and fila["finnhub_noticia_60min"] is False
 
 
 def test_la_noticia_en_el_minuto_de_la_senal_no_es_de_los_60_min(tmp_path, monkeypatch):
@@ -111,10 +145,10 @@ def test_mismo_dia_mismo_pedido_y_cache_en_disco(tmp_path, monkeypatch):
     f, t, _ = _fuente(tmp_path, monkeypatch)
     f.columnas("FICA", SENAL)
     f.columnas("FICA", datetime(2026, 9, 25, 12, 0, tzinfo=UTC))
-    assert len(_noticias(t)) == 1
+    assert len(_noticias(t)) == 2   # los días 24 y 25, una vez cada uno
     g = fh.Finnhub(f.cache, f._cliente, hoy=date(2026, 10, 1))
     assert g.columnas("FICA", SENAL)["finnhub_noticias_24h"] == 3
-    assert len(_noticias(t)) == 1
+    assert len(_noticias(t)) == 2   # otra instancia: sale de la caché en disco
 
 
 def test_dia_sin_articulos_dentro_de_la_historia_es_cero_afirmado(tmp_path, monkeypatch):
@@ -123,6 +157,39 @@ def test_dia_sin_articulos_dentro_de_la_historia_es_cero_afirmado(tmp_path, monk
     assert fila["finnhub_noticias_24h"] == 0 and fila["finnhub_noticia_60min"] is False
     # Lunes: "ayer" es el viernes 25, sin reporte de FICA (el bmo del 25 es de OTRO).
     assert fila["finnhub_earnings_hoy"] is False and fila["finnhub_earnings_ayer"] is False
+
+
+def test_dia_en_el_tope_es_faltante_solo_en_las_columnas_que_lo_tocan(tmp_path, monkeypatch):
+    f, t, _ = _fuente(tmp_path, monkeypatch)
+    ts24 = int(datetime(2026, 9, 24, 10, 0, tzinfo=UTC).timestamp())
+    t.agregar(fh.URL_NOTICIAS, _dia("MUCHO", "2026-09-24"),
+              {"status": 200, "headers": {}, "texto": _articulos(fh.TOPE_DIA, ts24)})
+    t.agregar(fh.URL_NOTICIAS, _dia("MUCHO", "2026-09-25"),
+              {"status": 200, "headers": {}, "texto": _articulos(3, int(SENAL.timestamp()) - 1800)})
+    t.fallar.add(TransporteGrabado.clave(*_calendario("MUCHO")))
+    fila = f.columnas("MUCHO", SENAL)
+    # El 24 llegó con 240: puede faltar lo más viejo del día. El conteo de
+    # 24 h lo toca: FALTANTE, no 240+3. La de 60 min solo mira el 25.
+    assert fila["finnhub_noticias_24h"] is FALTANTE
+    assert fila["finnhub_noticia_60min"] is True
+
+
+def test_un_articulo_menos_que_el_tope_si_es_conteo(tmp_path, monkeypatch):
+    f, t, _ = _fuente(tmp_path, monkeypatch)
+    ts24 = int(datetime(2026, 9, 24, 14, 0, tzinfo=UTC).timestamp())
+    t.agregar(fh.URL_NOTICIAS, _dia("MUCHO", "2026-09-24"),
+              {"status": 200, "headers": {}, "texto": _articulos(fh.TOPE_DIA - 1, ts24)})
+    t.agregar(fh.URL_NOTICIAS, _dia("MUCHO", "2026-09-25"), {"status": 200, "headers": {}, "texto": "[]"})
+    t.fallar.add(TransporteGrabado.clave(*_calendario("MUCHO")))
+    fila = f.columnas("MUCHO", SENAL)
+    assert fila["finnhub_noticias_24h"] == fh.TOPE_DIA - 1 and fila["finnhub_noticia_60min"] is False
+
+
+def test_el_tope_cuenta_articulos_crudos_antes_de_deduplicar():
+    import json
+    cuerpo = json.loads(_articulos(fh.TOPE_DIA, 1790208000))
+    cuerpo[1]["id"] = cuerpo[0]["id"]
+    assert fh.recortado(cuerpo) and not fh.recortado(cuerpo[:-1]) and not fh.recortado({"error": "x"})
 
 
 def test_fuera_de_la_historia_del_plan_es_faltante_sin_pedir(tmp_path, monkeypatch):
@@ -174,12 +241,14 @@ def test_error_de_la_api_es_faltante_nunca_cero(tmp_path, monkeypatch):
 
 
 def test_red_caida_es_faltante_y_no_se_cachea(tmp_path, monkeypatch):
-    caida = TransporteGrabado.clave(fh.URL_NOTICIAS, {"symbol": "FICA", "from": "2026-09-23", "to": "2026-09-25"})
-    f, _, _ = _fuente(tmp_path, monkeypatch, fallar={caida})
+    caida = TransporteGrabado.clave(fh.URL_NOTICIAS, _dia("FICA", "2026-09-24"))
+    f, t, _ = _fuente(tmp_path, monkeypatch, fallar={caida})
     fila = f.columnas("FICA", SENAL)
-    assert fila["finnhub_noticias_24h"] is FALTANTE and fila["finnhub_noticia_60min"] is FALTANTE
+    # Cayó el 24: el conteo de 24 h no se puede afirmar; la de 60 min solo mira el 25.
+    assert fila["finnhub_noticias_24h"] is FALTANTE and fila["finnhub_noticia_60min"] is True
     assert fila["finnhub_earnings_ayer"] is True   # el calendario sí respondió
-    assert not list((tmp_path / "c").glob("finnhub_noticias/*.json"))
+    # El 24 no se cachea; el 25 sí.
+    assert len(list((tmp_path / "c").glob("finnhub_noticias/*.json"))) == 1
 
 
 def test_hora_naive_no_se_adivina(tmp_path, monkeypatch):
@@ -210,12 +279,12 @@ def test_la_clave_va_en_cabecera_y_no_a_url_cache_ni_log(tmp_path, monkeypatch, 
 
 def test_error_auth_no_lleva_la_clave(tmp_path, monkeypatch):
     monkeypatch.setenv(fh.ENV_TOKEN, TOKEN)
-    params = {"symbol": "FICA", "from": "2026-09-23", "to": "2026-09-25"}
+    params = _dia("FICA", "2026-09-23")
     t = TransporteGrabado()
     t.agregar(fh.URL_NOTICIAS, params, {"status": 401, "headers": {}, "texto": '{"error": "Invalid API key"}'})
     f = fh.Finnhub(Cache(tmp_path / "c"), resultados.cliente_finnhub(transport=t, dormir=lambda s: None),
                    hoy=date(2026, 10, 1))
-    assert f.noticias("FICA", date(2026, 9, 23), date(2026, 9, 25)) is None
+    assert f.noticias_del_dia("FICA", date(2026, 9, 23)) is None
     with pytest.raises(ErrorFuente) as ex:
         f._cliente.get(fh.URL_NOTICIAS, params, {fh.CABECERA_TOKEN: TOKEN})
     assert ex.value.codigo == "auth" and TOKEN not in str(ex.value)
@@ -266,6 +335,23 @@ def test_dos_clientes_con_el_limitador_compartido_suman_un_solo_tope(tmp_path, m
     assert dormidas == []
     a.get("https://finnhub.test/x")
     assert dormidas == [pytest.approx(60.0)]
+
+
+def test_grabar_pide_dia_por_dia_y_avisa_el_tope(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv(fh.ENV_TOKEN, TOKEN)
+    t = _ConCabeceras(transporte_desde("finnhub", ["noticias_FICA_20260925"]))
+    ts24 = int(datetime(2026, 9, 24, 10, 0, tzinfo=UTC).timestamp())
+    t.agregar(fh.URL_NOTICIAS, _dia("FICA", "2026-09-24"),
+              {"status": 200, "headers": {}, "texto": _articulos(fh.TOPE_DIA + 5, ts24, "FICA")})
+    monkeypatch.setattr(fh, "cliente_finnhub", lambda: resultados.cliente_finnhub(transport=t, dormir=lambda s: None))
+    assert fh._grabar(["FICA", "2026-09-24", "2026-09-25", "--dir", str(tmp_path / "g")]) == 5
+    assert _noticias(t) == [_dia("FICA", "2026-09-24"), _dia("FICA", "2026-09-25")]
+    salida = capsys.readouterr().out
+    assert "FICA 2026-09-24: 245 artículos" in salida and "TOPE" in salida.splitlines()[0]
+    assert "TOPE" not in salida.splitlines()[1] and "2026-09-24. Sus columnas quedan FALTANTE" in salida
+    grabados = sorted((tmp_path / "g" / "finnhub").glob("*.json"))
+    assert [g.name for g in grabados] == ["noticias_FICA_20260924.json", "noticias_FICA_20260925.json"]
+    assert all(TOKEN not in g.read_text(encoding="utf-8") for g in grabados)
 
 
 def test_contrato_y_registro(tmp_path, monkeypatch):

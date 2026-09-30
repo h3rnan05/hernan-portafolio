@@ -3,7 +3,7 @@
  "metodo": "GET",
  "params": {
   "symbol": "FICA",
-  "from": "2026-09-26",
+  "from": "2026-09-28",
   "to": "2026-09-28"
  },
  "status": 200,
@@ -12,5 +12,5 @@
  },
  "ficticio": true,
  "texto": "[]",
- "nota": "FICTICIO: fin de semana sin artículos, para afirmar el cero dentro de la historia."
+ "nota": "FICTICIO: día sin artículos, para afirmar el cero dentro de la historia. Reemplazar con `python -m fuentes grabar finnhub <TICKER> <DESDE> <HASTA>` desde el VPS (pide día por día; necesita FINNHUB_API_KEY)."
 }
