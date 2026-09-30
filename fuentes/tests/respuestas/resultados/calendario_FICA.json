@@ -1,0 +1,15 @@
+{
+ "url": "https://finnhub.io/api/v1/calendar/earnings",
+ "params": {
+  "from": "2025-11-27",
+  "to": "2027-01-30",
+  "symbol": "FICA"
+ },
+ "status": 200,
+ "headers": {
+  "Content-Type": "application/json"
+ },
+ "texto": "{\"earningsCalendar\": [{\"date\": \"2025-11-05\", \"epsActual\": -0.31, \"epsEstimate\": -0.35, \"hour\": \"amc\", \"quarter\": 3, \"revenueActual\": 12000000, \"revenueEstimate\": 11500000, \"symbol\": \"FICA\", \"year\": 2025}, {\"date\": \"2026-03-03\", \"epsActual\": -0.2, \"epsEstimate\": -0.25, \"hour\": \"bmo\", \"quarter\": 4, \"revenueActual\": 13000000, \"revenueEstimate\": 12800000, \"symbol\": \"FICA\", \"year\": 2025}, {\"date\": \"2026-05-07\", \"epsActual\": -0.18, \"epsEstimate\": -0.22, \"hour\": \"dmh\", \"quarter\": 1, \"revenueActual\": 14000000, \"revenueEstimate\": 13500000, \"symbol\": \"FICA\", \"year\": 2026}, {\"date\": \"2026-08-05\", \"epsActual\": -0.1, \"epsEstimate\": -0.15, \"hour\": \"\", \"quarter\": 2, \"revenueActual\": 15000000, \"revenueEstimate\": 14800000, \"symbol\": \"FICA\", \"year\": 2026}, {\"date\": \"2026-09-24\", \"epsActual\": 0.05, \"epsEstimate\": -0.05, \"hour\": \"amc\", \"quarter\": 3, \"revenueActual\": 18000000, \"revenueEstimate\": 15500000, \"symbol\": \"FICA\", \"year\": 2026}, {\"date\": \"2026-11-04\", \"epsActual\": null, \"epsEstimate\": 0.02, \"hour\": \"amc\", \"quarter\": 4, \"revenueActual\": null, \"revenueEstimate\": 17000000, \"symbol\": \"FICA\", \"year\": 2026}, {\"date\": \"2026-09-25\", \"epsActual\": null, \"epsEstimate\": 0.1, \"hour\": \"bmo\", \"quarter\": 3, \"revenueActual\": null, \"revenueEstimate\": 1, \"symbol\": \"OTRO\", \"year\": 2026}]}",
+ "ficticio": true,
+ "nota": "FICTICIO: el entorno de desarrollo no llega a finnhub.io. Formato público de /calendar/earnings con un emisor inventado. Reemplazar con `python -m fuentes grabar resultados <TICKER>` desde el VPS (necesita FINNHUB_API_KEY)."
+}
