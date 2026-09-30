@@ -16,9 +16,8 @@ Point-in-time. Una noticia cuenta solo si su `datetime` es ESTRICTAMENTE
 anterior al instante de la señal (el cierre de la vela, ver
 `columnas.py`): una noticia con la misma marca que el instante no se
 sabía todavía. El calendario de earnings se publica por adelantado, así
-que "reporta hoy" se sabía a la hora de la señal; la limitación es que
-el histórico de Finnhub guarda la fecha FINAL, y una fecha movida a
-última hora entra como si se hubiera conocido antes.
+que "reporta hoy" en principio se sabía a la hora de la señal, pero ver
+SESGO DE LOOKAHEAD más abajo.
 
 Rango pedido. `from`/`to` son fechas; Finnhub no documenta en qué zona
 las corta. La fecha NY de un instante es la UTC o la del día anterior,
@@ -36,9 +35,18 @@ muchísimos artículos; `python -m fuentes grabar finnhub` imprime cuántos
 llegaron para comprobarlo en un día cargado.
 
 Límite: 60 llamadas/min en el plan gratis. `resultados.cliente_finnhub`
-usa 30/min; esta fuente comparte UN cliente (un limitador) entre sus dos
-endpoints. Si F2a y F7 corren en el mismo proceso, cada una con su
-cliente, el peor caso es 30 + 30 = 60/min: justo el tope, nunca encima.
+usa por defecto UN limitador del proceso (`resultados.limitador_finnhub`,
+50/min) compartido por F2a y F7 y por los dos endpoints de F7: juntas
+nunca pasan de 50/min, aunque cada una arme su propio cliente. No cubre
+otros procesos con la misma clave (p. ej. el metadata del hunter en el
+VPS): si corren a la vez, el margen de 10/min es lo que los separa.
+
+SESGO DE LOOKAHEAD en `finnhub_earnings_*`: el histórico del calendario
+de Finnhub guarda la fecha FINAL del reporte, no la que se conocía en su
+momento. Si una empresa movió su fecha (adelantó, atrasó o la confirmó a
+última hora), el backtest la ve como si se hubiera sabido de antemano.
+Estas dos columnas NO son point-in-time estricto; las de noticias sí.
+Cualquier resultado que dependa de ellas hay que leerlo con eso en mente.
 
 COLUMNAS:
     finnhub_noticias_24h    artículos distintos en [instante − 24 h, instante)
@@ -47,8 +55,10 @@ COLUMNAS:
                             | False | FALTANTE
     finnhub_earnings_hoy    True si el calendario pone un reporte en la
                             fecha NY del instante | False | FALTANTE
+                            (con sesgo de lookahead, ver arriba)
     finnhub_earnings_ayer   True si lo pone el día hábil anterior (lunes →
                             viernes; NO descuenta feriados) | False | FALTANTE
+                            (con sesgo de lookahead, ver arriba)
 FALTANTE: sin clave, error HTTP, cuerpo que no es una lista, un artículo
 sin `datetime` legible (invalida toda la respuesta: no se sabe qué se
 omite), instante fuera de la historia del plan, o un calendario sin

@@ -14,6 +14,7 @@ from fuentes import FALTANTE, ErrorFuente, finnhub as fh, resultados
 from fuentes.cache import Cache
 from fuentes.columnas import Registro
 from fuentes.grabar import TransporteGrabado, cargar, transporte_desde
+from fuentes.http import Limitador
 
 TOKEN = "clave-secreta-finnhub"
 NOTICIAS = ["noticias_FICA_20260923_20260925", "noticias_FICA_20260926_20260928_vacio",
@@ -223,16 +224,48 @@ def test_error_auth_no_lleva_la_clave(tmp_path, monkeypatch):
 # ------------------------------------------------------------ límite
 
 
-def test_limitador_a_30_por_minuto(tmp_path, monkeypatch):
+def test_limitador_a_50_por_minuto(tmp_path, monkeypatch):
     f, t, dormidas = _fuente(tmp_path, monkeypatch)
     reloj = [0.0]
     lim = f._cliente.limitador
     lim._reloj = lambda: reloj[0]
     lim._dormir = lambda s: (dormidas.append(s), reloj.__setitem__(0, reloj[0] + s))
-    for _ in range(31):
+    for _ in range(51):
         lim.esperar()
-    assert lim.llamadas == 30 and lim.segundos == 60.0
+    assert lim.llamadas == 50 and lim.segundos == 60.0
     assert dormidas and dormidas[-1] == pytest.approx(60.0)
+
+
+def test_f2a_y_f7_comparten_un_limitador_por_defecto(tmp_path):
+    """Sin inyectar nada, todos los clientes de Finnhub del proceso usan el
+    mismo limitador: F2a + F7 juntas no pasan de 50/min."""
+    f7 = fh.Finnhub(Cache(tmp_path / "c"))
+    f2a = resultados.ResultadosFinnhub(f7.cache)
+    lim = resultados.limitador_finnhub()
+    assert f7._cliente.limitador is lim and f2a.cliente().limitador is lim
+    assert f7._calendario.cliente().limitador is lim
+    assert lim.llamadas == resultados.LLAMADAS_FINNHUB_MIN == 50
+
+
+def test_dos_clientes_con_el_limitador_compartido_suman_un_solo_tope(tmp_path, monkeypatch):
+    monkeypatch.setenv(fh.ENV_TOKEN, TOKEN)
+    reloj = [0.0]
+    dormidas: list[float] = []
+
+    def dormir(s):
+        dormidas.append(s)
+        reloj[0] += s
+
+    lim = Limitador(resultados.LLAMADAS_FINNHUB_MIN, 60.0, reloj=lambda: reloj[0], dormir=dormir)
+    t = TransporteGrabado()
+    t.agregar("https://finnhub.test/x", None, {"status": 200, "headers": {}, "texto": "[]"})
+    a = resultados.cliente_finnhub(transport=t, dormir=lambda s: None, limitador=lim)
+    b = resultados.cliente_finnhub(transport=t, dormir=lambda s: None, limitador=lim)
+    for i in range(50):
+        (a if i % 2 else b).get("https://finnhub.test/x")
+    assert dormidas == []
+    a.get("https://finnhub.test/x")
+    assert dormidas == [pytest.approx(60.0)]
 
 
 def test_contrato_y_registro(tmp_path, monkeypatch):
