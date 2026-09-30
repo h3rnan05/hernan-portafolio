@@ -34,6 +34,7 @@ VARIABLES DE ENTORNO
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 from collections.abc import Callable
@@ -81,6 +82,7 @@ from momentum_hunter.data.provider import DataProvider, YahooProvider
 from momentum_hunter.factors import intradia as fi
 from momentum_hunter.factors import momentum as mom
 from momentum_hunter.models import Barras, Metadata
+from momentum_hunter.rutas_estado import RutaEstado
 from momentum_hunter.scoring import puntuar
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -793,7 +795,8 @@ def _actualizar_watchlist(
                 velas_desde_ruptura=getattr(c.factores, "velas_desde_ruptura", None))
             niveles = report.niveles_entrada_salida(c.factores, c.atr_diario)
             zona_baja, _ = report.zona_entrada(c, cfg)
-            watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
+            watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora,
+                                         **_contexto_niveles(c))
             disparadas[c.ticker] = e
         else:
             mensaje = _evaluar_no_disparada(
@@ -815,7 +818,8 @@ def _actualizar_watchlist(
             niveles = report.niveles_entrada_salida(candidato.factores, candidato.atr_diario)
             zona_baja, _ = report.zona_entrada(candidato, cfg)
             watchlist.actualizar_niveles(
-                e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
+                e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora,
+                **_contexto_niveles(candidato))
             mensajes_pendientes.append(report.mensaje_watching(candidato, cfg))
     for expirada in expiradas:
         mensajes_pendientes.append(report.mensaje_expired(expirada.ticker))
@@ -954,6 +958,16 @@ def _sin_bloqueo_corporativo(candidatos: list, guardia, ahora: datetime) -> list
     return permitidos
 
 
+def _contexto_niveles(candidato) -> dict:
+    """Patrón y VWAP con los que se calcularon los niveles de este chequeo,
+    para guardarlos junto a la ruptura (solo registro, 2026-09-29). Un
+    dato que no esté se guarda como None: ninguna regla los lee."""
+    resultado = getattr(candidato, "resultado", None)
+    factores = getattr(candidato, "factores", None)
+    return {"patron": getattr(resultado, "patron", None),
+            "vwap": getattr(factores, "vwap", None)}
+
+
 def _hay_tiempo(cfg: MomentumConfig, ahora: datetime, ticker: str) -> bool:
     """¿Queda sesión suficiente para que esta señal se pueda jugar?
 
@@ -1058,7 +1072,8 @@ def _evaluar_no_disparada(
     reutiliza el stop que el pipeline ya calculó."""
     niveles = report.niveles_entrada_salida(c.factores, c.atr_diario)
     zona_baja, _ = report.zona_entrada(c, cfg)
-    watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora)
+    watchlist.actualizar_niveles(e, niveles["entrada"], niveles["stop"], niveles["objetivo"], zona_baja, ahora,
+                                 **_contexto_niveles(c))
     if clima is not None:
         e.clima_mercado = clima.veredicto
 
@@ -1218,7 +1233,8 @@ def _revisar_watchlist_cuerpo(
             niveles_t = report.niveles_entrada_salida(c_t.factores, c_t.atr_diario)
             zona_t, _ = report.zona_entrada(c_t, cfg)
             watchlist.actualizar_niveles(
-                e, niveles_t["entrada"], niveles_t["stop"], niveles_t["objetivo"], zona_t, ahora)
+                e, niveles_t["entrada"], niveles_t["stop"], niveles_t["objetivo"], zona_t, ahora,
+                **_contexto_niveles(c_t))
             log.info("%s: niveles refrescados (sigue TRIGGERED, sin orden todavía)", e.ticker)
         except Exception as ex:
             log.warning("%s: no se pudieron refrescar los niveles: %s", e.ticker, ex)
@@ -1287,7 +1303,7 @@ def _revisar_watchlist_cuerpo(
                 velas_desde_ruptura=getattr(candidato.factores, "velas_desde_ruptura", None))
             watchlist.actualizar_niveles(
                 e, oportunidad.entrada, oportunidad.stop, oportunidad.objetivo,
-                oportunidad.zona_entrada_baja, ahora)
+                oportunidad.zona_entrada_baja, ahora, **_contexto_niveles(candidato))
             pendientes.append(("triggered", e, oportunidad))
         else:
             mensaje = _evaluar_no_disparada(
@@ -1353,6 +1369,55 @@ def _log_embudo_corrida(metricas: telemetria.Metricas) -> None:
         dict(metricas.keyword_rechazos),
     )
     log.info("rechazos universo -- %s", dict(metricas.rechazos_universo))
+
+
+# Aviso de "noticias ciegas" (2026-09-29): 4 escaneos seguidos con
+# cientos de operables y titulares_total=0, sin un solo error contado
+# (yfinance se tragaba el HTTP 500 de Yahoo). Solo avisa: no cambia qué
+# se evalúa ni ningún umbral de la estrategia. Un aviso por día.
+PATH_ALERTA_NOTICIAS = RutaEstado("momentum_hunter/alerta_noticias_ciegas.json")
+# Con pocos operables, cero titulares puede ser real. Con 20 o más, no.
+MIN_OPERABLES_ALERTA_NOTICIAS = 20
+
+
+def _alertar_noticias_ciegas(
+    metricas: telemetria.Metricas | None, con_catalizadores: bool, dry_run: bool,
+    ahora: datetime | None = None,
+) -> bool:
+    """True si el escaneo quedó ciego (>= MIN operables y 0 titulares).
+    Loguea ERROR siempre; manda Telegram una sola vez por día UTC y
+    nunca en dry-run. Best-effort: un fallo aquí no tumba la corrida."""
+    if metricas is None or not con_catalizadores:
+        return False
+    operables = sum(metricas.operables.values())
+    if operables < MIN_OPERABLES_ALERTA_NOTICIAS or metricas.titulares_total > 0:
+        return False
+    errores = {k: v for k, v in metricas.errores.items() if k.startswith("noticias")}
+    log.error("noticias ciegas -- operables=%d titulares_total=0 errores_noticias=%s", operables, errores)
+    if dry_run:
+        return True
+    ahora = ahora or datetime.now(UTC)
+    hoy = ahora.astimezone(UTC).date().isoformat()
+    try:
+        try:
+            previo = json.loads(PATH_ALERTA_NOTICIAS.read_text()).get("fecha")
+        except (OSError, ValueError, AttributeError):
+            previo = None
+        if previo == hoy:
+            return True
+        texto = (
+            f"⚠️ Noticias ciegas: el escaneo de las {ahora.astimezone(UTC):%H:%M} UTC tuvo "
+            f"{operables} tickers operables y 0 titulares. Sin titulares no hay "
+            "catalizadores: el hunter no genera alertas mientras dure. "
+            f"Errores de la fuente: {errores or 'ninguno contado'}. "
+            "(Aviso único por día.)"
+        )
+        enviar_telegram(texto)
+        PATH_ALERTA_NOTICIAS.write_text(json.dumps(
+            {"fecha": hoy, "ts": ahora.astimezone(UTC).isoformat(timespec="seconds"), "operables": operables}))
+    except Exception as ex:  # noqa: BLE001 -- el aviso nunca tumba el escaneo
+        log.warning("aviso de noticias ciegas falló: %s", ex)
+    return True
 
 
 def _persistir_telemetria_escaneo(metricas: telemetria.Metricas, dry_run: bool) -> None:
@@ -1518,6 +1583,7 @@ def main() -> None:
         candidatos_diarios = construir_candidatos_diarios(
             validos, barras, provider, CONFIG, not args.no_catalizadores, bandas, metricas,
             ahora=inicio)
+        _alertar_noticias_ciegas(metricas, not args.no_catalizadores, args.dry_run, ahora=inicio)
         shortlist = candidatos_para_etapa_intradia(candidatos_diarios, CONFIG)
         log.info("etapa 1 -- candidatos con catalizador confirmado: %d -- pasan a intradía: %d",
                   sum(1 for c in candidatos_diarios if c.catalizador is not None), len(shortlist))

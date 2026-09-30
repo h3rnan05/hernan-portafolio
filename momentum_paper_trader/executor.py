@@ -889,7 +889,17 @@ def ejecutar(
                 cantidad=orden.cantidad, order_id=orden.order_id,
                 velas=_velas_totales(e, registro), medida="ruptura_a_orden",
                 velas_desde_ruptura=getattr(e, "velas_desde_ruptura", None),
-                velas_desde_disparo=_velas_desde_senal(registro))
+                velas_desde_disparo=_velas_desde_senal(registro),
+                # Solo registro (2026-09-29): con qué ruptura, patrón y
+                # VWAP se decidió. La ruptura de la watchlist se sigue
+                # refrescando después de la orden y el panel mostraba la
+                # de ahora como si fuera la de la compra. Nada lee esto
+                # para decidir.
+                precio_entrada=orden.precio_entrada,
+                ruptura_al_decidir=getattr(e, "ultima_zona_entrada_baja", None),
+                patron_al_decidir=getattr(e, "ultimo_patron", None),
+                vwap_al_decidir=getattr(e, "ultimo_vwap", None),
+                niveles_ts=getattr(e, "ultimos_niveles_ts", None))
         if metricas is not None:
             metricas.anotar_revision(
                 registro, e.signal_latency_ms, getattr(e, "velas_desde_ruptura", None))
