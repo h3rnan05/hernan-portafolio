@@ -29,7 +29,7 @@ import logging
 import os
 import xml.etree.ElementTree as ET
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from email.utils import parsedate_to_datetime
 
@@ -119,6 +119,21 @@ class Titular:
     texto: str
     fuente: str
     fecha: str | None = None  # ISO yyyy-mm-dd, best-effort
+    # Link del artículo, tal como vino en la MISMA respuesta (yfinance o
+    # RSS). Solo lo usa el registro de auditoría `noticias_leidas`: no
+    # entra en la igualdad (`compare=False`) ni en ninguna decisión, así
+    # que dos titulares iguales con o sin link siguen siendo iguales.
+    link: str | None = field(default=None, compare=False)
+
+
+def _link_http(valor: object) -> str | None:
+    """Un link solo si es http(s). Cualquier otra cosa (vacío, otro
+    esquema, un dict) queda como None: no se inventa ni se repara."""
+    if isinstance(valor, str):
+        v = valor.strip()
+        if v.startswith(("https://", "http://")):
+            return v
+    return None
 
 
 def clasificar_titular(texto: str) -> str | None:
@@ -235,7 +250,7 @@ def parsear_rss_yahoo(xml_texto: str) -> list[Titular]:
                 if momento.tzinfo is None:
                     momento = momento.replace(tzinfo=UTC)
                 fecha = momento.astimezone(UTC).isoformat(timespec="seconds")
-        out.append(Titular(titulo, FUENTE_RSS, fecha))
+        out.append(Titular(titulo, FUENTE_RSS, fecha, _link_http(item.findtext("link"))))
     return out
 
 
@@ -274,6 +289,14 @@ class YahooNewsProvider(NewsProvider):
         por defecto `titulares_rss_yahoo`."""
         self._metricas = metricas
         self._rss = rss if rss is not None else titulares_rss_yahoo
+        # Cómo terminó la última lectura de cada ticker, SOLO para el
+        # registro de auditoría (`noticias_leidas`): "yfinance", "rss",
+        # "vacio" (la fuente respondió sin titulares) o "error" (la
+        # fuente que tenía la última palabra falló). No cambia lo que
+        # devuelve `titulares` ni ninguna decisión. Limitación: si
+        # yfinance se traga un 500 y devuelve [] y el RSS también viene
+        # vacío, queda "vacio" -- desde aquí no se puede distinguir.
+        self.estado: dict[str, str] = {}
 
     def _registrar(self, origen: str, ex: BaseException) -> None:
         if self._metricas is not None:
@@ -281,6 +304,7 @@ class YahooNewsProvider(NewsProvider):
 
     def titulares(self, ticker: str) -> list[Titular]:
         items: list = []
+        yf_fallo = False
         try:
             import yfinance as yf
             items = yf.Ticker(ticker).news or []
@@ -291,18 +315,26 @@ class YahooNewsProvider(NewsProvider):
             # estaba caída". Ver `telemetria.py`.
             self._registrar("noticias", ex)
             items = []
+            yf_fallo = True
         out = []
         for item in items:
             t = self._parsear(item)
             if t is not None:
                 out.append(t)
-        if out or not rss_fallback_activo():
+        if out:
+            self.estado[ticker] = "yfinance"
+            return out
+        if not rss_fallback_activo():
+            self.estado[ticker] = "error" if yf_fallo else "vacio"
             return out
         try:
-            return self._rss(ticker)
+            rss = self._rss(ticker)
         except Exception as ex:  # noqa: BLE001 -- el respaldo nunca tumba la corrida
             self._registrar("noticias_rss", ex)
+            self.estado[ticker] = "error"
             return []
+        self.estado[ticker] = "rss" if rss else "vacio"
+        return rss
 
     @staticmethod
     def _parsear(item: dict) -> Titular | None:
@@ -326,7 +358,16 @@ class YahooNewsProvider(NewsProvider):
                 fecha = datetime.fromtimestamp(pub, tz=UTC).isoformat(timespec="seconds")
             except (OSError, OverflowError, ValueError):
                 fecha = None
-        return Titular(titulo, fuente, fecha)
+        # Formato anidado: `canonicalUrl.url` o `clickThroughUrl.url`;
+        # plano: `link`. Viene en la misma respuesta: cero llamadas extra.
+        link = None
+        for clave in ("canonicalUrl", "clickThroughUrl"):
+            v = contenido.get(clave)
+            link = _link_http(v.get("url") if isinstance(v, dict) else v)
+            if link:
+                break
+        link = link or _link_http(item.get("link"))
+        return Titular(titulo, fuente, fecha, link)
 
 
 def minutos_desde_catalizador(catalizador: Catalizador | None, ahora: datetime | None = None) -> float | None:

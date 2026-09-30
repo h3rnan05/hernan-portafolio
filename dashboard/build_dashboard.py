@@ -113,6 +113,9 @@ def cargar_config() -> dict:
         # Canónico en el directorio de estado (el buscador lo escribe; el
         # ejecutor no). Overlay de runtime, también fuera de git.
         "watchlist": Path(watchlist) if watchlist else _estado("momentum_hunter/watchlist.json"),
+        # Registro de auditoría del escaneo para noticias.html (solo lectura).
+        "noticias_leidas": (Path(os.environ["DASH_NOTICIAS_LEIDAS"]) if os.environ.get("DASH_NOTICIAS_LEIDAS")
+                            else _estado("momentum_hunter/noticias_leidas.json")),
         "watchlist_estado": Path(os.environ.get(
             "DASH_WATCHLIST_ESTADO",
             os.environ.get("MOMENTUM_WATCHLIST_STATE", "/var/lib/momentum/watchlist_vps_state.json"))),
@@ -3087,6 +3090,7 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
     <span class="pildora">Actualizado {_hora(ctx['ahora'], tz, segundos=True)} {esc(etiqueta_tz)}</span>
     <span class="pildora mal" id="panel-viejo" hidden></span>
     <span class="pildora">Solo lectura</span>
+    <a class="pildora" href="noticias.html">Noticias leídas</a>
     <button class="pildora" id="tema-toggle" type="button" aria-label="Cambiar entre tema claro y oscuro" title="Cambiar tema claro/oscuro">Tema</button>
   </div>
 </header>
@@ -3171,6 +3175,15 @@ def main() -> int:
     for p in ctx["problemas"]:
         print(f"aviso: {p}", file=sys.stderr)
     print(f"Panel escrito en {destino}")
+    # Página aparte: si falla, el panel principal ya quedó escrito y el
+    # código de salida no cambia.
+    try:
+        from dashboard import noticias
+        ruta = cfg.get("noticias_leidas")
+        if ruta is not None:
+            noticias.generar(Path(ruta), cfg["salida"], ctx["ahora"], cfg["tz"])
+    except Exception as exc:  # noqa: BLE001
+        print(f"aviso: no se pudo escribir noticias.html ({type(exc).__name__})", file=sys.stderr)
     return 0
 
 

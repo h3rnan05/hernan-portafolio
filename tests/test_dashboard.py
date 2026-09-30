@@ -2638,3 +2638,94 @@ def test_eje_de_latencia_con_pocas_marcas_y_la_barra_atipica_cortada():
     assert "▲ 88" in svg
     # La etiqueta del límite se dibuja después de las barras: no queda tapada.
     assert svg.index("límite 8 min") > svg.rindex('<rect class="barra-')
+
+
+# ---------------------------------------------------------------- noticias.html
+
+from dashboard import noticias as nh  # noqa: E402
+
+
+def _registro_noticias(tmp_path, acciones, **corrida):
+    ruta = tmp_path / "noticias_leidas.json"
+    base = {"version": 1, "corrida_ts": "2026-09-18T14:30:00+00:00", "escrito_ts": "2026-09-18T14:48:00+00:00",
+            "fuente": "vps", "acciones": acciones}
+    base.update(corrida)
+    ruta.write_text(json.dumps({"version": 1, "corridas": [base]}), encoding="utf-8")
+    return ruta
+
+
+ACCIONES_NOTICIAS = [
+    {"ticker": "CHPT", "resultado": "con_catalizador", "motivo": None, "tipo": "contrato",
+     "keyword": "awarded contract", "n_noticias": 1,
+     "noticias": [{"titular": "ChargePoint awarded contract", "fuente": "Reuters",
+                   "publicada": "2026-09-18T13:00:00+00:00", "link": "https://x.test/1",
+                   "tipo": "contrato", "keyword": "awarded contract", "motivo": None}]},
+    {"ticker": "EBAY", "resultado": "sin_catalizador", "motivo": "sin_ancla", "tipo": "insider_buying",
+     "keyword": "director buys", "n_noticias": 1, "noticias": []},
+    {"ticker": "OLDX", "resultado": "sin_catalizador", "motivo": "fuera_ventana", "tipo": "contrato",
+     "keyword": "awarded contract", "n_noticias": 1, "noticias": []},
+    {"ticker": "NADA", "resultado": "sin_catalizador", "motivo": "sin_keyword", "tipo": None, "keyword": None,
+     "n_noticias": 2, "noticias": [{"titular": "Nada opens office", "fuente": "AP", "publicada": None,
+                                    "link": "javascript:alert(1)", "keyword": None, "motivo": "sin_keyword"}]},
+    {"ticker": "VACIO", "resultado": "sin_noticias", "n_noticias": 0, "noticias": []},
+    {"ticker": "ROTO", "resultado": "error_lectura", "n_noticias": 0, "noticias": []},
+    {"ticker": "RARO"},   # todo faltante
+]
+
+
+def test_noticias_filtros_casi_pasan_y_sin_keyword():
+    casi = [a["ticker"] for a in nh.casi_pasan(ACCIONES_NOTICIAS)]
+    assert casi == ["EBAY", "OLDX"]
+    assert [a["ticker"] for a in nh.sin_keyword(ACCIONES_NOTICIAS)] == ["NADA"]
+    # Ni con catalizador, ni sin noticias, ni error, ni el faltante caen en "casi".
+    assert all(nh.grupo(a) != "casi" for a in ACCIONES_NOTICIAS if a["ticker"] not in casi)
+
+
+def test_noticias_pagina_con_hora_hace_y_aviso_no_en_vivo(tmp_path):
+    ruta = _registro_noticias(tmp_path, ACCIONES_NOTICIAS)
+    destino = nh.generar(ruta, tmp_path / "site", AHORA, ZoneInfo("UTC"))
+    html = destino.read_text(encoding="utf-8")
+    assert destino.name == "noticias.html"
+    assert "2026-09-18 14:30 UTC" in html and "hace 12 min" in html
+    assert "No es en vivo" in html
+    assert "Casi pasan (2)" in html and "Sin keyword (1)" in html and "Todas (7)" in html
+    assert 'class="acc g-casi"' in html and 'class="acc g-sinkw"' in html
+    assert 'href="https://x.test/1"' in html
+    assert 'href="javascript' not in html and "link no válido" in html
+    assert "500" in html   # la limitación del 500 silencioso queda escrita
+
+
+def test_noticias_dato_faltante_es_sin_dato_nunca_cero(tmp_path):
+    ruta = _registro_noticias(tmp_path, [{"ticker": "RARO"}], escrito_ts=None, fuente=None)
+    html = nh.generar(ruta, tmp_path / "site", AHORA, ZoneInfo("UTC")).read_text(encoding="utf-8")
+    fila = html[html.index('class="acc'):html.index("</details>")]
+    assert "sin dato" in fila and ">0 <" not in fila and "Sin catalizador" not in fila
+    # Sin escrito_ts, la antigüedad sale de la hora de inicio.
+    assert "hace 30 min" in html
+
+
+@pytest.mark.parametrize("contenido", [None, "", "{corrupto", "[]", '{"corridas": "x"}', '{"corridas": []}'])
+def test_noticias_archivo_ausente_vacio_o_corrupto_no_rompe(tmp_path, contenido):
+    ruta = tmp_path / "noticias_leidas.json"
+    if contenido is not None:
+        ruta.write_text(contenido, encoding="utf-8")
+    corridas, problema = nh.cargar(ruta)
+    assert corridas == [] and problema
+    html = nh.generar(ruta, tmp_path / "site", AHORA, ZoneInfo("UTC")).read_text(encoding="utf-8")
+    assert "Sin registro." in html and "sin dato" in html
+
+
+def test_una_falla_de_noticias_no_rompe_el_panel(tmp_path, monkeypatch):
+    c = cfg(tmp_path, noticias_leidas=tmp_path / "no_existe.json")
+    monkeypatch.setattr(bd, "cargar_config", lambda: c)
+    monkeypatch.setattr(bd, "construir", lambda ahora, cfg_: {"ahora": AHORA, "problemas": []})
+    monkeypatch.setattr(bd, "render", lambda ctx: "<html>panel</html>")
+    monkeypatch.setattr(nh, "render", lambda *a, **k: 1 / 0)
+    assert bd.main() == 0
+    assert (tmp_path / "site" / "index.html").read_text(encoding="utf-8") == "<html>panel</html>"
+    assert not (tmp_path / "site" / "noticias.html").exists()
+
+
+def test_cabecera_del_panel_tiene_el_link_a_noticias(tmp_path):
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))
+    assert '<a class="pildora" href="noticias.html">Noticias leídas</a>' in html

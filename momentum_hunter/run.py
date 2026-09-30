@@ -51,6 +51,7 @@ from momentum_hunter import (
     heartbeat,
     memoria,
     mercado,
+    noticias_leidas,
     outcomes,
     radar,
     report,
@@ -266,6 +267,7 @@ def construir_candidatos_diarios(
     cfg: MomentumConfig, con_catalizadores: bool,     bandas: dict[str, str] | None = None,
     metricas: telemetria.Metricas | None = None,
     ahora: datetime | None = None,
+    registro_noticias=None,
 ) -> list[CandidatoDiario]:
     """Etapa 1 -- núcleo puro y testeable: recibe todo ya inyectado
     (barras, metadata, catalizadores), nunca llama red directamente. Un
@@ -277,7 +279,12 @@ def construir_candidatos_diarios(
     bandas) y queda marcado `es_large_cap=True` para que `evaluator.py`
     sepa qué pregunta 3 aplicar. Sin `bandas` (compatibilidad con
     llamadas existentes/pruebas), todo se trata como small-cap de
-    siempre."""
+    siempre.
+
+    `registro_noticias` (opcional, `noticias_leidas.Registro`): anota qué
+    titulares se leyeron y cómo terminó cada acción, para el panel. Solo
+    observa los mismos objetos que ya estaban en memoria; no cambia
+    ningún candidato ni pide nada."""
     bandas = bandas or {}
     metadata = provider.metadata(tickers_validos)
     noticias = YahooNewsProvider(metricas) if con_catalizadores else None
@@ -321,6 +328,7 @@ def construir_candidatos_diarios(
                     if titulares:
                         metricas.sumar(metricas.con_alguna_noticia, banda)
                 catalizador = detectar_catalizador(titulares, cfg)
+                catalizador_detector = catalizador
                 # Observación KEYWORD (2026-09-14): si hay titulares y
                 # el detector devolvió None, persistir motivo+texto
                 # (capped). ANTES del ancla a propósito -- #118 es
@@ -350,6 +358,11 @@ def construir_candidatos_diarios(
                         catalizador = None
                 if metricas is not None and catalizador is not None:
                     metricas.sumar(metricas.con_catalizador, banda)
+                if registro_noticias is not None:
+                    # `anotar_seguro` nunca lanza: registrar no decide nada.
+                    registro_noticias.anotar_seguro(
+                        t, getattr(noticias, "estado", {}).get(t), titulares,
+                        catalizador_detector, catalizador, cfg)
 
             puntuacion = puntuar(t, b.close[-1], vol_prom, factores, catalizador, meta, cfg)
             candidatos.append(CandidatoDiario(
@@ -1420,6 +1433,16 @@ def _alertar_noticias_ciegas(
     return True
 
 
+def _nuevo_registro_noticias(inicio: datetime):
+    """Registro de auditoría para noticias.html, o None si no se pudo
+    crear: sin registro el escaneo es exactamente el mismo."""
+    try:
+        return noticias_leidas.Registro(inicio, os.environ.get("MOMENTUM_TELEM_FUENTE") or None)
+    except Exception as ex:  # noqa: BLE001
+        log.warning("noticias_leidas: sin registro esta corrida (%s)", type(ex).__name__)
+        return None
+
+
 def _persistir_telemetria_escaneo(metricas: telemetria.Metricas, dry_run: bool) -> None:
     """En dry-run no se persiste -- igual que el resto del estado."""
     if dry_run:
@@ -1580,9 +1603,17 @@ def main() -> None:
             _revisar_resumen_cierre(args.dry_run)
             return
 
+        registro_noticias = None if args.no_catalizadores else _nuevo_registro_noticias(inicio)
         candidatos_diarios = construir_candidatos_diarios(
             validos, barras, provider, CONFIG, not args.no_catalizadores, bandas, metricas,
-            ahora=inicio)
+            ahora=inicio, registro_noticias=registro_noticias)
+        # Auditoría para el panel (noticias.html). En dry-run no se
+        # persiste, igual que el resto del estado. `escribir` nunca lanza.
+        if registro_noticias is not None and not args.dry_run:
+            try:
+                noticias_leidas.escribir(registro_noticias, ahora=datetime.now(UTC))
+            except Exception as ex:  # noqa: BLE001 -- escribir ya no lanza; esto es la segunda red
+                log.warning("noticias_leidas: no se pudo escribir (%s)", type(ex).__name__)
         _alertar_noticias_ciegas(metricas, not args.no_catalizadores, args.dry_run, ahora=inicio)
         shortlist = candidatos_para_etapa_intradia(candidatos_diarios, CONFIG)
         log.info("etapa 1 -- candidatos con catalizador confirmado: %d -- pasan a intradía: %d",
