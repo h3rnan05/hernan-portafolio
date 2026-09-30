@@ -264,3 +264,44 @@ def test_catalogo_de_codigos_es_estable():
     assert bloqueos.codigo_de_evento({"limite": "raro"}) == "RARO"
     assert bloqueos.codigo_de_evento({}) == "SIN_CODIGO"
     assert bloqueos.CODIGOS_GLOBALES.isdisjoint(bloqueos.CODIGOS_POR_SENAL)
+
+
+# ───────── ruptura, patrón y VWAP al decidir (2026-09-29, solo registro) ─────────
+
+def test_la_orden_registra_ruptura_patron_y_vwap_al_decidir(monkeypatch, tmp_path):
+    ruta = tmp_path / "ev" / "events.jsonl"
+    monkeypatch.setenv("DASH_EVENTOS", str(ruta))
+    e = _entrada_triggered()
+    e.ultima_zona_entrada_baja = 144.78
+    e.ultimo_patron = "momentum_continuo"
+    e.ultimo_vwap = 145.11
+    _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA)
+    executor.ejecutar(_FakeAlpacaClient(cash=40_000.0), CFG, dry_run=False, ahora=AHORA)
+
+    (orden,) = [x for x in _eventos(ruta) if x["tipo"] == "orden"]
+    assert orden["ruptura_al_decidir"] == 144.78
+    assert orden["patron_al_decidir"] == "momentum_continuo"
+    assert orden["vwap_al_decidir"] == 145.11
+    assert orden["precio_entrada"] is not None
+
+
+def test_sin_patron_ni_vwap_se_registra_none_y_la_orden_es_la_misma(monkeypatch, tmp_path):
+    # Una entrada escrita antes de estos campos: se registra None, y la
+    # orden colocada es idéntica a la de una entrada con los campos.
+    ruta = tmp_path / "ev" / "events.jsonl"
+    monkeypatch.setenv("DASH_EVENTOS", str(ruta))
+    e = _entrada_triggered()
+    assert e.ultimo_patron is None and e.ultimo_vwap is None
+    _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA)
+    sin = _FakeAlpacaClient(cash=40_000.0)
+    executor.ejecutar(sin, CFG, dry_run=False, ahora=AHORA)
+    (orden,) = [x for x in _eventos(ruta) if x["tipo"] == "orden"]
+    assert orden["patron_al_decidir"] is None and orden["vwap_al_decidir"] is None
+
+    e2 = _entrada_triggered()
+    e2.ultimo_patron, e2.ultimo_vwap = "gap_and_go", 10.0
+    (tmp_path / "b").mkdir()
+    _parchear(monkeypatch, tmp_path / "b", [e2], decision=_DECISION_ENTRA)
+    con = _FakeAlpacaClient(cash=40_000.0)
+    executor.ejecutar(con, CFG, dry_run=False, ahora=AHORA)
+    assert list(con.ordenes_colocadas) == list(sin.ordenes_colocadas)

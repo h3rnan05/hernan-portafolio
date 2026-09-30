@@ -1,0 +1,143 @@
+# Tareas de solo lectura en el VPS (2026-09-29). Existe porque sec.gov
+# responde 403 a los runners de GitHub Actions y el VPS sí llega: la
+# verificación real de las fuentes EDGAR (#210–#214) y el backtest del
+# plan B PEAD con 8-K reales solo se pueden correr allá.
+#
+# Misma mecánica que deploy_vps.yml (SSH con la llave de GitHub Secrets,
+# script por stdin), pero scripts/vps_tarea.sh NO toca el checkout de
+# producción ni su estado: exporta el código de la rama pedida a un
+# directorio de trabajo del usuario SSH. Solo workflow_dispatch.
+#
+# `pead_recoger` además baja los informes por scp, los sube como artifact
+# y los commitea en docs/backtests/ de la rama desde la que se corrió.
+
+name: vps-tarea
+
+on:
+  workflow_dispatch:
+    inputs:
+      tarea:
+        description: "qué correr en el VPS"
+        type: choice
+        required: true
+        options: [verificar_fuentes, pead_lanzar, pead_estado, pead_recoger, pead_cancelar]
+      ref:
+        description: "rama con el código del backtest (por defecto, la de este workflow)"
+        required: false
+        default: ""
+      ref_fuentes:
+        description: "rama con el paquete fuentes/ a verificar"
+        required: false
+        default: "fuentes/edgar-acciones"
+      desde:
+        required: false
+        default: "2023-09-26"
+      hasta:
+        required: false
+        default: "2026-09-25"
+
+concurrency:
+  group: vps-tarea
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  correr:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Comprobar secretos (fail-closed)
+        env:
+          TIENE_LLAVE: ${{ secrets.VPS_SSH_KEY != '' }}
+          TIENE_HOST: ${{ secrets.VPS_HOST != '' }}
+        run: |
+          if [ "$TIENE_LLAVE" != "true" ] || [ "$TIENE_HOST" != "true" ]; then
+            echo "Faltan los secretos VPS_SSH_KEY y/o VPS_HOST."
+            exit 1
+          fi
+
+      - name: Preparar SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+        run: |
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/vps
+          chmod 600 ~/.ssh/vps
+          ssh-keyscan -T 10 -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keygen -lf ~/.ssh/known_hosts | sed 's/^/huella del host: /'
+
+      # El checkout de producción del VPS es de otro usuario: el usuario SSH
+      # no puede hacer fetch ahí. El código sale de aquí: git archive de la
+      # ref pedida, por ssh, a ~/momentum-tareas/codigo.
+      - name: Subir el código de la ref al VPS
+        if: inputs.tarea == 'verificar_fuentes' || inputs.tarea == 'pead_lanzar'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER || 'ubuntu' }}
+          REF: ${{ inputs.tarea == 'verificar_fuentes' && inputs.ref_fuentes || (inputs.ref != '' && inputs.ref || github.ref_name) }}
+        run: |
+          set -o pipefail
+          git fetch --depth=1 origin "refs/heads/$REF"
+          sha=$(git rev-parse --short FETCH_HEAD)
+          echo "subiendo $REF ($sha)"
+          git archive --format=tar.gz FETCH_HEAD > /tmp/codigo.tgz
+          ssh -i ~/.ssh/vps -o BatchMode=yes -o ConnectTimeout=20 "$VPS_USER@$VPS_HOST" \
+            "rm -rf ~/momentum-tareas/codigo && mkdir -p ~/momentum-tareas/codigo && tar -xz -C ~/momentum-tareas/codigo && echo '$REF@$sha' > ~/momentum-tareas/codigo/CODIGO_REF" \
+            < /tmp/codigo.tgz
+
+      - name: Correr la tarea (script por stdin)
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER || 'ubuntu' }}
+          TAREA: ${{ inputs.tarea }}
+          REF: ${{ inputs.ref != '' && inputs.ref || github.ref_name }}
+          REF_FUENTES: ${{ inputs.ref_fuentes }}
+          DESDE: ${{ inputs.desde }}
+          HASTA: ${{ inputs.hasta }}
+        run: |
+          # Sin pipefail, `| tee` escondía el fallo del ssh: el run 36594735221
+          # terminó "success" con "Permission denied (publickey)".
+          set -o pipefail
+          echo "tarea: $TAREA · ref: $REF · fuentes: $REF_FUENTES · $DESDE..$HASTA"
+          ssh -i ~/.ssh/vps -o BatchMode=yes -o ConnectTimeout=20 "$VPS_USER@$VPS_HOST" \
+            "TAREA=$TAREA REF=$REF REF_FUENTES=$REF_FUENTES DESDE=$DESDE HASTA=$HASTA bash -s" \
+            < scripts/vps_tarea.sh | tee /tmp/vps_tarea.log
+
+      - name: Bajar los informes (solo pead_recoger)
+        if: inputs.tarea == 'pead_recoger'
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER || 'ubuntu' }}
+        run: |
+          mkdir -p /tmp/salida
+          scp -i ~/.ssh/vps -o BatchMode=yes "$VPS_USER@$VPS_HOST:momentum-tareas/salida/*" /tmp/salida/
+          ls -la /tmp/salida
+
+      - uses: actions/upload-artifact@v4
+        if: inputs.tarea == 'pead_recoger'
+        with:
+          name: vps-pead-${{ github.run_id }}
+          path: /tmp/salida/
+          retention-days: 90
+
+      - name: Commit de los informes (solo pead_recoger)
+        if: inputs.tarea == 'pead_recoger'
+        run: |
+          cp /tmp/salida/*.md docs/backtests/ || true
+          mkdir -p docs/backtests/metricas && cp /tmp/salida/metricas_*.json docs/backtests/metricas/ || true
+          git config user.name "vps-tarea[bot]"
+          git config user.email "vps-tarea@users.noreply.github.com"
+          git add -A docs/backtests
+          if git diff --cached --quiet; then echo "sin informe nuevo"; exit 0; fi
+          git commit -m "backtest pead (VPS): informes ${GITHUB_RUN_ID} [skip ci]"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Limpiar la llave del runner
+        if: always()
+        run: rm -f ~/.ssh/vps

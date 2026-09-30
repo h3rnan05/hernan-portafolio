@@ -107,6 +107,8 @@ CAMPOS_OVERLAY = (
     "ultimo_stop",
     "ultimo_objetivo",
     "ultima_zona_entrada_baja",
+    "ultimo_patron",
+    "ultimo_vwap",
     "ultimos_niveles_ts",
     "stop_tesis",
     "clima_mercado",
@@ -231,6 +233,13 @@ class EntradaWatchlist:
     ultimo_stop: float | None = None
     ultimo_objetivo: float | None = None
     ultima_zona_entrada_baja: float | None = None   # nivel de ruptura -- "la entrada que se esperaba"
+    # Con qué patrón y contra qué VWAP se calculó esa ruptura (2026-09-29).
+    # Solo registro, para poder explicar después una compra: la ruptura de
+    # gap_and_go / opening_range_breakout es un nivel fijo del día, la de
+    # los demás patrones es la EMA9 o el VWAP y se mueve con cada chequeo.
+    # No lo lee ninguna regla. None = no se midió, no "sin patrón".
+    ultimo_patron: str | None = None
+    ultimo_vwap: float | None = None
     ultimos_niveles_ts: str | None = None
     # Congelado la PRIMERA vez que se calcularon niveles y nunca
     # reescrito (ver `actualizar_niveles`): el nivel que hacía válida la
@@ -1104,6 +1113,7 @@ def marcar_archivada(
 def actualizar_niveles(
     e: EntradaWatchlist, entrada: float | None, stop: float | None, objetivo: float | None,
     zona_entrada_baja: float | None, ahora: datetime,
+    *, patron: str | None = None, vwap: float | None = None,
 ) -> None:
     """Cachea los niveles que el pipeline YA calculó en este chequeo --
     ver docstring de los campos en `EntradaWatchlist`. Ningún cálculo
@@ -1113,6 +1123,8 @@ def actualizar_niveles(
     e.ultimo_stop = stop
     e.ultimo_objetivo = objetivo
     e.ultima_zona_entrada_baja = zona_entrada_baja
+    e.ultimo_patron = patron
+    e.ultimo_vwap = vwap
     e.ultimos_niveles_ts = _ahora_iso(ahora)
     # El stop de la TESIS se congela la primera vez y no se vuelve a
     # tocar -- mismo principio que `gap_pct_congelado`/`atr_diario`/el
