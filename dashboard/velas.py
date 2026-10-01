@@ -292,7 +292,8 @@ def obtener(ticker: str, ahora: datetime, cache_dir: Path, ttl_seg: float,
         except Exception as ex:
             velas_alpaca = None
             codigo = _codigo_error(ex)
-            if codigo == "auth":
+            # 401/403 (antes llegaban como `auth`): plan o claves.
+            if codigo in ("auth", "http_401", "http_403"):
                 _escribir_json(cache_dir / ARCHIVO_PAUSA_FEED, {
                     "hasta": (ahora + timedelta(seconds=PAUSA_FEED_SEG)).isoformat(timespec="seconds"),
                     "desde": ahora.isoformat(timespec="seconds"), "codigo": codigo})
