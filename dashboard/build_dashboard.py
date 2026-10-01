@@ -1228,6 +1228,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         "riesgo": riesgo,
         "stop_diario": resumir_stop_diario(eventos, cfg["tz"], ahora),
         "aprendizaje": leer_aprendizaje(cfg.get("aprendizaje"), eventos, ahora),
+        "historial_trades": leer_historial_trades(cfg.get("aprendizaje")),
         "persist_fallidos": persist_fallidos,
         "ia_fallos": ia_fallos,
         "hay_eventos": hay_eventos,
@@ -2610,6 +2611,26 @@ tr.historial td,tr.historial td.tk,h3.historial{color:var(--gris);font-weight:40
 h3{margin:12px 0 0;font-size:13px;letter-spacing:.04em;font-weight:500}
 .badge{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--acento);color:var(--acento)}
 .scroll{overflow-x:auto}
+.ctl-resumen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.ctl-card{border:1px solid var(--linea);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.ctl-card b{font-family:var(--mono);font-size:20px;font-weight:500;overflow-wrap:anywhere}
+.ctl-card.aviso{border-color:#b7791f}.ctl-card.mal{border-color:var(--rojo);background:var(--mal-bg)}
+.ctl-sub{font-family:var(--mono);font-size:11px;color:var(--gris2);overflow-wrap:anywhere}
+details.ctl{border:1px solid var(--linea2);border-radius:6px;min-width:0}
+details.ctl>summary{cursor:pointer;padding:10px 12px;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:baseline;list-style:none}
+details.ctl>summary::-webkit-details-marker{display:none}
+details.ctl>summary::before{content:"▸";color:var(--gris);font-size:12px}
+details.ctl[open]>summary::before{content:"▾"}
+details.ctl>summary b{font-size:14px}
+.ctl-cuerpo{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.tabla-ctl{max-width:100%;max-height:340px;overflow:auto;border:1px solid var(--linea2);border-radius:4px}
+.tabla-ctl table{min-width:100%;width:max-content}
+.tabla-ctl th{position:sticky;top:0;background:var(--papel);z-index:1}
+.tabla-ctl th,.tabla-ctl td{white-space:nowrap;padding:6px 12px 6px 8px}
+.tabla-ctl td.txt{white-space:normal;min-width:220px;max-width:420px}
+.nota-info,.nota,.nota-historial{overflow-wrap:anywhere}
+@media (max-width:1100px){.ctl-resumen{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.ctl-resumen{grid-template-columns:1fr}main{padding:16px 12px}}
 details.terminales summary{cursor:pointer;padding:8px 0}details.terminales td{color:var(--gris)}
 .est-triggered{color:var(--acento);font-weight:700}
 .usos{display:flex;flex-direction:column;gap:10px;padding-bottom:6px;border-bottom:1px dashed var(--linea)}
@@ -2959,26 +2980,43 @@ def _html_bloque_stop(ctx: dict) -> str:
                            f"{sd['pnl']:+.2f} / −{sd['umbral_usd']:.2f} USD · {estado}")
     elif sd.get("sin_datos"):
         barra = _barra_uso("Pérdida del día vs umbral", None, None, "sin dato")
-    return f'<h3>Stop diario</h3><div class="usos">{barra}</div>{_html_stop_diario(ctx)}'
+    return f'<div class="usos">{barra}</div>{_html_stop_diario(ctx)}'
 
 
 _SIMBOLO = {True: "✗ activa", False: "✓ no", None: "sin dato"}
+
+
+def _tabla(cabeza: list[str], filas: str) -> str:
+    """Tabla con scroll interno (alto y ancho acotados): nunca ensancha la
+    página. Las celdas `td.txt` (texto largo) envuelven."""
+    ths = "".join(f"<th>{esc(c)}</th>" for c in cabeza)
+    return (f"<div class='tabla-ctl'><table><thead><tr>{ths}</tr></thead>"
+            f"<tbody>{filas}</tbody></table></div>")
+
+
+def _racha_vigente(ap: dict) -> tuple[dict | None, str]:
+    """Racha en vivo (regimen.json) si la hay; si no, la del reporte."""
+    reg = ap.get("regimen") or {}
+    if isinstance(reg.get("racha"), dict) and reg["racha"]:
+        return reg["racha"], "en vivo"
+    rep = ap.get("reporte") or {}
+    if isinstance(rep.get("racha"), dict) and rep["racha"]:
+        return rep["racha"], f"reporte {rep.get('fecha') or 'sin dato'}"
+    return None, "sin dato"
 
 
 def _html_bloque_regimen(ap: dict, ctx: dict) -> str:
     reg = ap.get("regimen")
     tz, ahora = ctx["tz"], ctx["ahora"]
     if not reg:
-        return ('<h3>Modo defensivo / régimen <span class="badge">SIN DATO</span></h3>'
-                '<div class="nota-historial">Sin cálculo del régimen todavía (se calcula en sesión, al final de '
+        return ('<div class="nota-historial">Régimen SIN DATO: sin cálculo todavía (se calcula en sesión, al final de '
                 'cada corrida del ejecutor). Fail-closed: el gate en sombra lo trata como CAUTELA.</div>')
-    nivel = str(reg.get("nivel") or "SIN DATO")
     filas = "".join(
         f"<tr><td class='tk'>{esc(str(s.get('nombre')))}</td><td>{esc(_SIMBOLO.get(s.get('activa'), 'sin dato'))}</td>"
-        f"<td>{esc(str(s.get('detalle') or ''))}</td></tr>" for s in reg.get("senales") or [])
+        f"<td class='txt'>{esc(str(s.get('detalle') or ''))}</td></tr>" for s in reg.get("senales") or [])
     rch = reg.get("racha") or {}
     filas += (f"<tr><td class='tk'>racha</td><td>{esc(_SIMBOLO.get(bool(rch.get('disparada')) if rch else None))}</td>"
-              f"<td>{esc(', '.join(rch.get('motivos') or []) or ('perdedores seguidos ' + str(rch.get('perdedores_seguidos')) if rch else 'sin dato'))}</td></tr>")
+              f"<td class='txt'>{esc(', '.join(rch.get('motivos') or []) or ('perdedores seguidos ' + str(rch.get('perdedores_seguidos')) if rch else 'sin dato'))}</td></tr>")
     acc = reg.get("acciones_sombra") or {}
     base = (ctx.get("limites") or {}).get("tope_cupo")
     acciones = []
@@ -2991,80 +3029,179 @@ def _html_bloque_regimen(ap: dict, ctx: dict) -> str:
     if acc.get("sin_entradas"):
         acciones.append("sin entradas nuevas")
     acciones_txt = "; ".join(acciones) or "ninguna (base)"
-    return (f'<h3>Modo defensivo / régimen <span class="badge">{esc(nivel)}</span> <span class="mono">sombra</span></h3>'
-            f"<div class='scroll'><table><thead><tr><th>Señal</th><th>Estado</th><th>Detalle</th></tr></thead>"
-            f"<tbody>{filas}</tbody></table></div>"
-            f'<div class="nota-info">Por qué: {esc("; ".join(reg.get("motivos") or []) or "ninguna señal activa")} · '
+    return (_tabla(["Señal", "Estado", "Detalle"], filas)
+            + f'<div class="nota-info">Nivel {esc(str(reg.get("nivel") or "SIN DATO"))} · Por qué: '
+            f'{esc("; ".join(reg.get("motivos") or []) or "ninguna señal activa")} · '
             f'Acciones que tomaría (no aplicadas): {esc(acciones_txt)} · desde {esc(_edad_txt(reg.get("desde"), ahora, tz))}'
             f' · calculado {esc(_edad_txt(reg.get("calculado_en"), ahora, tz))}</div>')
 
 
 def _html_bloque_aprendizaje(ap: dict, ctx: dict) -> str:
     rep = ap.get("reporte")
-    partes = ["<h3>Aprendizaje <span class=\"mono\">sombra: nada se aplica</span></h3>"]
     if not rep:
-        partes.append('<div class="nota-historial">Sin reporte nocturno todavía (corre Lun–Vie 16:35 ET).</div>')
-    else:
-        est = rep.get("estadisticas") or {}
-        g = est.get("global") or {}
-        n_min = est.get("n_minimo") or 20
-        ses_min = est.get("sesiones_minimas") or 5
-        insuf = (g.get("n") or 0) < n_min or (g.get("sesiones") or 0) < ses_min
-        partes.append(
-            f'<div class="stats s4"><div><span class="mono">Trades válidos</span><b>{esc(str(g.get("n", "sin dato")))}</b></div>'
-            f'<div><span class="mono">Sesiones</span><b>{esc(str(g.get("sesiones", "sin dato")))}</b></div>'
-            f'<div><span class="mono">R medio</span><b>{esc(_fmt_r(g.get("r_medio")))}</b></div>'
-            f'<div><span class="mono">P&amp;L</span><b>{esc(_fmt_usd(g.get("pnl")))}</b></div></div>')
-        if insuf:
-            partes.append(f'<div class="nota-info">Muestra insuficiente: hacen falta n≥{n_min} y ≥{ses_min} sesiones '
-                          f'por segmento para proponer. Reporte del {esc(str(rep.get("fecha")))}.</div>')
-        segs = sorted((s for s in est.get("segmentos") or [] if s.get("n")),
-                      key=lambda s: (-(s.get("n") or 0), str(s.get("dimension")), str(s.get("valor"))))[:14]
-        if segs:
-            filas = "".join(
-                f"<tr><td class='tk'>{esc(str(s.get('dimension')))}={esc(str(s.get('valor')))}</td>"
-                f"<td>{s.get('n')}/{n_min}<div class='barra-uso'><div style='width:{min(1.0, (s.get('n') or 0) / n_min) * 100:.0f}%'></div></div></td>"
-                f"<td>{esc(str(s.get('sesiones')))}</td><td>{esc(_fmt_pct(s.get('wr')))}</td>"
-                f"<td>{esc(_fmt_r(s.get('r_medio')))}</td><td>{esc(_fmt_r(s.get('r_shr')))}</td>"
-                f"<td>{esc(_fmt_usd(s.get('pnl')))}</td><td>{esc(str(s.get('estado')))}</td></tr>" for s in segs)
-            partes.append("<div class='scroll'><table><thead><tr><th>Segmento</th><th>n</th><th>Ses.</th><th>WR</th>"
-                          "<th>R</th><th>R contraído</th><th>$</th><th>Estado</th></tr></thead>"
-                          f"<tbody>{filas}</tbody></table></div>")
+        return '<div class="nota-historial">Sin reporte nocturno todavía (corre Lun–Vie 16:35 ET).</div>'
+    partes = []
+    est = rep.get("estadisticas") or {}
+    g = est.get("global") or {}
+    n_min = est.get("n_minimo") or 20
+    ses_min = est.get("sesiones_minimas") or 5
+    insuf = (g.get("n") or 0) < n_min or (g.get("sesiones") or 0) < ses_min
+    partes.append(
+        f'<div class="stats s4"><div><span class="mono">Trades válidos</span><b>{esc(str(g.get("n", "sin dato")))}</b></div>'
+        f'<div><span class="mono">Sesiones</span><b>{esc(str(g.get("sesiones", "sin dato")))}</b></div>'
+        f'<div><span class="mono">R medio</span><b>{esc(_fmt_r(g.get("r_medio")))}</b></div>'
+        f'<div><span class="mono">P&amp;L</span><b>{esc(_fmt_usd(g.get("pnl")))}</b></div></div>')
+    if insuf:
+        partes.append(f'<div class="nota-info">Muestra insuficiente: hacen falta n≥{n_min} y ≥{ses_min} sesiones '
+                      f'por segmento para proponer. Reporte del {esc(str(rep.get("fecha")))}.</div>')
+    segs = sorted((s for s in est.get("segmentos") or [] if s.get("n")),
+                  key=lambda s: (-(s.get("n") or 0), str(s.get("dimension")), str(s.get("valor"))))
+    if segs:
+        filas = "".join(
+            f"<tr><td class='tk'>{esc(str(s.get('dimension')))}={esc(str(s.get('valor')))}</td>"
+            f"<td>{s.get('n')}/{n_min}<div class='barra-uso'><div style='width:{min(1.0, (s.get('n') or 0) / n_min) * 100:.0f}%'></div></div></td>"
+            f"<td>{esc(str(s.get('sesiones')))}</td><td>{esc(_fmt_pct(s.get('wr')))}</td>"
+            f"<td>{esc(_fmt_r(s.get('r_medio')))}</td><td>{esc(_fmt_r(s.get('r_shr')))}</td>"
+            f"<td>{esc(_fmt_usd(s.get('pnl')))}</td><td>{esc(str(s.get('estado')))}</td></tr>" for s in segs)
+        partes.append(_tabla(["Segmento", "n", "Ses.", "WR", "R", "R contraído", "$", "Estado"], filas))
+    return "".join(partes)
+
+
+def _html_bloque_ajustes(ap: dict, ctx: dict) -> str:
     aj = ap.get("ajustes") or {}
     vig = aj.get("ajustes") or []
-    if vig:
-        filas = "".join(
-            f"<tr><td class='tk'>{esc(str(a.get('knob')))}</td><td>{esc(str(a.get('valor')))}</td>"
-            f"<td>{esc(str(a.get('motivo')))}</td><td>{esc(str(a.get('desde')))}</td><td>{esc(str(a.get('vence')))}</td>"
-            f"<td>sombra</td></tr>" for a in vig)
-        partes.append("<h3>Ajustes propuestos (en sombra)</h3><div class='scroll'><table><thead><tr><th>Knob</th>"
-                      "<th>Valor</th><th>Por qué</th><th>Desde</th><th>Vence</th><th>Estado</th></tr></thead>"
-                      f"<tbody>{filas}</tbody></table></div>")
-    else:
-        partes.append('<div class="nota-historial">Ajustes propuestos: ninguno. Aplicados: ninguno '
-                      '(encender knobs requiere GO del dueño).</div>')
+    if not vig:
+        return ('<div class="nota-historial">Ajustes propuestos: ninguno. Aplicados: ninguno '
+                '(encender knobs requiere GO del dueño).</div>')
+    filas = "".join(
+        f"<tr><td class='tk'>{esc(str(a.get('knob')))}</td><td>{esc(str(a.get('valor')))}</td>"
+        f"<td class='txt'>{esc(str(a.get('motivo')))}</td><td>{esc(str(a.get('desde')))}</td><td>{esc(str(a.get('vence')))}</td>"
+        f"<td>sombra</td></tr>" for a in vig)
+    return (_tabla(["Knob", "Valor", "Por qué", "Desde", "Vence", "Estado"], filas)
+            + '<div class="nota-historial">Aplicados: ninguno (encender knobs requiere GO del dueño).</div>')
+
+
+def _html_bloque_sombra(ap: dict, ctx: dict) -> str:
+    rep = ap.get("reporte")
     sombra = ap.get("sombra") or []
     retro = (rep or {}).get("sombra_retro_k3") or []
     filas = "".join(
         f"<tr><td class='tk'>{esc(str(d.get('fecha')))}</td><td>en vivo</td><td>{esc(_fmt_usd(d.get('pnl_real')))}</td>"
         f"<td>{esc(_fmt_usd(d.get('pnl_sombra')))}</td><td>{esc(_fmt_usd(d.get('delta')))}</td>"
-        f"<td>{esc(str(d.get('bloqueados', 'sin dato')))} ({esc(str(d.get('ganadores_bloqueados', 0)))} gan.)</td></tr>"
-        for d in sombra[-10:])
+        f"<td>{esc(str(d.get('bloqueados', 'sin dato')))} ({esc(str(d.get('ganadores_bloqueados', 'sin dato')))} gan.)</td></tr>"
+        for d in reversed(sombra[-10:]))
     filas += "".join(
         f"<tr class='historial'><td class='tk'>{esc(str(d.get('fecha')))}</td><td>retro K3</td><td>{esc(_fmt_usd(d.get('pnl_real')))}</td>"
         f"<td>{esc(_fmt_usd(d.get('pnl_sombra')))}</td><td>{esc(_fmt_usd(d.get('delta')))}</td>"
-        f"<td>{esc(str(d.get('bloqueados')))} ({esc(str(d.get('ganadores_bloqueados')))} gan.)</td></tr>" for d in retro[-10:])
+        f"<td>{esc(str(d.get('bloqueados')))} ({esc(str(d.get('ganadores_bloqueados')))} gan.)</td></tr>" for d in reversed(retro[-10:]))
     acum_vivo = round(sum(d.get("delta") or 0 for d in sombra if d.get("delta") is not None), 2) if sombra else None
-    partes.append(f"<h3>Qué habría hecho la sombra</h3>"
-                  f'<div class="nota-info">Gates hoy: {ap.get("gates_hoy", 0)} evaluados, '
-                  f'{ap.get("gates_bloquearian_hoy", 0)} habrían bloqueado'
-                  + (f', {ap["gates_error_hoy"]} con error' if ap.get("gates_error_hoy") else "")
-                  + f' · Δ acumulado en vivo: {esc(_fmt_usd(acum_vivo))} USD. Retro = in-sample, solo orientativo.</div>')
+    partes = [f'<div class="nota-info">Gates hoy: {ap.get("gates_hoy", 0)} evaluados, '
+              f'{ap.get("gates_bloquearian_hoy", 0)} habrían bloqueado'
+              + (f', {ap["gates_error_hoy"]} con error' if ap.get("gates_error_hoy") else "")
+              + f' · Δ acumulado en vivo: {esc(_fmt_usd(acum_vivo))} USD. Retro = in-sample, solo orientativo.</div>']
     if filas:
-        partes.append("<div class='scroll'><table><thead><tr><th>Día</th><th>Tipo</th><th>Real $</th><th>Sombra $</th>"
-                      f"<th>Δ</th><th>Bloqueados</th></tr></thead><tbody>{filas}</tbody></table></div>")
+        partes.append(_tabla(["Día", "Tipo", "Real $", "Sombra $", "Δ", "Bloqueados"], filas))
     else:
         partes.append('<div class="vacio">Sin días de sombra todavía.</div>')
+    return "".join(partes)
+
+
+def _tarjeta_ctl(etiqueta: str, valor: str, sub: str, clase: str = "", extra: str = "") -> str:
+    return (f'<div class="ctl-card {clase}"><span class="mono">{esc(etiqueta)}</span>'
+            f'<b>{valor}</b><span class="ctl-sub">{sub}</span>{extra}</div>')
+
+
+def _html_resumen_control(ap: dict, ctx: dict) -> str:
+    """Fila de 4 tarjetas: stop diario, régimen, racha, ajustes."""
+    tarjetas = []
+    # 1. stop diario (estado de #236)
+    sd = ctx.get("stop_diario") or {"sin_datos": True}
+    if sd.get("sin_datos"):
+        tarjetas.append(_tarjeta_ctl("Stop diario", "sin dato", "sin medición hoy"))
+    else:
+        if sd.get("pnl") is not None and sd.get("umbral_usd"):
+            valor = f"{sd['pnl']:+.2f} / −{sd['umbral_usd']:.2f}"
+            frac = max(0.0, min(1.0, max(0.0, -sd["pnl"]) / sd["umbral_usd"]))
+            cl = "lleno" if frac >= 1 else ("alto" if frac >= 0.8 else "")
+            barra = f'<div class="barra-uso"><div class="{cl}" style="width:{frac * 100:.0f}%"></div></div>'
+        else:
+            valor, barra = "sin dato", ""
+        if sd.get("dato_faltante"):
+            estado, clase = "sin datos: no se abren entradas", "mal"
+        elif sd.get("activo"):
+            estado = ("ACTIVO: sin entradas nuevas" if sd.get("bloquea") else "cruzado (no bloquea)")
+            clase = "mal"
+        else:
+            estado, clase = "inactivo", ""
+        tarjetas.append(_tarjeta_ctl("Stop diario · USD", esc(valor), esc(estado), clase, barra))
+    # 2. régimen
+    reg = ap.get("regimen")
+    if reg:
+        senales = reg.get("senales") or []
+        activas = sum(1 for s in senales if s.get("activa") is True)
+        nivel = str(reg.get("nivel") or "SIN DATO")
+        tarjetas.append(_tarjeta_ctl("Régimen · sombra", esc(nivel),
+                                     f"{activas} de {len(senales)} señales activas",
+                                     "" if nivel == "NORMAL" else "aviso"))
+    else:
+        tarjetas.append(_tarjeta_ctl("Régimen · sombra", "SIN DATO", "se calcula en sesión"))
+    # 3. racha
+    rch, origen = _racha_vigente(ap)
+    if rch:
+        disp = bool(rch.get("disparada"))
+        r10 = rch.get("r_ultimos_10")
+        sub = (f"perdedores seguidos {esc(str(rch.get('perdedores_seguidos', 'sin dato')))} · "
+               f"últ. 10: {esc(_fmt_r(r10))}R · {esc(origen)}")
+        tarjetas.append(_tarjeta_ctl("Racha", "disparada" if disp else "no disparada", sub, "aviso" if disp else ""))
+    else:
+        tarjetas.append(_tarjeta_ctl("Racha", "sin dato", "sin memoria de trades"))
+    # 4. ajustes propuestos
+    aj = ap.get("ajustes")
+    gates = f"gates hoy: {ap.get('gates_bloquearian_hoy', 0)} de {ap.get('gates_hoy', 0)} bloquearían"
+    if aj is None:
+        tarjetas.append(_tarjeta_ctl("Ajustes propuestos", "sin dato", esc(gates)))
+    else:
+        vig = aj.get("ajustes") or []
+        knobs = ", ".join(sorted({str(a.get("knob")) for a in vig})) or "ninguno"
+        tarjetas.append(_tarjeta_ctl("Ajustes propuestos", str(len(vig)),
+                                     f"en sombra: {esc(knobs)} · {esc(gates)}", "aviso" if vig else ""))
+    return '<div class="ctl-resumen">' + "".join(tarjetas) + "</div>"
+
+
+def _detalle(id_: str, titulo: str, resumen: str, cuerpo: str, abierto: bool = False) -> str:
+    return (f'<details class="ctl" id="{esc(id_)}"{" open" if abierto else ""}>'
+            f'<summary><b>{esc(titulo)}</b><span class="mono">{esc(resumen)}</span></summary>'
+            f'<div class="ctl-cuerpo">{cuerpo}</div></details>')
+
+
+def _html_control_aprendizaje(ctx: dict) -> str:
+    """Sección "Control de riesgo y aprendizaje" (2026-10-01, compacta):
+    fila de tarjetas + detalles plegables con tablas de scroll interno.
+    Solo lectura; una falla en un bloque no tumba el panel."""
+    ap = ctx.get("aprendizaje") or {"problemas": ["sin datos de aprendizaje"]}
+    partes = []
+    try:
+        partes.append(_html_resumen_control(ap, ctx))
+    except Exception as ex:
+        partes.append(f'<div class="nota">resumen no disponible ({esc(type(ex).__name__)})</div>')
+    rep = ap.get("reporte") or {}
+    g = ((rep.get("estadisticas") or {}).get("global") or {})
+    detalles = (
+        ("ctl-stop", "Stop diario", "P&L del día vs umbral (1 %)", lambda: _html_bloque_stop(ctx)),
+        ("ctl-regimen", "Modo defensivo / régimen", "señales y acciones que tomaría (sombra)",
+         lambda: _html_bloque_regimen(ap, ctx)),
+        ("ctl-segmentos", "Aprendizaje: segmentos",
+         f"n={g.get('n', 'sin dato')} · reporte {rep.get('fecha') or 'sin dato'} · sombra: nada se aplica",
+         lambda: _html_bloque_aprendizaje(ap, ctx)),
+        ("ctl-ajustes", "Ajustes propuestos (en sombra)", "el motor nunca afloja", lambda: _html_bloque_ajustes(ap, ctx)),
+        ("ctl-sombra", "Qué habría hecho la sombra", "real vs sombra por día", lambda: _html_bloque_sombra(ap, ctx)),
+    )
+    for id_, titulo, resumen, fn in detalles:
+        try:
+            cuerpo = fn()
+        except Exception as ex:
+            cuerpo = f'<div class="nota">bloque no disponible ({esc(type(ex).__name__)})</div>'
+        partes.append(_detalle(id_, titulo, resumen, cuerpo))
     if ap.get("info"):
         partes.append(f'<div class="nota-historial">{esc(ap["info"])}</div>')
     for p in ap.get("problemas") or []:
@@ -3072,18 +3209,159 @@ def _html_bloque_aprendizaje(ap: dict, ctx: dict) -> str:
     return "".join(partes)
 
 
-def _html_control_aprendizaje(ctx: dict) -> str:
-    """Sección "Control de riesgo y aprendizaje" (2026-10-01). Solo
-    lectura; una falla en un bloque no tumba el panel."""
-    ap = ctx.get("aprendizaje") or {"problemas": ["sin datos de aprendizaje"]}
-    bloques = []
-    for fn in (lambda: _html_bloque_stop(ctx), lambda: _html_bloque_regimen(ap, ctx),
-               lambda: _html_bloque_aprendizaje(ap, ctx)):
+# ───────────────────────── trades de días anteriores (solo lectura) ─────────────────────────
+
+MTY = ZoneInfo("America/Monterrey")
+HISTORIAL_MAX_SESIONES = 20
+_MOTIVO_SALIDA = {"stop": "stop", "objetivo": "objetivo", "cierre": "cierre EOD",
+                  "arrastre_overnight": "arrastre overnight"}
+
+
+def _num_o_none(v) -> float | None:
+    if isinstance(v, bool) or v is None:
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return f if f == f else None  # NaN = sin dato
+
+
+def leer_historial_trades(carpeta: Path | None, max_sesiones: int = HISTORIAL_MAX_SESIONES) -> dict:
+    """Trades cerrados de la memoria (`memoria_trades.jsonl`, la escribe el
+    job nocturno con fills paper de Alpaca). Agrupados por día ET, más
+    reciente primero. Lo ausente queda None ("sin dato"), nunca 0."""
+    out: dict = {"dias": [], "problemas": [], "ocultas": 0, "info": None, "actualizado": None}
+    if carpeta is None:
+        out["info"] = "sin carpeta de aprendizaje configurada"
+        return out
+    ruta = Path(carpeta) / "memoria_trades.jsonl"
+    if not ruta.exists():
+        out["info"] = "Sin memoria de trades todavía (la escribe el job nocturno, Lun–Vie 16:35 ET)."
+        return out
+    try:
+        lineas = ruta.read_text(encoding="utf-8").splitlines()
+        out["actualizado"] = datetime.fromtimestamp(ruta.stat().st_mtime, timezone.utc)
+    except OSError as ex:
+        out["problemas"].append(f"memoria_trades.jsonl ilegible ({type(ex).__name__})")
+        return out
+    malas = 0
+    vistos: set = set()
+    por_dia: dict[str, list[dict]] = {}
+    for linea in lineas:
+        if not linea.strip():
+            continue
         try:
-            bloques.append(f"<div class='panel'>{fn()}</div>")
-        except Exception as ex:
-            bloques.append(f'<div class="panel"><div class="nota">bloque no disponible ({esc(type(ex).__name__)})</div></div>')
-    return "".join(bloques)
+            d = json.loads(linea)
+        except json.JSONDecodeError:
+            malas += 1
+            continue
+        if not isinstance(d, dict):
+            malas += 1
+            continue
+        clave = d.get("order_id") or (d.get("ticker"), d.get("entrada_ts"))
+        if clave in vistos:
+            continue
+        vistos.add(clave)
+        t_in, t_out = parse_ts(d.get("entrada_ts")), parse_ts(d.get("salida_ts"))
+        dia = t_in.astimezone(NY).date().isoformat() if t_in else (d.get("fecha") or None)
+        if not dia:
+            malas += 1
+            continue
+        por_dia.setdefault(str(dia), []).append({
+            "ticker": d.get("ticker"), "entrada": t_in, "salida": t_out,
+            "p_in": _num_o_none(d.get("precio_fill")), "p_out": _num_o_none(d.get("precio_salida")),
+            "cantidad": _num_o_none(d.get("cantidad")), "pnl": _num_o_none(d.get("pnl")),
+            "r": _num_o_none(d.get("r")), "motivo": d.get("motivo_salida")})
+    if malas:
+        out["problemas"].append(f"memoria_trades.jsonl: {malas} línea(s) ilegibles o sin fecha")
+    dias = sorted(por_dia, reverse=True)
+    out["ocultas"] = max(0, len(dias) - max_sesiones)
+    for dia in dias[:max_sesiones]:
+        trades = sorted(por_dia[dia], key=lambda t: (t["entrada"] is None, t["entrada"] or datetime.min.replace(tzinfo=timezone.utc)))
+        pnls = [t["pnl"] for t in trades if t["pnl"] is not None]
+        out["dias"].append({
+            "fecha": dia, "trades": trades, "n": len(trades),
+            "ganadores": sum(1 for p in pnls if p > 0), "perdedores": sum(1 for p in pnls if p < 0),
+            "sin_pnl": len(trades) - len(pnls),
+            "pnl": round(sum(pnls), 2) if pnls else None})
+    return out
+
+
+_DIAS_ES = ("lun", "mar", "mié", "jue", "vie", "sáb", "dom")
+
+
+def _fecha_es(iso: str) -> str:
+    try:
+        d = datetime.strptime(iso, "%Y-%m-%d")
+    except (TypeError, ValueError):
+        return str(iso)
+    return f"{_DIAS_ES[d.weekday()]} {d.strftime('%Y-%m-%d')}"
+
+
+def _hora_mty(d: datetime | None, ref_dia: str) -> str:
+    if d is None:
+        return "sin dato"
+    local = d.astimezone(MTY)
+    if local.date().isoformat() != ref_dia:
+        return local.strftime("%m-%d %H:%M")
+    return local.strftime("%H:%M")
+
+
+def _fmt_precio(v: float | None) -> str:
+    return "sin dato" if v is None else f"{v:,.2f}"
+
+
+def _fmt_cant(v: float | None) -> str:
+    if v is None:
+        return "sin dato"
+    return f"{int(v)}" if float(v).is_integer() else f"{v:g}"
+
+
+def _html_historial_trades(ctx: dict) -> str:
+    """Sección "Trades de días anteriores". Una falla no tumba el panel."""
+    try:
+        return _html_historial_cuerpo(ctx)
+    except Exception as ex:
+        return f'<div class="nota">historial no disponible ({esc(type(ex).__name__)})</div>'
+
+
+def _html_historial_cuerpo(ctx: dict) -> str:
+    h = ctx.get("historial_trades") or {"dias": [], "problemas": ["sin datos de historial"]}
+    partes = []
+    hoy = ctx["ahora"].astimezone(NY).date().isoformat()
+    for i, dia in enumerate(h.get("dias") or []):
+        filas = "".join(
+            f"<tr><td class='tk'>{esc(str(t['ticker'] or 'sin dato'))}</td>"
+            f"<td>{esc(_hora_mty(t['entrada'], dia['fecha']))}</td><td>{esc(_hora_mty(t['salida'], dia['fecha']))}</td>"
+            f"<td>{esc(_fmt_precio(t['p_in']))}</td><td>{esc(_fmt_precio(t['p_out']))}</td>"
+            f"<td>{esc(_fmt_cant(t['cantidad']))}</td>"
+            f"<td class='{'' if t['pnl'] is None else ('pos' if t['pnl'] > 0 else ('neg' if t['pnl'] < 0 else ''))}'>{esc(_fmt_usd(t['pnl']))}</td>"
+            f"<td>{esc(_fmt_r(t['r']))}</td>"
+            f"<td>{esc(_MOTIVO_SALIDA.get(t['motivo'], str(t['motivo'])) if t['motivo'] else 'sin dato')}</td></tr>"
+            for t in dia["trades"])
+        pnl = dia["pnl"]
+        pnl_txt = "sin dato" if pnl is None else f"{pnl:+.2f} USD"
+        if pnl is not None and dia["sin_pnl"]:
+            pnl_txt += f" (parcial: {dia['sin_pnl']} sin dato)"
+        clase_pnl = "" if pnl is None else ("pos" if pnl > 0 else ("neg" if pnl < 0 else ""))
+        etiqueta = _fecha_es(dia["fecha"]) + (" · hoy" if dia["fecha"] == hoy else "")
+        resumen = (f'<span class="mono">{dia["n"]} trade{"s" if dia["n"] != 1 else ""} · '
+                   f'{dia["ganadores"]} G / {dia["perdedores"]} P</span>'
+                   f'<span class="mono {clase_pnl}">P&amp;L {esc(pnl_txt)}</span>')
+        cuerpo = _tabla(["Ticker", "Entrada", "Salida", "P. entrada", "P. salida", "Acciones", "P&L $", "R", "Motivo"],
+                        filas)
+        partes.append(f'<details class="ctl dia" id="hist-{esc(dia["fecha"])}"{" open" if i == 0 else ""}>'
+                      f'<summary><b>{esc(etiqueta)}</b>{resumen}</summary>'
+                      f'<div class="ctl-cuerpo">{cuerpo}</div></details>')
+    if not h.get("dias") and not h.get("problemas"):
+        partes.append(f'<div class="nota-historial">{esc(h.get("info") or "Sin trades cerrados todavía.")}</div>')
+    if h.get("ocultas"):
+        partes.append(f'<div class="nota-historial">{h["ocultas"]} sesión(es) más antiguas no se muestran '
+                      f'(límite {HISTORIAL_MAX_SESIONES}).</div>')
+    for p in h.get("problemas") or []:
+        partes.append(f'<div class="nota">{esc(p)}</div>')
+    return "".join(partes)
 
 
 def _html_bloqueos(ctx: dict) -> str:
@@ -3422,7 +3700,11 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
 </section>
 <section class="panel" aria-label="Control de riesgo y aprendizaje">
   <div class="titulo"><h2>Control de riesgo y aprendizaje</h2><span class="mono">solo lectura · knobs en sombra</span></div>
-  <div class="fila c3">{_html_control_aprendizaje(ctx)}</div>
+  {_html_control_aprendizaje(ctx)}
+</section>
+<section class="panel" aria-label="Trades de días anteriores">
+  <div class="titulo"><h2>Trades de días anteriores</h2><span class="mono">cerrados · hora Monterrey (UTC−6) · fuente: memoria de trades (fills paper, solo lectura)</span></div>
+  {_html_historial_trades(ctx)}
 </section>
 </main>
 <script>/* Panel viejo (2026-09-29): el HTML se regenera cada minuto y el
@@ -3456,6 +3738,16 @@ sistema. Todo entre try por si el navegador bloquea el almacenamiento. */
     root.dataset.theme=nuevo;
     try{{localStorage.setItem("tema",nuevo);}}catch(e){{}}
     pinta();
+  }});
+}})();</script>
+<script>/* Plegables (2026-10-01): el panel se recarga cada 60 s; se recuerda
+qué <details> abrió el usuario (por id, en este navegador). */
+(function(){{
+  var k="det-abiertos",m={{}};
+  try{{m=JSON.parse(localStorage.getItem(k)||"{{}}")||{{}};}}catch(e){{m={{}};}}
+  document.querySelectorAll("details[id]").forEach(function(d){{
+    if(Object.prototype.hasOwnProperty.call(m,d.id))d.open=!!m[d.id];
+    d.addEventListener("toggle",function(){{m[d.id]=d.open;try{{localStorage.setItem(k,JSON.stringify(m));}}catch(e){{}}}});
   }});
 }})();</script>
 </body>
