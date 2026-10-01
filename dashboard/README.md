@@ -275,11 +275,13 @@ panel contaba eventos crudos. Desde entonces:
   ruptura). La gráfica y el pie dicen "ruptura al decidir" y, aparte,
   "ruptura actual". Una orden sin esos campos dice "sin dato", nunca la
   actual en su lugar.
-- **Velas.** Con el plan gratis, Alpaca responde 403 a las velas SIP de los
-  últimos 15 min. El panel lo detecta, deja de pedir el feed por 6 h
-  (`alpaca_feed_pausa.json` en `DASH_CACHE_VELAS`) y rotula las velas
-  "Yahoo" (no "respaldo"), con un aviso en la sección. Otro fallo del feed
-  sigue siendo "Yahoo (respaldo)" y el aviso trae su código.
+- **Velas.** Desde el 1/10 el plan de Alpaca es de pago y SIP en vivo
+  responde 200. Si el feed contesta 401/403 (claves o suscripción), el
+  panel deja de pedirlo 15 min (`alpaca_feed_pausa.json` en
+  `DASH_CACHE_VELAS`), rotula las velas "Yahoo (respaldo)" y muestra el
+  aviso en rojo con el código. Una pausa anotada con la duración vieja
+  (6 h) se acorta sola. Otro fallo del feed también es "Yahoo (respaldo)"
+  y el aviso trae su código.
 - **Hunter.** La última corrida de GitHub va aparte, en gris, como
   "respaldo GitHub (histórico)". El estado lo decide el escaneo del VPS.
 - **P&L.** La gráfica de hoy termina en un punto "en vivo" con el equity de

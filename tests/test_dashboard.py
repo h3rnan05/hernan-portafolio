@@ -1027,7 +1027,7 @@ def test_velas_reales_se_grafican_con_las_tres_marcas_y_la_hora_del_fill(tmp_pat
     for marca in ("marca-ruptura-actual", "marca-stop", "marca-entrada", "marca-entrada-hora"):
         assert marca in svg, marca
     assert "ruptura actual $5.05" in svg and "stop $4.90" in svg and "entrada $5.12" in svg
-    assert "5 velas · Yahoo 15:00" in html
+    assert "5 velas · obtenidas 15:00" in html
     assert '<b>$5.12</b><span class="mono sub-nivel">a las 14:32</span>' in html
 
 
@@ -1578,7 +1578,7 @@ def test_fuente_de_datos_sale_si_la_telemetria_la_trae_y_no_se_inventa(tmp_path)
     assert "Fuente de datos: Yahoo" in html_yahoo
     # El gráfico pide SIP aunque el hunter haya medido Yahoo. No se
     # afirma que sean la misma fuente.
-    assert "Yahoo (respaldo)" in html_yahoo
+    assert "1 min · Alpaca SIP (Yahoo solo de respaldo si el feed falla)" in html_yahoo
     assert "el hunter reporta Yahoo" in html_yahoo
     assert "misma fuente que el hunter" not in html_yahoo
 
@@ -1820,7 +1820,7 @@ def test_sip_ok_da_origen_alpaca_sip_guarda_la_fuente_y_no_toca_yahoo(monkeypatc
     assert guardado["origen_fuente"] == "alpaca-sip"
     assert guardado["velas"]["close"] == r["velas"]["close"]
     sub = bd._subtitulo_velas(r, ZoneInfo("UTC"), AHORA)
-    assert sub.startswith("6 velas · SIP ")
+    assert sub.startswith("6 velas · Alpaca SIP ")
     # Dentro del TTL no se vuelve a pedir.
     r2 = dv.obtener("AAA", AHORA + timedelta(seconds=30), cache, 120, alpaca=_FUENTE_ALPACA_REAL)
     assert len(urls) == 1 and r2["origen"] == "cache" and r2["origen_fuente"] == "alpaca-sip"
@@ -2495,10 +2495,10 @@ def test_ruptura_al_decidir_sin_dato_no_se_rellena_con_la_actual(tmp_path):
     assert "Ruptura al decidir</span><b>sin dato</b>" in velas_html
 
 
-# ───────── 2026-09-29: el plan de Alpaca no da SIP en vivo ─────────
+# ───────── 2026-10-01: plan de pago; un 401/403 del feed es una falla ─────────
 
 @pytest.mark.parametrize("codigo", ["auth", "http_401", "http_403"])
-def test_feed_rechazado_por_el_plan_usa_yahoo_sin_decir_respaldo_y_no_insiste(tmp_path, codigo):
+def test_feed_rechazado_cae_a_yahoo_respaldo_y_reintenta_a_los_15_min(tmp_path, codigo):
     from momentum_hunter.data.alpaca_datos import ErrorDatosAlpaca
     llamadas = []
 
@@ -2508,12 +2508,32 @@ def test_feed_rechazado_por_el_plan_usa_yahoo_sin_decir_respaldo_y_no_insiste(tm
 
     cache = tmp_path / "cache"
     r = dv.obtener("AAA", AHORA, cache, ttl_seg=0, fuente=lambda t: _velas(), alpaca=alpaca_403)
-    assert r["origen_fuente"] == "yahoo" and r["aviso_feed"] == dv.AVISO_FEED_PLAN
-    assert bd._marca_fuente_velas(r["origen_fuente"]) == "Yahoo"
-    # Un minuto después no se vuelve a pedir el feed: el 403 no cambia solo.
+    assert r["origen_fuente"] == "yahoo (respaldo)"
+    assert bd._marca_fuente_velas(r["origen_fuente"]) == "Yahoo (respaldo)"
+    assert "Alpaca rechazó el feed" in r["aviso_feed"] and "plan gratis" not in r["aviso_feed"]
+    # Un minuto después no se vuelve a pedir el feed...
     r2 = dv.obtener("BBB", AHORA + timedelta(minutes=1), cache, ttl_seg=0,
                     fuente=lambda t: _velas(), alpaca=alpaca_403)
-    assert llamadas == ["AAA"] and r2["aviso_feed"] == dv.AVISO_FEED_PLAN
+    assert llamadas == ["AAA"] and r2["aviso_feed"] == r["aviso_feed"]
+    # ...pero a los 15 min sí: un cambio de plan o de claves se ve solo.
+    dv.obtener("CCC", AHORA + timedelta(minutes=16), cache, ttl_seg=0,
+               fuente=lambda t: _velas(), alpaca=alpaca_403)
+    assert llamadas == ["AAA", "CCC"]
+
+
+def test_una_pausa_vieja_de_6_h_se_acorta_al_desplegar(tmp_path):
+    cache = tmp_path / "cache"
+    dv._escribir_json(cache / dv.ARCHIVO_PAUSA_FEED, {
+        "hasta": (AHORA + timedelta(hours=6)).isoformat(), "desde": AHORA.isoformat(), "codigo": "http_403"})
+    llamadas = []
+
+    def alpaca_ok(ticker):
+        llamadas.append(ticker)
+        return _velas()
+
+    r = dv.obtener("AAA", AHORA + timedelta(minutes=20), cache, ttl_seg=0,
+                   fuente=lambda t: _velas(), alpaca=alpaca_ok)
+    assert llamadas == ["AAA"] and r["origen_fuente"] == "alpaca-sip" and r.get("aviso_feed") is None
 
 
 def test_otro_fallo_del_feed_se_avisa_con_su_codigo_y_sigue_siendo_respaldo(tmp_path):
@@ -2528,16 +2548,18 @@ def test_otro_fallo_del_feed_se_avisa_con_su_codigo_y_sigue_siendo_respaldo(tmp_
     assert not (tmp_path / "cache" / dv.ARCHIVO_PAUSA_FEED).exists()
 
 
-def test_el_aviso_del_plan_aparece_una_vez_en_la_seccion_de_velas(tmp_path):
-    def velas_plan(ticker):
-        return {"velas": _velas(), "obtenido": AHORA, "origen": "fuente", "origen_fuente": "yahoo",
-                "error": None, "aviso_feed": dv.AVISO_FEED_PLAN}
+def test_el_aviso_del_feed_rechazado_va_en_rojo_y_no_menciona_el_plan_gratis(tmp_path):
+    aviso = dv.aviso_feed_rechazado("http_403", AHORA)
+
+    def velas_rechazo(ticker):
+        return {"velas": _velas(), "obtenido": AHORA, "origen": "fuente", "origen_fuente": "yahoo (respaldo)",
+                "error": None, "aviso_feed": aviso}
 
     get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion("AAA"), _posicion("BBB")],
                                              "/v2/orders": []})
-    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_plan))
-    assert html.count(dv.AVISO_FEED_PLAN) == 1
-    assert "Yahoo (el plan no da SIP en vivo)" in html and "Yahoo (respaldo)" not in html
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_rechazo))
+    assert html.count(aviso) == 1 and '<div class="nota banda-datos"' in html
+    assert "plan gratis" not in html and "el plan no da SIP" not in html
 
 
 
