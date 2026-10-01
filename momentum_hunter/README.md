@@ -829,6 +829,27 @@ niveles frescos y el ejecutor las frena por niveles rancios; no se
 compra nada hasta que vuelva el feed. Es el costo aceptado de no mezclar
 dos cintas.
 
+## Noticias de Alpaca en sombra (2026-10-01)
+
+Las noticias que deciden siguen en Yahoo. En cada escaneo,
+`catalysts/sombra_noticias.py` pide además en LOTE (50 símbolos por
+pedido, unas pocas llamadas por corrida) las noticias de Alpaca/Benzinga
+(`data.alpaca.markets/v1beta1/news`) de las acciones que pasaron los
+filtros de universo. Les aplica el mismo `detectar_catalizador` y el
+mismo `ancla_ok` y escribe una línea por acción en
+`$MOMENTUM_ESTADO_DIR/sombra_noticias/<fecha>.jsonl`, más un resumen por
+corrida: catalizadores de cada fuente, cuántos coinciden, cuántos solo
+en una, y errores.
+
+No cambia ningún candidato (hay una prueba que lo exige). Un fallo de la
+sombra se anota y el escaneo sigue. Encendida por defecto;
+`MOMENTUM_NOTICIAS_SOMBRA=0` la apaga. Resumen acumulado:
+`python -m momentum_hunter.catalysts.sombra_noticias --desde AAAA-MM-DD`.
+
+Limitación: Benzinga es una sola fuente, así que un "rumor" (que pide
+varias fuentes) casi nunca se confirma por ahí. Se mide igual, porque
+es lo que pasaría al cambiar.
+
 ## Stream SIP en sombra (2026-09-28)
 
 El minuto que decide el hunter sigue saliendo del REST
