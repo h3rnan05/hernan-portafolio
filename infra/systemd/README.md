@@ -43,6 +43,8 @@ Alpaca.
 | `bin/run_metadata_sombra.sh` | `/opt/momentum/bin/` (solo si se instala la sombra) | no-op salvo `MOMENTUM_METADATA_SOMBRA=1`; necesita `FINNHUB_API_KEY`; no hace git ni toca la watchlist |
 | `momentum-sip-stream.service` | **NO se instala solo** | proceso permanente: UNA conexión websocket SIP de barras de minuto, modo sombra (`momentum_hunter/data/sip_stream.py`). No decide |
 | `bin/run_sip_stream.sh` | `/opt/momentum/bin/` (solo si se instala el stream) | wrapper: fuerza `MOMENTUM_SIP_STREAM=sombra`; no coloca órdenes |
+| `momentum-aprendizaje.service` / `.timer` | `/etc/systemd/system/` | Lun–Vie 16:35 ET: aprendizaje nocturno **en sombra** (`momentum_paper_trader/aprendizaje.py`). Solo GET paper; salida en `/var/lib/momentum/estado/momentum_paper_trader/aprendizaje/`. Telegram solo con `MOMENTUM_APRENDIZAJE_TELEGRAM=1` |
+| `bin/run_aprendizaje.sh` | `/opt/momentum/bin/` | wrapper del job nocturno; no hace git ni toca órdenes |
 
 **No versionado a propósito:** `/etc/momentum/paper.env` (credenciales;
 viven en el VPS y en GitHub Secrets, nunca en el repo).
