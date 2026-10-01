@@ -2999,3 +2999,40 @@ def test_historial_y_resumen_no_usan_post_ni_ordenes():
                                                    bd._html_resumen_control, bd._html_bloque_ajustes,
                                                    bd._html_bloque_sombra))
     assert "post(" not in src.lower() and "alpaca_client" not in src and "colocar" not in src
+
+
+# ───────────── Visual 1+6+3 (2026-10-01): orden, índice, sin huecos ─────────────
+
+def test_orden_de_secciones_lo_importante_arriba(tmp_path):
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))
+    orden = ['id="resumen"', 'id="riesgo"', 'id="equity"', 'id="velas"', 'id="watchlist"',
+             'id="ejecucion"', 'id="historial"']
+    pos = [html.index(o) for o in orden]
+    assert pos == sorted(pos)
+    assert html.index('class="anclas"') < html.index('id="resumen"')
+
+
+def test_indice_de_anclas_apunta_a_ids_existentes(tmp_path):
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))
+    for id_, _t in bd.ANCLAS:
+        assert f'href="#{id_}"' in html
+        if id_ != "posiciones":  # la sección del bróker existe solo con datos del bróker
+            assert f'id="{id_}"' in html
+    assert 'class="anclas-movil"' in html and "@media (max-width:640px){.anclas{display:none}" in bd.CSS
+
+
+def test_sistema_franja_ok_plegada_y_abierta_si_hay_que_revisar():
+    etapa = lambda n, e: {"donde": "VPS", "estado": e, "nombre": n, "rol": "r", "detalle": "d"}
+    ok = bd._html_sistema({"etapas": [etapa("Hunter", "ok"), etapa("Ejecutor", "ok")]}, "X")
+    assert "<span class=\"punto ok\">OK</span>" in ok and "2/2 etapas OK" in ok and " open" not in ok
+    mal = bd._html_sistema({"etapas": [etapa("Hunter", "ok"), etapa("Ejecutor", "sin-datos")]}, "X")
+    assert "Revisar: Ejecutor" in mal and 'data-forzar="1" open' in mal and "1/2 etapas OK" in mal
+    vacio = bd._html_sistema({"etapas": []}, "")
+    assert "sin dato" in vacio and "0/0" not in vacio
+
+
+def test_filas_sin_huecos_y_explicaciones_plegadas(tmp_path):
+    assert ".fila.c2,.fila.c3{align-items:start}" in bd.CSS
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))
+    assert '<details class="explica-mas" id="lat-explica">' in html
+    assert "!d.dataset.forzar" in html  # lo que pide revisión no se cierra por la preferencia guardada
