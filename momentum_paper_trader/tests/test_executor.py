@@ -37,8 +37,11 @@ class _FakeAlpacaClient:
         cuenta_rota: bool = False, equity: float | None = None,
         mercado_abierto: bool = True, reloj_roto: bool = False,
         activo_operable: bool = True, activo_roto: bool = False,
+        last_equity: float | str | None = "igual",
     ) -> None:
         self.ordenes_colocadas: list[tuple] = []
+        self.ordenes_canceladas: list[str] = []
+        self.liquidaciones = 0
         self.ids_de_orden: list[str | None] = []
         # Por defecto el símbolo es operable: casi todos los tests son
         # sobre qué se decide con un ticker normal.
@@ -56,6 +59,9 @@ class _FakeAlpacaClient:
         # una cuenta 100% líquida nunca puede ser el efectivo el que
         # muerda primero.
         self._equity = cash if equity is None else equity
+        # Stop diario (2026-10-01): por defecto la cuenta no perdió nada en
+        # el día (last_equity == equity). None = Alpaca no lo mandó.
+        self._last_equity = self._equity if last_equity == "igual" else last_equity
         self._posiciones = posiciones or []
         self._ordenes = ordenes or []
         self._cuenta_rota = cuenta_rota
@@ -65,7 +71,17 @@ class _FakeAlpacaClient:
             raise RuntimeError("Alpaca caído")
         if getattr(self, "cuenta_sin_montos", False):
             return {"account_number": "PA3", "status": "ACTIVE"}   # sin cash ni equity
-        return {"cash": str(self._cash), "equity": str(self._equity)}
+        cuenta = {"cash": str(self._cash), "equity": str(self._equity)}
+        if self._last_equity is not None:
+            cuenta["last_equity"] = str(self._last_equity)
+        return cuenta
+
+    def cancelar_orden(self, order_id: str) -> None:
+        self.ordenes_canceladas.append(order_id)
+
+    def cerrar_todas_las_posiciones(self) -> list[dict]:
+        self.liquidaciones += 1
+        return []
 
     def reloj_mercado(self) -> dict:
         if self._reloj_roto:
@@ -704,7 +720,9 @@ def test_niveles_fuera_de_ventana_se_registran_una_vez_sin_orden(monkeypatch, tm
     n = len(_eventos(ruta))
     assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
     nuevos = _eventos(ruta)[n:]
-    assert [ev["tipo"] for ev in nuevos if ev["tipo"] != "rechequeo"] == []
+    # `stop_diario` es la medición de la cuenta en sesión (2026-10-01), no
+    # un bloqueo de la señal: no cuenta como evento repetido de ZOMB.
+    assert [ev["tipo"] for ev in nuevos if ev["tipo"] not in ("rechequeo", "stop_diario")] == []
     assert not any(ev["tipo"] == "bloqueo_riesgo" for ev in nuevos)
     assert len(estado.cargar(rev_path)) == 1
     assert client.ordenes_colocadas == [] and contextos == [] and enviados == []

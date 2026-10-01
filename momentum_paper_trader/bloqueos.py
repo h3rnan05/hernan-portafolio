@@ -45,6 +45,11 @@ MAXIMO_POSICIONES = "MAXIMO_POSICIONES"
 DATO_FALTANTE_RELOJ = dato_faltante("reloj_mercado")     # /v2/clock ilegible
 DATO_FALTANTE_CUENTA = dato_faltante("cuenta")           # cash/equity ilegibles o ausentes
 DATO_FALTANTE_CALENDARIO = dato_faltante("calendario_sesion")  # archivo de sesión ausente o sin el día
+# Stop de pérdida diaria (2026-10-01, ver `stop_diario.py`): la cuenta
+# perdió en el día (equity − last_equity) el % configurado de last_equity.
+PERDIDA_DIARIA = "PERDIDA_DIARIA"
+DATO_FALTANTE_LAST_EQUITY = dato_faltante("last_equity")      # sin last_equity: no se puede medir el día
+DATO_FALTANTE_STOP_DIARIO = dato_faltante("stop_diario")      # estado del día ilegible
 
 # -- Por señal (`bloqueo_riesgo`) --
 DATO_FALTANTE_NIVELES = dato_faltante("niveles")                   # TRIGGERED sin entrada/stop/objetivo
@@ -65,6 +70,7 @@ BLOQUEO_HALT = "BLOQUEO_HALT"
 CODIGOS_GLOBALES = frozenset({
     MERCADO_CERRADO, CIERRE_CERCANO, MAXIMO_POSICIONES,
     DATO_FALTANTE_RELOJ, DATO_FALTANTE_CUENTA, DATO_FALTANTE_CALENDARIO,
+    PERDIDA_DIARIA, DATO_FALTANTE_LAST_EQUITY, DATO_FALTANTE_STOP_DIARIO,
 })
 CODIGOS_POR_SENAL = frozenset({
     DATO_FALTANTE_NIVELES, DATO_FALTANTE_NIVELES_VIEJOS, DATO_FALTANTE_ACTIVO,
@@ -89,6 +95,7 @@ CODIGO_POR_LIMITE_LEGADO = {
     "fuera_de_banda": FUERA_DE_BANDA,
     "fraccion_insuficiente": FRACCION_INSUFICIENTE,
     "halt": BLOQUEO_HALT,
+    "perdida_diaria": PERDIDA_DIARIA,
 }
 
 

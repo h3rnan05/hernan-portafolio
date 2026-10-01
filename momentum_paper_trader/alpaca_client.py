@@ -449,6 +449,19 @@ class AlpacaPaperClient:
                 return o
         return None
 
+    def cancelar_orden(self, order_id: str) -> None:
+        """Cancela UNA orden por id (`DELETE /v2/orders/{id}`). Lo usa el
+        stop diario solo para entradas sin llenar (ver `stop_diario.
+        es_entrada_sin_llenar`); nunca recibe una pata de salida. Un
+        404/422 (ya terminó o ya se canceló) no es un fallo."""
+        if not order_id:
+            raise ValueError("order_id vacío")
+        r = _http("delete",
+            f"{_BASE_URL}/orders/{order_id}", headers=self._headers, timeout=self._timeout)
+        if r.status_code in (404, 422):
+            return
+        r.raise_for_status()
+
     def cancelar_ordenes_de(self, ticker: str, ordenes_abiertas: list[dict]) -> int:
         """Cancela las órdenes vivas de un ticker, patas `held` incluidas.
 

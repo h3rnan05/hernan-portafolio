@@ -512,6 +512,31 @@ sin cambios: `revisiones.json` + `client_order_id`. Apagar y costo en
 minutos: ver el comentario de ese workflow y `docs/RUNBOOK-PAPER-CEO.md`.
 No cambia umbrales, riesgo ni el endpoint paper.
 
+## Stop de pérdida diaria (`stop_diario.py`, 2026-10-01)
+
+Pedido del dueño tras el 30-sep (−68.37 USD, 4 stops). Regla de CUENTA,
+determinista, por encima de la IA:
+
+- Si `equity − last_equity ≤ −1 % × last_equity` (realizado + no realizado,
+  incluidas las posiciones que vienen de la noche), bloqueo global
+  `PERDIDA_DIARIA`: no se abren entradas nuevas en el resto de la sesión.
+- Al cruzar se cancelan las entradas que no se han llenado nada (compra,
+  `filled_qty` = 0). Nunca el stop ni el take-profit de una posición
+  abierta, ni una entrada parcialmente llena. Las posiciones abiertas NO
+  se cierran: sus stops siguen como están.
+- Un solo Telegram por sesión. Queda pegado por fecha de sesión (NY)
+  aunque el P&L se recupere; la sesión siguiente arranca limpia.
+- Fail-closed: `equity`/`last_equity` ausentes, no numéricos o ≤ 0, o el
+  estado del día ilegible, bloquean entradas (`DATO_FALTANTE:...`).
+  Nunca se toman como 0.
+- Se mide en cada corrida del ejecutor dentro de sesión (también sin
+  señales pendientes): evento `stop_diario` para el panel (P&L vs umbral,
+  estado, desde cuándo, último chequeo) y `stop_diario` en la telemetría
+  de la corrida.
+
+Simulación con las sesiones reales del 8 al 30-sep: corta 9/24, 9/28 y
+9/30 (ahorro +15.70 USD); no toca ningún día ganador.
+
 ## Halts y bandas LULD
 
 El ejecutor puede frenar una entrada si el símbolo está en halt o si
@@ -588,7 +613,14 @@ borrar `/var/lib/momentum/estado/halts/` ni `sip_stream/`.
   sección de halts. Un valor desconocido se queda en observar.
 - `MOMENTUM_ESTADO_DIR` -- raíz del estado fuera del repo (default
   `/var/lib/momentum/estado`). Ahí caen `halts/` y, si el stream SIP
-  está corriendo, `sip_stream/`.
+  está corriendo, `sip_stream/`. El stop diario guarda ahí
+  `stop_diario/<fecha NY>.json`.
+- `MOMENTUM_STOP_DIARIO` -- `enforce` (default), `observar` u `off`. Un
+  valor desconocido se queda en enforce. Ver "Stop de pérdida diaria".
+- `MOMENTUM_STOP_DIARIO_PCT` -- umbral en % de `last_equity` (default
+  `1.0`, válido 0.1–5). Inválido: usa 1.0 y avisa una vez por sesión.
+- `MOMENTUM_STOP_DIARIO_LIQUIDAR` -- `1` liquida todo al cruzar (una vez
+  por sesión). Default apagado.
 
 ## Seguridad
 
