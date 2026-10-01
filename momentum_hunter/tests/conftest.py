@@ -59,3 +59,11 @@ def _precios_del_doble_inyectado(monkeypatch):
     `MOMENTUM_DATA_PROVIDER=yahoo`. Las pruebas del default real
     (`test_fuente_alpaca.py`) borran la variable."""
     monkeypatch.setenv("MOMENTUM_DATA_PROVIDER", "yahoo")
+
+
+@pytest.fixture(autouse=True)
+def _sombra_de_noticias_apagada(monkeypatch):
+    """5) Sombra de noticias (`catalysts/sombra_noticias.py`), encendida
+    por defecto en producción. Las pruebas del pipeline no la quieren
+    (pediría a la red); las suyas la vuelven a encender."""
+    monkeypatch.setenv("MOMENTUM_NOTICIAS_SOMBRA", "0")

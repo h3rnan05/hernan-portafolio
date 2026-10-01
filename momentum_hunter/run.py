@@ -72,6 +72,7 @@ from momentum_hunter.alerts import (
     cuota_alertas,
 )
 from momentum_hunter.catalogo_activos import anotar_exchange, filtrar_por_catalogo
+from momentum_hunter.catalysts import sombra_noticias
 from momentum_hunter.catalysts.ancla import ancla_ok
 from momentum_hunter.catalysts.detector import YahooNewsProvider, detectar_catalizador, minutos_desde_catalizador
 from momentum_hunter.catalysts.keyword_rechazos import explicar_rechazos_keyword
@@ -270,6 +271,7 @@ def construir_candidatos_diarios(
     metricas: telemetria.Metricas | None = None,
     ahora: datetime | None = None,
     registro_noticias=None,
+    sombra=None,
 ) -> list[CandidatoDiario]:
     """Etapa 1 -- núcleo puro y testeable: recibe todo ya inyectado
     (barras, metadata, catalizadores), nunca llama red directamente. Un
@@ -286,7 +288,11 @@ def construir_candidatos_diarios(
     `registro_noticias` (opcional, `noticias_leidas.Registro`): anota qué
     titulares se leyeron y cómo terminó cada acción, para el panel. Solo
     observa los mismos objetos que ya estaban en memoria; no cambia
-    ningún candidato ni pide nada."""
+    ningún candidato ni pide nada.
+
+    `sombra` (opcional, `sombra_noticias.Sombra`, 2026-10-01): compara el
+    catalizador final de cada acción con el que habría salido de la otra
+    fuente de noticias, ya precargada. Solo anota; no cambia nada."""
     bandas = bandas or {}
     metadata = provider.metadata(tickers_validos)
     noticias = YahooNewsProvider(metricas) if con_catalizadores else None
@@ -360,6 +366,9 @@ def construir_candidatos_diarios(
                         catalizador = None
                 if metricas is not None and catalizador is not None:
                     metricas.sumar(metricas.con_catalizador, banda)
+                if sombra is not None:
+                    # `anotar` nunca lanza y no hace red: solo compara.
+                    sombra.anotar(t, meta.nombre, titulares, catalizador)
                 if registro_noticias is not None:
                     # `anotar_seguro` nunca lanza: registrar no decide nada.
                     registro_noticias.anotar_seguro(
@@ -1620,9 +1629,17 @@ def main() -> None:
             return
 
         registro_noticias = None if args.no_catalizadores else _nuevo_registro_noticias(inicio)
+        # Noticias de la otra fuente EN SOMBRA (ver sombra_noticias.py):
+        # se precargan en lote y solo se anotan. No deciden nada.
+        sombra = None if args.no_catalizadores else sombra_noticias.nueva(CONFIG, inicio)
+        if sombra is not None:
+            sombra.precargar(validos)
+        extra_sombra = {"sombra": sombra} if sombra is not None else {}
         candidatos_diarios = construir_candidatos_diarios(
             validos, barras, provider, CONFIG, not args.no_catalizadores, bandas, metricas,
-            ahora=inicio, registro_noticias=registro_noticias)
+            ahora=inicio, registro_noticias=registro_noticias, **extra_sombra)
+        if sombra is not None:
+            sombra.cerrar(persistir=not args.dry_run)
         # Auditoría para el panel (noticias.html). En dry-run no se
         # persiste, igual que el resto del estado. `escribir` nunca lanza.
         if registro_noticias is not None and not args.dry_run:
