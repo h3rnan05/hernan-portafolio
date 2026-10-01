@@ -819,7 +819,7 @@ def test_equity_sin_base_value_no_inventa_la_inicial(tmp_path):
     html = bd.render(ctx)
     svg = _svgs_equity(html)[0]
     assert "inicial" not in svg and "<polyline" in svg
-    assert "<span class=\"mono\">Inicial</span><b>—</b>" in html
+    assert "<span class=\"mono\">Inicial</span><b>sin dato</b>" in html
 
 
 def test_equity_antes_de_la_apertura_dice_de_que_sesion_es(tmp_path):
@@ -981,7 +981,7 @@ def _watchlist_con_ruptura(tmp_path, ticker="AAA", ruptura=5.05):
 
 def _svg_velas(html, ticker):
     import re
-    m = re.search(rf'<h2>{ticker}</h2>.*?(<svg viewBox="0 0 480 230" role="img" aria-label="Velas[^"]*">.*?</svg>)', html, re.S)
+    m = re.search(rf'<h2>{ticker}</h2>.*?(<svg viewBox="0 0 650 230" role="img" aria-label="Velas[^"]*">.*?</svg>)', html, re.S)
     return m.group(1) if m else None
 
 
@@ -1028,7 +1028,7 @@ def test_velas_reales_se_grafican_con_las_tres_marcas_y_la_hora_del_fill(tmp_pat
         assert marca in svg, marca
     assert "ruptura actual $5.05" in svg and "stop $4.90" in svg and "entrada $5.12" in svg
     assert "5 velas · Yahoo 15:00" in html
-    assert "$5.12 · 14:32" in html
+    assert '<b>$5.12</b><span class="mono sub-nivel">a las 14:32</span>' in html
 
 
 def test_marcas_que_faltan_no_se_dibujan_y_dicen_sin_dato(tmp_path):
@@ -1044,7 +1044,7 @@ def test_marcas_que_faltan_no_se_dibujan_y_dicen_sin_dato(tmp_path):
     assert "marca-entrada" in svg
     # ruptura, stop y objetivo sin dato.
     velas_html = html.split("Velas de posiciones abiertas", 1)[1].split("Watchlist", 1)[0]
-    assert velas_html.count("<b>sin dato</b>") == 3 and "$5.10 (hora sin dato)" in html
+    assert velas_html.count("<b>sin dato</b>") == 3 and "<b>$5.10</b><span class=\"mono sub-nivel\">hora sin dato</span>" in html
     assert 'class="vela ' in svg
 
 
@@ -1088,7 +1088,7 @@ def test_marca_fuera_de_rango_se_anota_en_el_borde_sin_aplastar_las_velas(tmp_pa
     _watchlist_con_ruptura(tmp_path, ruptura=50.0)   # lejísimos de velas de $5
     get = alpaca_falso({"equity": "5000"}, **{"/v2/positions": [_posicion()], "/v2/orders": []})
     svg = _svg_velas(bd.render(bd.construir(AHORA, cfg(tmp_path), get=get, velas=velas_ok)), "AAA")
-    assert "marca-ruptura-actual-fuera" in svg and "fuera del gráfico" in svg
+    assert "marca-ruptura-actual-fuera" in svg and "(fuera)" in svg
     assert '<line class="marca-ruptura-actual' not in svg
 
 
@@ -3079,3 +3079,41 @@ def test_sin_jerga_en_titulos():
     src = inspect.getsource(bd.render)
     assert "fail-closed</span>" not in src and "LLM" not in src and "watchlist.json →" not in src
     assert "knobs en sombra" not in src
+
+
+# ───────────── Visual 8+9+7 (2026-10-01): encabezado, vacíos, velas ─────────────
+
+def test_etiqueta_de_zona_corta_con_desfase():
+    from zoneinfo import ZoneInfo
+    assert bd.etiqueta_zona(ZoneInfo("America/Monterrey"), AHORA) == "MTY (UTC−6)"
+    assert bd.etiqueta_zona(ZoneInfo("UTC"), AHORA) == "UTC"
+    assert bd.etiqueta_zona(ZoneInfo("America/New_York"), AHORA) == "ET (UTC−4)"
+
+
+def test_encabezado_compacto_con_mas(tmp_path):
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))
+    cab = html[html.index("<header>"):html.index("</header>")]
+    visible, mas = cab.split('<details class="mas">', 1)
+    assert "PAPER · ALPACA" in visible and "Act. " in visible
+    assert "Noticias leídas" in mas and "Solo lectura" in mas and 'id="tema-toggle"' in mas
+    assert "a.pildora{color:inherit;text-decoration:none}" in bd.CSS
+
+
+def test_dato_ausente_dice_sin_dato_no_guion():
+    assert bd.fmt_dinero(None) == "sin dato" and bd.fmt_num(None) == "sin dato"
+    assert bd.fmt_dinero(0) == "$0.00"  # un cero real sigue siendo cero
+
+
+def test_aviso_de_feed_va_arriba_y_no_dentro_de_velas():
+    ctx = {"avisos_feed": ["Alpaca rechazó el feed (401)"], "fuente_datos": "Yahoo"}
+    banda = bd._html_banda_datos(ctx)
+    assert 'class="nota banda-datos"' in banda and "Datos de mercado: Yahoo." in banda
+    assert bd._html_banda_datos({"avisos_feed": []}) == ""
+
+
+def test_velas_plegables_abierta_la_mas_reciente_y_escala_con_aire_bajo_5():
+    import inspect
+    src = inspect.getsource(bd.render)
+    assert "abierto = \" open\" if op is reciente" in src
+    g = inspect.getsource(bd._grafico_velas)
+    assert "minimo < 5 and rango < minimo * 0.02" in g and 'text-anchor="start"' in g
