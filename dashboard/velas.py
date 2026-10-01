@@ -50,19 +50,30 @@ ARCHIVO_PAUSA = "yahoo_pausa.json"
 # estiran con ceros. Por debajo, `obtener` cae a Yahoo.
 MINIMO_VELAS = 5
 ORIGEN_YAHOO = "yahoo (respaldo)"
-# Yahoo como fuente principal porque el plan de Alpaca no da SIP en vivo
-# (2026-09-29): no es un respaldo de un feed que falló un rato.
-ORIGEN_YAHOO_PLAN = "yahoo"
 # Alpaca respondió 401/403 al pedir velas de hoy. Con el plan gratis, pedir
-# SIP de los últimos 15 min da `403 "subscription does not permit querying
-# recent SIP data"` (medido el 29/9): todas las posiciones salían "Yahoo
-# (respaldo)" y el error se tragaba sin aviso. Se anota en disco y no se
-# vuelve a pedir en `PAUSA_FEED_SEG`: repetir un 403 cada minuto no cambia
-# la respuesta. 401 (llaves) cae en el mismo código y el aviso lo nombra.
+# SIP de los últimos 15 min daba `403 "subscription does not permit querying
+# recent SIP data"` (medido el 29/9). Desde el 1/10 el plan es de pago y
+# SIP en vivo responde 200 (medido ese día), así que un 401/403 ya no es
+# "lo esperable del plan": es una falla (llaves, suscripción vencida) y se
+# avisa como tal, con Yahoo como RESPALDO. Se anota en disco y no se
+# vuelve a pedir en `PAUSA_FEED_SEG` para no repetir el rechazo cada
+# minuto, pero la pausa es corta: con 6 h el panel siguió diciendo "plan
+# gratis" horas después de que el plan cambió.
 ARCHIVO_PAUSA_FEED = "alpaca_feed_pausa.json"
-PAUSA_FEED_SEG = 6 * 3600
-AVISO_FEED_PLAN = ("Alpaca rechazó el feed de velas en vivo (401/403): el plan gratis solo da SIP "
-                   "con 15 min de retraso. Las velas salen de Yahoo.")
+PAUSA_FEED_SEG = 15 * 60
+
+
+def aviso_feed_rechazado(codigo: str | None, hasta: datetime | None) -> str:
+    """Texto del aviso ante un 401/403. Nombra el código, nunca el texto
+    de la respuesta (puede traer una URL)."""
+    if codigo == "http_401":
+        motivo = "401: revisar las claves"
+    elif codigo == "http_403":
+        motivo = "403: las claves o la suscripción no cubren el dato"
+    else:
+        motivo = "401/403: claves o suscripción"
+    reintento = f"; se reintenta a las {hasta:%H:%M} UTC" if hasta is not None else ""
+    return f"Alpaca rechazó el feed de velas ({motivo}){reintento}. Las velas salen de Yahoo (respaldo)."
 
 
 class LimiteDePeticiones(Exception):
@@ -220,9 +231,22 @@ def _codigo_error(ex: Exception) -> str:
     return codigo if isinstance(codigo, str) and codigo else type(ex).__name__
 
 
-def pausa_feed_hasta(cache_dir: Path) -> datetime | None:
+def pausa_feed(cache_dir: Path) -> tuple[datetime | None, str | None]:
+    """(hasta, código) de la pausa del feed, o (None, None). El `hasta`
+    no pasa de `desde + PAUSA_FEED_SEG`: una pausa anotada con una
+    duración vieja (6 h) se acorta sola al desplegar, sin borrar nada."""
     crudo = _leer_json(cache_dir / ARCHIVO_PAUSA_FEED)
-    return _fecha(crudo.get("hasta")) if crudo else None
+    if not crudo:
+        return None, None
+    hasta, desde = _fecha(crudo.get("hasta")), _fecha(crudo.get("desde"))
+    if hasta is not None and desde is not None:
+        hasta = min(hasta, desde + timedelta(seconds=PAUSA_FEED_SEG))
+    codigo = crudo.get("codigo")
+    return hasta, codigo if isinstance(codigo, str) and codigo else None
+
+
+def pausa_feed_hasta(cache_dir: Path) -> datetime | None:
+    return pausa_feed(cache_dir)[0]
 
 
 def _con_cache(velas_cache, obtenido_cache, ahora, ttl_seg, error, origen_fuente=None) -> dict:
@@ -279,25 +303,25 @@ def obtener(ticker: str, ahora: datetime, cache_dir: Path, ttl_seg: float,
         return _con_cache(velas_cache, obtenido_cache, ahora, ttl_seg, None, origen_cache)
 
     # El feed no comparte el cupo de Yahoo: se pide aunque haya pausa de
-    # Yahoo. Con el feed rechazado por el plan (401/403), no se pide.
+    # Yahoo. Con el feed rechazado (401/403) hace poco, no se pide.
     aviso_feed = None
-    origen_yahoo = ORIGEN_YAHOO
-    hasta_feed = pausa_feed_hasta(cache_dir)
+    hasta_feed, codigo_feed = pausa_feed(cache_dir)
     if hasta_feed is not None and ahora < hasta_feed:
         velas_alpaca = None
-        aviso_feed, origen_yahoo = AVISO_FEED_PLAN, ORIGEN_YAHOO_PLAN
+        aviso_feed = aviso_feed_rechazado(codigo_feed, hasta_feed)
     else:
         try:
             velas_alpaca = pedir_alpaca(ticker)
         except Exception as ex:
             velas_alpaca = None
             codigo = _codigo_error(ex)
-            # 401/403 (antes llegaban como `auth`): plan o claves.
+            # 401/403 (antes llegaban como `auth`): claves o suscripción.
             if codigo in ("auth", "http_401", "http_403"):
+                hasta = ahora + timedelta(seconds=PAUSA_FEED_SEG)
                 _escribir_json(cache_dir / ARCHIVO_PAUSA_FEED, {
-                    "hasta": (ahora + timedelta(seconds=PAUSA_FEED_SEG)).isoformat(timespec="seconds"),
+                    "hasta": hasta.isoformat(timespec="seconds"),
                     "desde": ahora.isoformat(timespec="seconds"), "codigo": codigo})
-                aviso_feed, origen_yahoo = AVISO_FEED_PLAN, ORIGEN_YAHOO_PLAN
+                aviso_feed = aviso_feed_rechazado(codigo, hasta)
             else:
                 aviso_feed = f"el feed de velas de Alpaca falló ({codigo}); se usa Yahoo de respaldo"
     if _usables(velas_alpaca):
@@ -305,12 +329,12 @@ def obtener(ticker: str, ahora: datetime, cache_dir: Path, ttl_seg: float,
         _guardar(ruta, ahora, velas_alpaca, origen_fuente)
         return _resultado(velas_alpaca, ahora, "fuente", None, origen_fuente)
     return {**_obtener_yahoo(ticker, ahora, cache_dir, ttl_seg, pedir_yahoo, pausa_seg, pausa_bot,
-                             ruta, velas_cache, obtenido_cache, origen_cache, origen_yahoo),
+                             ruta, velas_cache, obtenido_cache, origen_cache),
             "aviso_feed": aviso_feed}
 
 
 def _obtener_yahoo(ticker, ahora, cache_dir, ttl_seg, pedir_yahoo, pausa_seg, pausa_bot,
-                   ruta, velas_cache, obtenido_cache, origen_cache, origen_yahoo) -> dict:
+                   ruta, velas_cache, obtenido_cache, origen_cache) -> dict:
     """La rama Yahoo de `obtener`, con sus dos pausas de 429."""
     hasta = pausa_hasta(cache_dir)
     if hasta is not None and ahora < hasta:
@@ -334,7 +358,7 @@ def _obtener_yahoo(ticker, ahora, cache_dir, ttl_seg, pedir_yahoo, pausa_seg, pa
         return _con_cache(velas_cache, obtenido_cache, ahora, ttl_seg,
                           f"la fuente de velas falló ({type(exc).__name__})", origen_cache)
     if _velas_validas(velas):
-        _guardar(ruta, ahora, velas, origen_yahoo)
-        return _resultado(velas, ahora, "fuente", None, origen_yahoo)
+        _guardar(ruta, ahora, velas, ORIGEN_YAHOO)
+        return _resultado(velas, ahora, "fuente", None, ORIGEN_YAHOO)
     return _con_cache(velas_cache, obtenido_cache, ahora, ttl_seg,
                       "la fuente no devolvió velas de hoy", origen_cache)

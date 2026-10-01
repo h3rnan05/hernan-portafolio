@@ -2386,7 +2386,8 @@ def _marca_fuente_velas(origen_fuente) -> str | None:
     if origen_fuente == "yahoo (respaldo)":
         return "Yahoo (respaldo)"
     if origen_fuente == "yahoo":
-        # Fuente principal porque el plan no da SIP en vivo: no es respaldo.
+        # Copias en caché de cuando el plan gratis no daba SIP en vivo
+        # (29/9–1/10): ahí Yahoo era la fuente principal.
         return "Yahoo"
     if origen_fuente == "alpaca-sip":
         return "SIP"
@@ -3640,7 +3641,9 @@ def _html_banda_datos(ctx: dict) -> str:
         return ""
     fuente = ctx.get("fuente_datos")
     pre = f"Datos de mercado: {esc(fuente)}. " if fuente else "Datos de mercado: "
-    clase = "nota" if any(a != dv.AVISO_FEED_PLAN for a in avisos) else "nota-info"
+    # Todos son fallas: con el plan de pago (1/10) un 401/403 ya no es
+    # informativo.
+    clase = "nota"
     return (f'<div class="{clase} banda-datos" role="status">{pre}'
             + " · ".join(esc(a) for a in avisos) + "</div>")
 
@@ -3828,8 +3831,7 @@ def render(ctx: dict) -> str:
     # La telemetría dice qué contestó el hunter. El gráfico pide SIP por
     # su cuenta y solo cae a Yahoo si el feed no deja velas de hoy: no se
     # afirma que sean la misma fuente.
-    plan_sin_sip = dv.AVISO_FEED_PLAN in (ctx.get("avisos_feed") or [])
-    origen_txt = "1 min · Yahoo (el plan no da SIP en vivo)" if plan_sin_sip else "1 min · SIP, o Yahoo (respaldo) si el feed no alcanza"
+    origen_txt = "1 min · SIP, o Yahoo (respaldo) si el feed no alcanza"
     if fuente:
         sub_velas = f"{origen_txt} · el hunter reporta {fuente} · pendiente va marcado"
     else:
