@@ -1,0 +1,41 @@
+# Cotas del auto-endurecimiento (diseño de aprendizaje, GO del dueño
+# 2026-10-01 15:55 UTC para la SOMBRA). Cambiar algo de aquí = PR + GO.
+#
+# REGLAS FIJAS (las hace cumplir momentum_paper_trader/autoajuste.py):
+#   - Solo aprieta: un valor más laxo que la base se rechaza.
+#   - Solo los knobs de esta lista. Umbrales del hunter, keywords,
+#     riesgo_dolares_por_operacion, sizing y prompt de la IA: fuera.
+#   - Cada ajuste necesita muestra mínima y vence.
+#   - modo: hoy SOLO "sombra". Encender (PR-H) no está autorizado; el
+#     motor trata cualquier otro valor como sombra y avisa.
+version: 1
+modo: sombra
+base:
+  # Deben coincidir con config.py / ia_decision.py (lo verifica un test).
+  maximo_posiciones_abiertas: 5
+  confianza_minima_entrada: 6
+knobs:
+  K1_saltar_segmento:
+    n_minimo: 20
+    sesiones_minimas: 5
+    r_shr_maximo: -0.25
+    max_segmentos: 2
+    max_fraccion_senales: 0.40
+    duracion_sesiones: 10
+  K2_confianza_mas_uno:
+    n_minimo: 15
+    sesiones_minimas: 4
+    n_minimo_por_nivel: 5
+    tope: 8
+    duracion_sesiones: 10
+  K3_max_posiciones:
+    valor: 3
+    piso: 3
+    duracion_sesiones: 1
+  K4_edad_max_senal:
+    n_minimo: 8
+    r_shr_maximo: -0.25
+    valores_min: [60, 30, 20]
+    duracion_sesiones: 10
+  K5_sin_small_caps:
+    duracion_sesiones: 1
