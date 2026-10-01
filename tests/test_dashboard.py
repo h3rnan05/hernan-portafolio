@@ -543,7 +543,7 @@ def test_hunter_de_hoy_sigue_sin_dia(tmp_path):
     escaneo_vps(tmp_path, datetime(2026, 9, 18, 14, 40, tzinfo=timezone.utc))
     ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca, gha=gha_caido())
     hunter = next(e for e in ctx["etapas"] if e["nombre"] == "Hunter")
-    assert hunter["detalle"] == "escaneo VPS de las 14:40 · slot 3/8 · 12 evaluadas · watchlist de las 14:40"
+    assert hunter["detalle"] == "escaneo VPS de las 14:40 · tanda 3 de 8 · 12 evaluadas · watchlist de las 14:40"
 
 
 # ───────────────────────── Hunter: última corrida en GitHub Actions ─────────────────────────
@@ -562,8 +562,8 @@ def test_hunter_corrio_bien_sin_cambiar_la_watchlist_es_ok(tmp_path):
                        gha=gha_ok(datetime(2026, 9, 18, 14, 46, tzinfo=timezone.utc)))
     hunter = _hunter(ctx)
     assert hunter["estado"] == "ok" and hunter["donde"] == "VPS"
-    assert hunter["detalle"] == "escaneo VPS de las 14:52 · slot 3/8 · 0 evaluadas · watchlist del jue 22:33"
-    assert hunter["nota"] == "respaldo GitHub (histórico): #218 de las 14:46"
+    assert hunter["detalle"] == "escaneo VPS de las 14:52 · tanda 3 de 8 · 0 evaluadas · watchlist del jue 22:33"
+    assert hunter["nota"] == "respaldo en GitHub (no se usa): corrida #218 de las 14:46"
     assert ctx["hunter_momento"] == datetime(2026, 9, 18, 14, 52, tzinfo=timezone.utc)
 
 
@@ -575,7 +575,7 @@ def test_detalle_del_hunter_muestra_dia_y_hora_en_dash_tz(tmp_path):
     lunes = datetime(2026, 9, 21, 13, 55, tzinfo=timezone.utc)
     escaneo_vps(tmp_path, datetime(2026, 9, 21, 13, 46, 8, tzinfo=timezone.utc))
     ctx = bd.construir(lunes, cfg(tmp_path, tz=ZoneInfo("America/Monterrey")), get=sin_alpaca, gha=gha_caido())
-    assert _hunter(ctx)["detalle"] == "escaneo VPS de las 07:46 · slot 3/8 · 12 evaluadas · watchlist del vie 16:33"
+    assert _hunter(ctx)["detalle"] == "escaneo VPS de las 07:46 · tanda 3 de 8 · 12 evaluadas · watchlist del vie 16:33"
     assert "generada vie 16:33" in bd.render(ctx)
 
 
@@ -586,7 +586,7 @@ def test_sin_escaneo_del_vps_es_sin_datos_aunque_github_y_la_watchlist_sean_fres
                        gha=gha_ok(datetime(2026, 9, 18, 14, 56, tzinfo=timezone.utc)))
     assert _hunter(ctx)["estado"] == "sin-datos" and ctx["hunter_momento"] is None
     assert _hunter(ctx)["detalle"] == "sin escaneo del VPS hoy · watchlist de las 14:55"
-    assert _hunter(ctx)["nota"] == "respaldo GitHub (histórico): #218 de las 14:56"
+    assert _hunter(ctx)["nota"] == "respaldo en GitHub (no se usa): corrida #218 de las 14:56"
     assert "Sin datos" in bd.render(ctx)
 
 
@@ -1203,7 +1203,7 @@ def test_el_panel_sigue_al_broker_y_no_grafica_lo_cerrado_hoy(tmp_path):
     html = bd.render(ctx)
     assert 'class="badge">pendiente</span>' in html
     assert "Cerradas hoy" in html and "DLB" in html and "−$5.00" in html
-    assert '$41.62 <span class="mono" title="Alpaca: held">· activo (OCO)</span>' in html
+    assert '$41.62 <span class="mono" title="Alpaca: held · OCO (stop y objetivo enlazados: si se toca uno, se cancela el otro)">· activo (con objetivo)</span>' in html
     assert "no tiene stop" not in html and "no hay una revisión viva" not in html
     # El gráfico de la cerrada no está. El de la pendiente sí, marcado.
     assert _svg_velas(html, "DLB") is None
@@ -1403,7 +1403,7 @@ def test_stop_held_del_padre_filled_no_dispara_falso_sin_stop(tmp_path):
     assert fila["tp"] == {"precio": 42.36, "estado": "new"}
     html = bd.render(ctx)
     assert "no tiene stop de venta abierto" not in html
-    assert '<td>$41.62 <span class="mono" title="Alpaca: held">· activo (OCO)</span></td><td>$42.36</td>' in html
+    assert '<td>$41.62 <span class="mono" title="Alpaca: held · OCO (stop y objetivo enlazados: si se toca uno, se cancela el otro)">· activo (con objetivo)</span></td><td>$42.36</td>' in html
     pedidos = [p for _r, p in llamadas if p and p.get("symbols")]
     assert pedidos == [bd._parametros_ordenes_de_simbolos(["MNST"])]
 
@@ -2179,7 +2179,7 @@ def test_mercado_cerrado_solo_es_informativo_y_no_pide_revisar(tmp_path):
     assert ">Revisar<" not in html
     assert "Capacidad llena" not in html
     assert '<div class="nota">' not in html
-    assert '<div class="nota-info">Mercado cerrado · <b>MERCADO_CERRADO</b>' in html
+    assert '<div class="nota-info">Mercado cerrado · <b><span title="MERCADO_CERRADO">Mercado cerrado</span></b>' in html
     assert "desde 14:57 hasta 14:59 (3 corridas)" in html
 
 
@@ -2259,8 +2259,8 @@ def test_github_actions_atrasado_no_pinta_el_hunter_en_rojo_ni_es_problema(tmp_p
     hunter = _hunter(ctx)
     assert hunter["estado"] == "ok"                       # lo decide el escaneo del VPS
     assert "GitHub lleva" not in hunter["detalle"]        # sin la alerta vieja
-    assert "#218" in hunter["nota"] and "histórico" in hunter["nota"]   # dato aparte, rotulado
-    assert 'class="mono historico">respaldo GitHub (histórico): #218' in bd.render(ctx)
+    assert "#218" in hunter["nota"] and "no se usa" in hunter["nota"]   # dato aparte, rotulado
+    assert 'class="mono historico">respaldo en GitHub (no se usa): corrida #218' in bd.render(ctx)
     assert not any("momentum_hunter.yml" in p for p in ctx["problemas"])   # y sin banner "Datos incompletos"
     # La señal real de un Hunter caído es que el ESCANEO DEL VPS se atrase;
     # eso lo cubren los tests de frescura del escaneo. Acá solo se fija que
@@ -2395,11 +2395,13 @@ def test_watchlist_pliega_las_terminales_y_pone_las_disparadas_primero(tmp_path)
         _entrada("VIG", "watching"), _entrada("DIS", "triggered"), _entrada("EXP", "expired")]}))
     html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=alpaca_falso({"equity": "5000"}), velas=velas_ok))
     bloque = html.split("Watchlist actual", 1)[1].split("Latencia", 1)[0]
-    activas, plegadas = bloque.split("<details", 1) if "<details" in bloque else (bloque, "")
-    assert activas.index(">DIS<") < activas.index(">VIG<")
-    assert "disparada" in activas and "vigilando" in activas
+    # 2026-10-01: disparadas a la vista; vigilando y terminales plegadas.
+    disparadas, resto = bloque.split("<details", 1)
+    vigilando, terminales = resto.split("<details class='terminales'", 1)
+    assert ">DIS<" in disparadas and ">VIG<" not in disparadas and "disparada" in disparadas
+    assert "id='wl-vigilando'" in vigilando and ">VIG<" in vigilando and "1 ticker esperando" in vigilando
     # EXP cambió hoy (13:40 UTC): va plegada, no entre las activas.
-    assert ">EXP<" in plegadas and ">EXP<" not in activas
+    assert ">EXP<" in terminales and ">EXP<" not in disparadas + vigilando
 
 
 def test_panel_lleva_la_hora_de_generacion_para_el_aviso_de_viejo(tmp_path):
@@ -2753,8 +2755,8 @@ def test_panel_stop_diario_inactivo_con_pnl_umbral_y_ultimo_chequeo(tmp_path):
     assert sd["sin_datos"] is False and sd["activo"] is False and sd["pnl"] == -19.67
     assert sd["ultimo"] == "14:59" and sd["desde"] is None
     html = bd.render(ctx)
-    assert "Stop diario (1.00 %): P&amp;L hoy -19.67 USD" in html
-    assert "vs umbral −50.00 USD · inactivo · último chequeo 14:59" in html
+    assert "Stop diario (1.00 %): P&amp;L hoy −$19.67" in html
+    assert "vs umbral −$50.00 · inactivo · último chequeo 14:59" in html
 
 
 def test_panel_stop_diario_activo_desde_y_codigo_conocido(tmp_path):
@@ -2771,7 +2773,7 @@ def test_panel_stop_diario_activo_desde_y_codigo_conocido(tmp_path):
     assert "stop diario activo: PERDIDA_DIARIA" in _etapas(ctx)["Riesgo"]["detalle"]
     html = bd.render(ctx)
     assert "<b>ACTIVO desde 14:40</b> — sin entradas nuevas hoy" in html
-    assert "Stop diario activo: <b>PERDIDA_DIARIA</b>" in html
+    assert 'Stop diario activo: <b><span title="PERDIDA_DIARIA">Stop diario</span></b>' in html
 
 
 def test_panel_stop_diario_sin_datos_y_dato_faltante(tmp_path):
@@ -2830,7 +2832,7 @@ def test_seccion_control_con_los_tres_bloques(tmp_path):
     ctx = bd.construir(AHORA, cfg(tmp_path, aprendizaje=d), get=sin_alpaca)
     html = bd.render(ctx)
     assert "Control de riesgo y aprendizaje" in html
-    assert "Pérdida del día vs umbral" in html and "-30.00 / −48.65 USD · inactivo" in html
+    assert "Pérdida del día vs umbral" in html and "−$30.00 de −$48.65 · inactivo" in html
     assert "CAUTELA" in html and "spy_bajo_sma20" in html and "small caps: bloqueadas" in html
     assert "K3_max_posiciones" in html and "racha: 3 trades perdedores seguidos" in html
     assert "Muestra insuficiente" in html and "retro K3" in html and "en vivo" in html
@@ -2908,10 +2910,10 @@ def test_control_compacto_tarjetas_y_plegables(tmp_path):
     sec = _seccion(html, "Control de riesgo y aprendizaje")
     assert sec.count('class="ctl-card') == 4
     resumen = sec[sec.index("ctl-resumen"):sec.index("<details")]
-    assert "-30.00 / −48.65" in resumen and "inactivo" in resumen
+    assert "−$30.00 de −$48.65" in resumen and "inactivo" in resumen
     assert "CAUTELA" in resumen and "1 de 2 señales activas" in resumen
     assert "no disparada" in resumen and "perdedores seguidos 1" in resumen
-    assert "K3_max_posiciones" in resumen and "1 de 1 bloquearían" in resumen
+    assert 'title="K3_max_posiciones">Tope de posiciones (en prueba)' in resumen and "1 de 1 habrían frenado" in resumen
     for id_ in ("ctl-stop", "ctl-regimen", "ctl-segmentos", "ctl-ajustes", "ctl-sombra"):
         assert f'<details class="ctl" id="{id_}">' in sec  # plegado por defecto
     assert "tabla-ctl" in sec and "fila c3" not in sec
@@ -2958,11 +2960,11 @@ def test_historial_por_dia_reciente_primero_y_hora_monterrey(tmp_path):
     assert sec.index("2026-09-17") < sec.index("2026-09-16")
     assert '<details class="ctl dia" id="hist-2026-09-17" open>' in sec
     assert '<details class="ctl dia" id="hist-2026-09-16">' in sec
-    assert "2 trades · 1 G / 0 P" in sec and "+5.00 USD (parcial: 1 sin dato)" in sec
-    assert "1 trade · 0 G / 1 P" in sec and "-16.04 USD" in sec
+    assert "2 trades · 1 G / 0 P" in sec and "+$5.00 (parcial: 1 sin dato)" in sec
+    assert "1 trade · 0 G / 1 P" in sec and "−$16.04" in sec
     dia16 = sec[sec.index("hist-2026-09-16"):]
     assert "<td>08:27</td><td>08:54</td>" in dia16  # 14:27 UTC = 08:27 Monterrey (UTC−6)
-    assert "-1.05" in dia16 and "<td>stop</td>" in dia16
+    assert "−1.05" in dia16 and "<td>stop</td>" in dia16
     dia17 = sec[sec.index("hist-2026-09-17"):sec.index("hist-2026-09-16")]
     assert dia17.index("CCC") < dia17.index("BBB")  # orden por hora de entrada
     assert dia17.count("BBB") == 1
@@ -3036,3 +3038,44 @@ def test_filas_sin_huecos_y_explicaciones_plegadas(tmp_path):
     html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))
     assert '<details class="explica-mas" id="lat-explica">' in html
     assert "!d.dataset.forzar" in html  # lo que pide revisión no se cierra por la preferencia guardada
+
+
+# ───────────── Visual 2+5+4 (2026-10-01): watchlist, jerga, números ─────────────
+
+def test_codigos_legibles_con_tooltip_y_maximo_posiciones_intacto():
+    assert bd._codigo_legible("MAXIMO_POSICIONES") == "MAXIMO_POSICIONES"
+    assert bd._codigo_legible("DATO_FALTANTE:ultimos_niveles_ts") == \
+        '<span title="DATO_FALTANTE:ultimos_niveles_ts">Falta dato: niveles recientes</span>'
+    assert bd._codigo_legible("MERCADO_CERRADO") == '<span title="MERCADO_CERRADO">Mercado cerrado</span>'
+    assert bd._codigo_legible("<raro>") == "&lt;raro&gt;"  # desconocido: tal cual, escapado
+    assert bd._knob_legible("K3_max_posiciones") == '<span title="K3_max_posiciones">Tope de posiciones (en prueba)</span>'
+
+
+def test_formato_unico_de_dinero_y_r():
+    assert bd._fmt_usd(-16.04) == "−$16.04" and bd._fmt_usd(5) == "+$5.00" and bd._fmt_usd(None) == "sin dato"
+    assert bd._fmt_r(-1.0451) == "−1.05" and bd._fmt_r(None) == "sin dato"
+    assert "table.n5 td:nth-child(5)" in bd.CSS and "font-variant-numeric:tabular-nums" in bd.CSS
+
+
+def test_limites_no_repite_el_stop_inactivo_pero_si_el_activo():
+    base = {"limites": {}, "bloqueos": None}
+    inactivo = bd._html_riesgo({**base, "stop_diario": {"sin_datos": False, "activo": False, "pnl": -5.0,
+                                                         "umbral_usd": 48.65, "pct": 1.0}})
+    assert 'ver <a href="#riesgo">Riesgo ↑</a>' in inactivo and "P&amp;L hoy" not in inactivo
+    activo = bd._html_riesgo({**base, "stop_diario": {"sin_datos": False, "activo": True, "bloquea": True,
+                                                       "pnl": -50.0, "umbral_usd": 48.65, "pct": 1.0, "desde": "10:00"}})
+    assert "ACTIVO desde 10:00" in activo
+
+
+def test_watchlist_titular_truncado_y_estado_como_punto_en_movil(tmp_path):
+    (tmp_path / "watchlist.json").write_text(json.dumps({"entradas": [_entrada("DIS", "triggered")]}))
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=alpaca_falso({"equity": "5000"}), velas=velas_ok))
+    assert "<td class='cat' tabindex='0' title=" in html and "<span class='dot est-triggered'" in html
+    assert "text-overflow:ellipsis" in bd.CSS and ".tabla-watch .col-estado{display:none}" in bd.CSS
+
+
+def test_sin_jerga_en_titulos():
+    import inspect
+    src = inspect.getsource(bd.render)
+    assert "fail-closed</span>" not in src and "LLM" not in src and "watchlist.json →" not in src
+    assert "knobs en sombra" not in src
