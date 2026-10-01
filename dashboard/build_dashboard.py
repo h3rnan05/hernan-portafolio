@@ -2217,7 +2217,9 @@ def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime, clave: str = ""
     dibujan (el pie del panel dice "sin dato"). Una marca fuera del rango
     de precios de las velas se anota en el borde en vez de aplastar las
     velas para que quepa."""
-    ancho, alto, x0, x1, y0, y1 = 480, 230, 56, 470, 196, 14
+    # 2026-10-01: canal de 178 px a la derecha para las etiquetas de precio
+    # (antes iban encima de las velas y se pisaban con las líneas).
+    ancho, alto, x0, x1, y0, y1 = 650, 230, 56, 470, 196, 14
     partes = [f'<svg viewBox="0 0 {ancho} {alto}" role="img" aria-label="Velas de 1 minuto de hoy">',
               f'<line x1="{x0}" y1="{y1}" x2="{x0}" y2="{y0}" class="rejilla"/>',
               f'<line x1="{x0}" y1="{y0}" x2="{x1}" y2="{y0}" class="rejilla"/>']
@@ -2235,6 +2237,12 @@ def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime, clave: str = ""
     rango = maximo - minimo
     if rango < 1e-9:
         rango = max(0.01, minimo * 0.002)
+    if minimo < 5 and rango < minimo * 0.02:
+        # Acción de menos de $5: con un rango de 1–2 centavos cada vela era
+        # una barra suelta. Se da aire a la escala (solo presentación).
+        extra = (minimo * 0.02 - rango) / 2
+        minimo, maximo = minimo - extra, maximo + extra
+        rango = maximo - minimo
     objetivo = marcas.get("objetivo")
     # Una marca a menos de dos rangos de distancia entra al eje; más lejos,
     # se anota en el borde. Eran uno, pero desde que la escala sale solo
@@ -2308,10 +2316,10 @@ def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime, clave: str = ""
         if lo <= valor <= hi:
             yv = y(valor)
             partes.append(f'<line class="marca-{nombre} {clase}" x1="{x0}" y1="{yv:.1f}" x2="{x1}" y2="{yv:.1f}" stroke-width="1.2" stroke-dasharray="{dash}"/>')
-            etiquetas.append((yv - 4, f'text-anchor="end" class="eje {clase}-txt">{esc(rotulo)} {esc(fmt_dinero(valor))}'))
+            etiquetas.append((yv + 3, f'text-anchor="start" class="eje {clase}-txt">{esc(rotulo)} {esc(fmt_dinero(valor))}'))
         else:
             yv = y1 + 10 if valor > hi else y0 - 6
-            etiquetas.append((yv, f'text-anchor="end" class="eje marca-{nombre}-fuera {clase}-txt">{esc(rotulo)} {esc(fmt_dinero(valor))} (fuera del gráfico)'))
+            etiquetas.append((yv, f'text-anchor="start" class="eje marca-{nombre}-fuera {clase}-txt">{esc(rotulo)} {esc(fmt_dinero(valor))} (fuera)'))
 
     marca_horizontal(objetivo, "objetivo", "m-objetivo", "8 3")
     marca_horizontal(marcas["ruptura"], "ruptura", "m-ruptura", "6 4", texto="ruptura al decidir")
@@ -2320,12 +2328,14 @@ def _grafico_velas(res: dict, marcas: dict, tz, ahora: datetime, clave: str = ""
     marca_horizontal(marcas["entrada_precio"], "entrada", "m-entrada", "1 3")
     ultimo_vwap = next((v for v in reversed(vwap) if v is not None), None)
     if ultimo_vwap is not None:
-        etiquetas.append((y(ultimo_vwap) - 4, f'text-anchor="end" class="eje m-vwap-txt">VWAP {esc(fmt_dinero(ultimo_vwap))}'))
-    nuevas = repartir_etiquetas([e[0] for e in etiquetas], y1 + 8, y0 - 3)
-    for (_, cuerpo_txt), yv in zip(etiquetas, nuevas):
-        # El CSS le pone un borde del color del panel (paint-order) para
-        # que se lea encima de las velas.
-        partes.append(f'<text x="{x1}" y="{yv:.1f}" {cuerpo_txt}</text>')
+        etiquetas.append((y(ultimo_vwap) + 3, f'text-anchor="start" class="eje m-vwap-txt">VWAP {esc(fmt_dinero(ultimo_vwap))}'))
+    nuevas = repartir_etiquetas([e[0] for e in etiquetas], y1 + 8, y0 - 3, separacion=12.0)
+    for (y_linea, cuerpo_txt), yv in zip(etiquetas, nuevas):
+        # Etiqueta en el canal derecho; si se desplazó, un trazo fino la
+        # une con su línea.
+        if abs(yv - y_linea) > 1:
+            partes.append(f'<line class="rejilla" x1="{x1}" y1="{y_linea - 3:.1f}" x2="{x1 + 4}" y2="{yv - 3:.1f}" stroke-width="0.8"/>')
+        partes.append(f'<text x="{x1 + 6}" y="{yv:.1f}" {cuerpo_txt}</text>')
 
     hora = marcas["entrada_hora"]
     if hora is not None and marcas_ts and marcas_ts[0] is not None:
@@ -2349,7 +2359,10 @@ def _pie_marcas(marcas: dict, tz, ahora: datetime) -> str:
     entrada = dinero(marcas["entrada_precio"])
     if marcas["entrada_precio"] is not None:
         # "· 10:18" y no "a las 10:18": con cuatro columnas el texto largo partía la línea.
-        entrada += f" · {_hora(marcas['entrada_hora'], tz, ahora=ahora)}" if marcas["entrada_hora"] else " (hora sin dato)"
+        hora_entrada = (f"a las {_hora(marcas['entrada_hora'], tz, ahora=ahora)}" if marcas["entrada_hora"]
+                        else "hora sin dato")
+    else:
+        hora_entrada = ""
     actual = marcas.get("ruptura_actual")
     sub_actual = (f'<span class="mono sub-nivel">actual {esc(fmt_dinero(actual))}</span>'
                   if actual is not None else '<span class="mono sub-nivel">actual sin dato</span>')
@@ -2360,7 +2373,8 @@ def _pie_marcas(marcas: dict, tz, ahora: datetime) -> str:
         contexto.append(f"VWAP al decidir {fmt_dinero(marcas['vwap_al_decidir'])}")
     nota = f'<div class="mono sub-nivel">Al decidir: {esc(" · ".join(contexto))}</div>' if contexto else ""
     return (f'<div class="stats s4"><div><span class="mono">Ruptura al decidir</span><b>{esc(dinero(marcas["ruptura"]))}</b>{sub_actual}</div>'
-            f'<div><span class="mono">Entrada</span><b>{esc(entrada)}</b></div>'
+            f'<div><span class="mono">Entrada</span><b>{esc(entrada)}</b>'
+            + (f'<span class="mono sub-nivel">{esc(hora_entrada)}</span>' if hora_entrada else "") + '</div>'
             f'<div><span class="mono">Stop</span><b>{esc(dinero(marcas["stop"]))}</b></div>'
             f'<div><span class="mono">Objetivo</span><b>{esc(dinero(marcas.get("objetivo")))}</b></div></div>{nota}')
 
@@ -2438,7 +2452,7 @@ def _cuando(d: datetime | None, tz, ahora: datetime) -> str:
 
 def fmt_dinero(v: float | None, signo: bool = False) -> str:
     if v is None:
-        return "—"
+        return "sin dato"
     cuerpo = f"${abs(v):,.2f}"
     if signo:
         return ("+" if v >= 0 else "−") + cuerpo
@@ -2447,7 +2461,7 @@ def fmt_dinero(v: float | None, signo: bool = False) -> str:
 
 def fmt_num(v, sufijo: str = "") -> str:
     if v is None:
-        return "—"
+        return "sin dato"
     texto = f"{v:.1f}" if isinstance(v, float) and not v.is_integer() else f"{int(v)}"
     return texto + sufijo
 
@@ -2632,6 +2646,14 @@ table.n2 td:nth-child(2),table.n2 th:nth-child(2){text-align:right}table.n3 td:n
 .tabla-watch td.cat{white-space:normal}
 .dot{display:none;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--gris);vertical-align:middle}.dot.est-triggered{background:var(--acento)}
 @media (max-width:640px){.tabla-watch .col-estado{display:none}.dot{display:inline-block}.tabla-watch td.cat span{max-width:170px}}
+details.mas{position:relative}details.mas>summary{list-style:none;cursor:pointer}details.mas>summary::-webkit-details-marker{display:none}
+details.mas[open]>.pildoras{position:absolute;right:0;top:calc(100% + 6px);z-index:6;background:var(--fondo);padding:8px;border:1px solid var(--linea);border-radius:6px;width:max-content;max-width:90vw}
+a.pildora{color:inherit;text-decoration:none}a.pildora:hover{border-color:var(--acento)}
+.vacio.falta{color:#b7791f}
+.banda-datos{margin-top:0}
+details.vela-op>.panel{border:0;padding:6px 12px 12px}
+details.vela-op{align-self:start}
+@media (max-width:640px){header .pildoras{gap:6px}.pildora{padding:6px 9px}}
 .ctl-resumen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .ctl-card{border:1px solid var(--linea);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .ctl-card b{font-family:var(--mono);font-size:20px;font-weight:500;overflow-wrap:anywhere}
@@ -2773,7 +2795,7 @@ def _html_broker(ctx: dict) -> str:
 
     def bloque(titulo, conocido, vacio, filas_html):
         if not conocido:
-            cuerpo = '<p class="vacio">Sin datos.</p>'
+            cuerpo = '<p class="vacio falta">Sin datos.</p>'
         elif not filas_html:
             cuerpo = f'<p class="vacio">{vacio}</p>'
         else:
@@ -3116,7 +3138,7 @@ def _html_bloque_regimen(ap: dict, ctx: dict) -> str:
 def _html_bloque_aprendizaje(ap: dict, ctx: dict) -> str:
     rep = ap.get("reporte")
     if not rep:
-        return '<div class="nota-historial">Sin reporte nocturno todavía (corre Lun–Vie 16:35 ET).</div>'
+        return '<div class="nota-historial">Sin reporte nocturno todavía (corre Lun–Vie 14:35 MTY / 16:35 ET).</div>'
     partes = []
     est = rep.get("estadisticas") or {}
     g = est.get("global") or {}
@@ -3317,7 +3339,7 @@ def leer_historial_trades(carpeta: Path | None, max_sesiones: int = HISTORIAL_MA
         return out
     ruta = Path(carpeta) / "memoria_trades.jsonl"
     if not ruta.exists():
-        out["info"] = "Sin memoria de trades todavía (la escribe el job nocturno, Lun–Vie 16:35 ET)."
+        out["info"] = "Sin memoria de trades todavía (la escribe el job nocturno, Lun–Vie 14:35 MTY / 16:35 ET)."
         return out
     try:
         lineas = ruta.read_text(encoding="utf-8").splitlines()
@@ -3463,13 +3485,13 @@ def _html_bloqueos(ctx: dict) -> str:
         # no un cero que parezca "no pasó nada". Fuera de sesión, sin
         # ciclo, se queda el "Sin datos" de siempre.
         if sin_recientes:
-            return f'<p class="vacio">Sin datos recientes: {esc(ctx.get("motivo_sin_datos"))}.</p>'
-        return f'<p class="vacio">Sin datos: {esc(ctx.get("motivo_sin_datos"))}.</p>'
+            return f'<p class="vacio falta">Sin datos recientes: {esc(ctx.get("motivo_sin_datos"))}.</p>'
+        return f'<p class="vacio falta">Sin datos: {esc(ctx.get("motivo_sin_datos"))}.</p>'
 
     partes: list[str] = []
     if sin_recientes and not r.get("revisar"):
         partes.append(
-            f'<p class="vacio">Sin datos recientes: {esc(ctx.get("motivo_sin_datos"))}.</p>'
+            f'<p class="vacio falta">Sin datos recientes: {esc(ctx.get("motivo_sin_datos"))}.</p>'
         )
 
     for c in informativos:
@@ -3609,6 +3631,19 @@ def _html_watchlist(ctx: dict) -> tuple[str, str]:
     return "".join(partes), resumen
 
 
+def _html_banda_datos(ctx: dict) -> str:
+    """Avisos de falla de datos de mercado arriba, a la vista (2026-10-01).
+    Antes vivían dentro de Velas. Gris = informativo, rojo = falla."""
+    avisos = ctx.get("avisos_feed") or []
+    if not avisos:
+        return ""
+    fuente = ctx.get("fuente_datos")
+    pre = f"Datos de mercado: {esc(fuente)}. " if fuente else "Datos de mercado: "
+    clase = "nota" if any(a != dv.AVISO_FEED_PLAN for a in avisos) else "nota-info"
+    return (f'<div class="{clase} banda-datos" role="status">{pre}'
+            + " · ".join(esc(a) for a in avisos) + "</div>")
+
+
 ANCLAS = (("resumen", "Resumen"), ("riesgo", "Riesgo"), ("posiciones", "Posiciones"), ("equity", "Equity"),
           ("velas", "Velas"), ("watchlist", "Watchlist"), ("ejecucion", "Ejecución"), ("historial", "Historial"),
           ("sistema", "Sistema"))
@@ -3642,14 +3677,32 @@ def _html_sistema(ctx: dict, etapas_html: str) -> str:
             f'</summary><section class="fila c4" aria-label="Etapas del sistema">{etapas_html}</section></details>')
 
 
+_ZONAS_CORTAS = {"America/Monterrey": "MTY", "America/Mexico_City": "CDMX", "America/New_York": "ET"}
+
+
+def etiqueta_zona(tz, ahora: datetime) -> str:
+    """«MTY (UTC−6)»: zona corta + desfase real de ese momento."""
+    nombre = str(tz)
+    if nombre == "UTC":
+        return "UTC"
+    off = ahora.astimezone(tz).utcoffset()
+    if off is None:
+        return nombre
+    minutos = int(off.total_seconds() // 60)
+    signo = "+" if minutos >= 0 else "−"
+    h, m = divmod(abs(minutos), 60)
+    desfase = f"UTC{signo}{h}" + (f":{m:02d}" if m else "")
+    return f"{_ZONAS_CORTAS.get(nombre, nombre)} ({desfase})"
+
+
 def render(ctx: dict) -> str:
     tz = ctx["tz"]
-    etiqueta_tz = "UTC" if str(tz) == "UTC" else str(tz)
+    etiqueta_tz = etiqueta_zona(tz, ctx["ahora"])
 
     problemas = ""
     if ctx["problemas"]:
         items = "".join(f"<li>{esc(p)}</li>" for p in ctx["problemas"])
-        problemas = f'<section class="problemas" role="alert"><b>Datos incompletos.</b> Lo que no se pudo leer aparece como “—”.<ul>{items}</ul></section>'
+        problemas = f'<section class="problemas" role="alert"><b>Datos incompletos.</b> Lo que no se pudo leer aparece como «sin dato».<ul>{items}</ul></section>'
 
     etapas = "".join(f"""
 <div class="panel etapa">
@@ -3693,7 +3746,7 @@ def render(ctx: dict) -> str:
             for d in ctx["dudas"])
     else:
         dudas = ('<p class="vacio">El ejecutor no ha rechazado entradas hoy.</p>' if ctx["conteos_validos"]
-                 else f'<p class="vacio">Sin datos: {esc(ctx["motivo_sin_datos"])}.</p>')
+                 else f'<p class="vacio falta">Sin datos: {esc(ctx["motivo_sin_datos"])}.</p>')
 
     riesgo = _html_riesgo(ctx)
 
@@ -3731,21 +3784,33 @@ def render(ctx: dict) -> str:
                 f'{nota_velas}{nota_pendiente}{_pie_marcas(op["marcas"], tz, ctx["ahora"])}</div>'
             )
 
-        tarjetas = "".join(_tarjeta(op) for op in ctx["operaciones"])
+        # Plegables (2026-10-01): abierta solo la entrada más reciente.
+        def _hora_op(op):
+            return op["marcas"].get("entrada_hora") or datetime.min.replace(tzinfo=timezone.utc)
+        reciente = max(ctx["operaciones"], key=_hora_op)
+
+        def _plegable(op):
+            m = op["marcas"]
+            res = (f'entrada {fmt_dinero(m["entrada_precio"]) if m.get("entrada_precio") is not None else "sin dato"}'
+                   f' · stop {fmt_dinero(m["stop"]) if m.get("stop") is not None else "sin dato"}'
+                   f' · objetivo {fmt_dinero(m.get("objetivo")) if m.get("objetivo") is not None else "sin dato"}')
+            abierto = " open" if op is reciente else ""
+            id_ = "vela-" + re.sub(r"[^A-Za-z0-9_-]", "", str(op["ticker"]))
+            return (f'<details class="ctl vela-op" id="{id_}"{abierto}><summary><b>{esc(op["ticker"])}</b>'
+                    f'<span class="mono">{esc(res)}</span></summary>{_tarjeta(op)}</details>')
+
+        tarjetas = "".join(_plegable(op) for op in ctx["operaciones"])
         if ctx["operaciones_omitidas"]:
             tarjetas += (f'<p class="vacio">Sin graficar por el tope de tickers por corrida: '
                          f'{esc(", ".join(ctx["operaciones_omitidas"]))}.</p>')
-        avisos = "".join(
-            f'<div class="{"nota-info" if a == dv.AVISO_FEED_PLAN else "nota"}">{esc(a)}</div>'
-            for a in ctx.get("avisos_feed") or [])
-        operaciones = f'{avisos}<div class="operaciones">{tarjetas}</div>'
+        operaciones = f'<div class="operaciones">{tarjetas}</div>'
     elif ctx["hay_alpaca_operaciones"]:
         if ctx.get("pendientes_broker") is None:
             operaciones = '<p class="vacio">Sin posiciones abiertas. Las órdenes pendientes no se pudieron leer.</p>'
         else:
             operaciones = '<p class="vacio">Sin posiciones abiertas ni órdenes pendientes.</p>'
     else:
-        operaciones = '<p class="vacio">Sin datos: Alpaca no respondió posiciones u órdenes.</p>'
+        operaciones = '<p class="vacio falta">Sin datos: Alpaca no respondió posiciones u órdenes.</p>'
 
     fuente = ctx.get("fuente_datos")
     # La telemetría dice qué contestó el hunter. El gráfico pide SIP por
@@ -3799,15 +3864,19 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
     <div><h1>MOMENTUM</h1><div class="sub">hernan-portafolio · buscador → lista de candidatos → ejecutor</div></div>
   </div>
   <div class="pildoras">
-    <span class="pildora paper">PAPER · ALPACA</span>{fuente_datos}{sesion}{alpaca}{persist}{ia}
-    <span class="pildora">Actualizado {_hora(ctx['ahora'], tz, segundos=True)} {esc(etiqueta_tz)}</span>
+    <span class="pildora paper">PAPER · ALPACA</span>{sesion}{alpaca}{persist}{ia}
+    <span class="pildora">Act. {_hora(ctx['ahora'], tz)} {esc(etiqueta_tz)}</span>
     <span class="pildora mal" id="panel-viejo" hidden></span>
-    <span class="pildora">Solo lectura</span>
-    <a class="pildora" href="noticias.html">Noticias leídas</a>
-    <button class="pildora" id="tema-toggle" type="button" aria-label="Cambiar entre tema claro y oscuro" title="Cambiar tema claro/oscuro">Tema</button>
+    <details class="mas"><summary class="pildora">más ▾</summary><div class="pildoras">
+      {fuente_datos}<span class="pildora">Solo lectura</span>
+      <span class="pildora" title="hora exacta de generación">Generado {_hora(ctx['ahora'], tz, segundos=True)}</span>
+      <a class="pildora" href="noticias.html">Noticias leídas</a>
+      <button class="pildora" id="tema-toggle" type="button" aria-label="Cambiar entre tema claro y oscuro" title="Cambiar tema claro/oscuro">Tema</button>
+    </div></details>
   </div>
 </header>
 {problemas}
+{_html_banda_datos(ctx)}
 {_html_anclas()}
 {_html_sistema(ctx, etapas)}
 <section id="resumen" class="fila c5" aria-label="Cifras clave">{kpis_html}</section>
