@@ -66,6 +66,7 @@ CAMPOS_AUDITORIA = (
     "revision_resultado",
     "revision_order_id",
     "revision_es_large_cap",
+    "revision_rasgos",
     "desenlace_paper",
     "causa_raiz",
     "causa_raiz_detalle",
@@ -166,6 +167,9 @@ def registro_auditoria(
         # días): la banda tiene que sobrevivir acá para poder contar
         # small vs large después.
         "revision_es_large_cap": r.es_large_cap,
+        # Rasgos al decidir (memoria de trades, 2026-10-01): también se
+        # pierden con la purga de la watchlist. None en revisiones viejas.
+        "revision_rasgos": getattr(r, "rasgos", None),
         "desenlace_paper": desenlace,
         "causa_raiz": causa_raiz,
         "causa_raiz_detalle": detalle,
