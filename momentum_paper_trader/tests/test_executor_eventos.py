@@ -82,8 +82,12 @@ def test_orden_colocada_deja_la_cinta_completa(monkeypatch, tmp_path):
     ev = _eventos(ruta)
     # `stop_diario` (2026-10-01): la medición de la cuenta va antes de
     # mirar candidatas, una vez por corrida.
-    assert [e["tipo"] for e in ev] == ["rechequeo", "stop_diario", "deteccion", "decision", "orden"]
-    ev = [e for e in ev if e["tipo"] != "stop_diario"]
+    # `gate_sombra` (2026-10-01, aprendizaje en sombra): justo antes de la
+    # orden, solo registra qué habría bloqueado un knob; no decide.
+    assert [e["tipo"] for e in ev] == ["rechequeo", "stop_diario", "deteccion", "decision", "gate_sombra",
+                                       "orden"]
+    assert [e for e in ev if e["tipo"] == "gate_sombra"][0]["modo"] == "sombra"
+    ev = [e for e in ev if e["tipo"] not in ("stop_diario", "gate_sombra")]
     orden = ev[-1]
     assert orden["ticker"] == "RKLB" and orden["estado"] == "enviada" and orden["lado"] == "buy"
     assert ev[2]["entra"] is True
@@ -308,3 +312,19 @@ def test_sin_patron_ni_vwap_se_registra_none_y_la_orden_es_la_misma(monkeypatch,
     con = _FakeAlpacaClient(cash=40_000.0)
     executor.ejecutar(con, CFG, dry_run=False, ahora=AHORA)
     assert list(con.ordenes_colocadas) == list(sin.ordenes_colocadas)
+
+
+def test_gate_sombra_que_bloquearia_o_explota_no_cambia_nada(monkeypatch, tmp_path):
+    """El gate en sombra puede decir 'bloquearía' o reventar: mismas
+    órdenes, mismas revisiones, mismo return (PR-F, 2026-10-01)."""
+    monkeypatch.setenv("DASH_EVENTOS", str(tmp_path / "ev" / "events.jsonl"))
+    normal = _correr(monkeypatch, tmp_path / "a", "orden_colocada")
+    from momentum_paper_trader import gates_sombra
+    monkeypatch.setattr(gates_sombra, "evaluar", lambda *a, **k: {
+        "ticker": "RKLB", "bloquearia": [{"knob": "regimen", "motivo": "todo"}], "modo": "sombra"})
+    bloquea = _correr(monkeypatch, tmp_path / "b", "orden_colocada")
+    monkeypatch.setattr(gates_sombra, "evaluar", lambda *a, **k: 1 / 0)
+    explota = _correr(monkeypatch, tmp_path / "c", "orden_colocada")
+    assert bloquea == normal and explota == normal and normal[1]
+    tipos = [e["tipo"] for e in _eventos(tmp_path / "ev" / "events.jsonl")]
+    assert "gate_sombra_error" in tipos
