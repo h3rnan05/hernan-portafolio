@@ -1,0 +1,13 @@
+[Unit]
+Description=Aprendizaje nocturno, Lun-Vie 16:35 Nueva York (después del reporte de cierre)
+Requires=momentum-aprendizaje.service
+
+[Timer]
+# 16:35 ET = 20:35 UTC en verano / 21:35 UTC en invierno = 14:35 Monterrey
+# (UTC−6). Después de momentum-reporte-cierre (16:15 ET).
+OnCalendar=Mon..Fri *-*-* 16:35:00 America/New_York
+Persistent=false
+Unit=momentum-aprendizaje.service
+
+[Install]
+WantedBy=timers.target

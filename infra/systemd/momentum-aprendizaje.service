@@ -1,0 +1,18 @@
+[Unit]
+Description=Aprendizaje nocturno en sombra (solo lectura del bróker, nada se aplica)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+EnvironmentFile=/etc/momentum/paper.env
+# Solo GET paper + archivos de estado. Salida en
+# /var/lib/momentum/estado/momentum_paper_trader/aprendizaje/.
+# Telegram: MOMENTUM_APRENDIZAJE_TELEGRAM=1 en paper.env (apagado por defecto).
+ExecStart=/opt/momentum/bin/run_aprendizaje.sh
+Nice=10
+TimeoutStartSec=600
