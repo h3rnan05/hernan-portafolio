@@ -70,10 +70,55 @@ def test_respuesta_sin_quotes_es_un_error_no_cero_movers():
         tc.parsear_screener({}, Counter())
 
 
-def test_screener_lleno_avisa_posible_truncado():
-    quotes = [_quote(f"T{i}") for i in range(tc.TOP_SCREENER)]
-    filas, truncado = tc.consultar_screener(screen=lambda *a, **k: {"quotes": quotes})
-    assert truncado and len(filas) == tc.TOP_SCREENER
+def _screen_paginado(quotes, por_pagina=250, con_total=True):
+    """Imita a Yahoo: corta por `offset` y como mucho `por_pagina` filas,
+    pidan lo que pidan."""
+    pedidos = []
+
+    def screen(query, offset=0, size=None, count=None, **k):
+        pedidos.append({"offset": offset, "size": size, "count": count})
+        pagina = quotes[offset:offset + por_pagina]
+        r = {"quotes": pagina}
+        if con_total:
+            r["total"] = len(quotes)
+        return r
+
+    screen.pedidos = pedidos
+    return screen
+
+
+def test_screener_pagina_hasta_traer_todo_aunque_yahoo_de_250_por_pagina():
+    quotes = [_quote(f"T{i}") for i in range(600)]
+    screen = _screen_paginado(quotes)
+    info = {}
+    filas, truncado = tc.consultar_screener(screen=screen, info=info)
+    assert len(filas) == 600 and not truncado
+    assert [p["offset"] for p in screen.pedidos] == [0, 250, 500]
+    assert all(p["size"] == 250 and p["count"] == 250 for p in screen.pedidos)
+    assert info == {"filas_crudas": 600, "total": 600, "paginas": 3}
+
+
+def test_screener_que_respeta_count_25_no_corta_la_lista():
+    # Si Yahoo hiciera caso al count=25 que yfinance manda por defecto,
+    # la paginación avanza de a 25 y sigue trayendo todo.
+    quotes = [_quote(f"T{i}") for i in range(60)]
+    screen = _screen_paginado(quotes, por_pagina=25, con_total=False)
+    filas, truncado = tc.consultar_screener(screen=screen)
+    assert len(filas) == 60 and not truncado
+    assert [p["offset"] for p in screen.pedidos] == [0, 25, 50, 60]   # la última vuelve vacía
+
+
+def test_screener_que_no_termina_avisa_posible_truncado(monkeypatch):
+    monkeypatch.setattr(tc, "MAX_PAGINAS_SCREENER", 2)
+    quotes = [_quote(f"T{i}") for i in range(600)]
+    filas, truncado = tc.consultar_screener(screen=_screen_paginado(quotes))
+    assert truncado and len(filas) == 500
+
+
+def test_screener_no_duplica_un_ticker_que_se_repite_entre_paginas():
+    quotes = [_quote("A"), _quote("B"), _quote("B"), _quote("C")]
+    filas, _ = tc.consultar_screener(screen=_screen_paginado(quotes, por_pagina=2))
+    assert [f.ticker for f in filas] == ["A", "B", "C"]
 
 
 def test_promedio_20d_excluye_la_vela_de_hoy():
@@ -317,7 +362,7 @@ def _escenario(tmp_path):
         {"ticker": "AUD", "decision": "descartada_por_evaluador", "evaluacion": {"paso_detenido": "patron"}}]}]}))
     return dict(
         ahora=AHORA,
-        screen=lambda *a, **k: {"quotes": quotes},
+        screen=_screen_paginado(quotes),
         provider=_Provider(diarias, {"CHICA": Metadata(ticker="CHICA", market_cap=1e8)}),
         entradas_watchlist=[SimpleNamespace(ticker="WL", creado_en="2026-09-30T14:00:00+00:00", estado="TRIGGERED")],
         dir_telemetria=tel, dir_auditoria=aud, ruta_noticias_leidas=tmp_path / "no_existe.json",
@@ -347,6 +392,8 @@ def test_corrida_completa_arma_filas_y_motivos(tmp_path):
     assert por["FUERA"].noticia_alpaca == "no"
     assert r["watchlist"]["detectados"] == 1 and r["sombra"]["detectados"] == 1
     assert r["error"] is None
+    assert r["screener"]["subieron_20_hoy"] == 6
+    assert "Screener: 6 subieron +20 % hoy (1 página(s), Yahoo dice 6)" in tc.formatear(r, filas)
 
 
 def test_alpaca_pide_desde_el_dia_habil_anterior_al_host_de_datos(tmp_path):
@@ -381,7 +428,7 @@ def test_screener_caido_falla_cerrado(tmp_path):
 
 def test_feriado_avisa_que_las_cotizaciones_son_de_otro_dia(tmp_path):
     viejo = [_quote("WL", cuando=AHORA - timedelta(days=1))]
-    filas, r = tc.correr(**{**_escenario(tmp_path), "screen": lambda *a, **k: {"quotes": viejo}})
+    filas, r = tc.correr(**{**_escenario(tmp_path), "screen": _screen_paginado(viejo)})
     assert filas == []
     assert any("otro día" in a for a in r["avisos"])
 

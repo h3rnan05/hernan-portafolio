@@ -75,9 +75,14 @@ PRECIO_MIN = 0.75
 PRECIO_MAX = 20.0
 SUBIDA_MIN_PCT = 20.0
 RVOL_MIN = 5.0
-# Tope de filas de una llamada al screener de Yahoo. Si vuelve lleno, la
-# lista puede estar cortada y el resumen lo dice.
+# Yahoo da como máximo 250 filas por consulta (yfinance lo hace cumplir).
+# Además, yfinance manda `count=25` por defecto junto a `size`, y no está
+# claro cuál de los dos respeta Yahoo en una consulta propia: se piden los
+# dos en 250 y se pagina con `offset` avanzando lo que de verdad llegó,
+# así una página de 25 no corta la lista. El tope de páginas es solo un
+# freno ante una respuesta rara; si se toca, el resumen lo dice.
 TOP_SCREENER = 250
+MAX_PAGINAS_SCREENER = 40
 
 ENV_DIR = "MOMENTUM_TASA_CAPTURA_DIR"
 ENV_LIMITE_ESCANEO = "MOMENTUM_SCAN_LIMIT"
@@ -158,17 +163,52 @@ def parsear_screener(respuesta: object, descartes: Counter) -> list[FilaScreener
     return out
 
 
-def consultar_screener(screen=None, descartes: Counter | None = None) -> tuple[list[FilaScreener], bool]:
-    """`(filas, posible_truncado)`. Un fallo se propaga: sin screener no
-    hay lista, y el caller lo reporta en vez de decir "cero movers"."""
+def consultar_screener(screen=None, descartes: Counter | None = None,
+                       info: dict | None = None) -> tuple[list[FilaScreener], bool]:
+    """`(filas, posible_truncado)`, recorriendo todas las páginas. Un fallo
+    se propaga: sin screener no hay lista, y el caller lo reporta en vez
+    de decir "cero movers". En `info` quedan `filas_crudas`, `total` (lo
+    que Yahoo dice que hay, None si no lo dice) y `paginas`."""
     descartes = descartes if descartes is not None else Counter()
+    info = info if info is not None else {}
     if screen is None:
         import yfinance as yf
         screen = yf.screen
-    respuesta = screen(construir_query(), size=TOP_SCREENER, sortField="percentchange", sortAsc=False)
-    crudas = respuesta.get("quotes") if isinstance(respuesta, dict) else None
-    truncado = isinstance(crudas, list) and len(crudas) >= TOP_SCREENER
-    return parsear_screener(respuesta, descartes), truncado
+    query = construir_query()
+    crudas: list = []
+    total: int | None = None
+    offset = 0
+    paginas = 0
+    agotado = False
+    while paginas < MAX_PAGINAS_SCREENER:
+        respuesta = screen(query, offset=offset, size=TOP_SCREENER, count=TOP_SCREENER,
+                           sortField="percentchange", sortAsc=False)
+        pagina = respuesta.get("quotes") if isinstance(respuesta, dict) else None
+        if not isinstance(pagina, list):
+            raise ValueError("screener_sin_quotes")
+        paginas += 1
+        t = numero(respuesta.get("total"))
+        if t is not None:
+            total = int(t)
+        if not pagina:
+            agotado = True
+            break
+        crudas.extend(pagina)
+        offset += len(pagina)
+        if total is not None and offset >= total:
+            agotado = True
+            break
+    info.update({"filas_crudas": len(crudas), "total": total, "paginas": paginas})
+    filas: list[FilaScreener] = []
+    vistos: set[str] = set()
+    # Entre páginas el orden puede moverse un poco: un ticker repetido no
+    # cuenta dos veces.
+    for f in parsear_screener({"quotes": crudas}, descartes):
+        if f.ticker not in vistos:
+            vistos.add(f.ticker)
+            filas.append(f)
+    truncado = not agotado or (total is not None and len(crudas) < total)
+    return filas, truncado
 
 
 def barras_hasta_ayer(b, hoy: str):
@@ -596,6 +636,11 @@ def formatear(resumen: dict, filas: list[FilaCaptura], max_filas: int = 15) -> s
     c = resumen["criterio"]
     lineas = [cab, f"Movers reales (${c['precio_min']}-${c['precio_max']:.0f}, +{c['subida_min_pct']:.0f} %, "
                     f"volumen ≥{c['rvol_min']:.0f}x su promedio de 20 días): {resumen['movers_reales']}"]
+    scr = resumen.get("screener") or {}
+    if scr.get("subieron_20_hoy") is not None:
+        total = f", Yahoo dice {scr['total']}" if scr.get("total") is not None else ""
+        lineas.append(f"Screener: {scr['subieron_20_hoy']} subieron +{c['subida_min_pct']:.0f} % hoy "
+                      f"({scr.get('paginas')} página(s){total})")
     if resumen["movers_reales"] == 0:
         lineas.append("Hoy ninguna acción cumplió el criterio.")
     else:
@@ -622,7 +667,7 @@ def formatear(resumen: dict, filas: list[FilaCaptura], max_filas: int = 15) -> s
         lineas.append(f"Subieron +{c['subida_min_pct']:.0f} % sin promedio de 20 días (no se cuentan): "
                       + ", ".join(d["ticker"] for d in resumen["no_verificables"][:10]))
     if resumen["screener_posiblemente_truncado"]:
-        lineas.append(f"Aviso: el screener devolvió el tope de {TOP_SCREENER} filas; la lista puede estar cortada.")
+        lineas.append("Aviso: el screener no terminó de paginar; la lista puede estar cortada.")
     for aviso in resumen.get("avisos") or []:
         lineas.append(f"Aviso: {aviso}")
     return "\n".join(lineas)
@@ -759,7 +804,8 @@ def correr(
     descartes: Counter = Counter()
 
     try:
-        crudas, truncado = consultar_screener(screen, descartes)
+        info_screener: dict = {}
+        crudas, truncado = consultar_screener(screen, descartes, info_screener)
     except Exception as ex:  # fail-closed: sin lista no hay cifra
         log.warning("tasa de captura: el screener falló (%s)", type(ex).__name__)
         return [], resumir([], hoy, no_verificables=[], descartes=descartes, truncado=False,
@@ -858,6 +904,9 @@ def correr(
                             noticias_alpaca=noticias_a, motivos=motivos)
     resumen = resumir(filas, hoy, no_verificables=dudosos, descartes=descartes,
                       truncado=truncado, avisos=avisos)
+    # Cuántas devolvió el screener antes del filtro de volumen: sirve para
+    # ver, día a día, que la paginación trae la lista entera.
+    resumen["screener"] = {**info_screener, "subieron_20_hoy": len(crudas) - descartes.get("cotizacion_de_otro_dia", 0)}
     return filas, resumen
 
 
