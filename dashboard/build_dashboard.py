@@ -2389,10 +2389,12 @@ def _marca_fuente_velas(origen_fuente) -> str | None:
         # Copias en caché de cuando el plan gratis no daba SIP en vivo
         # (29/9–1/10): ahí Yahoo era la fuente principal.
         return "Yahoo"
+    # "Alpaca" a la vista (1/10): con el plan de pago el gráfico sale del
+    # feed de Alpaca y tiene que leerse así, no solo "SIP".
     if origen_fuente == "alpaca-sip":
-        return "SIP"
+        return "Alpaca SIP"
     if isinstance(origen_fuente, str) and origen_fuente.startswith("alpaca-") and len(origen_fuente) > len("alpaca-"):
-        return origen_fuente.split("-", 1)[1].upper()
+        return "Alpaca " + origen_fuente.split("-", 1)[1].upper()
     return None
 
 
@@ -2400,7 +2402,8 @@ def _subtitulo_velas(res: dict, tz, ahora: datetime) -> str:
     velas = res.get("velas")
     if not velas:
         return "Sin datos"
-    frescura = {"fuente": "Yahoo", "cache": "caché", "cache vencida": "caché vencida"}.get(res.get("origen"), "—")
+    # Sin marca no se sabe de qué fuente vinieron: no se afirma ninguna.
+    frescura = {"fuente": "obtenidas", "cache": "caché", "cache vencida": "caché vencida"}.get(res.get("origen"), "—")
     hora = _hora(res.get("obtenido"), tz, ahora=ahora)
     n = len(velas["close"])
     marca = _marca_fuente_velas(res.get("origen_fuente"))
@@ -3831,7 +3834,7 @@ def render(ctx: dict) -> str:
     # La telemetría dice qué contestó el hunter. El gráfico pide SIP por
     # su cuenta y solo cae a Yahoo si el feed no deja velas de hoy: no se
     # afirma que sean la misma fuente.
-    origen_txt = "1 min · SIP, o Yahoo (respaldo) si el feed no alcanza"
+    origen_txt = "1 min · Alpaca SIP (Yahoo solo de respaldo si el feed falla)"
     if fuente:
         sub_velas = f"{origen_txt} · el hunter reporta {fuente} · pendiente va marcado"
     else:

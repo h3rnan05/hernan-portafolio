@@ -1027,7 +1027,7 @@ def test_velas_reales_se_grafican_con_las_tres_marcas_y_la_hora_del_fill(tmp_pat
     for marca in ("marca-ruptura-actual", "marca-stop", "marca-entrada", "marca-entrada-hora"):
         assert marca in svg, marca
     assert "ruptura actual $5.05" in svg and "stop $4.90" in svg and "entrada $5.12" in svg
-    assert "5 velas · Yahoo 15:00" in html
+    assert "5 velas · obtenidas 15:00" in html
     assert '<b>$5.12</b><span class="mono sub-nivel">a las 14:32</span>' in html
 
 
@@ -1578,7 +1578,7 @@ def test_fuente_de_datos_sale_si_la_telemetria_la_trae_y_no_se_inventa(tmp_path)
     assert "Fuente de datos: Yahoo" in html_yahoo
     # El gráfico pide SIP aunque el hunter haya medido Yahoo. No se
     # afirma que sean la misma fuente.
-    assert "Yahoo (respaldo)" in html_yahoo
+    assert "1 min · Alpaca SIP (Yahoo solo de respaldo si el feed falla)" in html_yahoo
     assert "el hunter reporta Yahoo" in html_yahoo
     assert "misma fuente que el hunter" not in html_yahoo
 
@@ -1820,7 +1820,7 @@ def test_sip_ok_da_origen_alpaca_sip_guarda_la_fuente_y_no_toca_yahoo(monkeypatc
     assert guardado["origen_fuente"] == "alpaca-sip"
     assert guardado["velas"]["close"] == r["velas"]["close"]
     sub = bd._subtitulo_velas(r, ZoneInfo("UTC"), AHORA)
-    assert sub.startswith("6 velas · SIP ")
+    assert sub.startswith("6 velas · Alpaca SIP ")
     # Dentro del TTL no se vuelve a pedir.
     r2 = dv.obtener("AAA", AHORA + timedelta(seconds=30), cache, 120, alpaca=_FUENTE_ALPACA_REAL)
     assert len(urls) == 1 and r2["origen"] == "cache" and r2["origen_fuente"] == "alpaca-sip"
