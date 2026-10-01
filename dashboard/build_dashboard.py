@@ -729,6 +729,52 @@ def resumir_bloqueos(bloqueos: list[dict], capacidad: list[dict], tz, ahora: dat
     }
 
 
+def resumir_stop_diario(eventos: list[dict], tz, ahora: datetime) -> dict:
+    """Última medición del stop de pérdida diaria de la sesión de hoy
+    (eventos `stop_diario` del ejecutor, 2026-10-01). Sin medición de
+    hoy no se inventa un estado: `sin_datos`."""
+    hoy = ahora.astimezone(NY).date().isoformat()
+    ultimos = [e for e in eventos
+               if e.get("tipo") == "stop_diario" and e.get("_ts") is not None
+               and str(e.get("fecha_sesion") or "") == hoy]
+    if not ultimos:
+        return {"sin_datos": True}
+    e = max(ultimos, key=lambda x: x["_ts"])
+    activado = None
+    if e.get("activado_en"):
+        try:
+            activado = datetime.fromisoformat(str(e["activado_en"]).replace("Z", "+00:00"))
+        except ValueError:
+            activado = None
+    codigo = e.get("codigo")
+    return {
+        "sin_datos": False,
+        "modo": e.get("modo"),
+        "pct": _num(e.get("pct")),
+        "pnl": _num(e.get("pnl")),
+        "pnl_pct": _num(e.get("pnl_pct")),
+        "umbral_usd": _num(e.get("umbral_usd")),
+        "activo": e.get("activo") is True,
+        "bloquea": e.get("bloquea") is True,
+        "codigo": codigo,
+        "dato_faltante": _es_dato_faltante(codigo) if codigo else False,
+        "motivo": str(e.get("motivo") or ""),
+        "desde": _hora(activado, tz, ahora=ahora) if activado else None,
+        "ultimo": _hora(e["_ts"], tz, ahora=ahora),
+        "ultimo_ts": e["_ts"],
+    }
+
+
+def _num(v) -> float | None:
+    if v is None or isinstance(v, bool):
+        return None
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return None if f != f else f
+
+
 def _frase_intervalo(fila: dict, n: int, unidad: str) -> str:
     return f"{fila['codigo']} desde {fila['desde']} hasta {fila['hasta']} ({n} {unidad})"
 
@@ -748,6 +794,12 @@ def _detalle_riesgo(riesgo: dict, hay_eventos: bool, conteos_validos: bool, en_s
         frase = _frase_intervalo(c, c["corridas"], "corridas")
         # "capacidad llena" en presente solo si la última corrida sigue
         # dentro de la ventana. Si no, es historial y lleva el hasta.
+        if c.get("codigo") == "PERDIDA_DIARIA":
+            # Stop de pérdida diaria (2026-10-01): no es un cupo, es la
+            # regla de cuenta que corta entradas hasta la próxima sesión.
+            partes.append(("stop diario activo: " if c.get("activo") else "historial: ") + frase
+                          + (f" — {c['motivo']}" if c.get("activo") and c.get("motivo") else ""))
+            continue
         partes.append(("capacidad llena: " if c.get("activo") else "historial: ") + frase)
     for c in riesgo["informativos"]:
         partes.append(
@@ -1170,6 +1222,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         "equity_dia": equity_dia, "equity_mes": equity_mes,
         "bloqueos": sorted(por_limite.items(), key=lambda kv: -kv[1]),
         "riesgo": riesgo,
+        "stop_diario": resumir_stop_diario(eventos, cfg["tz"], ahora),
         "persist_fallidos": persist_fallidos,
         "ia_fallos": ia_fallos,
         "hay_eventos": hay_eventos,
@@ -2782,7 +2835,40 @@ def _html_uso_limites(ctx: dict) -> str:
 
 
 def _html_riesgo(ctx: dict) -> str:
-    return _html_uso_limites(ctx) + _html_bloqueos(ctx)
+    return _html_stop_diario(ctx) + _html_uso_limites(ctx) + _html_bloqueos(ctx)
+
+
+def _html_stop_diario(ctx: dict) -> str:
+    """Stop de pérdida diaria (2026-10-01): P&L de hoy vs umbral, estado
+    (activo desde / inactivo) y último chequeo. Sin medición de hoy se
+    dice así, sin fingir "inactivo". Dato faltante = rojo (`nota`)."""
+    sd = ctx.get("stop_diario") or {"sin_datos": True}
+    esc = html.escape
+    if sd.get("sin_datos"):
+        return ('<div class="nota-historial">Stop diario: sin medición hoy '
+                '(se mide en sesión, en cada corrida del ejecutor)</div>')
+    pct = sd.get("pct")
+    titulo = f"Stop diario ({pct:.2f} %)" if pct is not None else "Stop diario"
+    if sd.get("pnl") is not None and sd.get("umbral_usd") is not None:
+        pnl_pct = f" ({sd['pnl_pct']:+.2f} %)" if sd.get("pnl_pct") is not None else ""
+        cifras = f"P&L hoy {sd['pnl']:+.2f} USD{pnl_pct} vs umbral −{sd['umbral_usd']:.2f} USD"
+    else:
+        cifras = "P&L hoy sin dato"
+    if sd.get("dato_faltante"):
+        estado_txt = f"<b>sin datos ({esc(str(sd.get('codigo')))})</b> — no se abren entradas"
+        clase = "nota"
+    elif sd.get("activo"):
+        estado_txt = (f"<b>ACTIVO desde {esc(sd.get('desde') or '?')}</b> — sin entradas nuevas hoy"
+                      if sd.get("bloquea") else
+                      f"<b>cruzado desde {esc(sd.get('desde') or '?')}</b> (modo {esc(str(sd.get('modo')))}: no bloquea)")
+        clase = "nota-info"
+    else:
+        estado_txt = "inactivo"
+        clase = "nota-info"
+    modo = sd.get("modo")
+    extra = f" · modo {esc(str(modo))}" if modo and modo != "enforce" else ""
+    return (f'<div class="{clase}">{esc(titulo)}: {esc(cifras)} · {estado_txt}{extra}'
+            f' · último chequeo {esc(sd.get("ultimo") or "—")}</div>')
 
 
 def _html_bloqueos(ctx: dict) -> str:
@@ -2828,9 +2914,11 @@ def _html_bloqueos(ctx: dict) -> str:
     for c in capacidad:
         frase = _html_intervalo(c, c["corridas"], "corridas")
         if c.get("activo"):
-            # Tope lleno AHORA: el control funciona, no es alarma.
+            # Tope lleno AHORA: el control funciona, no es alarma. El stop
+            # diario (2026-10-01) se nombra como tal: corta la sesión entera.
+            etiqueta = "Stop diario activo" if c.get("codigo") == "PERDIDA_DIARIA" else "Capacidad llena"
             partes.append(
-                f'<div class="nota-info">Capacidad llena: <b>{esc(c["codigo"])}</b> · {frase}'
+                f'<div class="nota-info">{etiqueta}: <b>{esc(c["codigo"])}</b> · {frase}'
                 f' · {esc(c["motivo"])}</div>'
             )
         else:

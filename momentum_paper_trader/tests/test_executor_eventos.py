@@ -80,7 +80,10 @@ def test_orden_colocada_deja_la_cinta_completa(monkeypatch, tmp_path):
     _correr(monkeypatch, tmp_path, "orden_colocada")
 
     ev = _eventos(ruta)
-    assert [e["tipo"] for e in ev] == ["rechequeo", "deteccion", "decision", "orden"]
+    # `stop_diario` (2026-10-01): la medición de la cuenta va antes de
+    # mirar candidatas, una vez por corrida.
+    assert [e["tipo"] for e in ev] == ["rechequeo", "stop_diario", "deteccion", "decision", "orden"]
+    ev = [e for e in ev if e["tipo"] != "stop_diario"]
     orden = ev[-1]
     assert orden["ticker"] == "RKLB" and orden["estado"] == "enviada" and orden["lado"] == "buy"
     assert ev[2]["entra"] is True

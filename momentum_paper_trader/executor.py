@@ -41,7 +41,9 @@ from datetime import UTC, datetime, timedelta
 from momentum_hunter import calendario as calendario_sesion, sesion, watchlist
 
 from momentum_hunter.data.halts import desconocido as _desconocido_halt
-from momentum_paper_trader import aviso_fallo_ia, bloqueos, estado, halts, ia_decision, notify, telemetria
+from momentum_paper_trader import (
+    aviso_fallo_ia, bloqueos, estado, halts, ia_decision, notify, stop_diario, telemetria,
+)
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig, banda_de
 
@@ -350,10 +352,16 @@ class _EstadoCuenta:
     la misma corrida no gasten el mismo efectivo dos veces ni excedan el
     máximo de posiciones entre las dos."""
 
-    def __init__(self, efectivo: float, equity: float, tickers_comprometidos: set[str]) -> None:
+    def __init__(self, efectivo: float, equity: float, tickers_comprometidos: set[str],
+                 cuenta_cruda: dict | None = None, ordenes_abiertas: list[dict] | None = None) -> None:
         self.efectivo = efectivo
         self.equity = equity
         self.tickers_comprometidos = tickers_comprometidos
+        # Para el stop diario (2026-10-01): `last_equity` sale de la cuenta
+        # cruda y las entradas sin llenar, del mismo listado `open` que ya
+        # se leyó. Ninguno de los dos cambia los cálculos de arriba.
+        self.cuenta_cruda = cuenta_cruda if isinstance(cuenta_cruda, dict) else {}
+        self.ordenes_abiertas = list(ordenes_abiertas or [])
 
     def contexto_para_ia(self) -> str:
         ocupadas = ", ".join(sorted(self.tickers_comprometidos)) or "ninguna"
@@ -429,7 +437,36 @@ def _leer_cuenta(client: AlpacaPaperClient) -> _EstadoCuenta | None:
     if efectivo is None or equity is None:
         log.warning("la cuenta paper vino sin cash o equity legibles -- no se opera (fail-closed)")
         return None
-    return _EstadoCuenta(efectivo=efectivo, equity=equity, tickers_comprometidos=comprometidos)
+    return _EstadoCuenta(efectivo=efectivo, equity=equity, tickers_comprometidos=comprometidos,
+                         cuenta_cruda=cuenta, ordenes_abiertas=abiertas)
+
+
+def _evaluar_stop_diario(client: AlpacaPaperClient, cuenta: _EstadoCuenta, ahora: datetime,
+                         metricas) -> tuple[stop_diario.Evaluacion, list[str]]:
+    """Mide el stop diario, lo deja en log y telemetría, y aplica sus
+    efectos (aviso, cancelar entradas sin llenar). Ver `stop_diario.py`."""
+    ev = stop_diario.evaluar(cuenta.cuenta_cruda, ahora)
+    log.info("stop diario [%s]: %s", ev.modo, ev.motivo)
+    if metricas is not None:
+        metricas.stop_diario = ev.como_dict()
+    canceladas = stop_diario.aplicar(ev, client, cuenta.ordenes_abiertas, ahora)
+    # Un evento por medición para el panel en vivo (P&L vs umbral, estado,
+    # desde cuándo y último chequeo). Solo observabilidad.
+    _evento(False, "stop_diario", **ev.como_dict(), entradas_canceladas=canceladas)
+    return ev, canceladas
+
+
+def _vigilar_stop_diario(client: AlpacaPaperClient, ahora: datetime, metricas) -> None:
+    """Corrida sin señales pendientes, dentro de sesión: solo mide y avisa."""
+    try:
+        if not sesion.en_sesion(ahora):
+            return
+        cuenta = _leer_cuenta(client)
+        if cuenta is None:
+            return
+        _evaluar_stop_diario(client, cuenta, ahora, metricas)
+    except Exception as ex:
+        log.warning("stop diario: no se pudo vigilar sin señales (%s)", type(ex).__name__)
 
 
 def _numero(v) -> float | None:
@@ -489,6 +526,12 @@ def ejecutar(
         metricas.triggered_nuevos = len(pendientes)
     _evento(dry_run, "rechequeo", n_tickers=len(entradas), n_triggered=len(pendientes))
     if not pendientes:
+        if not dry_run:
+            # Sin señales no hay entrada que bloquear, pero el stop diario
+            # se sigue midiendo en sesión: así el aviso y la cancelación de
+            # entradas pendientes no esperan a la próxima señal. Nunca
+            # decide nada más; un fallo se loguea y la corrida sigue igual.
+            _vigilar_stop_diario(client, ahora, metricas)
         if metricas is not None and not dry_run:
             metricas.cerrar_corrida()
         return nuevas
@@ -545,6 +588,20 @@ def ejecutar(
                              limite="cuenta_ilegible",
                              motivo="no se pudo leer la cuenta paper (fail-closed)",
                              n_pendientes=len(pendientes))
+            if metricas is not None:
+                metricas.cerrar_corrida()
+            return nuevas
+        # Stop de pérdida diaria (2026-10-01, pedido del dueño): si la cuenta
+        # ya perdió en la sesión el % configurado de `last_equity`, no se
+        # abren entradas nuevas hasta la sesión siguiente. Fail-closed con
+        # datos faltantes. No cierra posiciones (ver `stop_diario.py`).
+        ev_stop, canceladas = _evaluar_stop_diario(client, cuenta, ahora, metricas)
+        if ev_stop.bloquea:
+            _capacidad_llena(dry_run, metricas, codigo=ev_stop.codigo or bloqueos.PERDIDA_DIARIA,
+                             limite="perdida_diaria", motivo=ev_stop.motivo, n_pendientes=len(pendientes),
+                             pnl=ev_stop.pnl, pnl_pct=ev_stop.pnl_pct, umbral_usd=ev_stop.umbral_usd,
+                             pct=ev_stop.pct, last_equity=ev_stop.last_equity,
+                             entradas_canceladas=canceladas)
             if metricas is not None:
                 metricas.cerrar_corrida()
             return nuevas

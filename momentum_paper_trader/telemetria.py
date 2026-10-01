@@ -158,6 +158,9 @@ class Metricas:
     # Solo cuenta; el detalle por ticker vive en el log de eventos del panel.
     bloqueos: Counter = field(default_factory=Counter)
     capacidad_llena: str | None = None
+    # Lectura del stop diario de esta corrida (2026-10-01): P&L del día,
+    # umbral y si bloquea. None si no se evaluó (dry-run, mercado cerrado).
+    stop_diario: dict | None = None
 
     def anotar_bloqueo(self, codigo: str) -> None:
         self.bloqueos[str(codigo)] += 1
@@ -213,6 +216,7 @@ class Metricas:
             },
             "bloqueos": dict(self.bloqueos),
             "capacidad_llena": self.capacidad_llena,
+            "stop_diario": self.stop_diario,
         }
 
 

@@ -2732,3 +2732,58 @@ def test_una_falla_de_noticias_no_rompe_el_panel(tmp_path, monkeypatch):
 def test_cabecera_del_panel_tiene_el_link_a_noticias(tmp_path):
     html = bd.render(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))
     assert '<a class="pildora" href="noticias.html">Noticias leídas</a>' in html
+
+
+# ───── Stop de pérdida diaria (2026-10-01) ─────
+
+def _medicion_stop(ts, pnl, activo=False, activado_en=None, codigo=None, bloquea=None, modo="enforce",
+                   fecha="2026-09-18"):
+    return {"ts": ts, "tipo": "stop_diario", "modo": modo, "fecha_sesion": fecha, "pct": 1.0,
+            "pnl": pnl, "pnl_pct": None if pnl is None else round(pnl / 50.0, 3), "umbral_usd": 50.0,
+            "activo": activo, "bloquea": activo if bloquea is None else bloquea,
+            "activado_en": activado_en, "codigo": codigo, "motivo": "m"}
+
+
+def test_panel_stop_diario_inactivo_con_pnl_umbral_y_ultimo_chequeo(tmp_path):
+    eventos(tmp_path, *_rechequeos_recientes(),
+            _medicion_stop("2026-09-18T14:58:00Z", -10.0),
+            _medicion_stop("2026-09-18T14:59:00Z", -19.67))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    sd = ctx["stop_diario"]
+    assert sd["sin_datos"] is False and sd["activo"] is False and sd["pnl"] == -19.67
+    assert sd["ultimo"] == "14:59" and sd["desde"] is None
+    html = bd.render(ctx)
+    assert "Stop diario (1.00 %): P&amp;L hoy -19.67 USD" in html
+    assert "vs umbral −50.00 USD · inactivo · último chequeo 14:59" in html
+
+
+def test_panel_stop_diario_activo_desde_y_codigo_conocido(tmp_path):
+    eventos(tmp_path, *_rechequeos_recientes(),
+            _medicion_stop("2026-09-18T14:59:00Z", -60.0, activo=True, activado_en="2026-09-18T14:40:00+00:00",
+                           codigo="PERDIDA_DIARIA"),
+            {"ts": "2026-09-18T14:59:01Z", "tipo": "capacidad_llena", "codigo": "PERDIDA_DIARIA",
+             "limite": "perdida_diaria", "motivo": "stop diario activo", "n_pendientes": 2})
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert ctx["stop_diario"]["activo"] is True and ctx["stop_diario"]["desde"] == "14:40"
+    riesgo = ctx["riesgo"]
+    assert riesgo["codigos_nuevos"] == [] and riesgo["revisar"] is False
+    assert _etapas(ctx)["Riesgo"]["estado"] == "ok"
+    assert "stop diario activo: PERDIDA_DIARIA" in _etapas(ctx)["Riesgo"]["detalle"]
+    html = bd.render(ctx)
+    assert "<b>ACTIVO desde 14:40</b> — sin entradas nuevas hoy" in html
+    assert "Stop diario activo: <b>PERDIDA_DIARIA</b>" in html
+
+
+def test_panel_stop_diario_sin_datos_y_dato_faltante(tmp_path):
+    # Medición de ayer: no cuenta como hoy.
+    eventos(tmp_path, _medicion_stop("2026-09-18T14:59:00Z", -1.0, fecha="2026-09-17"))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert ctx["stop_diario"] == {"sin_datos": True}
+    assert "Stop diario: sin medición hoy" in bd.render(ctx)
+
+    eventos(tmp_path, _medicion_stop("2026-09-18T14:59:00Z", None, codigo="DATO_FALTANTE:last_equity",
+                                     bloquea=True))
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    html = bd.render(ctx)
+    assert ctx["stop_diario"]["dato_faltante"] is True
+    assert '<div class="nota">Stop diario (1.00 %): P&amp;L hoy sin dato' in html
