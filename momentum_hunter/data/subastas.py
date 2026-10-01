@@ -31,12 +31,6 @@ la sesión anterior, `gap_oficial` devuelve None y el caller se queda con
 el gap de siempre (que es un dato real). La sesión anterior es la ÚLTIMA
 fecha con subastas antes de hoy; si esa fecha no trae cierre, no se salta
 a una más vieja: sería el gap de otro día.
-
-SIP RETRASADO. Con `MOMENTUM_SIP_RETRASADO=on` el `end` es ahora-16 min
-(sin plan, el SIP de los últimos 15 min da 403). Antes de las 9:46 ET la
-apertura de hoy todavía no entra: no hay gap oficial y el caller usa el
-de las velas, igual que cuando el pedido fallaba. En `off`/`sombra` el
-pedido no cambia (y con este plan sigue dando 403).
 """
 
 from __future__ import annotations
@@ -47,13 +41,11 @@ from datetime import UTC, datetime, timedelta
 
 from momentum_hunter.data.alpaca_datos import (
     LIMITE_PAGINA,
-    RETRASO_SIP_MIN,
     AlpacaProvider,
     ErrorDatosAlpaca,
     _momento,
     _numero,
     _pares,
-    modo_sip_retrasado,
 )
 
 log = logging.getLogger("momentum_hunter.data.subastas")
@@ -203,8 +195,7 @@ def descargar(
         return {}
     try:
         transporte = transporte or AlpacaProvider(feed="sip")
-        fin = ahora - timedelta(minutes=RETRASO_SIP_MIN) if modo_sip_retrasado() == "on" else ahora
-        crudos = _dias_crudos(transporte, nombres, ahora - timedelta(days=dias), fin)
+        crudos = _dias_crudos(transporte, nombres, ahora - timedelta(days=dias), ahora)
     except Exception as ex:   # noqa: BLE001 -- es un extra; se registra el TIPO
         log.warning("subastas: no disponibles (%s) -- se usa el gap de las velas", type(ex).__name__)
         return {}
