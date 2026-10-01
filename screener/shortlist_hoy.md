@@ -1,4 +1,4 @@
-# Shortlist del día — 2026-09-30 17:49 UTC
+# Shortlist del día — 2026-10-01 18:16 UTC
 
 Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
@@ -28,100 +28,22 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 26%
-- Volatilidad histórica: 28%
+- Volatilidad implícita actual: 27%
+- Volatilidad histórica: 27%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2026-10-29
-- Movimiento esperado: ±$27.89 (~8.3%) hacia el vencimiento del 2026-11-06 (37 días)
+- Movimiento esperado: ±$27.52 (~8.4%) hacia el vencimiento del 2026-11-06 (36 días)
 
 *Estrategia posible a investigar: Long Call*
 - Razón: Tendencia alcista y primas de opciones relativamente baratas (la volatilidad implícita está por debajo de la histórica).
-- Riesgo máximo: $1,220 (prima pagada por 1 contrato, 100 acciones)
+- Riesgo máximo: $1,093 (prima pagada por 1 contrato, 100 acciones)
 - Ganancia máxima: Ilimitada (sube junto con el precio de la acción).
-- Breakeven: $347.20 (strike + prima pagada)
+- Breakeven: $340.93 (strike + prima pagada)
 - Nota educativa: Comprar una call da el derecho (no la obligación) de comprar 100 acciones al strike antes del vencimiento. Se usa para apostar a que el precio suba, arriesgando solo la prima pagada.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 2. Johnson & Johnson (JNJ) — 78/100
-*Drug Manufacturers - General*
-
-¿Por qué el modelo encontró esta empresa?
-- El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
-- Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
-- Se mueve con relativamente poca volatilidad.
-
-**¿Qué deberías investigar?**
-
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Johnson & Johnson?
-- [ ] ¿Los ingresos han estado creciendo en los últimos años?
-- [ ] ¿Cuánta deuda tiene la empresa?
-- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
-- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
-- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de Johnson & Johnson dentro de Drug Manufacturers - General?
-- [ ] ¿Hay noticias importantes de la empresa esta semana?
-- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
-- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
-- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
-
-**Ideas de opciones para investigar**
-
-- Volatilidad implícita actual: 28%
-- Volatilidad histórica: 22%
-- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2026-10-13
-- Movimiento esperado: ±$23.67 (~8.9%) hacia el vencimiento del 2026-11-06 (37 días)
-
-*Estrategia posible a investigar: Covered Call*
-- Razón: La volatilidad implícita alta encarece las primas de las opciones.
-- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
-- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
-- Breakeven: Precio de compra de la acción − prima recibida.
-- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
-
-**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
-
-## 3. Eli Lilly and Company (LLY) — 77/100
-*Drug Manufacturers - General*
-
-¿Por qué el modelo encontró esta empresa?
-- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
-- Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
-- El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
-
-**¿Qué deberías investigar?**
-
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Eli Lilly and Company?
-- [ ] ¿Los ingresos han estado creciendo en los últimos años?
-- [ ] ¿Cuánta deuda tiene la empresa?
-- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
-- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
-- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de Eli Lilly and Company dentro de Drug Manufacturers - General?
-- [ ] ¿Hay noticias importantes de la empresa esta semana?
-- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
-- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
-- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
-
-**Ideas de opciones para investigar**
-
-- Volatilidad implícita actual: 43%
-- Volatilidad histórica: 29%
-- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2026-10-29
-- Movimiento esperado: ±$161.75 (~13.7%) hacia el vencimiento del 2026-11-06 (37 días)
-
-*Estrategia posible a investigar: Covered Call*
-- Razón: La volatilidad implícita alta encarece las primas de las opciones.
-- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
-- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
-- Breakeven: Precio de compra de la acción − prima recibida.
-- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
-
-**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
-
-## 4. Chevron Corporation (CVX) — 77/100
+## 2. Chevron Corporation (CVX) — 78/100
 *Oil & Gas Integrated*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -145,11 +67,11 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 31%
+- Volatilidad implícita actual: 29%
 - Volatilidad histórica: 24%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2026-10-30
-- Movimiento esperado: ±$20.50 (~9.9%) hacia el vencimiento del 2026-11-06 (37 días)
+- Movimiento esperado: ±$19.14 (~9.2%) hacia el vencimiento del 2026-11-06 (36 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -160,46 +82,7 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 5. Amgen Inc. (AMGN) — 76/100
-*Drug Manufacturers - General*
-
-¿Por qué el modelo encontró esta empresa?
-- El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
-- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
-- Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
-
-**¿Qué deberías investigar?**
-
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Amgen Inc.?
-- [ ] ¿Los ingresos han estado creciendo en los últimos años?
-- [ ] ¿Cuánta deuda tiene la empresa?
-- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
-- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
-- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de Amgen Inc. dentro de Drug Manufacturers - General?
-- [ ] ¿Hay noticias importantes de la empresa esta semana?
-- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
-- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
-- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
-
-**Ideas de opciones para investigar**
-
-- Volatilidad implícita actual: 34%
-- Volatilidad histórica: 33%
-- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2026-11-03
-- Movimiento esperado: ±$45.78 (~10.8%) hacia el vencimiento del 2026-11-06 (37 días)
-
-*Estrategia posible a investigar: Covered Call*
-- Razón: La volatilidad implícita alta encarece las primas de las opciones.
-- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
-- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
-- Breakeven: Precio de compra de la acción − prima recibida.
-- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
-
-**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
-
-## 6. Marathon Petroleum Corporation (MPC) — 76/100
+## 3. Marathon Petroleum Corporation (MPC) — 76/100
 *Oil & Gas Refining & Marketing*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -223,11 +106,11 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 50%
-- Volatilidad histórica: 34%
+- Volatilidad implícita actual: 51%
+- Volatilidad histórica: 35%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2026-11-03
-- Movimiento esperado: ±$75.38 (~18.8%) hacia el vencimiento del 2026-11-20 (51 días)
+- Movimiento esperado: ±$79.07 (~19.0%) hacia el vencimiento del 2026-11-20 (50 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -238,124 +121,7 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 7. The Bank of New York Mellon Corporation (BNY) — 76/100
-*Banks - Diversified*
-
-¿Por qué el modelo encontró esta empresa?
-- El precio se mantiene por encima de sus promedios de largo plazo, señal de una tendencia saludable.
-- Se mueve con relativamente poca volatilidad.
-- Ha estado subiendo de forma sostenida durante varios meses.
-
-**¿Qué deberías investigar?**
-
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de The Bank of New York Mellon Corporation?
-- [ ] ¿Los ingresos han estado creciendo en los últimos años?
-- [ ] ¿Cuánta deuda tiene la empresa?
-- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
-- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
-- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de The Bank of New York Mellon Corporation dentro de Banks - Diversified?
-- [ ] ¿Hay noticias importantes de la empresa esta semana?
-- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
-- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
-- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
-
-**Ideas de opciones para investigar**
-
-- Volatilidad implícita actual: 30%
-- Volatilidad histórica: 22%
-- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2026-10-15
-- Movimiento esperado: ±$16.40 (~11.3%) hacia el vencimiento del 2026-11-20 (51 días)
-
-*Estrategia posible a investigar: Iron Condor*
-- Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
-- Riesgo máximo: El ancho del spread (de calls o de puts) menos la prima neta recibida.
-- Ganancia máxima: La prima neta recibida al abrir la posición.
-- Breakeven: Dos puntos: strike corto de puts − prima neta, y strike corto de calls + prima neta.
-- Nota educativa: Vender un spread de calls y un spread de puts alrededor del precio actual. Gana si el precio se queda dentro de un rango hasta el vencimiento; el riesgo queda definido por el ancho de los spreads.
-
-**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
-
-## 8. Bristol-Myers Squibb Company (BMY) — 75/100
-*Drug Manufacturers - General*
-
-¿Por qué el modelo encontró esta empresa?
-- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
-- El precio se mantiene por encima de sus promedios de largo plazo, señal de una tendencia saludable.
-- Ha estado subiendo de forma sostenida durante varios meses.
-
-**¿Qué deberías investigar?**
-
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Bristol-Myers Squibb Company?
-- [ ] ¿Los ingresos han estado creciendo en los últimos años?
-- [ ] ¿Cuánta deuda tiene la empresa?
-- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
-- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
-- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de Bristol-Myers Squibb Company dentro de Drug Manufacturers - General?
-- [ ] ¿Hay noticias importantes de la empresa esta semana?
-- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
-- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
-- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
-
-**Ideas de opciones para investigar**
-
-- Volatilidad implícita actual: 36%
-- Volatilidad histórica: 26%
-- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2026-10-29
-- Movimiento esperado: ±$7.13 (~11.3%) hacia el vencimiento del 2026-11-06 (37 días)
-
-*Estrategia posible a investigar: Iron Condor*
-- Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
-- Riesgo máximo: El ancho del spread (de calls o de puts) menos la prima neta recibida.
-- Ganancia máxima: La prima neta recibida al abrir la posición.
-- Breakeven: Dos puntos: strike corto de puts − prima neta, y strike corto de calls + prima neta.
-- Nota educativa: Vender un spread de calls y un spread de puts alrededor del precio actual. Gana si el precio se queda dentro de un rango hasta el vencimiento; el riesgo queda definido por el ancho de los spreads.
-
-**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
-
-## 9. AbbVie Inc. (ABBV) — 75/100
-*Drug Manufacturers - General*
-
-¿Por qué el modelo encontró esta empresa?
-- El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
-- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
-- Se negocia con buen volumen diario, fácil de comprar y vender.
-
-**¿Qué deberías investigar?**
-
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de AbbVie Inc.?
-- [ ] ¿Los ingresos han estado creciendo en los últimos años?
-- [ ] ¿Cuánta deuda tiene la empresa?
-- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
-- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
-- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de AbbVie Inc. dentro de Drug Manufacturers - General?
-- [ ] ¿Hay noticias importantes de la empresa esta semana?
-- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
-- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
-- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
-
-**Ideas de opciones para investigar**
-
-- Volatilidad implícita actual: 33%
-- Volatilidad histórica: 23%
-- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2026-10-29
-- Movimiento esperado: ±$27.69 (~10.5%) hacia el vencimiento del 2026-11-06 (37 días)
-
-*Estrategia posible a investigar: Covered Call*
-- Razón: La volatilidad implícita alta encarece las primas de las opciones.
-- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
-- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
-- Breakeven: Precio de compra de la acción − prima recibida.
-- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
-
-**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
-
-## 10. Micron Technology, Inc. (MU) — 75/100
+## 4. Micron Technology, Inc. (MU) — 76/100
 *Semiconductors*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -379,22 +145,100 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 58%
-- Volatilidad histórica: 76%
+- Volatilidad implícita actual: 55%
+- Volatilidad histórica: 75%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: No disponible
-- Movimiento esperado: ±$198.70 (~18.6%) hacia el vencimiento del 2026-11-06 (37 días)
+- Próximos resultados: 2026-12-23
+- Movimiento esperado: ±$186.59 (~17.4%) hacia el vencimiento del 2026-11-06 (36 días)
 
 *Estrategia posible a investigar: Long Call*
 - Razón: Tendencia alcista y primas de opciones relativamente baratas (la volatilidad implícita está por debajo de la histórica).
-- Riesgo máximo: $8,515 (prima pagada por 1 contrato, 100 acciones)
+- Riesgo máximo: $8,430 (prima pagada por 1 contrato, 100 acciones)
 - Ganancia máxima: Ilimitada (sube junto con el precio de la acción).
-- Breakeven: $1150.15 (strike + prima pagada)
+- Breakeven: $1159.30 (strike + prima pagada)
 - Nota educativa: Comprar una call da el derecho (no la obligación) de comprar 100 acciones al strike antes del vencimiento. Se usa para apostar a que el precio suba, arriesgando solo la prima pagada.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 11. APA Corporation (APA) — 74/100
+## 5. The Bank of New York Mellon Corporation (BNY) — 76/100
+*Banks - Diversified*
+
+¿Por qué el modelo encontró esta empresa?
+- El precio se mantiene por encima de sus promedios de largo plazo, señal de una tendencia saludable.
+- Se mueve con relativamente poca volatilidad.
+- Ha estado subiendo de forma sostenida durante varios meses.
+
+**¿Qué deberías investigar?**
+
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de The Bank of New York Mellon Corporation?
+- [ ] ¿Los ingresos han estado creciendo en los últimos años?
+- [ ] ¿Cuánta deuda tiene la empresa?
+- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
+- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
+- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
+- [ ] ¿Quiénes son los competidores más grandes de The Bank of New York Mellon Corporation dentro de Banks - Diversified?
+- [ ] ¿Hay noticias importantes de la empresa esta semana?
+- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
+- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
+- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
+
+**Ideas de opciones para investigar**
+
+- Volatilidad implícita actual: 28%
+- Volatilidad histórica: 22%
+- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
+- Próximos resultados: 2026-10-15
+- Movimiento esperado: ±$15.10 (~10.5%) hacia el vencimiento del 2026-11-20 (50 días)
+
+*Estrategia posible a investigar: Iron Condor*
+- Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
+- Riesgo máximo: El ancho del spread (de calls o de puts) menos la prima neta recibida.
+- Ganancia máxima: La prima neta recibida al abrir la posición.
+- Breakeven: Dos puntos: strike corto de puts − prima neta, y strike corto de calls + prima neta.
+- Nota educativa: Vender un spread de calls y un spread de puts alrededor del precio actual. Gana si el precio se queda dentro de un rango hasta el vencimiento; el riesgo queda definido por el ancho de los spreads.
+
+**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
+
+## 6. Amgen Inc. (AMGN) — 75/100
+*Drug Manufacturers - General*
+
+¿Por qué el modelo encontró esta empresa?
+- El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
+- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
+- Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
+
+**¿Qué deberías investigar?**
+
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Amgen Inc.?
+- [ ] ¿Los ingresos han estado creciendo en los últimos años?
+- [ ] ¿Cuánta deuda tiene la empresa?
+- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
+- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
+- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
+- [ ] ¿Quiénes son los competidores más grandes de Amgen Inc. dentro de Drug Manufacturers - General?
+- [ ] ¿Hay noticias importantes de la empresa esta semana?
+- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
+- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
+- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
+
+**Ideas de opciones para investigar**
+
+- Volatilidad implícita actual: 33%
+- Volatilidad histórica: 33%
+- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
+- Próximos resultados: 2026-11-03
+- Movimiento esperado: ±$41.86 (~10.2%) hacia el vencimiento del 2026-11-06 (36 días)
+
+*Estrategia posible a investigar: Long Call*
+- Razón: Tendencia alcista y primas de opciones relativamente baratas (la volatilidad implícita está por debajo de la histórica).
+- Riesgo máximo: $1,668 (prima pagada por 1 contrato, 100 acciones)
+- Ganancia máxima: Ilimitada (sube junto con el precio de la acción).
+- Breakeven: $426.68 (strike + prima pagada)
+- Nota educativa: Comprar una call da el derecho (no la obligación) de comprar 100 acciones al strike antes del vencimiento. Se usa para apostar a que el precio suba, arriesgando solo la prima pagada.
+
+**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
+
+## 7. APA Corporation (APA) — 74/100
 *Oil & Gas E&P*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -418,11 +262,11 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 50%
+- Volatilidad implícita actual: 54%
 - Volatilidad histórica: 43%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2026-11-04
-- Movimiento esperado: ±$6.74 (~15.8%) hacia el vencimiento del 2026-11-06 (37 días)
+- Movimiento esperado: ±$7.30 (~16.9%) hacia el vencimiento del 2026-11-06 (36 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -433,46 +277,7 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 12. JPMorgan Chase & Co. (JPM) — 74/100
-*Banks - Diversified*
-
-¿Por qué el modelo encontró esta empresa?
-- Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
-- Se mueve con muy poca volatilidad comparada con el resto del mercado.
-- El negocio es rentable: gana dinero de forma consistente sobre su capital.
-
-**¿Qué deberías investigar?**
-
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de JPMorgan Chase & Co.?
-- [ ] ¿Los ingresos han estado creciendo en los últimos años?
-- [ ] ¿Cuánta deuda tiene la empresa?
-- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
-- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
-- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de JPMorgan Chase & Co. dentro de Banks - Diversified?
-- [ ] ¿Hay noticias importantes de la empresa esta semana?
-- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
-- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
-- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
-
-**Ideas de opciones para investigar**
-
-- Volatilidad implícita actual: 27%
-- Volatilidad histórica: 19%
-- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2026-10-13
-- Movimiento esperado: ±$28.28 (~8.5%) hacia el vencimiento del 2026-11-06 (37 días)
-
-*Estrategia posible a investigar: Iron Condor*
-- Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
-- Riesgo máximo: El ancho del spread (de calls o de puts) menos la prima neta recibida.
-- Ganancia máxima: La prima neta recibida al abrir la posición.
-- Breakeven: Dos puntos: strike corto de puts − prima neta, y strike corto de calls + prima neta.
-- Nota educativa: Vender un spread de calls y un spread de puts alrededor del precio actual. Gana si el precio se queda dentro de un rango hasta el vencimiento; el riesgo queda definido por el ancho de los spreads.
-
-**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
-
-## 13. Berkshire Hathaway Inc. (BRK-B) — 74/100
+## 8. Berkshire Hathaway Inc. (BRK-B) — 74/100
 *Insurance - Diversified*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -500,7 +305,7 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 - Volatilidad histórica: 14%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2026-11-07
-- Movimiento esperado: ±$25.30 (~5.1%) hacia el vencimiento del 2026-11-06 (37 días)
+- Movimiento esperado: ±$25.29 (~5.1%) hacia el vencimiento del 2026-11-06 (36 días)
 
 *Estrategia posible a investigar: Iron Condor*
 - Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
@@ -511,7 +316,163 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 14. NVIDIA Corporation (NVDA) — 74/100
+## 9. JPMorgan Chase & Co. (JPM) — 74/100
+*Banks - Diversified*
+
+¿Por qué el modelo encontró esta empresa?
+- Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
+- Se mueve con muy poca volatilidad comparada con el resto del mercado.
+- El negocio es rentable: gana dinero de forma consistente sobre su capital.
+
+**¿Qué deberías investigar?**
+
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de JPMorgan Chase & Co.?
+- [ ] ¿Los ingresos han estado creciendo en los últimos años?
+- [ ] ¿Cuánta deuda tiene la empresa?
+- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
+- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
+- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
+- [ ] ¿Quiénes son los competidores más grandes de JPMorgan Chase & Co. dentro de Banks - Diversified?
+- [ ] ¿Hay noticias importantes de la empresa esta semana?
+- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
+- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
+- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
+
+**Ideas de opciones para investigar**
+
+- Volatilidad implícita actual: 27%
+- Volatilidad histórica: 19%
+- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
+- Próximos resultados: 2026-10-13
+- Movimiento esperado: ±$28.17 (~8.5%) hacia el vencimiento del 2026-11-06 (36 días)
+
+*Estrategia posible a investigar: Iron Condor*
+- Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
+- Riesgo máximo: El ancho del spread (de calls o de puts) menos la prima neta recibida.
+- Ganancia máxima: La prima neta recibida al abrir la posición.
+- Breakeven: Dos puntos: strike corto de puts − prima neta, y strike corto de calls + prima neta.
+- Nota educativa: Vender un spread de calls y un spread de puts alrededor del precio actual. Gana si el precio se queda dentro de un rango hasta el vencimiento; el riesgo queda definido por el ancho de los spreads.
+
+**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
+
+## 10. AbbVie Inc. (ABBV) — 74/100
+*Drug Manufacturers - General*
+
+¿Por qué el modelo encontró esta empresa?
+- El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
+- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
+- Se negocia con buen volumen diario, fácil de comprar y vender.
+
+**¿Qué deberías investigar?**
+
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de AbbVie Inc.?
+- [ ] ¿Los ingresos han estado creciendo en los últimos años?
+- [ ] ¿Cuánta deuda tiene la empresa?
+- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
+- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
+- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
+- [ ] ¿Quiénes son los competidores más grandes de AbbVie Inc. dentro de Drug Manufacturers - General?
+- [ ] ¿Hay noticias importantes de la empresa esta semana?
+- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
+- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
+- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
+
+**Ideas de opciones para investigar**
+
+- Volatilidad implícita actual: 33%
+- Volatilidad histórica: 22%
+- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
+- Próximos resultados: 2026-10-30
+- Movimiento esperado: ±$26.66 (~10.2%) hacia el vencimiento del 2026-11-06 (36 días)
+
+*Estrategia posible a investigar: Covered Call*
+- Razón: La volatilidad implícita alta encarece las primas de las opciones.
+- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
+- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
+- Breakeven: Precio de compra de la acción − prima recibida.
+- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
+
+**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
+
+## 11. Bristol-Myers Squibb Company (BMY) — 74/100
+*Drug Manufacturers - General*
+
+¿Por qué el modelo encontró esta empresa?
+- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
+- El precio se mantiene por encima de sus promedios de largo plazo, señal de una tendencia saludable.
+- Ha estado subiendo de forma sostenida durante varios meses.
+
+**¿Qué deberías investigar?**
+
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Bristol-Myers Squibb Company?
+- [ ] ¿Los ingresos han estado creciendo en los últimos años?
+- [ ] ¿Cuánta deuda tiene la empresa?
+- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
+- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
+- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
+- [ ] ¿Quiénes son los competidores más grandes de Bristol-Myers Squibb Company dentro de Drug Manufacturers - General?
+- [ ] ¿Hay noticias importantes de la empresa esta semana?
+- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
+- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
+- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
+
+**Ideas de opciones para investigar**
+
+- Volatilidad implícita actual: 38%
+- Volatilidad histórica: 25%
+- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
+- Próximos resultados: 2026-10-29
+- Movimiento esperado: ±$7.25 (~11.8%) hacia el vencimiento del 2026-11-06 (36 días)
+
+*Estrategia posible a investigar: Iron Condor*
+- Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
+- Riesgo máximo: El ancho del spread (de calls o de puts) menos la prima neta recibida.
+- Ganancia máxima: La prima neta recibida al abrir la posición.
+- Breakeven: Dos puntos: strike corto de puts − prima neta, y strike corto de calls + prima neta.
+- Nota educativa: Vender un spread de calls y un spread de puts alrededor del precio actual. Gana si el precio se queda dentro de un rango hasta el vencimiento; el riesgo queda definido por el ancho de los spreads.
+
+**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
+
+## 12. Devon Energy Corporation (DVN) — 74/100
+*Oil & Gas E&P*
+
+¿Por qué el modelo encontró esta empresa?
+- El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
+- Se puede comprar a un precio muy razonable frente a lo que gana la empresa.
+- Ha estado subiendo de forma sostenida durante varios meses.
+
+**¿Qué deberías investigar?**
+
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Devon Energy Corporation?
+- [ ] ¿Los ingresos han estado creciendo en los últimos años?
+- [ ] ¿Cuánta deuda tiene la empresa?
+- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
+- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
+- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
+- [ ] ¿Quiénes son los competidores más grandes de Devon Energy Corporation dentro de Oil & Gas E&P?
+- [ ] ¿Hay noticias importantes de la empresa esta semana?
+- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
+- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
+- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
+
+**Ideas de opciones para investigar**
+
+- Volatilidad implícita actual: 42%
+- Volatilidad histórica: 35%
+- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
+- Próximos resultados: 2026-11-04
+- Movimiento esperado: ±$6.15 (~13.1%) hacia el vencimiento del 2026-11-06 (36 días)
+
+*Estrategia posible a investigar: Covered Call*
+- Razón: La volatilidad implícita alta encarece las primas de las opciones.
+- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
+- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
+- Breakeven: Precio de compra de la acción − prima recibida.
+- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
+
+**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
+
+## 13. NVIDIA Corporation (NVDA) — 74/100
 *Semiconductors*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -535,28 +496,67 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 31%
+- Volatilidad implícita actual: 32%
 - Volatilidad histórica: 38%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2026-11-17
-- Movimiento esperado: ±$23.05 (~10.0%) hacia el vencimiento del 2026-11-06 (37 días)
+- Movimiento esperado: ±$22.82 (~9.9%) hacia el vencimiento del 2026-11-06 (36 días)
 
 *Estrategia posible a investigar: Long Call*
 - Razón: Tendencia alcista y primas de opciones relativamente baratas (la volatilidad implícita está por debajo de la histórica).
-- Riesgo máximo: $993 (prima pagada por 1 contrato, 100 acciones)
+- Riesgo máximo: $988 (prima pagada por 1 contrato, 100 acciones)
 - Ganancia máxima: Ilimitada (sube junto con el precio de la acción).
-- Breakeven: $239.93 (strike + prima pagada)
+- Breakeven: $239.88 (strike + prima pagada)
 - Nota educativa: Comprar una call da el derecho (no la obligación) de comprar 100 acciones al strike antes del vencimiento. Se usa para apostar a que el precio suba, arriesgando solo la prima pagada.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 15. Valero Energy Corporation (VLO) — 74/100
+## 14. The Coca-Cola Company (KO) — 73/100
+*Beverages - Non-Alcoholic*
+
+¿Por qué el modelo encontró esta empresa?
+- Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
+- Se mueve con muy poca volatilidad comparada con el resto del mercado.
+- El negocio es rentable: gana dinero de forma consistente sobre su capital.
+
+**¿Qué deberías investigar?**
+
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de The Coca-Cola Company?
+- [ ] ¿Los ingresos han estado creciendo en los últimos años?
+- [ ] ¿Cuánta deuda tiene la empresa?
+- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
+- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
+- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
+- [ ] ¿Quiénes son los competidores más grandes de The Coca-Cola Company dentro de Beverages - Non-Alcoholic?
+- [ ] ¿Hay noticias importantes de la empresa esta semana?
+- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
+- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
+- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
+
+**Ideas de opciones para investigar**
+
+- Volatilidad implícita actual: 23%
+- Volatilidad histórica: 20%
+- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
+- Próximos resultados: 2026-10-27
+- Movimiento esperado: ±$6.11 (~7.1%) hacia el vencimiento del 2026-11-06 (36 días)
+
+*Estrategia posible a investigar: Iron Condor*
+- Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
+- Riesgo máximo: El ancho del spread (de calls o de puts) menos la prima neta recibida.
+- Ganancia máxima: La prima neta recibida al abrir la posición.
+- Breakeven: Dos puntos: strike corto de puts − prima neta, y strike corto de calls + prima neta.
+- Nota educativa: Vender un spread de calls y un spread de puts alrededor del precio actual. Gana si el precio se queda dentro de un rango hasta el vencimiento; el riesgo queda definido por el ancho de los spreads.
+
+**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
+
+## 15. Valero Energy Corporation (VLO) — 73/100
 *Oil & Gas Refining & Marketing*
 
 ¿Por qué el modelo encontró esta empresa?
 - Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
-- Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
 - El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
+- Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
 
 **¿Qué deberías investigar?**
 
@@ -574,11 +574,11 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 52%
-- Volatilidad histórica: 34%
+- Volatilidad implícita actual: 51%
+- Volatilidad histórica: 35%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2026-10-22
-- Movimiento esperado: ±$65.43 (~16.5%) hacia el vencimiento del 2026-11-06 (37 días)
+- Movimiento esperado: ±$65.38 (~16.2%) hacia el vencimiento del 2026-11-06 (36 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -589,46 +589,7 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 16. Bank of America Corporation (BAC) — 73/100
-*Banks - Diversified*
-
-¿Por qué el modelo encontró esta empresa?
-- Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
-- Se puede comprar a un precio muy razonable frente a lo que gana la empresa.
-- Se mueve con relativamente poca volatilidad.
-
-**¿Qué deberías investigar?**
-
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Bank of America Corporation?
-- [ ] ¿Los ingresos han estado creciendo en los últimos años?
-- [ ] ¿Cuánta deuda tiene la empresa?
-- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
-- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
-- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de Bank of America Corporation dentro de Banks - Diversified?
-- [ ] ¿Hay noticias importantes de la empresa esta semana?
-- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
-- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
-- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
-
-**Ideas de opciones para investigar**
-
-- Volatilidad implícita actual: 29%
-- Volatilidad histórica: 21%
-- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2026-10-14
-- Movimiento esperado: ±$5.11 (~9.4%) hacia el vencimiento del 2026-11-06 (37 días)
-
-*Estrategia posible a investigar: Iron Condor*
-- Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
-- Riesgo máximo: El ancho del spread (de calls o de puts) menos la prima neta recibida.
-- Ganancia máxima: La prima neta recibida al abrir la posición.
-- Breakeven: Dos puntos: strike corto de puts − prima neta, y strike corto de calls + prima neta.
-- Nota educativa: Vender un spread de calls y un spread de puts alrededor del precio actual. Gana si el precio se queda dentro de un rango hasta el vencimiento; el riesgo queda definido por el ancho de los spreads.
-
-**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
-
-## 17. Microsoft Corporation (MSFT) — 73/100
+## 16. Microsoft Corporation (MSFT) — 73/100
 *Software - Infrastructure*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -652,37 +613,38 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 34%
+- Volatilidad implícita actual: 35%
 - Volatilidad histórica: 39%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2026-10-28
-- Movimiento esperado: ±$55.89 (~10.8%) hacia el vencimiento del 2026-11-06 (37 días)
+- Movimiento esperado: ±$56.50 (~11.0%) hacia el vencimiento del 2026-11-06 (36 días)
 
 *Estrategia posible a investigar: Long Call*
 - Razón: Tendencia alcista y primas de opciones relativamente baratas (la volatilidad implícita está por debajo de la histórica).
-- Riesgo máximo: $2,173 (prima pagada por 1 contrato, 100 acciones)
+- Riesgo máximo: $2,330 (prima pagada por 1 contrato, 100 acciones)
 - Ganancia máxima: Ilimitada (sube junto con el precio de la acción).
-- Breakeven: $541.73 (strike + prima pagada)
+- Breakeven: $538.30 (strike + prima pagada)
 - Nota educativa: Comprar una call da el derecho (no la obligación) de comprar 100 acciones al strike antes del vencimiento. Se usa para apostar a que el precio suba, arriesgando solo la prima pagada.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 18. Agilent Technologies, Inc. (A) — 73/100
-*Diagnostics & Research*
+## 17. ExxonMobil Holdings Corporation (XOM) — 73/100
+*Oil & Gas Integrated*
 
 ¿Por qué el modelo encontró esta empresa?
+- Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
 - El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
-- Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
+- Ha estado subiendo de forma sostenida durante varios meses.
 
 **¿Qué deberías investigar?**
 
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Agilent Technologies, Inc.?
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de ExxonMobil Holdings Corporation?
 - [ ] ¿Los ingresos han estado creciendo en los últimos años?
 - [ ] ¿Cuánta deuda tiene la empresa?
 - [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
 - [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
 - [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de Agilent Technologies, Inc. dentro de Diagnostics & Research?
+- [ ] ¿Quiénes son los competidores más grandes de ExxonMobil Holdings Corporation dentro de Oil & Gas Integrated?
 - [ ] ¿Hay noticias importantes de la empresa esta semana?
 - [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
 - [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
@@ -691,10 +653,10 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 **Ideas de opciones para investigar**
 
 - Volatilidad implícita actual: 32%
-- Volatilidad histórica: 29%
+- Volatilidad histórica: 26%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2026-11-25
-- Movimiento esperado: ±$21.08 (~12.1%) hacia el vencimiento del 2026-11-20 (51 días)
+- Próximos resultados: 2026-10-30
+- Movimiento esperado: ±$16.66 (~10.2%) hacia el vencimiento del 2026-11-06 (36 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -705,23 +667,23 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 19. Citigroup Inc. (C) — 73/100
-*Banks - Diversified*
+## 18. Analog Devices, Inc. (ADI) — 73/100
+*Semiconductors*
 
 ¿Por qué el modelo encontró esta empresa?
-- Se puede comprar a un precio muy razonable frente a lo que gana la empresa.
+- Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
+- El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
 - Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
-- El precio se mantiene por encima de sus promedios de largo plazo, señal de una tendencia saludable.
 
 **¿Qué deberías investigar?**
 
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Citigroup Inc.?
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Analog Devices, Inc.?
 - [ ] ¿Los ingresos han estado creciendo en los últimos años?
 - [ ] ¿Cuánta deuda tiene la empresa?
 - [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
 - [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
 - [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de Citigroup Inc. dentro de Banks - Diversified?
+- [ ] ¿Quiénes son los competidores más grandes de Analog Devices, Inc. dentro de Semiconductors?
 - [ ] ¿Hay noticias importantes de la empresa esta semana?
 - [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
 - [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
@@ -729,11 +691,11 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 35%
-- Volatilidad histórica: 27%
+- Volatilidad implícita actual: 42%
+- Volatilidad histórica: 32%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2026-10-13
-- Movimiento esperado: ±$14.54 (~11.2%) hacia el vencimiento del 2026-11-06 (37 días)
+- Próximos resultados: 2026-11-24
+- Movimiento esperado: ±$53.27 (~13.3%) hacia el vencimiento del 2026-11-06 (36 días)
 
 *Estrategia posible a investigar: Iron Condor*
 - Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
@@ -744,23 +706,23 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 20. The Coca-Cola Company (KO) — 73/100
-*Beverages - Non-Alcoholic*
+## 19. Bank of America Corporation (BAC) — 73/100
+*Banks - Diversified*
 
 ¿Por qué el modelo encontró esta empresa?
 - Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
-- El negocio es rentable: gana dinero de forma consistente sobre su capital.
-- Se mueve con relativamente poca volatilidad.
+- Se puede comprar a un precio muy razonable frente a lo que gana la empresa.
+- El precio se mantiene por encima de sus promedios de largo plazo, señal de una tendencia saludable.
 
 **¿Qué deberías investigar?**
 
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de The Coca-Cola Company?
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Bank of America Corporation?
 - [ ] ¿Los ingresos han estado creciendo en los últimos años?
 - [ ] ¿Cuánta deuda tiene la empresa?
 - [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
 - [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
 - [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de The Coca-Cola Company dentro de Beverages - Non-Alcoholic?
+- [ ] ¿Quiénes son los competidores más grandes de Bank of America Corporation dentro de Banks - Diversified?
 - [ ] ¿Hay noticias importantes de la empresa esta semana?
 - [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
 - [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
@@ -768,11 +730,11 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 22%
+- Volatilidad implícita actual: 30%
 - Volatilidad histórica: 21%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2026-10-27
-- Movimiento esperado: ±$6.05 (~7.0%) hacia el vencimiento del 2026-11-06 (37 días)
+- Próximos resultados: 2026-10-14
+- Movimiento esperado: ±$4.98 (~9.3%) hacia el vencimiento del 2026-11-06 (36 días)
 
 *Estrategia posible a investigar: Iron Condor*
 - Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
@@ -780,9 +742,48 @@ Analicé **497** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 - Ganancia máxima: La prima neta recibida al abrir la posición.
 - Breakeven: Dos puntos: strike corto de puts − prima neta, y strike corto de calls + prima neta.
 - Nota educativa: Vender un spread de calls y un spread de puts alrededor del precio actual. Gana si el precio se queda dentro de un rango hasta el vencimiento; el riesgo queda definido por el ancho de los spreads.
+
+**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
+
+## 20. Fortinet, Inc. (FTNT) — 73/100
+*Software - Infrastructure*
+
+¿Por qué el modelo encontró esta empresa?
+- Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
+- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
+- El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
+
+**¿Qué deberías investigar?**
+
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Fortinet, Inc.?
+- [ ] ¿Los ingresos han estado creciendo en los últimos años?
+- [ ] ¿Cuánta deuda tiene la empresa?
+- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
+- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
+- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
+- [ ] ¿Quiénes son los competidores más grandes de Fortinet, Inc. dentro de Software - Infrastructure?
+- [ ] ¿Hay noticias importantes de la empresa esta semana?
+- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
+- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
+- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
+
+**Ideas de opciones para investigar**
+
+- Volatilidad implícita actual: 60%
+- Volatilidad histórica: 45%
+- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
+- Próximos resultados: 2026-11-04
+- Movimiento esperado: ±$33.71 (~19.0%) hacia el vencimiento del 2026-11-06 (36 días)
+
+*Estrategia posible a investigar: Covered Call*
+- Razón: La volatilidad implícita alta encarece las primas de las opciones.
+- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
+- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
+- Breakeven: Precio de compra de la acción − prima recibida.
+- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
 ---
 
-Hoy el modelo está favoreciendo especialmente: acciones en una tendencia alcista clara, acciones muy líquidas y fáciles de operar, acciones con impulso fuerte en el precio, varias empresas del sector Healthcare.
+Hoy el modelo está favoreciendo especialmente: acciones en una tendencia alcista clara, acciones muy líquidas y fáciles de operar, acciones con impulso fuerte en el precio, varias empresas del sector Technology.
