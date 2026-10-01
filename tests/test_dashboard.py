@@ -2495,13 +2495,14 @@ def test_ruptura_al_decidir_sin_dato_no_se_rellena_con_la_actual(tmp_path):
 
 # ───────── 2026-09-29: el plan de Alpaca no da SIP en vivo ─────────
 
-def test_feed_rechazado_por_el_plan_usa_yahoo_sin_decir_respaldo_y_no_insiste(tmp_path):
+@pytest.mark.parametrize("codigo", ["auth", "http_401", "http_403"])
+def test_feed_rechazado_por_el_plan_usa_yahoo_sin_decir_respaldo_y_no_insiste(tmp_path, codigo):
     from momentum_hunter.data.alpaca_datos import ErrorDatosAlpaca
     llamadas = []
 
     def alpaca_403(ticker):
         llamadas.append(ticker)
-        raise ErrorDatosAlpaca("auth")
+        raise ErrorDatosAlpaca(codigo)
 
     cache = tmp_path / "cache"
     r = dv.obtener("AAA", AHORA, cache, ttl_seg=0, fuente=lambda t: _velas(), alpaca=alpaca_403)

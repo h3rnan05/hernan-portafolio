@@ -183,7 +183,8 @@ def test_429_reintenta_y_401_no(monkeypatch):
     monkeypatch.setattr(ad.requests, "get", _auth)
     with pytest.raises(ErrorDatosAlpaca) as exc:
         _provider().barras(["ACME"])
-    assert exc.value.codigo == "auth"
+    # El código real (antes "auth"): 401 son claves, no el plan.
+    assert exc.value.codigo == "http_401"
     assert llamadas["n"] == 1
 
 
@@ -730,6 +731,8 @@ def test_claves_ausentes_o_vacias_caen_a_yahoo_sin_romper(monkeypatch, clave, se
     # respaldo Yahoo de un ciclo que el feed no pudo atender.
     monkeypatch.setenv("MOMENTUM_DATA_PROVIDER", "alpaca")
     monkeypatch.setenv("ALPACA_DATA_FEED", "sip")
+    # El camino viejo (Alpaca primero). `sombra`/`on`: test_sip_retrasado.
+    monkeypatch.setenv("MOMENTUM_SIP_RETRASADO", "off")
     for nombre, valor in (
         ("ALPACA_PAPER_API_KEY", clave),
         ("ALPACA_PAPER_API_SECRET", secreto),

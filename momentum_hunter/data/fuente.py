@@ -15,16 +15,44 @@ no es un respaldo, es otro dato.
 `primario`, y solo con feed `sip`, intenta servir el minuto desde el
 almacén del stream; si no cubre, sigue el REST de abajo. Ver
 `data/sip_stream.py`.
+
+SIP RETRASADO (`MOMENTUM_SIP_RETRASADO`, solo con feed `sip`). El plan
+de las claves no da SIP de los últimos 15 min (HTTP 403). Ver
+`alpaca_datos.py` para la medición.
+  - `off`: como antes del 1-oct. Se pide SIP hasta ahora, da 403 y el
+    pedido entero va a Yahoo (cuenta como fallback).
+  - `sombra` (default): las DECISIONES salen de Yahoo, sin pasar por el
+    403, porque mover la fila diaria de hoy 16 min atrás cambia el RVOL
+    diario y la shortlist de v1. Además, cada pedido DIARIO se repite
+    contra el SIP retrasado y se registra una comparación (`sombra sip
+    retrasado: ...`). Esa respuesta nunca llega al hunter.
+  - `on`: barras diarias del SIP hasta ahora-16 min (historia completa,
+    volumen consolidado; la fila de hoy llega hasta el corte), Yahoo solo
+    para los lotes que fallen. El minuto (VWAP, patrones, precio de
+    entrada) sigue en Yahoo: el tramo reciente necesita una cinta en vivo
+    y la única de Alpaca sin plan es IEX, con 0.2-10 % del volumen.
+    Mezclarla cambiaría cómo se evalúan los filtros de volumen.
+En `sombra` y `on` el minuto va directo a Yahoo: es lo mismo que hoy
+(el 403 mandaba el pedido entero a Yahoo), sin el pedido que falla. Ese
+uso es de diseño, no fallback: no suma a `fallbacks`.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import statistics
 import time
 from dataclasses import dataclass
+from datetime import UTC, datetime
+from zoneinfo import ZoneInfo
 
-from momentum_hunter.data.alpaca_datos import AlpacaProvider, ErrorDatosAlpaca
+from momentum_hunter.data.alpaca_datos import (
+    RETRASO_SIP_MIN,
+    AlpacaProvider,
+    ErrorDatosAlpaca,
+    modo_sip_retrasado,
+)
 from momentum_hunter.data.provider import DataProvider, YahooProvider
 from momentum_hunter.models import Barras, BarraIntradia, Metadata
 
@@ -111,16 +139,92 @@ class _Medido(DataProvider):
         )
 
 
+_NY = ZoneInfo("America/New_York")
+
+
+def _fecha_ny(marca: str) -> str | None:
+    """Epoch en segundos (texto, contrato de las diarias) -> fecha de NY."""
+    try:
+        return datetime.fromtimestamp(int(marca), UTC).astimezone(_NY).date().isoformat()
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
+
+
+def _cuantiles(valores: list[float]) -> dict | None:
+    if not valores:
+        return None
+    ordenados = sorted(valores)
+    n = len(ordenados)
+    return {
+        "n": n,
+        "p10": round(ordenados[int(0.1 * (n - 1))], 4),
+        "mediana": round(statistics.median(ordenados), 4),
+        "p90": round(ordenados[int(0.9 * (n - 1))], 4),
+    }
+
+
+def comparar_diarias(yahoo: dict, sip: dict, hoy: str) -> dict:
+    """Yahoo (lo que decidió) contra SIP retrasado, por fecha de NY.
+
+    - `vol_ayer_sip_sobre_yahoo`: volumen de la última sesión completa
+      común (no hoy). Mide si las dos cintas son el mismo consolidado.
+    - `vol_hoy_sip_sobre_yahoo`: la fila de hoy; el SIP corta 16 min
+      antes, así que se espera < 1.
+    - `cierre_hoy_dif_pct`: |cierre SIP - cierre Yahoo| / Yahoo, fila de hoy.
+    Un ticker sin la fecha en una de las dos no entra en esa cuenta: un
+    faltante no es un 0 ni una razón de 0."""
+    comunes = sorted(set(yahoo) & set(sip))
+    vol_ayer, vol_hoy, cierre_hoy = [], [], []
+    sin_hoy_sip = 0
+    for t in comunes:
+        y, s = yahoo[t], sip[t]
+        fy = {f: i for i, m in enumerate(y.fechas) if (f := _fecha_ny(m))}
+        fs = {f: i for i, m in enumerate(s.fechas) if (f := _fecha_ny(m))}
+        previas = sorted(f for f in set(fy) & set(fs) if f < hoy)
+        if previas:
+            vy, vs = y.volume[fy[previas[-1]]], s.volume[fs[previas[-1]]]
+            if vy and vy > 0 and vs is not None and vs >= 0:
+                vol_ayer.append(vs / vy)
+        if hoy in fy and hoy not in fs:
+            sin_hoy_sip += 1
+        if hoy in fy and hoy in fs:
+            vy, vs = y.volume[fy[hoy]], s.volume[fs[hoy]]
+            if vy and vy > 0 and vs is not None and vs >= 0:
+                vol_hoy.append(vs / vy)
+            cy, cs = y.close[fy[hoy]], s.close[fs[hoy]]
+            if cy and cy > 0 and cs is not None:
+                cierre_hoy.append(abs(cs - cy) / cy * 100.0)
+    return {
+        "n_yahoo": len(yahoo),
+        "n_sip": len(sip),
+        "n_comunes": len(comunes),
+        "solo_yahoo": len(set(yahoo) - set(sip)),
+        "solo_sip": len(set(sip) - set(yahoo)),
+        "hoy_sin_fila_sip": sin_hoy_sip,
+        "vol_ayer_sip_sobre_yahoo": _cuantiles(vol_ayer),
+        "vol_hoy_sip_sobre_yahoo": _cuantiles(vol_hoy),
+        "cierre_hoy_dif_pct": _cuantiles(cierre_hoy),
+    }
+
+
 class ProveedorConRespaldo(DataProvider):
     """Primero el feed; Yahoo solo para los símbolos (o el ciclo) que
     no respondieron. Un símbolo ausente en una respuesta 200 no es un
     fallo: el feed dijo que no hay velas, y inventarle las de otra
     fuente mezclaría dos cintas en el mismo cálculo."""
 
-    def __init__(self, primario: AlpacaProvider, respaldo: DataProvider, feed: str) -> None:
+    def __init__(
+        self, primario: AlpacaProvider, respaldo: DataProvider, feed: str,
+        modo: str = "off", sombra: AlpacaProvider | None = None, ahora=None,
+    ) -> None:
         self._primario = primario
         self._respaldo = respaldo
         self._feed = feed
+        # Fuera de SIP no hay límite de 15 min: siempre `off`.
+        self._modo = modo if feed == "sip" and modo in ("sombra", "on") else "off"
+        self._sombra = sombra if self._modo == "sombra" else None
+        self._ahora = ahora or (lambda: datetime.now(UTC))
+        self.ultima_comparacion: dict | None = None
         self._llamadas = 0
         self._uso_primario = False
         self._uso_respaldo = False
@@ -171,7 +275,43 @@ class ProveedorConRespaldo(DataProvider):
         finally:
             self._marcar_tiempo(t0)
 
+    def _solo_respaldo(self, pedir_respaldo):
+        """Yahoo por diseño (`sombra`/`on`): no es fallback."""
+        t0 = time.perf_counter()
+        try:
+            out = pedir_respaldo()
+            self._uso_respaldo = True
+            return out
+        finally:
+            self._marcar_tiempo(t0)
+
+    def _comparar_en_sombra(self, tickers: list[str], dias: int, decididas: dict) -> None:
+        """SIP retrasado del mismo pedido, solo para el log. Nada de esto
+        vuelve al caller ni cuenta en `informe_datos`; un fallo acá solo
+        se registra (el tipo o el código, nunca el cuerpo)."""
+        if self._sombra is None:
+            return
+        t0 = time.perf_counter()
+        try:
+            sip = self._sombra.barras(tickers, dias)
+            hoy = self._ahora().astimezone(_NY).date().isoformat()
+            resumen = comparar_diarias(decididas if isinstance(decididas, dict) else {}, sip, hoy)
+            resumen["fallidos_sip"] = len(getattr(self._sombra, "fallidos", []) or [])
+            corte = getattr(self._sombra, "corte", None)
+            resumen["corte"] = corte.isoformat(timespec="seconds") if isinstance(corte, datetime) else None
+            resumen["latencia_ms"] = round((time.perf_counter() - t0) * 1000.0, 1)
+            self.ultima_comparacion = resumen
+            log.info("sombra sip retrasado: %s", resumen)
+        except ErrorDatosAlpaca as ex:
+            log.warning("sombra sip retrasado: no disponible (%s)", ex.codigo)
+        except Exception as ex:   # noqa: BLE001 -- la sombra nunca tumba el escaneo
+            log.warning("sombra sip retrasado: no disponible (%s)", type(ex).__name__)
+
     def barras(self, tickers: list[str], dias: int = 280) -> dict[str, Barras]:
+        if self._modo == "sombra":
+            out = self._solo_respaldo(lambda: self._respaldo.barras(tickers, dias))
+            self._comparar_en_sombra(tickers, dias, out)
+            return out
         return self._completar(
             tickers,
             lambda ts: self._primario.barras(ts, dias),
@@ -199,6 +339,12 @@ class ProveedorConRespaldo(DataProvider):
                 self._uso_primario = True
                 self._marcar_tiempo(t0)
                 return servidas
+        if self._modo in ("sombra", "on"):
+            # El SIP de ahora da 403 con este plan; el retrasado no sirve
+            # para el minuto (16 min tarde) e IEX no es el consolidado.
+            return self._solo_respaldo(
+                lambda: self._respaldo.barras_intradia(tickers, intervalo, periodo),
+            )
         return self._completar(
             tickers,
             lambda ts: self._primario.barras_intradia(ts, intervalo, periodo),
@@ -287,5 +433,29 @@ def _proveedor_precios(construir_yahoo=None) -> DataProvider:
     if feed not in ("sip", "iex"):
         log.warning("ALPACA_DATA_FEED=%s no es sip ni iex; se queda en yahoo", feed)
         return _Medido(construir(), configurada="yahoo")
-    log.info("datos: feed de precios alpaca/%s, con respaldo yahoo", feed)
-    return ProveedorConRespaldo(AlpacaProvider(feed=feed), construir(), feed=feed)
+    if feed != "sip":
+        log.info("datos: feed de precios alpaca/%s, con respaldo yahoo", feed)
+        return ProveedorConRespaldo(AlpacaProvider(feed=feed), construir(), feed=feed)
+    modo = modo_sip_retrasado()
+    if modo == "on":
+        log.info(
+            "datos: diarias alpaca/sip retrasado %d min (respaldo yahoo); minuto de yahoo",
+            RETRASO_SIP_MIN,
+        )
+        return ProveedorConRespaldo(
+            AlpacaProvider(feed="sip", retraso_min=RETRASO_SIP_MIN), construir(),
+            feed="sip", modo="on",
+        )
+    if modo == "sombra":
+        log.info(
+            "datos: precios de yahoo; sip retrasado %d min solo en sombra (diarias)",
+            RETRASO_SIP_MIN,
+        )
+        return ProveedorConRespaldo(
+            AlpacaProvider(feed="sip"), construir(), feed="sip", modo="sombra",
+            # Un intento y timeout corto: la sombra no puede alargar el
+            # escaneo como lo haría un primario con reintentos.
+            sombra=AlpacaProvider(feed="sip", retraso_min=RETRASO_SIP_MIN, reintentos=1, timeout=10.0),
+        )
+    log.info("datos: feed de precios alpaca/sip, con respaldo yahoo")
+    return ProveedorConRespaldo(AlpacaProvider(feed="sip"), construir(), feed="sip")

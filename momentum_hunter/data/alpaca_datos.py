@@ -51,6 +51,27 @@ la traducción adivinada: un símbolo que el catálogo no tiene es el
 mismo 400 de lote que esta sección existe para evitar. Si el archivo
 falta o está viejo, sigue valiendo la traducción de arriba y no se
 filtra nada por él.
+
+SIP RETRASADO (2026-10-01). El plan de las claves paper NO incluye SIP
+reciente: cualquier pedido SIP cuyo `end` caiga dentro de los últimos
+15 minutos responde HTTP 403 ("subscription does not permit querying
+recent SIP data"). Medido en vivo el 1-oct: `end` = ahora-15 min da 200,
+ahora-14 min da 403; subastas con `end`=ahora, 403. (La diaria sin
+`end` respondió 200 recortada por el servidor; no se depende de eso.)
+Con `retraso_min` el `end` de cada pedido SIP es ahora-`retraso_min`
+(16: un minuto de margen): la historia sale del SIP consolidado y la
+fila diaria de hoy llega hasta ese corte. Este módulo NO rellena el
+tramo reciente con otra cinta. IEX sí responde en vivo, pero su volumen
+es una fracción del consolidado (1-oct, 9:30-12:42 ET, IEX/SIP: SPY
+3.3 %, VOYG 3.4 %, WRD 4.6 %, MDT 5.7 %, NTAP 9.9 %, MGLD 0.2 % con 2 de
+68 velas): pegarlo al final de una serie SIP hundiría el RVOL, el VWAP y
+cualquier filtro de volumen. `delayed_sip` es el mismo SIP con 15 min de
+retraso: no trae nada más nuevo que este corte. Qué fuente cubre el
+tramo reciente lo decide `fuente.py` (`MOMENTUM_SIP_RETRASADO`).
+
+CÓDIGOS. 401 (claves inválidas o revocadas) y 403 (el plan no permite
+ese dato) se registran como `http_401` / `http_403`, no como un `auth`
+genérico: son fallas distintas y se arreglan distinto.
 """
 
 from __future__ import annotations
@@ -92,6 +113,40 @@ LOTE_INTRADIA = 15
 # el corte, no un símbolo. Por debajo sí se aísla al culpable.
 UMBRAL_CORTE_400 = 8
 ESPERA_MAX_S = 8.0
+# SIP sin plan de pago: el `end` tiene que quedar >= 15 min atrás. Uno
+# más de margen para el reloj y la latencia del pedido.
+RETRASO_SIP_MIN = 16
+# Rechazo de credenciales o de plan: no se reintenta ni se parte el lote.
+CODIGOS_RECHAZO = ("http_401", "http_403")
+
+ENV_SIP_RETRASADO = "MOMENTUM_SIP_RETRASADO"
+# off: como antes (end=ahora; con el plan actual el SIP da 403 y todo va
+# a Yahoo). sombra (default): las decisiones siguen con Yahoo, el SIP
+# retrasado solo se pide para comparar. on: barras diarias y subastas
+# del SIP retrasado; el minuto sigue en Yahoo. Ver `fuente.py`.
+MODOS_SIP_RETRASADO = ("off", "sombra", "on")
+MODO_SIP_RETRASADO_DEFAULT = "sombra"
+
+
+def modo_sip_retrasado() -> str:
+    """Modo leído del entorno. Un valor desconocido no enciende nada:
+    queda en `sombra` (las decisiones no cambian) y avisa."""
+    import os
+    valor = os.environ.get(ENV_SIP_RETRASADO, "").strip().lower()
+    if not valor:
+        return MODO_SIP_RETRASADO_DEFAULT
+    if valor not in MODOS_SIP_RETRASADO:
+        log.warning(
+            "%s=%s no es off/sombra/on; queda en %s",
+            ENV_SIP_RETRASADO, valor, MODO_SIP_RETRASADO_DEFAULT,
+        )
+        return MODO_SIP_RETRASADO_DEFAULT
+    return valor
+
+
+def es_rechazo(codigo: object) -> bool:
+    """401/403 (y el `auth` viejo, por si viene de otro lado)."""
+    return codigo in CODIGOS_RECHAZO or codigo == "auth"
 
 _TIMEFRAMES = {
     "1m": "1Min",
@@ -343,9 +398,12 @@ class AlpacaProvider(DataProvider):
         pausa: float = 0.0,
         dormir=time.sleep,
         ahora=None,
+        retraso_min: int | None = None,
     ) -> None:
         if feed not in FEEDS_VALIDOS:
             raise ErrorDatosAlpaca("feed")
+        if retraso_min is not None and (isinstance(retraso_min, bool) or retraso_min < 1):
+            raise ErrorDatosAlpaca("retraso")
         self._api_key = api_key
         self._api_secret = api_secret
         self.feed = feed
@@ -356,6 +414,10 @@ class AlpacaProvider(DataProvider):
         self._ahora = ahora or (lambda: datetime.now(UTC))
         self.fallidos: list[str] = []
         self.ultimo_codigo: str | None = None
+        # Solo aplica al feed SIP: IEX no tiene el límite de 15 min.
+        self.retraso_min = retraso_min if feed == "sip" else None
+        # `end` del último pedido de barras (UTC), para quien compare.
+        self.corte: datetime | None = None
         # Yahoo solo para metadata (float / ETF / nombre). No es el
         # respaldo de precios: ese lo pone `fuente.proveedor_configurado`.
         self._meta = None
@@ -403,7 +465,8 @@ class AlpacaProvider(DataProvider):
                 log.warning("datos: HTTP %s en %s (intento %d)", status, path, intento + 1)
                 continue
             if status in (401, 403):
-                raise ErrorDatosAlpaca("auth")
+                # El código real: 401 son claves malas, 403 es el plan.
+                raise ErrorDatosAlpaca(f"http_{status}")
             if isinstance(status, int) and status >= 400:
                 raise ErrorDatosAlpaca(f"http_{status}")
             try:
@@ -608,8 +671,17 @@ class AlpacaProvider(DataProvider):
         marcas, o, h, lo, c, vol = listas
         return BarraIntradia(ticker, marcas, o, c, h, lo, vol)
 
-    def barras(self, tickers: list[str], dias: int = 280) -> dict[str, Barras]:
+    def _fin(self) -> datetime:
+        """`end` del pedido: ahora, o ahora-`retraso_min` con SIP
+        retrasado. Queda en `self.corte`."""
         ahora = self._ahora()
+        if self.retraso_min:
+            ahora = ahora - timedelta(minutes=self.retraso_min)
+        self.corte = ahora
+        return ahora
+
+    def barras(self, tickers: list[str], dias: int = 280) -> dict[str, Barras]:
+        ahora = self._fin()
         # Misma ventana que Yahoo: 1 año si el caller pide <= 365, 2 si no.
         calendario = 365 * 2 if dias > 365 else 365
         inicio = ahora - timedelta(days=calendario)
@@ -634,7 +706,7 @@ class AlpacaProvider(DataProvider):
     def barras_intradia(
         self, tickers: list[str], intervalo: str = "1m", periodo: str = "5d",
     ) -> dict[str, BarraIntradia]:
-        ahora = self._ahora()
+        ahora = self._fin()
         inicio = ahora - timedelta(days=dias_de_periodo(periodo))
         params = {
             "timeframe": timeframe_de(intervalo),
