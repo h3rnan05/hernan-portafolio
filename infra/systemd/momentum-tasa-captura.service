@@ -1,0 +1,18 @@
+[Unit]
+Description=Tasa de captura diaria: movers reales vs. lo que vio el bot (solo lectura)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=momentum
+Group=momentum
+WorkingDirectory=/opt/hernan-portafolio
+Environment=PYTHONPATH=/opt/hernan-portafolio
+EnvironmentFile=/etc/momentum/paper.env
+# Lee watchlist, auditoría, telemetría y noticias_leidas; pide Yahoo y el
+# host de DATOS de Alpaca. Escribe solo en $MOMENTUM_ESTADO_DIR/tasa_captura/.
+# Encender: MOMENTUM_TASA_CAPTURA=1 (y _TELEGRAM=1 para el aviso) en paper.env.
+ExecStart=/opt/momentum/bin/run_tasa_captura.sh
+Nice=15
+TimeoutStartSec=900

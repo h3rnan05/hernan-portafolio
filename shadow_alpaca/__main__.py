@@ -5,13 +5,14 @@
     python -m shadow_alpaca historia descargar --simbolos AAPL --almacen /var/lib/momentum/shadow_alpaca/sip
     python -m shadow_alpaca historia diff --simbolos AAPL --almacen /var/lib/momentum/shadow_alpaca/sip
     python -m shadow_alpaca informe --sesiones 5
+    python -m shadow_alpaca tasa_captura --telegram
 """
 
 from __future__ import annotations
 
 import sys
 
-from shadow_alpaca import historia, informe, noticias, screener
+from shadow_alpaca import historia, informe, noticias, screener, tasa_captura
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -22,7 +23,8 @@ def main(argv: list[str] | None = None) -> int:
             "  noticias     B1: noticias Benzinga + Yahoo, el detector del hunter\n"
             "  screener     B2: most-actives y movers, solapes en JSONL\n"
             "  historia     B3: barras SIP a un almacén local, y diff contra Yahoo\n"
-            "  informe      resumen en español de N sesiones de B1/B2\n",
+            "  informe      resumen en español de N sesiones de B1/B2\n"
+            "  tasa_captura de los movers reales del día, cuántos vio el bot (CSV + resumen)\n",
         )
         return 0 if args else 2
     cmd, resto = args[0], args[1:]
@@ -34,6 +36,8 @@ def main(argv: list[str] | None = None) -> int:
         return historia.main(resto)
     if cmd == "informe":
         return informe.main(resto)
+    if cmd == "tasa_captura":
+        return tasa_captura.main(resto)
     print(f"subcomando desconocido: {cmd}", file=sys.stderr)
     return 2
 

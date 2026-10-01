@@ -1,0 +1,15 @@
+[Unit]
+Description=Tasa de captura, Lun-Vie 16:25 Nueva York (después del reporte de cierre). NO se instala solo.
+Requires=momentum-tasa-captura.service
+
+[Timer]
+# En hora de Nueva York para no depender del horario de verano. 16:25 ET
+# deja terminar la última sombra de movers y el reporte de cierre (16:15).
+# Un feriado corre igual y el resumen avisa que las cotizaciones son de
+# otro día. Persistent=false: correrla al día siguiente mezclaría fechas.
+OnCalendar=Mon..Fri *-*-* 16:25:00 America/New_York
+Persistent=false
+Unit=momentum-tasa-captura.service
+
+[Install]
+WantedBy=timers.target

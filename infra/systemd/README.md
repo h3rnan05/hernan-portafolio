@@ -43,6 +43,8 @@ Alpaca.
 | `bin/run_metadata_sombra.sh` | `/opt/momentum/bin/` (solo si se instala la sombra) | no-op salvo `MOMENTUM_METADATA_SOMBRA=1`; necesita `FINNHUB_API_KEY`; no hace git ni toca la watchlist |
 | `momentum-sip-stream.service` | **NO se instala solo** | proceso permanente: UNA conexión websocket SIP de barras de minuto, modo sombra (`momentum_hunter/data/sip_stream.py`). No decide |
 | `bin/run_sip_stream.sh` | `/opt/momentum/bin/` (solo si se instala el stream) | wrapper: fuerza `MOMENTUM_SIP_STREAM=sombra`; no coloca órdenes |
+| `momentum-tasa-captura.service` / `.timer` | **NO se instala solo** | Lun–Vie 16:25 Nueva York: movers reales del día vs. lo que vio el bot, CSV en `/var/lib/momentum/estado/tasa_captura/` (`shadow_alpaca/tasa_captura.py`). Solo lectura |
+| `bin/run_tasa_captura.sh` | `/opt/momentum/bin/` (solo si se instala la tasa de captura) | no-op salvo `MOMENTUM_TASA_CAPTURA=1`; Telegram con `MOMENTUM_TASA_CAPTURA_TELEGRAM=1` |
 
 **No versionado a propósito:** `/etc/momentum/paper.env` (credenciales;
 viven en el VPS y en GitHub Secrets, nunca en el repo).
@@ -222,6 +224,40 @@ sudo systemctl daemon-reload
 sudo systemctl restart momentum-movers-sombra.timer
 systemctl list-timers momentum-movers-sombra.timer
 ```
+
+## Tasa de captura diaria (NO se instala solo)
+
+Al cierre arma la lista de "movers reales" (precio $0,75-$20, +20 % o más,
+volumen ≥ 5x su promedio de 20 días, screener + barras diarias de Yahoo) y,
+para cada uno, anota si lo vio el flujo actual (watchlist), si lo vio
+movers_sombra, si tenía noticia en Yahoo y en Alpaca/Benzinga, y dónde se
+cayó. Solo lectura: no toca filtros, watchlist, paper trader ni órdenes.
+Detalle en el docstring de `shadow_alpaca/tasa_captura.py`.
+
+Salida (fuera de git): `/var/lib/momentum/estado/tasa_captura/AAAA-MM-DD.csv`,
+`AAAA-MM-DD.resumen.json` e `historico.csv` (una fila por día). Otra carpeta
+con `MOMENTUM_TASA_CAPTURA_DIR`.
+
+```bash
+cd /opt/hernan-portafolio
+echo 'MOMENTUM_TASA_CAPTURA=1' | sudo tee -a /etc/momentum/paper.env
+echo 'MOMENTUM_TASA_CAPTURA_TELEGRAM=1' | sudo tee -a /etc/momentum/paper.env
+sudo install -m 755 infra/systemd/bin/run_tasa_captura.sh /opt/momentum/bin/
+sudo cp infra/systemd/momentum-tasa-captura.service infra/systemd/momentum-tasa-captura.timer /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now momentum-tasa-captura.timer
+systemctl list-timers momentum-tasa-captura.timer
+# Probarlo sin esperar al timer (sin Telegram):
+sudo -u momentum env PYTHONPATH=/opt/hernan-portafolio bash -c \
+  'set -a; . /etc/momentum/paper.env; set +a; /opt/hernan-portafolio/.venv/bin/python -m shadow_alpaca tasa_captura'
+```
+
+Noticias de Alpaca: usa `ALPACA_PAPER_API_KEY` / `ALPACA_PAPER_API_SECRET`
+que ya están en `paper.env` (solo el host de DATOS). Sin ellas la columna
+dice `error:sin_credenciales`, no "no". movers_sombra solo cuenta si
+`momentum-movers-sombra.timer` está encendido; si no, esa columna es
+`sin_dato` y no entra al porcentaje.
+
+Apagar: `sudo systemctl disable --now momentum-tasa-captura.timer`.
 
 ## Sombra de metadata Yahoo vs Finnhub (NO se instala solo)
 
