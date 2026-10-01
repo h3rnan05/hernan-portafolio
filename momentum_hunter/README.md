@@ -196,6 +196,11 @@ models.py             Barras/BarraIntradia/Metadata/Catalizador/
 data/provider.py       DataProvider ABC + YahooProvider -- barras diarias Y velas
                        intradía (1m/5m). "El algoritmo nunca depende de Yahoo
                        específicamente": todo lo demás solo conoce BarraIntradia.
+data/alpaca_datos.py   AlpacaProvider -- la misma interfaz, contra el feed SIP de
+                       data.alpaca.markets (solo lectura, `feed=sip`).
+data/fuente.py         Elige la fuente de precios: `MOMENTUM_DATA_PROVIDER=alpaca`
+                       (default) o `yahoo`. Sin respaldo: si el feed cae, la
+                       corrida termina sin entradas nuevas (ver "Fuente de precios").
 universe.py            NYSE+NASDAQ+AMEX completo desde NASDAQ Trader (no solo S&P 500).
 factors/momentum.py     Etapa 1: Gap%, RVOL (20 días), breakout, EMA20/50, ATR, RSI,
                        MACD sobre barras diarias -- alimenta scoring.puntuar.
@@ -792,10 +797,42 @@ de git; otra ruta con `MOMENTUM_ACCIONES_CORP_LOG`): `observacion_*` en
 Limitación anotada: `FRACCION_CONFIANZA = 0.25` (cuánto se tiene que parecer
 el salto a "ajustada" o "cruda") es razonamiento, no calibración. No cambia
 qué es una oportunidad, solo cuándo la serie de precios es confiable.
+## Fuente de precios: Alpaca SIP, sin respaldo (2026-10-01)
+
+Velas diarias y de minuto del escaneo (`momentum_hunter.run`) y del
+rechequeo (`--solo-watchlist`) salen del feed SIP de
+`https://data.alpaca.markets`, con `feed=sip` explícito en cada llamada.
+El hunter nunca habla con el host de trading (hay una prueba que lo
+verifica). Noticias y metadata (float, ETF, nombre) siguen en Yahoo.
+
+| Variable | Valores | Efecto |
+|---|---|---|
+| `MOMENTUM_DATA_PROVIDER` | `alpaca` (default, también vacía) / `yahoo` | `yahoo` vuelve a Yahoo sin tocar código. Cualquier otro valor corta la corrida. |
+| `ALPACA_PAPER_API_KEY` / `ALPACA_PAPER_API_SECRET` | llaves | Solo se usan como headers del host de datos. |
+| `ALPACA_DATA_FEED` | — | El hunter la ignora: siempre `sip`. Si dice otra cosa, avisa. |
+
+**Fail-closed.** Sin llaves, con 401/403, o con el feed caído después de
+los reintentos (3 intentos, backoff exponencial de 0,4 s hasta 8 s, o el
+`Retry-After` del 429), `fuente.ProveedorAlpaca` lanza
+`FuentePreciosCaida`: el escaneo y el rechequeo terminan con código 2,
+sin escribir la watchlist ni mandar alertas, con el error en el log y
+(en el escaneo) en `errores` de la telemetría. No hay caída a Yahoo.
+
+**Un lote suelto.** Si dentro de un ciclo que funciona un lote no
+responde (p. ej. un 400 de un símbolo raro), esos símbolos quedan SIN
+datos y no se evalúan; el aviso nombra cuántos y el código. No se
+rellenan con otra fuente ni con ceros. Un campo ausente en una vela es
+`None` y la vela se descarta, nunca 0.
+
+Limitación conocida: con el feed caído, las TRIGGERED dejan de recibir
+niveles frescos y el ejecutor las frena por niveles rancios; no se
+compra nada hasta que vuelva el feed. Es el costo aceptado de no mezclar
+dos cintas.
+
 ## Stream SIP en sombra (2026-09-28)
 
 El minuto que decide el hunter sigue saliendo del REST
-(`data/alpaca_datos.py`, feed SIP, Yahoo si un lote falla). Al lado, un
+(`data/alpaca_datos.py`, feed SIP, sin respaldo). Al lado, un
 proceso aparte —`python -m momentum_hunter.data.sip_stream`, unidad
 `momentum-sip-stream.service`— abre **una** conexión a
 `wss://stream.data.alpaca.markets/v2/sip` y guarda barras de minuto.

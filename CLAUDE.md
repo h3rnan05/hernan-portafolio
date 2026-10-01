@@ -150,6 +150,7 @@ ronda los $15-35. Ese $100 es un techo, no una meta.
   también sobreviviría la noche.
 - Plan de datos de Alpaca: de pago desde el 1/10/2026, con SIP en tiempo real
   (verificado: velas de 1 min del minuto en curso con HTTP 200). El hunter usa
-  `MOMENTUM_DATA_PROVIDER=alpaca` + `ALPACA_DATA_FEED=sip` con Yahoo de
-  respaldo. El plan gratis solo daba IEX (~2,5 % del volumen) o SIP con 15 min
+  `MOMENTUM_DATA_PROVIDER=alpaca` (default) con `feed=sip` fijo y SIN
+  respaldo: si el feed falla, la corrida termina sin entradas nuevas
+  (`yahoo` vuelve a Yahoo a mano). El plan gratis solo daba IEX (~2,5 % del volumen) o SIP con 15 min
   de retraso: inservible para small caps.

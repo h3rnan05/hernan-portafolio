@@ -1,20 +1,34 @@
 """Qué fuente de precios usa el hunter en esta corrida.
 
-`MOMENTUM_DATA_PROVIDER=yahoo` (el default, también si la variable no
-está) deja el comportamiento de hoy. `alpaca` pide el feed de
-`ALPACA_DATA_FEED` (`sip` por omisión, o `iex`) y, si un lote o el ciclo
-entero falla, completa esos símbolos con Yahoo. El merge no enciende
-nada: hay que exportar la variable en el VPS y reiniciar el vigía.
+`MOMENTUM_DATA_PROVIDER=alpaca` (el default desde el 2026-10-01, también
+si la variable no está o está vacía) pide velas diarias y de minuto al
+feed SIP de `data.alpaca.markets`, con `feed=sip` explícito en cada
+llamada. `yahoo` vuelve a Yahoo sin tocar código.
+
+SIN RESPALDO SILENCIOSO (2026-10-01, pedido del dueño). Antes, si el
+feed fallaba, el pedido se completaba con Yahoo y la corrida seguía con
+una cinta mezclada. Ahora, si faltan las llaves o el ciclo del feed cae
+(auth, red, 429 agotado tras los reintentos, paginación), se lanza
+`FuentePreciosCaida` y el hunter termina la corrida SIN entradas nuevas,
+dejándolo en el log y en la telemetría. Un valor desconocido en
+`MOMENTUM_DATA_PROVIDER` tampoco cae a Yahoo: es la misma falla.
+
+Un lote suelto que no respondió dentro de un ciclo que sí funciona
+(`fallidos`, p. ej. un 400 de un símbolo) deja a esos símbolos SIN
+datos: no se evalúan, no se rellenan con otra fuente ni con ceros, y
+el aviso nombra cuántos y el código.
+
+`ALPACA_DATA_FEED` ya no cambia el feed del hunter: siempre es `sip`
+(el plan de pago; IEX es ~2,5 % del volumen). Si dice otra cosa, se
+avisa y se ignora.
 
 La telemetría (`informe_datos`) dice qué fuente contestó de verdad, no
-cuál estaba configurada. `metadata` (float, ETF, nombre) no entra en
-esa cuenta: el feed de precios no la tiene y seguir pidiéndola a Yahoo
-no es un respaldo, es otro dato.
+cuál estaba configurada. `metadata` (float, ETF, nombre) no es precio:
+sigue en Yahoo y no entra en esa cuenta. Noticias, aparte.
 
 `MOMENTUM_SIP_STREAM` (default `sombra`) no cambia este camino. Solo
-`primario`, y solo con feed `sip`, intenta servir el minuto desde el
-almacén del stream; si no cubre, sigue el REST de abajo. Ver
-`data/sip_stream.py`.
+`primario` intenta servir el minuto desde el almacén del stream; si no
+cubre, sigue el REST de abajo. Ver `data/sip_stream.py`.
 """
 
 from __future__ import annotations
@@ -111,72 +125,68 @@ class _Medido(DataProvider):
         )
 
 
-class ProveedorConRespaldo(DataProvider):
-    """Primero el feed; Yahoo solo para los símbolos (o el ciclo) que
-    no respondieron. Un símbolo ausente en una respuesta 200 no es un
-    fallo: el feed dijo que no hay velas, y inventarle las de otra
-    fuente mezclaría dos cintas en el mismo cálculo."""
+class FuentePreciosCaida(Exception):
+    """El feed de precios no puede atender este ciclo (o está mal
+    configurado). El hunter corta la corrida sin entradas nuevas. `codigo`
+    es la etiqueta corta de `ErrorDatosAlpaca` (o `configuracion`), nunca
+    el cuerpo de la respuesta ni una URL."""
 
-    def __init__(self, primario: AlpacaProvider, respaldo: DataProvider, feed: str) -> None:
+    def __init__(self, codigo: str) -> None:
+        self.codigo = codigo
+        super().__init__(codigo)
+
+
+class ProveedorAlpaca(DataProvider):
+    """Precios SOLO del feed SIP. Sin respaldo: un ciclo caído lanza
+    `FuentePreciosCaida`. Un símbolo ausente en una respuesta 200 no es
+    un fallo: el feed dijo que no hay velas. `metadata` (no es precio)
+    sale de `metadata_de`, que es Yahoo."""
+
+    def __init__(self, primario: AlpacaProvider, metadata_de, feed: str = "sip") -> None:
         self._primario = primario
-        self._respaldo = respaldo
+        self._metadata_de = metadata_de
+        self._meta = None
         self._feed = feed
         self._llamadas = 0
         self._uso_primario = False
-        self._uso_respaldo = False
-        self._fallbacks = 0
+        self.sin_respuesta = 0
         self._latencia_ms: float | None = None
 
     def _marcar_tiempo(self, t0: float) -> None:
         self._llamadas += 1
         self._latencia_ms = (self._latencia_ms or 0.0) + (time.perf_counter() - t0) * 1000.0
 
-    def _completar(self, tickers: list[str], pedir_primario, pedir_respaldo) -> dict:
+    def _pedir(self, tickers: list[str], pedir) -> dict:
         t0 = time.perf_counter()
         try:
             try:
-                out = pedir_primario(tickers)
-                self._uso_primario = True
+                out = pedir(tickers)
             except ErrorDatosAlpaca as ex:
-                # Ciclo caído (auth, red, 429 agotado, paginación): no se
-                # queda una serie a medias. Todo el pedido va a Yahoo.
-                nombres = [str(t) for t in tickers if isinstance(t, str) and t.strip()]
-                log.warning(
-                    "datos: el ciclo del feed falló (%s); este pedido entero va al respaldo (%s)",
-                    ex.codigo,
-                    ", ".join(nombres[:8]),
+                log.error(
+                    "datos: el feed SIP de Alpaca no respondió (%s); sin respaldo, "
+                    "la corrida termina sin entradas nuevas", ex.codigo,
                 )
-                self._fallbacks += len([t for t in tickers if isinstance(t, str) and t.strip()])
-                self._uso_respaldo = True
-                return pedir_respaldo(tickers)
-            fallidos = list(dict.fromkeys(getattr(self._primario, "fallidos", [])))
+                raise FuentePreciosCaida(ex.codigo) from None
+            self._uso_primario = True
+            fallidos = list(dict.fromkeys(getattr(self._primario, "fallidos", []) or []))
             if fallidos:
-                # Se cuentan aunque el respaldo tampoco tenga vela: el
-                # intento existió y es lo que hay que poder ver después.
-                # El código vive en el log, no en el dict de telemetría:
-                # esa forma ya la leen el reporte y las pruebas.
                 codigo = getattr(self._primario, "ultimo_codigo", None)
                 if not isinstance(codigo, str) or not codigo:
                     codigo = "sin_codigo"
                 log.warning(
-                    "datos: %d símbolo(s) del feed no respondieron (%s); se piden al respaldo (%s)",
-                    len(fallidos), codigo, ", ".join(str(t) for t in fallidos[:8]),
+                    "datos: %d símbolo(s) sin respuesta del feed (%s); quedan sin datos y no "
+                    "se evalúan (%s)", len(fallidos), codigo, ", ".join(str(t) for t in fallidos[:8]),
                 )
-                self._fallbacks += len(fallidos)
-                self._uso_respaldo = True
-                extra = pedir_respaldo(fallidos)
-                if isinstance(extra, dict) and isinstance(out, dict):
-                    out.update(extra)
+                self.sin_respuesta += len(fallidos)
+                for t in fallidos:
+                    if isinstance(out, dict):
+                        out.pop(t, None)
             return out
         finally:
             self._marcar_tiempo(t0)
 
     def barras(self, tickers: list[str], dias: int = 280) -> dict[str, Barras]:
-        return self._completar(
-            tickers,
-            lambda ts: self._primario.barras(ts, dias),
-            lambda ts: self._respaldo.barras(ts, dias),
-        )
+        return self._pedir(tickers, lambda ts: self._primario.barras(ts, dias))
 
     def barras_intradia(
         self, tickers: list[str], intervalo: str = "1m", periodo: str = "5d",
@@ -184,46 +194,60 @@ class ProveedorConRespaldo(DataProvider):
         # `primario` solo sustituye el minuto SIP, y solo si el almacén
         # cubre el pedido entero. Sombra (el default) ni entra. Un None
         # de `barras_si_cubren` no es "sin velas": es "seguí por REST".
-        if self._feed == "sip":
-            from momentum_hunter.data.sip_stream import barras_si_cubren
-            t0 = time.perf_counter()
-            try:
-                servidas = barras_si_cubren(tickers, intervalo, periodo)
-            except Exception as ex:
-                log.warning(
-                    "stream SIP ilegible (%s); este pedido de minuto va al REST",
-                    type(ex).__name__,
-                )
-                servidas = None
-            if servidas is not None:
-                self._uso_primario = True
-                self._marcar_tiempo(t0)
-                return servidas
-        return self._completar(
-            tickers,
-            lambda ts: self._primario.barras_intradia(ts, intervalo, periodo),
-            lambda ts: self._respaldo.barras_intradia(ts, intervalo, periodo),
-        )
+        from momentum_hunter.data.sip_stream import barras_si_cubren
+        t0 = time.perf_counter()
+        try:
+            servidas = barras_si_cubren(tickers, intervalo, periodo)
+        except Exception as ex:
+            log.warning("stream SIP ilegible (%s); este pedido de minuto va al REST", type(ex).__name__)
+            servidas = None
+        if servidas is not None:
+            self._uso_primario = True
+            self._marcar_tiempo(t0)
+            return servidas
+        return self._pedir(tickers, lambda ts: self._primario.barras_intradia(ts, intervalo, periodo))
 
     def metadata(self, tickers: list[str]) -> dict[str, Metadata]:
-        return self._respaldo.metadata(tickers)
+        if self._meta is None:
+            self._meta = self._metadata_de()
+        return self._meta.metadata(tickers)
 
     def informe_datos(self) -> InformeDatos:
-        if not self._llamadas:
-            fuente = None
-        elif self._uso_primario and self._uso_respaldo:
-            fuente = "mixto"
-        elif self._uso_primario:
-            fuente = "alpaca"
-        else:
-            fuente = "yahoo"
         return InformeDatos(
             configurada="alpaca",
-            fuente=fuente,
+            fuente="alpaca" if self._uso_primario else None,
             feed=self._feed if self._uso_primario else None,
-            fallbacks=self._fallbacks,
+            fallbacks=0,
             latencia_ms=round(self._latencia_ms, 1) if self._latencia_ms is not None else None,
         )
+
+
+class _ConfiguracionInvalida(DataProvider):
+    """`MOMENTUM_DATA_PROVIDER` con un valor que no es alpaca ni yahoo.
+    No se adivina qué quiso decir ni se cae a Yahoo: cualquier pedido
+    de precio corta la corrida."""
+
+    def __init__(self, valor: str) -> None:
+        self._valor = valor
+
+    def _fallar(self):
+        log.error("%s=%s no es alpaca ni yahoo; la corrida termina sin entradas nuevas",
+                  ENV_PROVEEDOR, self._valor)
+        raise FuentePreciosCaida("configuracion")
+
+    def barras(self, tickers: list[str], dias: int = 280) -> dict[str, Barras]:
+        self._fallar()
+
+    def barras_intradia(
+        self, tickers: list[str], intervalo: str = "1m", periodo: str = "5d",
+    ) -> dict[str, BarraIntradia]:
+        self._fallar()
+
+    def metadata(self, tickers: list[str]) -> dict[str, Metadata]:
+        self._fallar()
+
+    def informe_datos(self) -> InformeDatos:
+        return InformeDatos(configurada="invalida", fuente=None, feed=None, fallbacks=0, latencia_ms=None)
 
 
 class ConMetadataAparte(DataProvider):
@@ -275,17 +299,14 @@ def proveedor_configurado(construir_yahoo=None) -> DataProvider:
 
 def _proveedor_precios(construir_yahoo=None) -> DataProvider:
     construir = construir_yahoo or YahooProvider
-    nombre = os.environ.get(ENV_PROVEEDOR, "yahoo").strip().lower()
-    if nombre in ("", "yahoo"):
+    nombre = os.environ.get(ENV_PROVEEDOR, "alpaca").strip().lower()
+    if nombre == "yahoo":
+        log.info("datos: precios por yahoo (%s=yahoo)", ENV_PROVEEDOR)
         return _Medido(construir(), configurada="yahoo")
-    if nombre != "alpaca":
-        log.warning(
-            "MOMENTUM_DATA_PROVIDER=%s no es yahoo ni alpaca; se queda en yahoo", nombre,
-        )
-        return _Medido(construir(), configurada="yahoo")
-    feed = os.environ.get(ENV_FEED, "sip").strip().lower()
-    if feed not in ("sip", "iex"):
-        log.warning("ALPACA_DATA_FEED=%s no es sip ni iex; se queda en yahoo", feed)
-        return _Medido(construir(), configurada="yahoo")
-    log.info("datos: feed de precios alpaca/%s, con respaldo yahoo", feed)
-    return ProveedorConRespaldo(AlpacaProvider(feed=feed), construir(), feed=feed)
+    if nombre not in ("", "alpaca"):
+        return _ConfiguracionInvalida(nombre)
+    feed_env = os.environ.get(ENV_FEED, "").strip().lower()
+    if feed_env not in ("", "sip"):
+        log.warning("%s=%s se ignora: el hunter pide siempre feed=sip", ENV_FEED, feed_env)
+    log.info("datos: precios por alpaca/sip, sin respaldo")
+    return ProveedorAlpaca(AlpacaProvider(feed="sip"), construir, feed="sip")

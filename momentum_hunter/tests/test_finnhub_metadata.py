@@ -122,7 +122,8 @@ def test_valor_desconocido_se_queda_en_yahoo(monkeypatch):
 
 def test_finnhub_solo_cambia_la_metadata(monkeypatch):
     monkeypatch.setenv(fuente.ENV_METADATA, "finnhub")
-    monkeypatch.delenv(fuente.ENV_PROVEEDOR, raising=False)
+    # Precios del doble (yahoo): esta prueba es sobre la metadata.
+    monkeypatch.setenv(fuente.ENV_PROVEEDOR, "yahoo")
     monkeypatch.setenv(ENV_TOKEN, "k")
     p = fuente.proveedor_configurado(construir_yahoo=_Precios)
     assert isinstance(p, fuente.ConMetadataAparte)

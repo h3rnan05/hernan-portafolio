@@ -356,8 +356,8 @@ class AlpacaProvider(DataProvider):
         self._ahora = ahora or (lambda: datetime.now(UTC))
         self.fallidos: list[str] = []
         self.ultimo_codigo: str | None = None
-        # Yahoo solo para metadata (float / ETF / nombre). No es el
-        # respaldo de precios: ese lo pone `fuente.proveedor_configurado`.
+        # Yahoo solo para metadata (float / ETF / nombre). No hay respaldo
+        # de precios: ver `fuente.ProveedorAlpaca`.
         self._meta = None
 
     def _credenciales(self) -> tuple[str, str]:
