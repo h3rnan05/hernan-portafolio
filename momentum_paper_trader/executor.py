@@ -186,6 +186,101 @@ def _fuera_de_ventana_de_refresco(e, ahora: datetime) -> bool:
         return False
 
 
+def _velas_desde_ruptura_ahora(e, ahora: datetime) -> float | None:
+    """Velas de 1 min entre la ruptura y AHORA: las que el hunter contaba
+    al disparar (`velas_desde_ruptura`) más los minutos desde la vela que
+    confirmó (`market_event_ts`, dato de mercado). None si falta o no se
+    lee cualquiera de los dos: nunca se asume 0."""
+    base = getattr(e, "velas_desde_ruptura", None)
+    if isinstance(base, bool) or not isinstance(base, (int, float)):
+        return None
+    marca = getattr(e, "market_event_ts", None)
+    try:
+        confirmada = datetime.fromisoformat(marca) if isinstance(marca, str) else None
+    except ValueError:
+        return None
+    if confirmada is None:
+        return None
+    if confirmada.tzinfo is None:
+        confirmada = confirmada.replace(tzinfo=UTC)
+    return round(base + max(0.0, (ahora - confirmada).total_seconds() / 60.0), 1)
+
+
+def _extension_reciente(e) -> float | None:
+    """La extensión que el hunter midió al refrescar los niveles. No se
+    recalcula acá: el paper no tiene velas y no inventa una distancia."""
+    ext = getattr(e, "ultima_extension_pct", None)
+    if isinstance(ext, bool) or not isinstance(ext, (int, float)):
+        return None
+    return float(ext)
+
+
+def _registrar_sin_operar(e, motivo: str, razon: str, revisiones_previas: list,
+                          executor_leido_ts: str) -> None:
+    """Revisión terminal sin IA y sin orden (`ia_entraria=None`): no hubo
+    veredicto y no se inventa. `ya_revisada` la filtra en adelante y el
+    archivo la pasa a ARCHIVED con este motivo como desenlace."""
+    log.info("%s: %s", e.ticker, razon)
+    sin_ia = ia_decision.DecisionIA(entrar=False, confianza=0, razonamiento=razon)
+    registro = _revision_instrumentada(
+        e, sin_ia, executor_leido_ts=executor_leido_ts, ia_decision_ts=None,
+        entro=False, motivo_no_operada=motivo, ia_consultada=False)
+    revisiones_previas.append(registro)
+    estado.guardar(revisiones_previas)
+
+
+def _descartar_caducadas(pendientes: list, cfg: PaperTraderConfig, ahora: datetime, dry_run: bool,
+                         metricas, revisiones_previas: list, executor_leido_ts: str) -> list:
+    """Frescura al comprar (2026-10-01). Devuelve las pendientes que
+    todavía se pueden comprar, la más fresca primero.
+
+    POR QUÉ. Con el cupo lleno las TRIGGERED esperan. El hunter les
+    refresca entrada/stop/objetivo, pero nadie volvía a preguntar si la
+    señal seguía siendo "temprana": al liberarse un lugar se compraba lo
+    que hubiera, aunque la ruptura fuera de hace una hora (CTAS, 86 min).
+    El hunter llama "tarde" a más de `velas_maximas_desde_patron` velas
+    desde la ruptura; esa misma regla se aplica ahora en la orden.
+
+    Corre ANTES del tope de posiciones: así una señal que caduca mientras
+    espera cupo queda registrada (y se ve en el panel) en vez de pasar
+    invisible hasta que se libere un lugar.
+
+    - Más velas que el tope → `senal_caducada`, terminal: el tiempo solo
+      crece.
+    - Sin `velas_desde_ruptura` o `market_event_ts` → `sin_dato_frescura`,
+      terminal (fail-closed; el dato no aparece después).
+    Con `dry_run` solo emitiría los eventos; hoy se llama únicamente en
+    corridas reales, dentro del bloque que consulta el mercado."""
+    vivas: list[tuple[float, object]] = []
+    for e in pendientes:
+        velas = _velas_desde_ruptura_ahora(e, ahora)
+        if velas is None:
+            razon = ("No hay velas_desde_ruptura o market_event_ts: no se puede saber cuánto lleva "
+                     "la señal desde la ruptura. No se compra a ciegas (fail-closed). No se consultó "
+                     "a la IA y no se colocó orden.")
+            _bloqueo(dry_run, metricas, codigo=bloqueos.DATO_FALTANTE_FRESCURA, ticker=e.ticker,
+                     limite="frescura", motivo="sin dato de velas desde la ruptura")
+            if not dry_run:
+                _registrar_sin_operar(e, estado.MOTIVO_SIN_DATO_FRESCURA, razon,
+                                      revisiones_previas, executor_leido_ts)
+            continue
+        if velas > cfg.velas_maximas_desde_ruptura:
+            razon = (f"La ruptura fue hace {velas:.0f} velas (tope {cfg.velas_maximas_desde_ruptura}, el "
+                     f"mismo con el que el hunter llama \"tarde\" a una señal). Ya no es la entrada "
+                     f"temprana que se evaluó. No se consultó a la IA y no se colocó orden.")
+            _bloqueo(dry_run, metricas, codigo=bloqueos.SENAL_CADUCADA, ticker=e.ticker,
+                     limite="frescura", motivo="señal caducada", velas=velas,
+                     tope=cfg.velas_maximas_desde_ruptura)
+            if not dry_run:
+                _registrar_sin_operar(e, estado.MOTIVO_SENAL_CADUCADA, razon,
+                                      revisiones_previas, executor_leido_ts)
+            continue
+        vivas.append((velas, e))
+    # Cuando se libera un solo lugar, que lo use la señal más reciente.
+    vivas.sort(key=lambda par: par[0])
+    return [e for _, e in vivas]
+
+
 def _registrar_niveles_expirados(e, cfg: PaperTraderConfig, rancios: float,
                                  revisiones_previas: list, executor_leido_ts: str) -> None:
     """Una revisión terminal, sin IA y sin orden. Vive en revisiones.json.
@@ -570,6 +665,10 @@ def ejecutar(
             if metricas is not None:
                 metricas.cerrar_corrida()
             return nuevas
+        # Frescura (2026-10-01): con el mercado abierto, antes de cualquier
+        # otro límite. Una señal vieja se descarta aunque el cupo esté lleno.
+        pendientes = _descartar_caducadas(pendientes, cfg, ahora, dry_run, metricas,
+                                          revisiones_previas, executor_leido_ts)
         # Queda sesión suficiente? (2026-09-22, revisión de riesgo). Una
         # entrada en los últimos minutos solo alcanza a pagar el spread
         # antes de que el cierre diario la liquide. No se registra
@@ -672,6 +771,21 @@ def ejecutar(
             if not dry_run and _fuera_de_ventana_de_refresco(e, ahora):
                 _registrar_niveles_expirados(
                     e, cfg, rancios, revisiones_previas, executor_leido_ts)
+            continue
+
+        # Extensión (2026-10-01): la segunda regla dura de "tarde" del
+        # hunter, con la medida de su último refresco (los niveles ya
+        # pasaron el chequeo de rancios, así que es reciente). No es
+        # terminal: el precio puede volver hacia sus anclas. Sin el dato
+        # no se bloquea: es un campo nuevo y su ausencia no dice nada (la
+        # regla fail-closed es la de las velas, más arriba).
+        ext = _extension_reciente(e)
+        if ext is not None and ext > cfg.extension_maxima_pct:
+            log.info("%s: el precio está %.0f%% lejos de VWAP/EMA9 (tope %.0f%%) -- no se persigue",
+                     e.ticker, ext * 100, cfg.extension_maxima_pct * 100)
+            _bloqueo(dry_run, metricas, codigo=bloqueos.SENAL_EXTENDIDA, ticker=e.ticker,
+                     limite="frescura", motivo="precio extendido", extension_pct=round(ext, 4),
+                     tope=cfg.extension_maxima_pct)
             continue
 
         cantidad = _tamano_posicion(e.ultima_entrada, e.ultimo_stop, cfg)

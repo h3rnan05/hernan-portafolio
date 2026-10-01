@@ -126,7 +126,10 @@ def _entrada_triggered(
     ticker="RKLB", entrada=78.42, stop=76.90, objetivo=82.50, ahora=AHORA,
 ) -> watchlist.EntradaWatchlist:
     e = watchlist.desde_candidato_diario(_candidato_diario(ticker), ahora)
-    watchlist.marcar_triggered(e, "m", "d", "ev", ahora)
+    # Una señal fresca: confirmada en `ahora`, 2 velas después de la
+    # ruptura. Sin estos dos datos la regla de frescura (2026-10-01) la
+    # descartaría por fail-closed antes de llegar a lo que cada prueba mide.
+    watchlist.marcar_triggered(e, ahora.isoformat(), "d", "ev", ahora, velas_desde_ruptura=2)
     watchlist.actualizar_niveles(e, entrada, stop, objetivo, entrada, ahora)
     return e
 
@@ -684,6 +687,9 @@ def _triggered_con_disparo(minutos_niveles: float, hace: timedelta, ticker: str,
     disparo = ahora_corrida - hace
     e = _entrada_triggered(ticker, ahora=disparo)
     e.ultimos_niveles_ts = (ahora_corrida - timedelta(minutes=minutos_niveles)).isoformat(timespec="seconds")
+    # Vela de confirmación en la corrida: aísla la regla de niveles de la
+    # de frescura (2026-10-01), que de otro modo la descartaría antes.
+    e.market_event_ts = ahora_corrida.isoformat(timespec="seconds")
     return e
 
 
@@ -768,10 +774,11 @@ def test_en_el_borde_de_las_8h_no_se_marca_revisada(monkeypatch, tmp_path):
     assert client.ordenes_colocadas == []
 
 
-def test_maximo_posiciones_un_dia_y_al_dia_siguiente_no_hay_bucle(monkeypatch, tmp_path):
-    """El tope de posiciones sale antes de mirar la señal: ese día no se
-    quema. Al día siguiente, con un lugar libre y la ventana de refresco
-    ya cerrada, se registra una vez y el tick siguiente no repite el bloqueo."""
+def test_senal_de_ayer_caduca_aunque_el_cupo_este_lleno_y_no_hay_bucle(monkeypatch, tmp_path):
+    """(2026-10-01) Antes el tope de posiciones salía antes de mirar la
+    señal y la de ayer esperaba al día siguiente. Ahora la frescura corre
+    antes del tope: con el cupo lleno, la señal de ayer se registra una
+    vez como caducada, y el tick siguiente no repite nada."""
     from momentum_paper_trader import bloqueos
     ruta = tmp_path / "ev" / "events.jsonl"
     monkeypatch.setenv("DASH_EVENTOS", str(ruta))
@@ -779,7 +786,6 @@ def test_maximo_posiciones_un_dia_y_al_dia_siguiente_no_hay_bucle(monkeypatch, t
     dia_lleno = datetime(2026, 9, 24, 14, 30, tzinfo=UTC)
     dia_abierto = datetime(2026, 9, 25, 14, 30, tzinfo=UTC)
     e = _entrada_triggered("ZOMB", ahora=disparo)
-    e.ultimos_niveles_ts = disparo.isoformat(timespec="seconds")
     wl_path, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
     _prohibir_escritura_watchlist(monkeypatch)
     antes = wl_path.read_bytes()
@@ -787,25 +793,19 @@ def test_maximo_posiciones_un_dia_y_al_dia_siguiente_no_hay_bucle(monkeypatch, t
     lleno = _FakeAlpacaClient(cash=10_000.0, posiciones=ocupadas)
 
     assert executor.ejecutar(lleno, CFG, dry_run=False, ahora=dia_lleno) == []
-    assert estado.cargar(rev_path) == [] and lleno.ordenes_colocadas == []
-    assert [ev["tipo"] for ev in _eventos(ruta) if ev["tipo"] == "bloqueo_riesgo"] == []
-    assert any(ev["tipo"] == "capacidad_llena" and ev["codigo"] == bloqueos.MAXIMO_POSICIONES
-               for ev in _eventos(ruta))
+    (r,) = estado.cargar(rev_path)
+    assert r.motivo_no_operada == estado.MOTIVO_SENAL_CADUCADA
+    assert r.entro is False and r.ia_entraria is None
+    (b,) = [ev for ev in _eventos(ruta) if ev["tipo"] == "bloqueo_riesgo"]
+    assert b["codigo"] == bloqueos.SENAL_CADUCADA and b["ticker"] == "ZOMB"
 
     libre = _FakeAlpacaClient(cash=10_000.0)
-    assert executor.ejecutar(libre, CFG, dry_run=False, ahora=dia_abierto) == []
-    persistidas = estado.cargar(rev_path)
-    assert len(persistidas) == 1
-    assert persistidas[0].motivo_no_operada == estado.MOTIVO_EXPIRADA_NIVELES_RANCIOS
-    assert persistidas[0].entro is False and persistidas[0].ia_entraria is None
-    assert libre.ordenes_colocadas == [] and contextos == [] and enviados == []
-    bloques = [ev for ev in _eventos(ruta) if ev["tipo"] == "bloqueo_riesgo"]
-    assert len(bloques) == 1 and bloques[0]["codigo"] == bloqueos.DATO_FALTANTE_NIVELES_VIEJOS
-
     n = len(_eventos(ruta))
     assert executor.ejecutar(libre, CFG, dry_run=False, ahora=dia_abierto) == []
     assert not any(ev["tipo"] == "bloqueo_riesgo" for ev in _eventos(ruta)[n:])
-    assert len(estado.cargar(rev_path)) == 1 and libre.ordenes_colocadas == []
+    assert len(estado.cargar(rev_path)) == 1
+    assert lleno.ordenes_colocadas == [] and libre.ordenes_colocadas == []
+    assert contextos == [] and enviados == []
     assert wl_path.read_bytes() == antes
 
 
@@ -1266,10 +1266,10 @@ def test_un_fallo_del_aviso_no_afecta_la_orden(monkeypatch, tmp_path):
 def test_no_se_abren_entradas_en_los_ultimos_30_min(monkeypatch, tmp_path):
     """19:45 UTC en verano = 15:45 ET: faltan 15 min. El cierre diario la
     liquidaría a las 19:50; entrar solo pagaría el spread."""
-    e = _entrada_triggered()
+    tarde = AHORA.replace(hour=19, minute=45)
+    e = _entrada_triggered(ahora=tarde - timedelta(minutes=2))
     _, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e])
     client = _FakeAlpacaClient(cash=20_000.0)
-    tarde = AHORA.replace(hour=19, minute=45)
 
     assert executor.ejecutar(client, CFG, dry_run=False, ahora=tarde) == []
     assert client.ordenes_colocadas == [] and contextos == [] and enviados == []

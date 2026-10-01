@@ -138,29 +138,38 @@ def test_orden_trae_latencia_completa_cuando_el_hunter_guardo_las_velas(monkeypa
     monkeypatch.setenv("DASH_EVENTOS", str(ruta))
     e = _entrada_triggered()
     e.market_event_ts = "2026-08-11T13:57:00+00:00"   # 3 min antes de AHORA
-    e.velas_desde_ruptura = 6
+    e.velas_desde_ruptura = 4                          # 4 + 3 = 7 velas: sigue fresca
     _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA)
     executor.ejecutar(_FakeAlpacaClient(cash=40_000.0), CFG, dry_run=False, ahora=AHORA)
 
     (orden,) = [x for x in _eventos(ruta) if x["tipo"] == "orden"]
     assert orden["medida"] == "ruptura_a_orden"
-    assert orden["velas_desde_ruptura"] == 6
+    assert orden["velas_desde_ruptura"] == 4
     # velas_desde_disparo sale del reloj real de la corrida, así que solo
     # se verifica la suma, no un valor fijo.
-    assert orden["velas"] == round(6 + orden["velas_desde_disparo"], 1)
+    assert orden["velas"] == round(4 + orden["velas_desde_disparo"], 1)
 
 
-def test_sin_velas_desde_ruptura_la_latencia_no_se_calcula(monkeypatch, tmp_path):
+def test_sin_velas_desde_ruptura_no_se_compra_y_se_registra_sin_dato(monkeypatch, tmp_path):
+    """Antes se compraba igual y solo faltaba la latencia. Desde el
+    2026-10-01 sin ese dato no se sabe si la señal sigue siendo temprana:
+    fail-closed, una revisión terminal sin IA y sin orden."""
+    from momentum_paper_trader import bloqueos
     ruta = tmp_path / "ev" / "events.jsonl"
     monkeypatch.setenv("DASH_EVENTOS", str(ruta))
     e = _entrada_triggered()
     e.market_event_ts = "2026-08-11T13:57:00+00:00"
-    assert e.velas_desde_ruptura is None
-    _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA)
-    executor.ejecutar(_FakeAlpacaClient(cash=40_000.0), CFG, dry_run=False, ahora=AHORA)
+    e.velas_desde_ruptura = None
+    _, rev_path, enviados, contextos = _parchear(monkeypatch, tmp_path, [e], decision=_DECISION_ENTRA)
+    client = _FakeAlpacaClient(cash=40_000.0)
+    assert executor.ejecutar(client, CFG, dry_run=False, ahora=AHORA) == []
 
-    (orden,) = [x for x in _eventos(ruta) if x["tipo"] == "orden"]
-    assert orden["velas"] is None
+    assert client.ordenes_colocadas == [] and contextos == []
+    assert not [x for x in _eventos(ruta) if x["tipo"] == "orden"]
+    (b,) = [x for x in _eventos(ruta) if x["tipo"] == "bloqueo_riesgo"]
+    assert b["codigo"] == bloqueos.DATO_FALTANTE_FRESCURA
+    (r,) = estado.cargar(rev_path)
+    assert r.motivo_no_operada == estado.MOTIVO_SIN_DATO_FRESCURA and r.ia_entraria is None
 
 
 # ───────── códigos de bloqueo y capacidad llena (2026-09-23) ─────────
@@ -241,8 +250,12 @@ def test_niveles_viejos_llevan_codigo_de_dato_viejo(monkeypatch, tmp_path):
     from datetime import timedelta
     from momentum_paper_trader import bloqueos
     ruta = _eventos_de(monkeypatch, tmp_path)
-    _parchear(monkeypatch, tmp_path, [_entrada_triggered()])
     tarde = AHORA + timedelta(minutes=CFG.minutos_maximos_niveles + 5)
+    e = _entrada_triggered()
+    # Confirmada "recién": aísla la regla de niveles viejos de la de
+    # frescura (si no, la señal caducaría primero).
+    e.market_event_ts = tarde.isoformat()
+    _parchear(monkeypatch, tmp_path, [e])
     assert executor.ejecutar(_FakeAlpacaClient(cash=40_000.0), CFG, dry_run=False, ahora=tarde) == []
     b = [x for x in _eventos(ruta) if x["tipo"] == "bloqueo_riesgo"]
     assert len(b) == 1 and b[0]["codigo"] == bloqueos.DATO_FALTANTE_NIVELES_VIEJOS == "DATO_FALTANTE:ultimos_niveles_ts"
