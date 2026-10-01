@@ -28,7 +28,7 @@ import logging
 import os
 from datetime import UTC, datetime
 
-from momentum_paper_trader import archivo, cierre, halts, reconciliacion, seguimiento, telemetria
+from momentum_paper_trader import archivo, cierre, gates_sombra, halts, reconciliacion, seguimiento, telemetria
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import CONFIG
 from momentum_paper_trader.executor import ejecutar
@@ -160,6 +160,9 @@ def main() -> None:
         # no debe dejar un archivo de sesión falso.
         if not args.dry_run:
             telemetria.registrar_corrida(metricas)
+            # Régimen en sombra (2026-10-01): se refresca DESPUÉS de la
+            # corrida para no demorar ninguna orden. Nunca lanza.
+            gates_sombra.refrescar_regimen(datetime.now(UTC))
     except Exception as ex:
         # El workflow corre este paso con continue-on-error -- la falla
         # se AVISA por Telegram (autonomía: el sistema reporta sus

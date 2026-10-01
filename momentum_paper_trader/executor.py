@@ -42,7 +42,8 @@ from momentum_hunter import calendario as calendario_sesion, sesion, watchlist
 
 from momentum_hunter.data.halts import desconocido as _desconocido_halt
 from momentum_paper_trader import (
-    aviso_fallo_ia, bloqueos, estado, halts, ia_decision, memoria_trades, notify, stop_diario, telemetria,
+    aviso_fallo_ia, bloqueos, estado, gates_sombra, halts, ia_decision, memoria_trades, notify, stop_diario,
+    telemetria,
 )
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig, banda_de
@@ -910,6 +911,12 @@ def ejecutar(
                 metricas.anotar_revision(
                     registro, e.signal_latency_ms, getattr(e, "velas_desde_ruptura", None))
             continue
+
+        # Sombra (2026-10-01, GO del dueño): ¿algún knob o el modo
+        # defensivo la habría bloqueado? Solo registra `gate_sombra`;
+        # nunca lanza y no devuelve nada: la orden sigue igual.
+        gates_sombra.registrar(lambda tipo, **c: _evento(dry_run, tipo, **c), e, decision,
+                               len(cuenta.tickers_comprometidos), ahora)
 
         try:
             orden = client.colocar_orden_bracket(
