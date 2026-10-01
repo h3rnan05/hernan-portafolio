@@ -109,6 +109,7 @@ CAMPOS_OVERLAY = (
     "ultima_zona_entrada_baja",
     "ultimo_patron",
     "ultimo_vwap",
+    "ultima_extension_pct",
     "ultimos_niveles_ts",
     "stop_tesis",
     "clima_mercado",
@@ -240,6 +241,12 @@ class EntradaWatchlist:
     # No lo lee ninguna regla. None = no se midió, no "sin patrón".
     ultimo_patron: str | None = None
     ultimo_vwap: float | None = None
+    # Distancia del precio a sus anclas (VWAP/EMA9, la mayor) en el mismo
+    # chequeo (2026-10-01). Es `early_opportunity.extension_pct`, la misma
+    # medida de la regla dura de "tarde". Se guarda porque una TRIGGERED
+    # puede esperar cupo una hora: quien la lea después tiene que poder
+    # comprobar que sigue sin estar extendida. None = no se midió.
+    ultima_extension_pct: float | None = None
     ultimos_niveles_ts: str | None = None
     # Congelado la PRIMERA vez que se calcularon niveles y nunca
     # reescrito (ver `actualizar_niveles`): el nivel que hacía válida la
@@ -1114,6 +1121,7 @@ def actualizar_niveles(
     e: EntradaWatchlist, entrada: float | None, stop: float | None, objetivo: float | None,
     zona_entrada_baja: float | None, ahora: datetime,
     *, patron: str | None = None, vwap: float | None = None,
+    extension_pct: float | None = None,
 ) -> None:
     """Cachea los niveles que el pipeline YA calculó en este chequeo --
     ver docstring de los campos en `EntradaWatchlist`. Ningún cálculo
@@ -1125,6 +1133,7 @@ def actualizar_niveles(
     e.ultima_zona_entrada_baja = zona_entrada_baja
     e.ultimo_patron = patron
     e.ultimo_vwap = vwap
+    e.ultima_extension_pct = extension_pct
     e.ultimos_niveles_ts = _ahora_iso(ahora)
     # El stop de la TESIS se congela la primera vez y no se vuelve a
     # tocar -- mismo principio que `gap_pct_congelado`/`atr_diario`/el

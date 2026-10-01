@@ -537,6 +537,38 @@ determinista, por encima de la IA:
 Simulación con las sesiones reales del 8 al 30-sep: corta 9/24, 9/28 y
 9/30 (ahorro +15.70 USD); no toca ningún día ganador.
 
+## Frescura al comprar (`executor._descartar_caducadas`, 2026-10-01)
+
+Con el cupo lleno (`maximo_posiciones_abiertas`), las TRIGGERED esperan.
+El hunter les refresca entrada/stop/objetivo, pero nadie volvía a
+preguntar si la señal seguía siendo "temprana": al liberarse un lugar se
+compraba lo que hubiera. CTAS se compró 86 min después de su ruptura.
+
+Ahora, en cada corrida con el mercado abierto y ANTES del tope de
+posiciones, se aplica la misma regla dura con la que el hunter llama
+"tarde" a una señal:
+
+- **Velas desde la ruptura** = `velas_desde_ruptura` (al disparar) +
+  minutos desde `market_event_ts`. Más de `velas_maximas_desde_ruptura`
+  (8, igual que `velas_maximas_desde_patron` del hunter) → revisión
+  terminal `senal_caducada`, sin IA y sin orden; se archiva. Código
+  `SENAL_CADUCADA`.
+- Sin alguno de esos dos datos → `sin_dato_frescura`, terminal
+  (fail-closed). Código `DATO_FALTANTE:velas_desde_ruptura`.
+- **Extensión** (`ultima_extension_pct`, la mide el hunter en cada
+  refresco de niveles) mayor que `extension_maxima_pct` (12 %) → bloqueo
+  `SENAL_EXTENDIDA`, NO terminal: el precio puede volver a sus anclas.
+  Sin el dato no se bloquea (campo nuevo; su ausencia no dice nada).
+- Las que sobreviven se evalúan de la más fresca a la más vieja: si se
+  libera un solo lugar, lo usa la señal más reciente.
+
+Los números no son una calibración nueva: una prueba exige que sigan
+iguales a los del hunter. Limitación conocida: la regla también descarta
+una señal que el bot tardó en procesar sin esperar cupo (MGLD, 9,5 min),
+y con n=1 operación no hay evidencia de que 8 velas sea el corte óptimo;
+solo es el que el sistema ya usaba para decir "tarde". El panel lista
+las caducadas del día en la tarjeta de Latencia.
+
 ## Halts y bandas LULD
 
 El ejecutor puede frenar una entrada si el símbolo está en halt o si

@@ -100,6 +100,13 @@ nunca baja de 0,25 × ATR diario (`report.FRACCION_ATR_MINIMA_STOP`) y el
 objetivo sigue siendo 2R, así que se aleja en la misma proporción. Es una
 decisión de diseño, no una calibración; sin ATR no hay piso.
 
+**C. Compras tardías por cupo lleno.** Con las 5 posiciones ocupadas las
+señales esperaban sin caducar: CTAS se compró 86 min después de su
+ruptura. Corregido el 1/10 (pedido del usuario): antes de comprar se
+reaplica la regla de "tarde" del hunter (≤ 8 velas desde la ruptura,
+≤ 12 % de extensión); si no la cumple, la señal se archiva como
+`senal_caducada`. Ver `momentum_paper_trader/README.md`, "Frescura al comprar".
+
 ### Cuidado al calibrar
 
 Casi todos los umbrales están elegidos por razonamiento, no por evidencia, y hay

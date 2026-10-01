@@ -469,6 +469,23 @@ def intervalos_cupo_lleno(eventos: list[dict]) -> list[tuple[datetime, datetime]
     return [(a, b + _CICLO_NOMINAL) for a, b in tramos]
 
 
+def senales_caducadas(eventos: list[dict]) -> list[dict]:
+    """Señales que el ejecutor descartó por llegar tarde (2026-10-01,
+    código `SENAL_CADUCADA`): la ruptura tenía más velas que el tope de
+    "tarde" del hunter. Una por ticker (la primera): el bloqueo es
+    terminal y no debería repetirse. `velas` None si el evento no lo trae."""
+    salida, vistos = [], set()
+    for e in eventos:
+        if e.get("tipo") != "bloqueo_riesgo" or e.get("codigo") != "SENAL_CADUCADA":
+            continue
+        ticker = e.get("ticker")
+        if not ticker or ticker in vistos:
+            continue
+        vistos.add(ticker)
+        salida.append({"ticker": str(ticker), "velas": num(e.get("velas")), "tope": num(e.get("tope"))})
+    return salida
+
+
 def desglose_latencia(eventos: list[dict]) -> list[dict]:
     """Por cada orden con latencia completa (ruptura → orden): cuánto de
     ese tiempo fue esperar cupo y cuánto fue el bot reaccionando.
@@ -1216,7 +1233,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         "n_pos": n_pos, "n_ord": n_ord, "n_rech": n_rech,
         "watch": watch, "wl_momento": wl_momento,
         "hunter_gha": hunter_gha, "hunter_momento": hunter_momento, "hunter_escaneo": escaneo,
-        "lat": lat, "lat_detalle": lat_detalle,
+        "lat": lat, "lat_detalle": lat_detalle, "lat_caducadas": senales_caducadas(eventos),
         "lat_sin_barra": compras_sin_latencia(eventos, lista_ordenes, hay_eventos),
         "lat_mediana": statistics.median(valores) if valores else None,
         "lat_p90": percentil(valores, 90),
@@ -2542,6 +2559,15 @@ def _html_notas_latencia(ctx: dict) -> str:
     if esperas:
         items = " · ".join(f"{d['ticker']} {fmt_num(d['espera'])} min" for d in esperas)
         partes.append(f'<div class="nota-info">Esperando cupo (no cuenta como tarde): {esc(items)}.</div>')
+    caducadas = ctx.get("lat_caducadas") or []
+    if caducadas:
+        # Gris: es la regla haciendo su trabajo (no comprar una ruptura
+        # vieja), no una falla. Muchas seguidas sí dicen algo del cupo.
+        items = " · ".join(f"{d['ticker']} {fmt_num(d['velas'])} velas" if d.get("velas") is not None
+                           else d["ticker"] for d in caducadas)
+        tope = next((d["tope"] for d in caducadas if d.get("tope") is not None), None)
+        regla = f"ruptura de hace más de {fmt_num(tope)} velas" if tope is not None else "ruptura vieja"
+        partes.append(f'<div class="nota-info">No se compraron por llegar tarde ({esc(regla)}): {esc(items)}.</div>')
     sin_barra = ctx.get("lat_sin_barra") or []
     if sin_barra:
         items = " · ".join(f"{d['ticker']} ({d['motivo']})" for d in sin_barra)
@@ -2873,8 +2899,9 @@ CODIGOS_LEGIBLES = {
     "FUERA_DE_BANDA": "Fuera de la banda de precio", "FRACCION_INSUFICIENTE": "Fracción insuficiente",
     "CIERRE_CERCANO": "Cierre cercano", "BLOQUEO_HALT": "Acción suspendida (halt)",
     "ACTIVO_NO_OPERABLE": "Activo no operable", "SIN_CODIGO": "Sin código",
+    "SENAL_CADUCADA": "Señal caducada (tarde)", "SENAL_EXTENDIDA": "Precio extendido",
 }
-DETALLES_LEGIBLES = {"ultimos_niveles_ts": "niveles recientes"}
+DETALLES_LEGIBLES = {"ultimos_niveles_ts": "niveles recientes", "velas_desde_ruptura": "velas desde la ruptura"}
 
 
 def _codigo_legible(codigo) -> str:

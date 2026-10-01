@@ -1031,7 +1031,7 @@ def test_contexto_de_niveles_sale_del_candidato_y_tolera_faltantes():
     c = _candidato_intradia("RKLB")
     ctx = run_mod._contexto_niveles(c)
     assert ctx["patron"] == c.resultado.patron and ctx["vwap"] == c.factores.vwap
-    assert run_mod._contexto_niveles(SimpleNamespace()) == {"patron": None, "vwap": None}
+    assert run_mod._contexto_niveles(SimpleNamespace()) == {"patron": None, "vwap": None, "extension_pct": None}
 
 
 def test_una_watchlist_vieja_sin_estos_campos_sigue_cargando():

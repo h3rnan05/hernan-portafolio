@@ -3147,3 +3147,25 @@ def test_stream_orden_sin_fill_es_no_aplica_y_no_sin_dato():
     assert bd._precio_stream({"estado": "ejecutada", "precio": None}) == "sin dato"
     assert bd._precio_stream({"estado": "ejecutada", "precio": 81.6}) == "$81.60"
     assert "details.vela-op[open]{grid-column:1/-1}" in bd.CSS
+
+
+# ───────── 2026-10-01: señales caducadas en la tarjeta de Latencia ─────────
+
+def test_latencia_lista_las_senales_caducadas_una_vez_por_ticker():
+    ev = [{"tipo": "bloqueo_riesgo", "codigo": "SENAL_CADUCADA", "ticker": "CTAS", "velas": 20.0, "tope": 8},
+          {"tipo": "bloqueo_riesgo", "codigo": "SENAL_CADUCADA", "ticker": "CTAS", "velas": 21.0, "tope": 8},
+          {"tipo": "bloqueo_riesgo", "codigo": "MAXIMO_POSICIONES", "ticker": "LEN"},
+          {"tipo": "bloqueo_riesgo", "codigo": "SENAL_CADUCADA", "ticker": "CDNS"}]
+    cad = bd.senales_caducadas(ev)
+    assert [d["ticker"] for d in cad] == ["CTAS", "CDNS"] and cad[1]["velas"] is None
+    html = bd._html_notas_latencia({"lat_caducadas": cad})
+    assert "No se compraron por llegar tarde (ruptura de hace más de 8 velas): CTAS 20 velas · CDNS." in html
+    assert html.startswith('<div class="nota-info">')
+    assert bd._html_notas_latencia({"lat_caducadas": []}) == ""
+
+
+def test_los_codigos_de_frescura_son_conocidos_y_legibles():
+    from momentum_paper_trader import bloqueos
+    for codigo in (bloqueos.SENAL_CADUCADA, bloqueos.SENAL_EXTENDIDA, bloqueos.DATO_FALTANTE_FRESCURA):
+        assert codigo in bloqueos.CODIGOS_CONOCIDOS
+    assert bd.CODIGOS_LEGIBLES["SENAL_CADUCADA"] == "Señal caducada (tarde)"

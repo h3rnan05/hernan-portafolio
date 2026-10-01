@@ -142,10 +142,21 @@ MOTIVO_PRECIO_FUERA_DE_ALCANCE = "precio_fuera_de_alcance"
 # `MOTIVOS_NO_OPERADA`. El ejecutor no lo escribe en watchlist.json;
 # el filtro de las corridas siguientes es `ya_revisada` en este archivo.
 MOTIVO_EXPIRADA_NIVELES_RANCIOS = "expirada_niveles_rancios"
+# (2026-10-01) La señal esperó (casi siempre por cupo lleno) hasta pasar
+# las velas desde la ruptura que el hunter acepta como "temprana": CTAS
+# se compró 86 min después de su ruptura. El tiempo solo crece, así que
+# es terminal: se registra UNA vez, sin IA y sin orden.
+MOTIVO_SENAL_CADUCADA = "senal_caducada"
+# Sin `velas_desde_ruptura` o `market_event_ts` no se puede saber cuánto
+# lleva la señal. No se asume que está fresca (fail-closed) ni que está
+# vieja: se registra con su propio motivo, que dice que faltó el dato.
+MOTIVO_SIN_DATO_FRESCURA = "sin_dato_frescura"
 MOTIVOS_NO_OPERADA = frozenset({
     MOTIVO_FUERA_DE_BANDA,
     MOTIVO_PRECIO_FUERA_DE_ALCANCE,
     MOTIVO_EXPIRADA_NIVELES_RANCIOS,
+    MOTIVO_SENAL_CADUCADA,
+    MOTIVO_SIN_DATO_FRESCURA,
 })
 
 

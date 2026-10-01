@@ -66,6 +66,14 @@ FRACCION_INSUFICIENTE = "FRACCION_INSUFICIENTE"
 # No es DATO_FALTANTE: el panel lo agrupa con esta razón, y el detalle
 # (situacion) dice si faltó el dato o había un halt de verdad.
 BLOQUEO_HALT = "BLOQUEO_HALT"
+# Frescura al comprar (2026-10-01, ver `executor._frescura`). CADUCADA:
+# pasaron más velas desde la ruptura que las que el hunter acepta para
+# llamarla "temprana" (terminal, se archiva). EXTENDIDA: el precio quedó
+# más lejos de VWAP/EMA9 que el tope de "tarde" (transitorio: puede
+# volver). Sin el dato de velas, `dato_faltante("velas_desde_ruptura")`.
+SENAL_CADUCADA = "SENAL_CADUCADA"
+SENAL_EXTENDIDA = "SENAL_EXTENDIDA"
+DATO_FALTANTE_FRESCURA = dato_faltante("velas_desde_ruptura")
 
 CODIGOS_GLOBALES = frozenset({
     MERCADO_CERRADO, CIERRE_CERCANO, MAXIMO_POSICIONES,
@@ -76,6 +84,7 @@ CODIGOS_POR_SENAL = frozenset({
     DATO_FALTANTE_NIVELES, DATO_FALTANTE_NIVELES_VIEJOS, DATO_FALTANTE_ACTIVO,
     RIESGO_POR_OPERACION, TICKER_COMPROMETIDO, CONCENTRACION, PRECIO_FUERA_DE_ALCANCE,
     ACTIVO_NO_OPERABLE, FUERA_DE_BANDA, FRACCION_INSUFICIENTE, BLOQUEO_HALT,
+    SENAL_CADUCADA, SENAL_EXTENDIDA, DATO_FALTANTE_FRESCURA,
 })
 CODIGOS_CONOCIDOS = CODIGOS_GLOBALES | CODIGOS_POR_SENAL
 

@@ -59,6 +59,16 @@ class PaperTraderConfig:
     # el siguiente re-chequeo recalcula los niveles y la orden se coloca
     # ahí, con precios de verdad.
     minutos_maximos_niveles: float = 15.0
+    # Frescura AL COMPRAR (2026-10-01, pedido del dueño). Con el cupo
+    # lleno una TRIGGERED esperaba sin límite: CTAS se compró 86 min
+    # después de su ruptura, con niveles recalculados pero sin que nadie
+    # volviera a preguntar si la señal seguía siendo "temprana". Son los
+    # MISMOS números con los que el hunter decide "tarde"
+    # (`velas_maximas_desde_patron`, `extension_maxima_pct`): no es una
+    # calibración nueva, es aplicar esa regla también en el momento de la
+    # orden. Una prueba exige que sigan iguales a los del hunter.
+    velas_maximas_desde_ruptura: int = 8
+    extension_maxima_pct: float = 0.12
     # Cuánto se deja viva una orden de ENTRADA que no se llenó (2026-09-22,
     # revisión de riesgo). El bracket entra como límite "del día" al precio
     # de la señal: si el precio se escapa, la orden se quedaba abierta
@@ -184,6 +194,10 @@ class PaperTraderConfig:
             raise ValueError("maximo_posiciones_abiertas debe ser >= 1")
         if self.minutos_maximos_niveles <= 0:
             raise ValueError("minutos_maximos_niveles debe ser > 0")
+        if self.velas_maximas_desde_ruptura < 1:
+            raise ValueError("velas_maximas_desde_ruptura debe ser >= 1")
+        if self.extension_maxima_pct <= 0:
+            raise ValueError("extension_maxima_pct debe ser > 0")
         if self.minutos_maximos_entrada_sin_llenar <= 0:
             raise ValueError("minutos_maximos_entrada_sin_llenar debe ser > 0")
         if self.minutos_minimos_para_entrar <= self.minutos_antes_del_cierre:

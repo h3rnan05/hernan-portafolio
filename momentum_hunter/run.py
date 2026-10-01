@@ -80,6 +80,7 @@ from momentum_hunter.data import acciones_corporativas as acc_corp
 from momentum_hunter.data import subastas
 from momentum_hunter.data.fuente import informe_de, proveedor_configurado
 from momentum_hunter.data.provider import DataProvider, YahooProvider
+from momentum_hunter import early_opportunity as eo
 from momentum_hunter.factors import intradia as fi
 from momentum_hunter.factors import momentum as mom
 from momentum_hunter.models import Barras, Metadata
@@ -972,13 +973,21 @@ def _sin_bloqueo_corporativo(candidatos: list, guardia, ahora: datetime) -> list
 
 
 def _contexto_niveles(candidato) -> dict:
-    """Patrón y VWAP con los que se calcularon los niveles de este chequeo,
-    para guardarlos junto a la ruptura (solo registro, 2026-09-29). Un
-    dato que no esté se guarda como None: ninguna regla los lee."""
+    """Patrón, VWAP y extensión con los que se calcularon los niveles de
+    este chequeo, para guardarlos junto a la ruptura (2026-09-29). Patrón
+    y VWAP son solo registro. La extensión (2026-10-01) la relee el paper
+    antes de comprar una señal que esperó: es la misma regla dura de
+    "tarde" de `early_opportunity`, medida en el chequeo más reciente.
+    Un dato que no esté se guarda como None, nunca como 0."""
     resultado = getattr(candidato, "resultado", None)
     factores = getattr(candidato, "factores", None)
+    try:
+        ext = eo.extension_pct(factores) if factores is not None else None
+    except Exception:
+        ext = None
     return {"patron": getattr(resultado, "patron", None),
-            "vwap": getattr(factores, "vwap", None)}
+            "vwap": getattr(factores, "vwap", None),
+            "extension_pct": None if ext is None else round(ext, 4)}
 
 
 def _hay_tiempo(cfg: MomentumConfig, ahora: datetime, ticker: str) -> bool:
