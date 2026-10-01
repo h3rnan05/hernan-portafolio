@@ -78,7 +78,7 @@ from momentum_hunter.catalysts.keyword_rechazos import explicar_rechazos_keyword
 from momentum_hunter.config import CONFIG, MomentumConfig
 from momentum_hunter.data import acciones_corporativas as acc_corp
 from momentum_hunter.data import subastas
-from momentum_hunter.data.fuente import informe_de, proveedor_configurado
+from momentum_hunter.data.fuente import FuentePreciosCaida, informe_de, proveedor_configurado
 from momentum_hunter.data.provider import DataProvider, YahooProvider
 from momentum_hunter import early_opportunity as eo
 from momentum_hunter.factors import intradia as fi
@@ -93,8 +93,9 @@ log = logging.getLogger("momentum_hunter.run")
 
 def _proveedor_de_datos():
     """`YahooProvider` se resuelve en este módulo para que un test que lo
-    parchea acá siga inyectando el doble. La variable de entorno decide
-    si ese objeto es la fuente o solo el respaldo; el default no la cambia."""
+    parchea acá siga inyectando el doble. `MOMENTUM_DATA_PROVIDER` decide
+    la fuente de precios (default: el feed SIP); Yahoo queda para metadata
+    y, solo con `=yahoo`, para precios. Nunca como respaldo."""
     return proveedor_configurado(construir_yahoo=YahooProvider)
 
 
@@ -1179,6 +1180,12 @@ def revisar_watchlist(
         watchlist.activar_prohibicion_canonica()
     try:
         _revisar_watchlist_cuerpo(cfg, provider, dry_run, ahora)
+    except FuentePreciosCaida as ex:
+        # Fail-closed (2026-10-01): sin precios no hay transiciones ni
+        # niveles refrescados, y no se persiste nada de esta corrida. Las
+        # TRIGGERED envejecen y el ejecutor las frena por niveles rancios.
+        log.error("rechequeo cortado: sin precios del feed (%s); no se genera ninguna entrada", ex.codigo)
+        raise SystemExit(2) from None
     finally:
         watchlist.desactivar_prohibicion_canonica()
         _registrar_fuente_watchlist(provider, dry_run)
@@ -1759,6 +1766,12 @@ def main() -> None:
                 log.info("vigilancia: %d cambio(s) de estado avisado(s)", len(avisos))
 
         _revisar_resumen_cierre(args.dry_run, ya_avisado_radar=bool(resumen_radar))
+    except FuentePreciosCaida as ex:
+        # Fail-closed (2026-10-01): el feed no atendió y no hay respaldo.
+        # Se corta antes de tocar la watchlist; queda en la telemetría.
+        metricas.registrar_error("datos", ex)
+        log.error("escaneo cortado: sin precios del feed (%s); no se genera ninguna entrada", ex.codigo)
+        raise SystemExit(2) from None
     finally:
         # Telemetría de la foto que haya -- también en silencio temprano
         # o si el resto del pipeline revienta. En dry-run no se persiste.

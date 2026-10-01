@@ -14,7 +14,7 @@ import pytest
 
 from momentum_hunter.data import fuente, sip_stream as sip
 from momentum_hunter.data import sip_stream_comparar as cmp
-from momentum_hunter.data.fuente import ProveedorConRespaldo
+from momentum_hunter.data.fuente import ProveedorAlpaca
 from momentum_hunter.models import BarraIntradia
 
 REPO = Path(__file__).resolve().parents[2]
@@ -603,7 +603,7 @@ def test_primario_viejo_o_con_hueco_cae_al_rest(monkeypatch, tmp_path):
     monkeypatch.setenv(sip.ENV_MODO, "primario")
     monkeypatch.setenv(sip.ENV_ESTADO, str(tmp_path / "estado"))
     primario = _Primario()
-    prov = ProveedorConRespaldo(primario, _Yahoo(), feed="sip")
+    prov = ProveedorAlpaca(primario, _Yahoo, feed="sip")
     out = prov.barras_intradia(["NTLA"])
     assert primario.llamadas == [["NTLA"]]
     assert out["NTLA"].volume[0] == 50.0
@@ -624,7 +624,7 @@ def test_primario_fresco_sirve_el_almacen_y_no_pisa_un_volumen(monkeypatch, tmp_
     monkeypatch.setenv(sip.ENV_MODO, "primario")
     monkeypatch.setenv(sip.ENV_ESTADO, str(tmp_path / "estado"))
     primario = _Primario()
-    prov = ProveedorConRespaldo(primario, _Yahoo(), feed="sip")
+    prov = ProveedorAlpaca(primario, _Yahoo, feed="sip")
     out = prov.barras_intradia(["NTLA"])
     assert primario.llamadas == []
     assert out["NTLA"].volume[-1] == velas[-1]["v"]
@@ -638,7 +638,7 @@ def test_una_serie_corta_no_reemplaza_al_rest(monkeypatch, tmp_path):
     monkeypatch.setenv(sip.ENV_MODO, "primario")
     monkeypatch.setenv(sip.ENV_ESTADO, str(tmp_path / "estado"))
     primario = _Primario()
-    prov = ProveedorConRespaldo(primario, _Yahoo(), feed="sip")
+    prov = ProveedorAlpaca(primario, _Yahoo, feed="sip")
     prov.barras_intradia(["NTLA"])
     assert primario.llamadas == [["NTLA"]]
 
@@ -650,14 +650,13 @@ def test_una_linea_sin_volumen_tira_el_pedido_al_rest(monkeypatch, tmp_path):
     monkeypatch.setenv(sip.ENV_MODO, "primario")
     monkeypatch.setenv(sip.ENV_ESTADO, str(tmp_path / "estado"))
     primario = _Primario()
-    prov = ProveedorConRespaldo(primario, _Yahoo(), feed="sip")
+    prov = ProveedorAlpaca(primario, _Yahoo, feed="sip")
     prov.barras_intradia(["NTLA"])
     assert primario.llamadas == [["NTLA"]]
 
 
-def test_primario_no_toca_yahoo_ni_iex(monkeypatch):
-    monkeypatch.delenv("MOMENTUM_DATA_PROVIDER", raising=False)
-    monkeypatch.delenv("ALPACA_DATA_FEED", raising=False)
+def test_primario_no_toca_yahoo(monkeypatch):
+    monkeypatch.setenv("MOMENTUM_DATA_PROVIDER", "yahoo")
     monkeypatch.setenv(sip.ENV_MODO, "primario")
 
     def boom(*_a, **_k):
@@ -666,8 +665,6 @@ def test_primario_no_toca_yahoo_ni_iex(monkeypatch):
     monkeypatch.setattr(sip, "barras_si_cubren", boom)
     yahoo = fuente.proveedor_configurado(construir_yahoo=_Yahoo)
     yahoo.barras_intradia(["NTLA"])
-    iex = ProveedorConRespaldo(_Primario(), _Yahoo(), feed="iex")
-    iex.barras_intradia(["NTLA"])
 
 
 def test_sombra_aunque_el_almacen_este_fresco_va_al_rest(monkeypatch, tmp_path):
@@ -677,7 +674,7 @@ def test_sombra_aunque_el_almacen_este_fresco_va_al_rest(monkeypatch, tmp_path):
     monkeypatch.setenv(sip.ENV_MODO, "sombra")
     monkeypatch.setenv(sip.ENV_ESTADO, str(tmp_path / "estado"))
     primario = _Primario()
-    prov = ProveedorConRespaldo(primario, _Yahoo(), feed="sip")
+    prov = ProveedorAlpaca(primario, _Yahoo, feed="sip")
     prov.barras_intradia(["NTLA"])
     assert primario.llamadas == [["NTLA"]]
 

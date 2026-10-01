@@ -49,3 +49,13 @@ def _rss_noticias_sin_red(monkeypatch):
     from momentum_hunter.catalysts import detector
 
     monkeypatch.setattr(detector, "titulares_rss_yahoo", lambda ticker, *a, **k: [])
+
+
+@pytest.fixture(autouse=True)
+def _precios_del_doble_inyectado(monkeypatch):
+    """4) Fuente de precios. Desde el 2026-10-01 el default es alpaca/sip
+    sin respaldo. Las pruebas del pipeline inyectan su doble parcheando
+    `run.YahooProvider`; para que ese doble sea la fuente, aquí se fija
+    `MOMENTUM_DATA_PROVIDER=yahoo`. Las pruebas del default real
+    (`test_fuente_alpaca.py`) borran la variable."""
+    monkeypatch.setenv("MOMENTUM_DATA_PROVIDER", "yahoo")

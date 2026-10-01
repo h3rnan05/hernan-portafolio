@@ -1,5 +1,5 @@
-"""Proveedor de barras del feed y el respaldo a Yahoo. HTTP simulado:
-estas pruebas no salen a la red ni usan claves de verdad."""
+"""Proveedor de barras del feed SIP, sin respaldo a Yahoo (2026-10-01).
+HTTP simulado: estas pruebas no salen a la red ni usan claves de verdad."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from momentum_hunter.data.alpaca_datos import (
     parsear_snapshot,
 )
 from momentum_hunter.data.comparar_fuentes import formatear, nota_ratio, resumen_diario, resumen_intradia
-from momentum_hunter.data.fuente import ProveedorConRespaldo, proveedor_configurado
+from momentum_hunter.data.fuente import FuentePreciosCaida, ProveedorAlpaca, proveedor_configurado
 from momentum_hunter.models import Barras, BarraIntradia
 
 
@@ -567,42 +567,39 @@ def _barra(ticker="AAA"):
     return Barras(ticker, ["1"], [1.0], [1.0], [1.0], [1.0], [50.0])
 
 
-def test_el_ciclo_caido_cae_entero_a_yahoo():
+def test_el_ciclo_caido_corta_sin_tocar_yahoo():
     yahoo = _Yahoo()
-    p = ProveedorConRespaldo(
-        _Primario(error=ErrorDatosAlpaca("sin_credenciales")), yahoo, feed="sip")
-    out = p.barras(["AAA", "BBB"])
-    assert set(out) == {"AAA", "BBB"}
-    assert yahoo.pedidos == [["AAA", "BBB"]]
+    p = ProveedorAlpaca(_Primario(error=ErrorDatosAlpaca("http_429")), lambda: yahoo)
+    with pytest.raises(FuentePreciosCaida) as exc:
+        p.barras(["AAA", "BBB"])
+    assert exc.value.codigo == "http_429"
+    assert yahoo.pedidos == []
     info = p.informe_datos()
-    assert info.configurada == "alpaca"
-    assert info.fuente == "yahoo"
-    assert info.feed is None
-    assert info.fallbacks == 2
-    assert info.latencia_ms is not None
+    assert info.configurada == "alpaca" and info.fuente is None and info.fallbacks == 0
 
 
-def test_solo_los_lotes_fallidos_van_al_respaldo():
+def test_lotes_fallidos_quedan_sin_datos_y_no_van_a_yahoo(caplog):
     yahoo = _Yahoo()
-    p = ProveedorConRespaldo(
-        _Primario(barras={"AAA": _barra("AAA")}, fallidos=["BBB"]), yahoo, feed="sip")
+    caplog.set_level("WARNING")
+    p = ProveedorAlpaca(_Primario(barras={"AAA": _barra("AAA"), "BBB": _barra("BBB")}, fallidos=["BBB"]),
+                        lambda: yahoo)
     out = p.barras(["AAA", "BBB"])
-    assert set(out) == {"AAA", "BBB"}
-    assert out["AAA"].volume == [50.0]  # la del feed, no la de Yahoo
-    assert yahoo.pedidos == [["BBB"]]
+    assert list(out) == ["AAA"]            # BBB no se evalúa: ni Yahoo ni ceros
+    assert yahoo.pedidos == []
+    assert p.sin_respuesta == 1
+    assert "BBB" in caplog.text
     info = p.informe_datos()
-    assert info.fuente == "mixto"
-    assert info.feed == "sip"
-    assert info.fallbacks == 1
+    assert info.fuente == "alpaca" and info.feed == "sip" and info.fallbacks == 0
 
 
-def test_ventana_con_guion_en_cada_lote_no_cae_al_respaldo(monkeypatch):
+def test_ventana_con_guion_en_cada_lote_sale_entera_del_feed(monkeypatch):
     # Antes, un guion en el lote devolvía 400 y las 100 iban a Yahoo.
-    # Traducidas, las tres tandas salen de Alpaca: fallbacks=0.
+    # Traducidas, las tres tandas salen del feed.
     monkeypatch.setattr(ad, "LOTE_DIARIO", 2)
     tickers = ["UMH", "BH-A", "AAA", "CMS-PB", "LZM-WT", "BBB"]
 
     def _get(url, params=None, headers=None, timeout=None):
+        assert url.startswith("https://data.alpaca.markets/") and params["feed"] == "sip"
         syms = params["symbols"].split(",")
         if any("-" in s for s in syms):
             return _Resp({}, status=400)
@@ -610,21 +607,15 @@ def test_ventana_con_guion_en_cada_lote_no_cae_al_respaldo(monkeypatch):
 
     monkeypatch.setattr(ad.requests, "get", _get)
     yahoo = _Yahoo()
-    p = ProveedorConRespaldo(_provider(), yahoo, feed="sip")
+    p = ProveedorAlpaca(_provider(), lambda: yahoo)
     out = p.barras(tickers)
     assert set(out) == set(tickers)
     assert out["BH-A"].volume[-1] == 1000.0
-    assert out["CMS-PB"].volume[-1] == 1000.0
     assert yahoo.pedidos == []
-    info = p.informe_datos()
-    assert info.fallbacks == 0
-    assert info.fuente == "alpaca"
-    assert info.feed == "sip"
+    assert p.sin_respuesta == 0 and p.informe_datos().fuente == "alpaca"
 
 
-def test_el_aviso_de_respaldo_nombra_el_codigo_y_el_simbolo(monkeypatch, caplog):
-    # El dict de telemetría no cambia de forma. El código y el símbolo
-    # van al aviso, que es lo que se puede leer después de una corrida.
+def test_un_400_suelto_deja_al_simbolo_sin_datos(monkeypatch, caplog):
     def _get(url, params=None, headers=None, timeout=None):
         if "ZZZZ" in params["symbols"]:
             return _Resp({}, status=400)
@@ -633,96 +624,88 @@ def test_el_aviso_de_respaldo_nombra_el_codigo_y_el_simbolo(monkeypatch, caplog)
     monkeypatch.setattr(ad.requests, "get", _get)
     yahoo = _Yahoo()
     caplog.set_level("WARNING")
-    p = ProveedorConRespaldo(_provider(reintentos=1), yahoo, feed="sip")
+    p = ProveedorAlpaca(_provider(reintentos=1), lambda: yahoo)
     out = p.barras(["AAA", "ZZZZ"])
-    assert out["AAA"].volume[-1] == 1000.0  # feed
-    assert out["ZZZZ"].volume == [100.0]  # solo este fue al respaldo
-    assert yahoo.pedidos == [["ZZZZ"]]
-    assert p.informe_datos().fuente == "mixto"
-    assert p.informe_datos().fallbacks == 1
+    assert list(out) == ["AAA"] and out["AAA"].volume[-1] == 1000.0
+    assert yahoo.pedidos == []
     assert "http_400" in caplog.text and "ZZZZ" in caplog.text
 
 
-def test_un_simbolo_sin_velas_no_dispara_el_respaldo():
-    # 200 y el símbolo no está: el feed dijo que no hay datos. Pedirle
-    # la otra cinta mezclaría dos fuentes en el mismo cálculo.
-    yahoo = _Yahoo()
-    p = ProveedorConRespaldo(_Primario(barras={"AAA": _barra()}), yahoo, feed="sip")
+def test_un_simbolo_sin_velas_no_es_un_fallo():
+    p = ProveedorAlpaca(_Primario(barras={"AAA": _barra()}), _Yahoo)
     out = p.barras(["AAA", "BBB"])
     assert list(out) == ["AAA"]
-    assert yahoo.pedidos == []
-    assert p.informe_datos().fuente == "alpaca"
-    assert p.informe_datos().fallbacks == 0
+    assert p.sin_respuesta == 0
 
 
-def test_metadata_sigue_en_yahoo_y_no_cuenta_como_respaldo():
+def test_metadata_sigue_en_yahoo_y_no_es_un_pedido_de_precio():
     yahoo = _Yahoo()
-    p = ProveedorConRespaldo(_Primario(barras={"AAA": _barra()}), yahoo, feed="sip")
+    p = ProveedorAlpaca(_Primario(barras={"AAA": _barra()}), lambda: yahoo)
     assert p.metadata(["AAA"])["AAA"].ticker == "AAA"
     assert yahoo.pedidos == [("meta", ["AAA"])]
-    # No fue un pedido de precio: la fuente sigue sin afirmarse.
-    assert p.informe_datos().fuente is None
-    assert p.informe_datos().fallbacks == 0
-    assert p.informe_datos().latencia_ms is None
+    assert p.informe_datos().fuente is None and p.informe_datos().latencia_ms is None
 
 
-def test_default_es_yahoo_y_no_construye_el_feed(monkeypatch):
+def test_default_es_alpaca_sip_sin_respaldo(monkeypatch):
     monkeypatch.delenv("MOMENTUM_DATA_PROVIDER", raising=False)
     monkeypatch.delenv("ALPACA_DATA_FEED", raising=False)
+    vistos = {}
+
+    class _Falso(_Primario):
+        def __init__(self, feed="sip", **kw):
+            vistos["feed"] = feed
+            super().__init__(barras={"AAA": _barra()})
+
+    monkeypatch.setattr(fuente, "AlpacaProvider", _Falso)
+    p = proveedor_configurado(construir_yahoo=_Yahoo)
+    assert isinstance(p, ProveedorAlpaca)
+    p.barras(["AAA"])
+    assert vistos["feed"] == "sip"
+    info = p.informe_datos()
+    assert (info.configurada, info.fuente, info.feed, info.fallbacks) == ("alpaca", "alpaca", "sip", 0)
+
+
+def test_yahoo_explicito_no_construye_el_feed(monkeypatch):
+    monkeypatch.setenv("MOMENTUM_DATA_PROVIDER", "yahoo")
 
     def _explotar(*a, **k):
         raise AssertionError("no debía construirse el feed")
 
     monkeypatch.setattr(fuente, "AlpacaProvider", _explotar)
-    creado = {}
-
-    def _yahoo():
-        creado["si"] = True
-        return _Yahoo()
-
-    p = proveedor_configurado(construir_yahoo=_yahoo)
-    assert creado["si"] is True
+    p = proveedor_configurado(construir_yahoo=_Yahoo)
     p.barras(["AAA"])
     info = p.informe_datos()
-    assert info.configurada == "yahoo"
-    assert info.fuente == "yahoo"
-    assert info.feed is None
-    assert info.fallbacks == 0
-    assert info.latencia_ms is not None
+    assert info.configurada == "yahoo" and info.fuente == "yahoo" and info.feed is None
 
 
-def test_feed_invalido_se_queda_en_yahoo(monkeypatch):
-    monkeypatch.setenv("MOMENTUM_DATA_PROVIDER", "alpaca")
-    monkeypatch.setenv("ALPACA_DATA_FEED", "boats")
-    p = proveedor_configurado(construir_yahoo=_Yahoo)
-    assert p.informe_datos().configurada == "yahoo"
-
-
-def test_alpaca_en_el_entorno_arma_el_respaldo(monkeypatch):
+def test_alpaca_data_feed_distinto_de_sip_se_ignora(monkeypatch, caplog):
     monkeypatch.setenv("MOMENTUM_DATA_PROVIDER", "alpaca")
     monkeypatch.setenv("ALPACA_DATA_FEED", "iex")
     vistos = {}
 
-    class _Falso:
+    class _Falso(_Primario):
         def __init__(self, feed="sip", **kw):
             vistos["feed"] = feed
-            self.fallidos = []
-
-        def barras(self, tickers, dias=280):
-            self.fallidos = []
-            return {}
-
-        def barras_intradia(self, *a, **k):
-            self.fallidos = []
-            return {}
+            super().__init__()
 
     monkeypatch.setattr(fuente, "AlpacaProvider", _Falso)
-    p = proveedor_configurado(construir_yahoo=_Yahoo)
-    p.barras(["AAA"])
-    assert vistos["feed"] == "iex"
-    assert p.informe_datos().configurada == "alpaca"
-    assert p.informe_datos().fuente == "alpaca"
-    assert p.informe_datos().feed == "iex"
+    caplog.set_level("WARNING")
+    proveedor_configurado(construir_yahoo=_Yahoo)
+    assert vistos["feed"] == "sip"
+    assert "ALPACA_DATA_FEED=iex se ignora" in caplog.text
+
+
+@pytest.mark.parametrize("valor", ["alpca", "polygon", "iex"])
+def test_proveedor_desconocido_corta_sin_caer_a_yahoo(monkeypatch, valor):
+    monkeypatch.setenv("MOMENTUM_DATA_PROVIDER", valor)
+    yahoo = _Yahoo()
+    p = proveedor_configurado(construir_yahoo=lambda: yahoo)
+    with pytest.raises(FuentePreciosCaida) as exc:
+        p.barras(["AAA"])
+    assert exc.value.codigo == "configuracion"
+    with pytest.raises(FuentePreciosCaida):
+        p.barras_intradia(["AAA"])
+    assert yahoo.pedidos == []
 
 
 @pytest.mark.parametrize("clave,secreto", [
@@ -732,12 +715,10 @@ def test_alpaca_en_el_entorno_arma_el_respaldo(monkeypatch):
     ("KEY", ""),
     ("", "SECRET"),
 ])
-def test_claves_ausentes_o_vacias_caen_a_yahoo_sin_romper(monkeypatch, clave, secreto):
-    # El respaldo de GitHub exporta alpaca/sip siempre. Un secret que no
-    # existe llega como cadena vacía: no es un fallo del job, es el mismo
-    # respaldo Yahoo de un ciclo que el feed no pudo atender.
-    monkeypatch.setenv("MOMENTUM_DATA_PROVIDER", "alpaca")
-    monkeypatch.setenv("ALPACA_DATA_FEED", "sip")
+def test_claves_ausentes_o_vacias_cortan_sin_http_ni_yahoo(monkeypatch, clave, secreto):
+    # Un secret que no existe llega como cadena vacía: antes caía a Yahoo,
+    # ahora corta la corrida (fail-closed).
+    monkeypatch.delenv("MOMENTUM_DATA_PROVIDER", raising=False)
     for nombre, valor in (
         ("ALPACA_PAPER_API_KEY", clave),
         ("ALPACA_PAPER_API_SECRET", secreto),
@@ -753,14 +734,52 @@ def test_claves_ausentes_o_vacias_caen_a_yahoo_sin_romper(monkeypatch, clave, se
     monkeypatch.setattr(ad.requests, "get", _boom)
     yahoo = _Yahoo()
     p = proveedor_configurado(construir_yahoo=lambda: yahoo)
-    assert p.barras(["AAA"])["AAA"].volume == [100.0]
-    assert p.barras_intradia(["BBB"]) == {}
-    assert yahoo.pedidos == [["AAA"], ["BBB"]]
-    info = p.informe_datos()
-    assert info.configurada == "alpaca"
-    assert info.fuente == "yahoo"
-    assert info.feed is None
-    assert info.fallbacks == 2
+    with pytest.raises(FuentePreciosCaida) as exc:
+        p.barras(["AAA"])
+    assert exc.value.codigo == "sin_credenciales"
+    with pytest.raises(FuentePreciosCaida):
+        p.barras_intradia(["BBB"])
+    assert yahoo.pedidos == []
+
+
+def test_429_reintenta_con_backoff_y_respeta_retry_after(monkeypatch):
+    llamadas, esperas = [], []
+    respuestas = [_Resp({}, status=429, headers={"Retry-After": "3"}),
+                  _Resp({}, status=503),
+                  _Resp({"bars": {"AAA": _diarias(20)}})]
+
+    def _get(url, params=None, headers=None, timeout=None):
+        llamadas.append(params["feed"])
+        return respuestas.pop(0)
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    p = ProveedorAlpaca(_provider(dormir=esperas.append), _Yahoo)
+    assert list(p.barras(["AAA"])) == ["AAA"]
+    assert llamadas == ["sip", "sip", "sip"]
+    assert esperas[0] == 3.0 and esperas[1] > 0
+
+
+def test_429_agotado_corta_la_corrida(monkeypatch):
+    monkeypatch.setattr(ad.requests, "get", lambda *a, **k: _Resp({}, status=429))
+    p = ProveedorAlpaca(_provider(dormir=lambda _s: None), _Yahoo)
+    with pytest.raises(FuentePreciosCaida) as exc:
+        p.barras_intradia(["AAA"])
+    assert exc.value.codigo == "http_429"
+
+
+def test_cada_llamada_pide_feed_sip_al_host_de_datos(monkeypatch):
+    vistos = []
+
+    def _get(url, params=None, headers=None, timeout=None):
+        vistos.append((url, params.get("feed")))
+        return _Resp({"bars": {"AAA": [_vela("2026-09-28T14:30:00Z", 500.0)] * 6}})
+
+    monkeypatch.setattr(ad.requests, "get", _get)
+    p = ProveedorAlpaca(_provider(), _Yahoo)
+    p.barras(["AAA"])
+    p.barras_intradia(["AAA"])
+    assert vistos and all(u.startswith("https://data.alpaca.markets/v2/stocks/bars") and f == "sip"
+                          for u, f in vistos)
 
 
 def test_el_hunter_solo_habla_con_el_host_de_datos():
