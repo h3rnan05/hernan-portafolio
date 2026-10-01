@@ -2611,6 +2611,20 @@ tr.historial td,tr.historial td.tk,h3.historial{color:var(--gris);font-weight:40
 h3{margin:12px 0 0;font-size:13px;letter-spacing:.04em;font-weight:500}
 .badge{font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:99px;border:1px solid var(--acento);color:var(--acento)}
 .scroll{overflow-x:auto}
+.anclas{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;gap:6px;padding:8px 0;background:var(--fondo);border-bottom:1px solid var(--linea);font-family:var(--mono);font-size:12px}
+.anclas a,.anclas-movil a{color:var(--tinta);text-decoration:none;padding:6px 10px;border-radius:4px;border:1px solid var(--linea);background:var(--papel)}
+.anclas a:hover,.anclas-movil a:hover{border-color:var(--acento);color:var(--acento)}
+.anclas-movil{display:none;position:sticky;top:0;z-index:5;background:var(--fondo);font-family:var(--mono);font-size:13px}
+.anclas-movil>summary{cursor:pointer;padding:10px 12px;border:1px solid var(--linea);border-radius:4px;background:var(--papel);list-style:none}
+.anclas-movil nav{display:flex;flex-wrap:wrap;gap:6px;padding:8px 0}
+main>[id]{scroll-margin-top:56px}
+details.sistema{background:var(--papel);border:1px solid var(--linea);border-radius:6px}
+details.sistema>summary{cursor:pointer;padding:10px 14px;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;list-style:none}
+details.sistema>summary::-webkit-details-marker{display:none}
+details.sistema[open]>section{padding:0 12px 12px}
+.fila.c2,.fila.c3{align-items:start}
+details.explica-mas>summary{cursor:pointer;padding:2px 0 6px;color:var(--gris)}
+@media (max-width:640px){.anclas{display:none}.anclas-movil{display:block}}
 .ctl-resumen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .ctl-card{border:1px solid var(--linea);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .ctl-card b{font-family:var(--mono);font-size:20px;font-weight:500;overflow-wrap:anywhere}
@@ -3443,8 +3457,11 @@ def _html_bloqueos(ctx: dict) -> str:
         partes.append('<h3>Activo ahora</h3>')
         partes.append(_tabla(activos, False))
     if historial:
-        partes.append('<h3 class="historial">Historial del día</h3>')
-        partes.append(_tabla(historial, True))
+        # Plegado y con scroll interno (2026-10-01): ya no ensancha el panel.
+        partes.append(f'<details class="ctl" id="lim-historial"><summary><b class="historial">Historial del día</b>'
+                      f'<span class="mono">{len(historial)} ya resueltos</span></summary><div class="ctl-cuerpo">'
+                      + _tabla(historial, True).replace("<div class='scroll'>", "<div class='tabla-ctl'>", 1)
+                      + '</div></details>')
 
     # El resumen va en rojo SOLO si la ventana activa pide revisar.
     hay_revisar = bool(r.get("dato_faltante") or r.get("codigos_nuevos"))
@@ -3509,6 +3526,39 @@ def _html_watchlist(ctx: dict) -> tuple[str, str]:
     txt_bandas = " · ".join(f"{n} {b}" for b, n in sorted(bandas.items()))
     resumen = f"{n_disp} disparadas · {n_vig} vigilando" + (f" · {txt_bandas}" if txt_bandas else "") + " · "
     return "".join(partes), resumen
+
+
+ANCLAS = (("resumen", "Resumen"), ("riesgo", "Riesgo"), ("posiciones", "Posiciones"), ("equity", "Equity"),
+          ("velas", "Velas"), ("watchlist", "Watchlist"), ("ejecucion", "Ejecución"), ("historial", "Historial"),
+          ("sistema", "Sistema"))
+
+
+def _html_anclas() -> str:
+    """Índice fijo bajo el encabezado (2026-10-01). En móvil, desplegable."""
+    links = "".join(f'<a href="#{i}">{esc(t)}</a>' for i, t in ANCLAS)
+    return (f'<nav class="anclas" aria-label="Índice del panel">{links}</nav>'
+            f'<details class="anclas-movil"><summary>Ir a sección ▾</summary><nav aria-label="Índice del panel (móvil)">{links}</nav></details>')
+
+
+def _html_sistema(ctx: dict, etapas_html: str) -> str:
+    """Etapas del sistema como franja de una línea; se abre sola si alguna
+    pide revisión o no tiene datos (presentación; el cálculo no cambia)."""
+    etapas = ctx.get("etapas") or []
+    if not etapas:
+        return ('<details class="sistema" id="sistema" data-forzar="1" open><summary><b>Sistema</b>'
+                '<span class="punto sin-datos">sin dato</span></summary></details>')
+    raras = [e for e in etapas if e.get("estado") in ("alerta", "sin-datos")]
+    ok = sum(1 for e in etapas if e.get("estado") == "ok")
+    if raras:
+        txt = "Revisar: " + ", ".join(str(e.get("nombre")) for e in raras)
+        clase = "alerta"
+    else:
+        txt, clase = "OK", "ok"
+    detalle = f"{ok}/{len(etapas)} etapas OK"
+    forzar = ' data-forzar="1" open' if raras else ""
+    return (f'<details class="sistema" id="sistema"{forzar}><summary><b>Sistema</b>'
+            f'<span class="punto {clase}">{esc(txt)}</span><span class="mono">{esc(detalle)} · tocar para ver el detalle</span>'
+            f'</summary><section class="fila c4" aria-label="Etapas del sistema">{etapas_html}</section></details>')
 
 
 def render(ctx: dict) -> str:
@@ -3676,33 +3726,34 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
   </div>
 </header>
 {problemas}
-<section class="fila c4" aria-label="Etapas del sistema">{etapas}</section>
-<section class="fila c5" aria-label="Cifras clave">{kpis_html}</section>
-<section class="fila c2i" aria-label="Curva de equity">{equity_html}</section>
-{_html_broker(ctx)}
-<section class="panel" aria-label="Velas de posiciones abiertas">
+{_html_anclas()}
+{_html_sistema(ctx, etapas)}
+<section id="resumen" class="fila c5" aria-label="Cifras clave">{kpis_html}</section>
+<section id="riesgo" class="panel" aria-label="Control de riesgo y aprendizaje">
+  <div class="titulo"><h2>Control de riesgo y aprendizaje</h2><span class="mono">solo lectura · knobs en sombra</span></div>
+  {_html_control_aprendizaje(ctx)}
+</section>
+{_html_broker(ctx).replace('<section ', '<section id="posiciones" ', 1)}
+<section id="equity" class="fila c2i" aria-label="Curva de equity">{equity_html}</section>
+<section id="velas" class="panel" aria-label="Velas de posiciones abiertas">
   <div class="titulo"><h2>Velas de posiciones abiertas</h2><span class="mono">{sub_velas}</span></div>
   {operaciones}
 </section>
-<section class="fila c2">
+<section id="watchlist" class="fila c2" aria-label="Watchlist y latencia">
   <div class="panel"><div class="titulo"><h2>Watchlist actual</h2><span class="mono">{esc(resumen_watch)}generada {_hora(ctx['wl_momento'], tz, ahora=ctx['ahora'])}</span></div>{watch}</div>
   <div class="panel"><div class="titulo"><h2>Latencia</h2><span class="mono">qué tan rápido compra el bot</span></div>
-    <p class="explica">Minutos entre que el precio rompe (la señal) y que el bot manda la compra. Menos es mejor: si tarda, compra más caro. Cada barra es una compra de hoy; la línea roja es el límite de {fmt_num(ctx['presupuesto'])} min. En gris, el tiempo esperando cupo: no cuenta como tarde.</p>
+    <details class="explica-mas" id="lat-explica"><summary class="mono">¿Qué es esto?</summary><p class="explica">Minutos entre que el precio rompe (la señal) y que el bot manda la compra. Menos es mejor: si tarda, compra más caro. Cada barra es una compra de hoy; la línea roja es el límite de {fmt_num(ctx['presupuesto'])} min. En gris, el tiempo esperando cupo: no cuenta como tarde.</p></details>
     {_grafico_latencia(ctx)}
     <div class="stats"><div><span class="mono">Lo típico</span><b>{fmt_num(ctx['lat_mediana'], ' min')}</b></div><div><span class="mono">9 de cada 10</span><b>{'—' if ctx['lat_p90'] is None else '≤ ' + fmt_num(ctx['lat_p90'], ' min')}</b></div><div><span class="mono">Llegaron tarde</span><b class="{'neg' if ctx['lat_fuera'] else 'pos'}">{fmt_num(ctx['lat_fuera'])}</b></div></div>
     {_html_notas_latencia(ctx)}{_veredicto_latencia(ctx)}
   </div>
 </section>
-<section class="fila c3">
+<section id="ejecucion" class="fila c3" aria-label="Ejecución y límites">
   <div class="panel oscuro"><div class="titulo"><h2>Stream de ejecución</h2><span class="sub">órdenes paper de hoy</span></div>{stream}</div>
   <div class="panel"><div class="titulo"><h2>Dudas del ejecutor</h2><span class="mono">entradas que el LLM rechazó</span></div>{dudas}</div>
   <div class="panel"><div class="titulo"><h2>Límites de riesgo</h2><span class="mono">fail-closed</span></div>{riesgo}</div>
 </section>
-<section class="panel" aria-label="Control de riesgo y aprendizaje">
-  <div class="titulo"><h2>Control de riesgo y aprendizaje</h2><span class="mono">solo lectura · knobs en sombra</span></div>
-  {_html_control_aprendizaje(ctx)}
-</section>
-<section class="panel" aria-label="Trades de días anteriores">
+<section id="historial" class="panel" aria-label="Trades de días anteriores">
   <div class="titulo"><h2>Trades de días anteriores</h2><span class="mono">cerrados · hora Monterrey (UTC−6) · fuente: memoria de trades (fills paper, solo lectura)</span></div>
   {_html_historial_trades(ctx)}
 </section>
@@ -3746,7 +3797,7 @@ qué <details> abrió el usuario (por id, en este navegador). */
   var k="det-abiertos",m={{}};
   try{{m=JSON.parse(localStorage.getItem(k)||"{{}}")||{{}};}}catch(e){{m={{}};}}
   document.querySelectorAll("details[id]").forEach(function(d){{
-    if(Object.prototype.hasOwnProperty.call(m,d.id))d.open=!!m[d.id];
+    if(!d.dataset.forzar&&Object.prototype.hasOwnProperty.call(m,d.id))d.open=!!m[d.id];
     d.addEventListener("toggle",function(){{m[d.id]=d.open;try{{localStorage.setItem(k,JSON.stringify(m));}}catch(e){{}}}});
   }});
 }})();</script>
