@@ -2787,3 +2787,103 @@ def test_panel_stop_diario_sin_datos_y_dato_faltante(tmp_path):
     html = bd.render(ctx)
     assert ctx["stop_diario"]["dato_faltante"] is True
     assert '<div class="nota">Stop diario (1.00 %): P&amp;L hoy sin dato' in html
+
+
+# ───────────── Control de riesgo y aprendizaje (2026-10-01, sombra) ─────────────
+
+def _aprendizaje(tmp_path, reporte=True, ajustes=True, regimen=True, sombra=True):
+    d = tmp_path / "apr"
+    d.mkdir(exist_ok=True)
+    if reporte:
+        (d / "ultimo_reporte.json").write_text(json.dumps({
+            "fecha": "2026-09-18", "estadisticas": {
+                "global": {"n": 21, "sesiones": 4, "r_medio": -0.2, "pnl": -64.67},
+                "n_minimo": 20, "sesiones_minimas": 5,
+                "segmentos": [{"dimension": "patron", "valor": "<b>orb</b>", "n": 5, "sesiones": 3, "wr": 0.0,
+                               "r_medio": -0.71, "r_shr": -0.4, "pnl": -50.0, "estado": "observacion"}]},
+            "sombra_retro_k3": [{"fecha": "2026-09-28", "pnl_real": -6.5, "pnl_sombra": -6.22, "delta": 0.28,
+                                 "bloqueados": 2, "ganadores_bloqueados": 1}]}))
+    if ajustes:
+        (d / "ajustes.json").write_text(json.dumps({"modo": "sombra", "ajustes": [
+            {"knob": "K3_max_posiciones", "valor": 3, "motivo": "racha: 3 trades perdedores seguidos",
+             "desde": "2026-09-18", "vence": "2026-09-21"}]}))
+    if regimen:
+        (d / "regimen.json").write_text(json.dumps({
+            "nivel": "CAUTELA", "calculado_en": "2026-09-18T14:58:00+00:00", "desde": "2026-09-18T14:00:00+00:00",
+            "senales": [{"nombre": "spy_bajo_sma20", "activa": True, "detalle": "cierre previo 660 vs SMA20 665"},
+                        {"nombre": "vixy_sube", "activa": None, "detalle": "sin datos de VIXY"}],
+            "racha": {"disparada": False, "motivos": [], "perdedores_seguidos": 1},
+            "motivos": ["cierre previo 660 vs SMA20 665"], "acciones_sombra": {"max_posiciones": 3, "sin_small_caps": True}}))
+    if sombra:
+        (d / "sombra_diaria.jsonl").write_text(json.dumps({"fecha": "2026-09-18", "pnl_real": -10.0, "pnl_sombra": -4.0,
+                                                           "delta": 6.0, "bloqueados": 1, "ganadores_bloqueados": 0}) + "\n")
+    return d
+
+
+def test_seccion_control_con_los_tres_bloques(tmp_path):
+    d = _aprendizaje(tmp_path)
+    eventos(tmp_path,
+            {"ts": "2026-09-18T14:50:00+00:00", "tipo": "stop_diario", "fecha_sesion": "2026-09-18", "modo": "enforce",
+             "pct": 1.0, "pnl": -30.0, "pnl_pct": -0.6, "umbral_usd": 48.65, "activo": False, "bloquea": False},
+            {"ts": "2026-09-18T14:55:00+00:00", "tipo": "gate_sombra", "ticker": "ABC",
+             "bloquearia": [{"knob": "K5_sin_small_caps", "motivo": "x"}]})
+    ctx = bd.construir(AHORA, cfg(tmp_path, aprendizaje=d), get=sin_alpaca)
+    html = bd.render(ctx)
+    assert "Control de riesgo y aprendizaje" in html
+    assert "Pérdida del día vs umbral" in html and "-30.00 / −48.65 USD · inactivo" in html
+    assert "CAUTELA" in html and "spy_bajo_sma20" in html and "small caps: bloqueadas" in html
+    assert "K3_max_posiciones" in html and "racha: 3 trades perdedores seguidos" in html
+    assert "Muestra insuficiente" in html and "retro K3" in html and "en vivo" in html
+    assert "1 habrían bloqueado" in html
+    assert "&lt;b&gt;orb&lt;/b&gt;" in html and "<b>orb</b>" not in html  # escape
+
+
+def test_seccion_control_sin_archivos_dice_sin_dato_nunca_cero(tmp_path):
+    vacio = tmp_path / "vacio"
+    vacio.mkdir()
+    ctx = bd.construir(AHORA, cfg(tmp_path, aprendizaje=vacio), get=sin_alpaca)
+    html = bd.render(ctx)
+    seccion = html[html.index("Control de riesgo y aprendizaje"):]
+    assert "SIN DATO" in seccion and "Sin reporte nocturno todavía" in seccion
+    assert "Pérdida del día vs umbral" in seccion and "sin dato" in seccion
+    assert "INACTIVO" not in seccion and "· inactivo" not in seccion
+    assert "Ajustes propuestos: ninguno" in seccion
+
+
+def test_seccion_control_sin_carpeta_configurada(tmp_path):
+    ctx = bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca)
+    assert "sin carpeta de aprendizaje configurada" in bd.render(ctx)
+
+
+def test_seccion_control_json_corrupto_avisa_y_el_panel_sigue(tmp_path):
+    d = _aprendizaje(tmp_path, reporte=False)
+    (d / "ajustes.json").write_text("{roto")
+    (d / "sombra_diaria.jsonl").write_text("no-json\n")
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path, aprendizaje=d), get=sin_alpaca))
+    assert "ajustes.json ilegible" in html and "sombra_diaria.jsonl con líneas ilegibles" in html
+    assert "Watchlist actual" in html and "Límites de riesgo" in html
+
+
+def test_seccion_control_bloque_que_revienta_no_tumba(tmp_path, monkeypatch):
+    monkeypatch.setattr(bd, "_html_bloque_regimen", lambda ap, ctx: 1 / 0)
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path, aprendizaje=_aprendizaje(tmp_path)), get=sin_alpaca))
+    assert "bloque no disponible (ZeroDivisionError)" in html and "Qué habría hecho la sombra" in html
+
+
+def test_barra_stop_diario_0_60_100(tmp_path):
+    for pnl, clase in ((10.0, ""), (-29.2, ""), (-48.65, "lleno")):
+        ctx = {"stop_diario": {"sin_datos": False, "pnl": pnl, "umbral_usd": 48.65, "pct": 1.0, "activo": pnl <= -48.65,
+                               "bloquea": pnl <= -48.65, "desde": "10:00"}}
+        h = bd._html_bloque_stop(ctx)
+        frac = max(0.0, -pnl) / 48.65
+        assert f'style="width:{min(1.0, frac) * 100:.0f}%"' in h
+        if clase:
+            assert 'class="lleno"' in h
+
+
+def test_seccion_control_no_usa_post_ni_cliente_de_ordenes():
+    import inspect
+    src = "".join(inspect.getsource(f) for f in (bd.leer_aprendizaje, bd._html_control_aprendizaje,
+                                                   bd._html_bloque_stop, bd._html_bloque_regimen,
+                                                   bd._html_bloque_aprendizaje))
+    assert "post(" not in src.lower() and "alpaca_client" not in src and "colocar" not in src

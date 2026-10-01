@@ -151,6 +151,10 @@ def cargar_config() -> dict:
         # un `python -m` lanzado desde otro directorio leen el mismo archivo
         # que escribe `estado.guardar`.
         "revisiones": Path(revisiones) if revisiones else _estado("momentum_paper_trader/revisiones.json"),
+        # Aprendizaje en sombra (2026-10-01): reporte nocturno, ajustes,
+        # régimen y sombra diaria. Solo lectura.
+        "aprendizaje": (Path(os.environ["DASH_APRENDIZAJE"]) if os.environ.get("DASH_APRENDIZAJE")
+                        else _estado("momentum_paper_trader/aprendizaje", es_dir=True)),
     }
 
 
@@ -1223,6 +1227,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         "bloqueos": sorted(por_limite.items(), key=lambda kv: -kv[1]),
         "riesgo": riesgo,
         "stop_diario": resumir_stop_diario(eventos, cfg["tz"], ahora),
+        "aprendizaje": leer_aprendizaje(cfg.get("aprendizaje"), eventos, ahora),
         "persist_fallidos": persist_fallidos,
         "ia_fallos": ia_fallos,
         "hay_eventos": hay_eventos,
@@ -2871,6 +2876,216 @@ def _html_stop_diario(ctx: dict) -> str:
             f' · último chequeo {esc(sd.get("ultimo") or "—")}</div>')
 
 
+# ───────────────────────── control de riesgo y aprendizaje (sombra) ─────────────────────────
+
+def _leer_json(ruta: Path | None):
+    """(dict|None, problema|None). Falta = (None, None); ilegible = problema."""
+    if ruta is None or not ruta.exists():
+        return None, None
+    try:
+        d = json.loads(ruta.read_text(encoding="utf-8"))
+    except Exception as ex:
+        return None, f"{ruta.name} ilegible ({type(ex).__name__})"
+    return (d, None) if isinstance(d, dict) else (None, f"{ruta.name} con forma inesperada")
+
+
+def leer_aprendizaje(carpeta: Path | None, eventos: list[dict], ahora: datetime) -> dict:
+    """Todo lo que la sección "Control de riesgo y aprendizaje" muestra.
+    Solo lectura de archivos del job nocturno y del ejecutor (sombra).
+    Nada falta como 0: lo ausente queda None y se pinta "sin dato"."""
+    out: dict = {"problemas": [], "reporte": None, "ajustes": None, "regimen": None, "sombra": []}
+    if carpeta is None:
+        out["info"] = "sin carpeta de aprendizaje configurada"
+        return out
+    carpeta = Path(carpeta)
+    for clave, nombre in (("reporte", "ultimo_reporte.json"), ("ajustes", "ajustes.json"),
+                          ("regimen", "regimen.json")):
+        d, prob = _leer_json(carpeta / nombre)
+        out[clave] = d
+        if prob:
+            out["problemas"].append(prob)
+    ruta_sombra = carpeta / "sombra_diaria.jsonl"
+    if ruta_sombra.exists():
+        try:
+            for linea in ruta_sombra.read_text(encoding="utf-8").splitlines():
+                try:
+                    d = json.loads(linea)
+                except json.JSONDecodeError:
+                    out["problemas"].append("sombra_diaria.jsonl con líneas ilegibles")
+                    continue
+                if isinstance(d, dict):
+                    out["sombra"].append(d)
+        except OSError as ex:
+            out["problemas"].append(f"sombra_diaria.jsonl ilegible ({type(ex).__name__})")
+    hoy = ahora.astimezone(NY).date().isoformat()
+    gates = [e for e in eventos if e.get("tipo") == "gate_sombra" and e.get("_ts") is not None
+             and e["_ts"].astimezone(NY).date().isoformat() == hoy]
+    out["gates_hoy"] = len(gates)
+    out["gates_bloquearian_hoy"] = sum(1 for e in gates if e.get("bloquearia"))
+    out["gates_detalle"] = [{"ticker": e.get("ticker"), "knobs": sorted({b.get("knob") for b in e.get("bloquearia") or []
+                                                                           if isinstance(b, dict)})}
+                            for e in gates if e.get("bloquearia")][-10:]
+    out["gates_error_hoy"] = sum(1 for e in eventos if e.get("tipo") == "gate_sombra_error" and e.get("_ts") is not None
+                                 and e["_ts"].astimezone(NY).date().isoformat() == hoy)
+    return out
+
+
+def _fmt_r(v) -> str:
+    return "sin dato" if v is None else f"{v:+.2f}"
+
+
+def _fmt_pct(v) -> str:
+    return "sin dato" if v is None else f"{v * 100:.0f}%"
+
+
+def _fmt_usd(v) -> str:
+    return "sin dato" if v is None else f"{v:+.2f}"
+
+
+def _edad_txt(ts: str | None, ahora: datetime, tz) -> str:
+    d = parse_ts(ts) if ts else None
+    if d is None:
+        return "sin dato"
+    return f"{_hora(d, tz, ahora=ahora)} (hace {max(0, (ahora - d).total_seconds()) / 60:.0f} min)"
+
+
+def _html_bloque_stop(ctx: dict) -> str:
+    sd = ctx.get("stop_diario") or {"sin_datos": True}
+    barra = ""
+    if not sd.get("sin_datos") and sd.get("pnl") is not None and sd.get("umbral_usd"):
+        perdida = max(0.0, -sd["pnl"])
+        estado = ("ACTIVO" if sd.get("activo") else "inactivo")
+        barra = _barra_uso("Pérdida del día vs umbral", perdida, sd["umbral_usd"],
+                           f"{sd['pnl']:+.2f} / −{sd['umbral_usd']:.2f} USD · {estado}")
+    elif sd.get("sin_datos"):
+        barra = _barra_uso("Pérdida del día vs umbral", None, None, "sin dato")
+    return f'<h3>Stop diario</h3><div class="usos">{barra}</div>{_html_stop_diario(ctx)}'
+
+
+_SIMBOLO = {True: "✗ activa", False: "✓ no", None: "sin dato"}
+
+
+def _html_bloque_regimen(ap: dict, ctx: dict) -> str:
+    reg = ap.get("regimen")
+    tz, ahora = ctx["tz"], ctx["ahora"]
+    if not reg:
+        return ('<h3>Modo defensivo / régimen <span class="badge">SIN DATO</span></h3>'
+                '<div class="nota-historial">Sin cálculo del régimen todavía (se calcula en sesión, al final de '
+                'cada corrida del ejecutor). Fail-closed: el gate en sombra lo trata como CAUTELA.</div>')
+    nivel = str(reg.get("nivel") or "SIN DATO")
+    filas = "".join(
+        f"<tr><td class='tk'>{esc(str(s.get('nombre')))}</td><td>{esc(_SIMBOLO.get(s.get('activa'), 'sin dato'))}</td>"
+        f"<td>{esc(str(s.get('detalle') or ''))}</td></tr>" for s in reg.get("senales") or [])
+    rch = reg.get("racha") or {}
+    filas += (f"<tr><td class='tk'>racha</td><td>{esc(_SIMBOLO.get(bool(rch.get('disparada')) if rch else None))}</td>"
+              f"<td>{esc(', '.join(rch.get('motivos') or []) or ('perdedores seguidos ' + str(rch.get('perdedores_seguidos')) if rch else 'sin dato'))}</td></tr>")
+    acc = reg.get("acciones_sombra") or {}
+    base = (ctx.get("limites") or {}).get("tope_cupo")
+    acciones = []
+    if acc.get("max_posiciones") is not None:
+        acciones.append(f"máx posiciones {acc['max_posiciones']} (base {base if base is not None else 'sin dato'})")
+    if acc.get("sin_small_caps"):
+        acciones.append("small caps: bloqueadas")
+    if acc.get("sin_apertura_ni_ultima_hora"):
+        acciones.append("sin entradas en los primeros 30 min ni en la última hora")
+    if acc.get("sin_entradas"):
+        acciones.append("sin entradas nuevas")
+    acciones_txt = "; ".join(acciones) or "ninguna (base)"
+    return (f'<h3>Modo defensivo / régimen <span class="badge">{esc(nivel)}</span> <span class="mono">sombra</span></h3>'
+            f"<div class='scroll'><table><thead><tr><th>Señal</th><th>Estado</th><th>Detalle</th></tr></thead>"
+            f"<tbody>{filas}</tbody></table></div>"
+            f'<div class="nota-info">Por qué: {esc("; ".join(reg.get("motivos") or []) or "ninguna señal activa")} · '
+            f'Acciones que tomaría (no aplicadas): {esc(acciones_txt)} · desde {esc(_edad_txt(reg.get("desde"), ahora, tz))}'
+            f' · calculado {esc(_edad_txt(reg.get("calculado_en"), ahora, tz))}</div>')
+
+
+def _html_bloque_aprendizaje(ap: dict, ctx: dict) -> str:
+    rep = ap.get("reporte")
+    partes = ["<h3>Aprendizaje <span class=\"mono\">sombra: nada se aplica</span></h3>"]
+    if not rep:
+        partes.append('<div class="nota-historial">Sin reporte nocturno todavía (corre Lun–Vie 16:35 ET).</div>')
+    else:
+        est = rep.get("estadisticas") or {}
+        g = est.get("global") or {}
+        n_min = est.get("n_minimo") or 20
+        ses_min = est.get("sesiones_minimas") or 5
+        insuf = (g.get("n") or 0) < n_min or (g.get("sesiones") or 0) < ses_min
+        partes.append(
+            f'<div class="stats s4"><div><span class="mono">Trades válidos</span><b>{esc(str(g.get("n", "sin dato")))}</b></div>'
+            f'<div><span class="mono">Sesiones</span><b>{esc(str(g.get("sesiones", "sin dato")))}</b></div>'
+            f'<div><span class="mono">R medio</span><b>{esc(_fmt_r(g.get("r_medio")))}</b></div>'
+            f'<div><span class="mono">P&amp;L</span><b>{esc(_fmt_usd(g.get("pnl")))}</b></div></div>')
+        if insuf:
+            partes.append(f'<div class="nota-info">Muestra insuficiente: hacen falta n≥{n_min} y ≥{ses_min} sesiones '
+                          f'por segmento para proponer. Reporte del {esc(str(rep.get("fecha")))}.</div>')
+        segs = sorted((s for s in est.get("segmentos") or [] if s.get("n")),
+                      key=lambda s: (-(s.get("n") or 0), str(s.get("dimension")), str(s.get("valor"))))[:14]
+        if segs:
+            filas = "".join(
+                f"<tr><td class='tk'>{esc(str(s.get('dimension')))}={esc(str(s.get('valor')))}</td>"
+                f"<td>{s.get('n')}/{n_min}<div class='barra-uso'><div style='width:{min(1.0, (s.get('n') or 0) / n_min) * 100:.0f}%'></div></div></td>"
+                f"<td>{esc(str(s.get('sesiones')))}</td><td>{esc(_fmt_pct(s.get('wr')))}</td>"
+                f"<td>{esc(_fmt_r(s.get('r_medio')))}</td><td>{esc(_fmt_r(s.get('r_shr')))}</td>"
+                f"<td>{esc(_fmt_usd(s.get('pnl')))}</td><td>{esc(str(s.get('estado')))}</td></tr>" for s in segs)
+            partes.append("<div class='scroll'><table><thead><tr><th>Segmento</th><th>n</th><th>Ses.</th><th>WR</th>"
+                          "<th>R</th><th>R contraído</th><th>$</th><th>Estado</th></tr></thead>"
+                          f"<tbody>{filas}</tbody></table></div>")
+    aj = ap.get("ajustes") or {}
+    vig = aj.get("ajustes") or []
+    if vig:
+        filas = "".join(
+            f"<tr><td class='tk'>{esc(str(a.get('knob')))}</td><td>{esc(str(a.get('valor')))}</td>"
+            f"<td>{esc(str(a.get('motivo')))}</td><td>{esc(str(a.get('desde')))}</td><td>{esc(str(a.get('vence')))}</td>"
+            f"<td>sombra</td></tr>" for a in vig)
+        partes.append("<h3>Ajustes propuestos (en sombra)</h3><div class='scroll'><table><thead><tr><th>Knob</th>"
+                      "<th>Valor</th><th>Por qué</th><th>Desde</th><th>Vence</th><th>Estado</th></tr></thead>"
+                      f"<tbody>{filas}</tbody></table></div>")
+    else:
+        partes.append('<div class="nota-historial">Ajustes propuestos: ninguno. Aplicados: ninguno '
+                      '(encender knobs requiere GO del dueño).</div>')
+    sombra = ap.get("sombra") or []
+    retro = (rep or {}).get("sombra_retro_k3") or []
+    filas = "".join(
+        f"<tr><td class='tk'>{esc(str(d.get('fecha')))}</td><td>en vivo</td><td>{esc(_fmt_usd(d.get('pnl_real')))}</td>"
+        f"<td>{esc(_fmt_usd(d.get('pnl_sombra')))}</td><td>{esc(_fmt_usd(d.get('delta')))}</td>"
+        f"<td>{esc(str(d.get('bloqueados', 'sin dato')))} ({esc(str(d.get('ganadores_bloqueados', 0)))} gan.)</td></tr>"
+        for d in sombra[-10:])
+    filas += "".join(
+        f"<tr class='historial'><td class='tk'>{esc(str(d.get('fecha')))}</td><td>retro K3</td><td>{esc(_fmt_usd(d.get('pnl_real')))}</td>"
+        f"<td>{esc(_fmt_usd(d.get('pnl_sombra')))}</td><td>{esc(_fmt_usd(d.get('delta')))}</td>"
+        f"<td>{esc(str(d.get('bloqueados')))} ({esc(str(d.get('ganadores_bloqueados')))} gan.)</td></tr>" for d in retro[-10:])
+    acum_vivo = round(sum(d.get("delta") or 0 for d in sombra if d.get("delta") is not None), 2) if sombra else None
+    partes.append(f"<h3>Qué habría hecho la sombra</h3>"
+                  f'<div class="nota-info">Gates hoy: {ap.get("gates_hoy", 0)} evaluados, '
+                  f'{ap.get("gates_bloquearian_hoy", 0)} habrían bloqueado'
+                  + (f', {ap["gates_error_hoy"]} con error' if ap.get("gates_error_hoy") else "")
+                  + f' · Δ acumulado en vivo: {esc(_fmt_usd(acum_vivo))} USD. Retro = in-sample, solo orientativo.</div>')
+    if filas:
+        partes.append("<div class='scroll'><table><thead><tr><th>Día</th><th>Tipo</th><th>Real $</th><th>Sombra $</th>"
+                      f"<th>Δ</th><th>Bloqueados</th></tr></thead><tbody>{filas}</tbody></table></div>")
+    else:
+        partes.append('<div class="vacio">Sin días de sombra todavía.</div>')
+    if ap.get("info"):
+        partes.append(f'<div class="nota-historial">{esc(ap["info"])}</div>')
+    for p in ap.get("problemas") or []:
+        partes.append(f'<div class="nota">{esc(p)}</div>')
+    return "".join(partes)
+
+
+def _html_control_aprendizaje(ctx: dict) -> str:
+    """Sección "Control de riesgo y aprendizaje" (2026-10-01). Solo
+    lectura; una falla en un bloque no tumba el panel."""
+    ap = ctx.get("aprendizaje") or {"problemas": ["sin datos de aprendizaje"]}
+    bloques = []
+    for fn in (lambda: _html_bloque_stop(ctx), lambda: _html_bloque_regimen(ap, ctx),
+               lambda: _html_bloque_aprendizaje(ap, ctx)):
+        try:
+            bloques.append(f"<div class='panel'>{fn()}</div>")
+        except Exception as ex:
+            bloques.append(f'<div class="panel"><div class="nota">bloque no disponible ({esc(type(ex).__name__)})</div></div>')
+    return "".join(bloques)
+
+
 def _html_bloqueos(ctx: dict) -> str:
     """Panel de límites. Lo activo va en su sección; el día, en gris,
     con desde/hasta y cuándo se vio por última vez. El rojo (`nota`)
@@ -3204,6 +3419,10 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
   <div class="panel oscuro"><div class="titulo"><h2>Stream de ejecución</h2><span class="sub">órdenes paper de hoy</span></div>{stream}</div>
   <div class="panel"><div class="titulo"><h2>Dudas del ejecutor</h2><span class="mono">entradas que el LLM rechazó</span></div>{dudas}</div>
   <div class="panel"><div class="titulo"><h2>Límites de riesgo</h2><span class="mono">fail-closed</span></div>{riesgo}</div>
+</section>
+<section class="panel" aria-label="Control de riesgo y aprendizaje">
+  <div class="titulo"><h2>Control de riesgo y aprendizaje</h2><span class="mono">solo lectura · knobs en sombra</span></div>
+  <div class="fila c3">{_html_control_aprendizaje(ctx)}</div>
 </section>
 </main>
 <script>/* Panel viejo (2026-09-29): el HTML se regenera cada minuto y el
