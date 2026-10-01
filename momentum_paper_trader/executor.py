@@ -42,7 +42,7 @@ from momentum_hunter import calendario as calendario_sesion, sesion, watchlist
 
 from momentum_hunter.data.halts import desconocido as _desconocido_halt
 from momentum_paper_trader import (
-    aviso_fallo_ia, bloqueos, estado, halts, ia_decision, notify, stop_diario, telemetria,
+    aviso_fallo_ia, bloqueos, estado, halts, ia_decision, memoria_trades, notify, stop_diario, telemetria,
 )
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig, banda_de
@@ -407,6 +407,8 @@ def _revision_instrumentada(
         # es uniforme y no hay que adivinar por qué falta.
         ia_entraria=decision.entrar if ia_consultada else None,
         motivo_no_operada=motivo_no_operada,
+        # Solo dato para la memoria de trades; nunca lanza (None si falla).
+        rasgos=memoria_trades.rasgos_de_entrada(e, decision if ia_consultada else None),
     )
     telemetria.instrumentar_revision(
         registro, e,

@@ -112,6 +112,12 @@ class RevisionIA:
     # justo la muestra que se quiere medir.
     ia_entraria: bool | None = None
     motivo_no_operada: str | None = None   # uno de MOTIVOS_NO_OPERADA | None
+    # -- Rasgos de la señal AL DECIDIR (2026-10-01, memoria de trades).
+    # Patrón, catalizador, gap, velas, clima, float y fracción de la IA,
+    # copiados de la watchlist para que no se pierdan al archivar (ver
+    # `memoria_trades.py`). Solo dato: nada lo lee para decidir. `None` =
+    # registro anterior a este campo.
+    rasgos: dict | None = None
 
 
 # Razones deterministas por las que una revisión no coloca orden. Cada
