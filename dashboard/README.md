@@ -69,6 +69,7 @@ y Telegram aparte, también como mucho uno por día por clase. Sin
 | `DASH_GHA_TTL_SEG` | cuánto vale la respuesta de Actions antes de volver a preguntar | `300` |
 | `DASH_TELEM_HUNTER` | carpeta de telemetría del hunter; el estado del Hunter sale del último escaneo `vps` de hoy | `momentum_hunter/telemetria` |
 | `DASH_YAHOO_PAUSA_BOT` | archivo de pausa del BOT ante un 429 de Yahoo (solo lectura): el panel no le pide a Yahoo tampoco. No frena el feed SIP | (vacío) |
+| `DASH_NOTICIAS_LEIDAS` | registro de auditoría del escaneo para `noticias.html` (solo lectura) | `momentum_hunter/noticias_leidas.json` en `MOMENTUM_ESTADO_DIR` |
 | `DASH_REVISIONES` | `revisiones.json` del ejecutor, solo para el aviso de reconciliación | el del paquete |
 
 La tabla de watchlist muestra las entradas activas (`watching`, `triggered`) y las que cambiaron
@@ -290,3 +291,21 @@ panel contaba eventos crudos. Desde entonces:
   reacción. Las compras sin barra se listan con su motivo (el evento no
   trae las velas, o Alpaca tiene la compra y el log no). El eje va de 0 al
   doble del límite; una barra más alta se corta con su total escrito.
+
+### Noticias leídas (`noticias.html`, desde 2026-09-30)
+
+Página aparte, enlazada desde la cabecera ("Noticias leídas"). Muestra qué
+titulares leyó el escaneo en su última corrida y por qué cada acción pasó o
+no el filtro de catalizador. Es auditoría, no un feed, y **no es en vivo**:
+cambia cuando termina un escaneo.
+
+- La escribe el hunter (`momentum_hunter/noticias_leidas.py`) con los
+  titulares que ya tenía en memoria: cero llamadas extra. Guarda las últimas
+  3 corridas y hasta 25 titulares por acción.
+- Filtros: **Casi pasan** (hubo keyword pero la frenó el ancla, la ventana
+  de días o la regla de rumores) y **Sin keyword** (tenía noticias y ninguna
+  coincidió: sirve para buscar keywords que faltan).
+- El ejecutor no la lee; `watchlist.json` sigue siendo el único canal.
+- Archivo ausente, vacío o corrupto: la página lo dice y el panel sigue igual.
+- Limitación: si yfinance se traga un HTTP 500 (devuelve `[]`) y el RSS de
+  respaldo también viene vacío, la acción aparece como "Sin noticias".
