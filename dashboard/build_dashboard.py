@@ -1046,7 +1046,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
     escaneo = ultimo_escaneo_vps(cfg.get("telem_hunter"), ahora)
     hunter_momento = escaneo["fin"] if escaneo else None
     if escaneo:
-        slot = f" · slot {escaneo['slot']}/{escaneo['n_slots']}" if escaneo.get("slot") is not None else ""
+        slot = f" · tanda {escaneo['slot']} de {escaneo['n_slots']}" if escaneo.get("slot") is not None else ""
         detalle_hunter = (f"escaneo VPS {_cuando(hunter_momento, cfg['tz'], ahora)}{slot}"
                           f" · {escaneo['evaluadas']} evaluadas · watchlist {_cuando(wl_momento, cfg['tz'], ahora)}")
     else:
@@ -1055,7 +1055,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
     # del respaldo: se muestra aparte y en gris, rotulada "histórico",
     # para que "GitHub #243 del lun" junto a un OK no se lea como la
     # corrida que respalda ese OK (2026-09-29).
-    nota_hunter = (f"respaldo GitHub (histórico): #{corrida['numero']} {_cuando(gha_momento, cfg['tz'], ahora)}"
+    nota_hunter = (f"respaldo en GitHub (no se usa): corrida #{corrida['numero']} {_cuando(gha_momento, cfg['tz'], ahora)}"
                    if corrida else None)
     # GitHub Actions (momentum_hunter.yml) dejó de ser el escáner el 21/9:
     # ahora escanea el VPS y GitHub quedó SOLO como respaldo manual, que
@@ -1076,7 +1076,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         },
         {
             "nombre": "Rechequeo", "donde": "VPS",
-            "rol": "Revisa la watchlist con --solo-watchlist.",
+            "rol": "Revisa la lista de candidatos (sin buscar nuevos).",
             # Un persist fallido es alerta aunque la corrida sea fresca: el
             # bot corrió, pero su estado no llegó a main.
             "estado": "alerta" if persist_fallidos else estado_rechequeo,
@@ -1086,7 +1086,7 @@ def construir(ahora: datetime, cfg: dict, get=alpaca_get, velas=None, gha=None) 
         },
         {
             "nombre": "Ejecutor", "donde": "VPS",
-            "rol": "Consulta al LLM y decide si entra.",
+            "rol": "Consulta a la IA y decide si entra.",
             # Mismo criterio que Riesgo: con log y rechequeo reciente, 0
             # decisiones es un dato ("OK", "0 decisiones"). "Sin datos" solo
             # si falta el log o no hay un rechequeo reciente. Un fallo
@@ -2625,6 +2625,13 @@ details.sistema[open]>section{padding:0 12px 12px}
 .fila.c2,.fila.c3{align-items:start}
 details.explica-mas>summary{cursor:pointer;padding:2px 0 6px;color:var(--gris)}
 @media (max-width:640px){.anclas{display:none}.anclas-movil{display:block}}
+table{font-variant-numeric:tabular-nums}
+table.n2 td:nth-child(2),table.n2 th:nth-child(2){text-align:right}table.n3 td:nth-child(3),table.n3 th:nth-child(3){text-align:right}table.n4 td:nth-child(4),table.n4 th:nth-child(4){text-align:right}table.n5 td:nth-child(5),table.n5 th:nth-child(5){text-align:right}table.n6 td:nth-child(6),table.n6 th:nth-child(6){text-align:right}table.n7 td:nth-child(7),table.n7 th:nth-child(7){text-align:right}table.n8 td:nth-child(8),table.n8 th:nth-child(8){text-align:right}table.n9 td:nth-child(9),table.n9 th:nth-child(9){text-align:right}
+.tabla-watch td.cat span{display:block;max-width:560px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tabla-watch td.cat:hover span,.tabla-watch td.cat:focus span{white-space:normal}
+.tabla-watch td.cat{white-space:normal}
+.dot{display:none;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--gris);vertical-align:middle}.dot.est-triggered{background:var(--acento)}
+@media (max-width:640px){.tabla-watch .col-estado{display:none}.dot{display:inline-block}.tabla-watch td.cat span{max-width:170px}}
 .ctl-resumen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .ctl-card{border:1px solid var(--linea);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
 .ctl-card b{font-family:var(--mono);font-size:20px;font-weight:500;overflow-wrap:anywhere}
@@ -2681,7 +2688,7 @@ def _html_pnl(pnl, pct=None) -> str:
 # vigila y se dispara solo, o sea que SÍ protege. En una compra pendiente,
 # las patas esperan a que llene la entrada. "held" a secas no decía
 # ninguna de las dos cosas.
-TEXTO_HELD = {"posicion": "activo (OCO)", "pendiente": "tras el fill"}
+TEXTO_HELD = {"posicion": "activo (con objetivo)", "pendiente": "tras el fill"}
 
 
 def _html_nivel(nivel, mercado: bool = False, conocido: bool = True, rol: str = "posicion") -> str:
@@ -2693,7 +2700,8 @@ def _html_nivel(nivel, mercado: bool = False, conocido: bool = True, rol: str = 
         return "—"
     texto = esc(fmt_dinero(nivel["precio"]))
     if nivel.get("estado") == "held":
-        texto += f' <span class="mono" title="Alpaca: held">· {esc(TEXTO_HELD.get(rol, "held"))}</span>'
+        texto += (f' <span class="mono" title="Alpaca: held · OCO (stop y objetivo enlazados: si se toca uno, se cancela el otro)">'
+                  f'· {esc(TEXTO_HELD.get(rol, "held"))}</span>')
     return texto
 
 
@@ -2758,9 +2766,10 @@ def _html_avisos(ctx: dict) -> str:
 def _html_broker(ctx: dict) -> str:
     tz = ctx["tz"]
 
-    def tabla(cabezas, filas):
+    def tabla(cabezas, filas, num=()):
         th = "".join(f"<th>{esc(h)}</th>" for h in cabezas)
-        return f"<div class='scroll'><table><thead><tr>{th}</tr></thead><tbody>{filas}</tbody></table></div>"
+        clase = f" class='{' '.join(f'n{i}' for i in num)}'" if num else ""
+        return f"<div class='scroll'><table{clase}><thead><tr>{th}</tr></thead><tbody>{filas}</tbody></table></div>"
 
     def bloque(titulo, conocido, vacio, filas_html):
         if not conocido:
@@ -2783,7 +2792,7 @@ def _html_broker(ctx: dict) -> str:
             f"<td>{_html_riesgo_fila(p, ctx.get('equity'))}</td><td>{_html_rr(p)}</td>"
             "</tr>" for p in pos)
         pos_html = tabla(("Ticker", "Cant.", "Entrada", "Actual", "P&L abierto", "Stop", "Objetivo",
-                          "Riesgo al stop", "Obj./riesgo"), filas)
+                          "Riesgo al stop", "Obj./riesgo"), filas, num=(2, 3, 4, 5, 6, 7, 8, 9))
     else:
         pos_html = ""
 
@@ -2801,7 +2810,7 @@ def _html_broker(ctx: dict) -> str:
             f"<td>{esc(ESTADOS_ORDEN.get(p.get('estado'), p.get('estado') or '—'))}</td>"
             "</tr>" for p in pend)
         pend_html = tabla(("Ticker", "Lado", "Cant.", "Límite", "Stop", "Objetivo",
-                           "Riesgo si llena", "Obj./riesgo", "Esperando", "Estado"), filas)
+                           "Riesgo si llena", "Obj./riesgo", "Esperando", "Estado"), filas, num=(3, 4, 5, 6, 7, 8, 9))
     else:
         pend_html = ""
 
@@ -2814,7 +2823,7 @@ def _html_broker(ctx: dict) -> str:
             f"<td>{_html_pnl(c['pnl'])}</td>"
             f"<td>{esc(_hora(c.get('hora'), tz, ahora=ctx['ahora']))}</td>"
             "</tr>" for c in cerr)
-        cerr_html = tabla(("Ticker", "Cant.", "Entrada", "Salida", "P&L realizado", "Hora"), filas)
+        cerr_html = tabla(("Ticker", "Cant.", "Entrada", "Salida", "P&L realizado", "Hora"), filas, num=(2, 3, 4, 5))
     else:
         cerr_html = ""
 
@@ -2828,6 +2837,48 @@ def _html_broker(ctx: dict) -> str:
         f'{bloque("Cerradas hoy", cerr is not None, "Ninguna posición cerrada hoy.", cerr_html)}'
         '</section>'
     )
+
+
+CODIGOS_LEGIBLES = {
+    "MERCADO_CERRADO": "Mercado cerrado", "PERDIDA_DIARIA": "Stop diario", "DATO_FALTANTE": "Falta dato",
+    "CONCENTRACION": "Concentración máxima", "TICKER_COMPROMETIDO": "Ticker ya en juego",
+    "RIESGO_POR_OPERACION": "Riesgo por operación", "PRECIO_FUERA_DE_ALCANCE": "Precio fuera de alcance",
+    "FUERA_DE_BANDA": "Fuera de la banda de precio", "FRACCION_INSUFICIENTE": "Fracción insuficiente",
+    "CIERRE_CERCANO": "Cierre cercano", "BLOQUEO_HALT": "Acción suspendida (halt)",
+    "ACTIVO_NO_OPERABLE": "Activo no operable", "SIN_CODIGO": "Sin código",
+}
+DETALLES_LEGIBLES = {"ultimos_niveles_ts": "niveles recientes"}
+
+
+def _codigo_legible(codigo) -> str:
+    """Texto llano con el código técnico en el tooltip. MAXIMO_POSICIONES
+    queda tal cual (el dueño lo lee así)."""
+    cod = str(codigo or "")
+    base, _, det = cod.partition(":")
+    texto = CODIGOS_LEGIBLES.get(base)
+    if texto is None:
+        return esc(cod)
+    if det:
+        texto += ": " + DETALLES_LEGIBLES.get(det, det)
+    return f'<span title="{esc(cod)}">{esc(texto)}</span>'
+
+
+KNOBS_LEGIBLES = {
+    "K1_saltar_segmento": "Saltar segmento perdedor", "K2_confianza_mas_uno": "Pedir +1 de confianza a la IA",
+    "K3_max_posiciones": "Tope de posiciones", "K4_edad_max_senal": "Edad máxima de la señal",
+    "K5_sin_small_caps": "Sin empresas chicas",
+}
+DIMENSIONES_LEGIBLES = {
+    "patron": "patrón", "catalizador_tipo": "catalizador", "es_large_cap": "empresa grande",
+    "banda_precio": "precio", "confianza": "confianza IA", "franja_et": "franja horaria",
+    "espera_slot": "espera de cupo", "regimen": "régimen",
+}
+
+
+def _knob_legible(knob) -> str:
+    k = str(knob)
+    t = KNOBS_LEGIBLES.get(k)
+    return f'<span title="{esc(k)}">{esc(t)} (en prueba)</span>' if t else esc(k)
 
 
 def _html_intervalo(fila: dict, n: int, unidad: str) -> str:
@@ -2875,7 +2926,12 @@ def _html_uso_limites(ctx: dict) -> str:
 
 
 def _html_riesgo(ctx: dict) -> str:
-    return _html_stop_diario(ctx) + _html_uso_limites(ctx) + _html_bloqueos(ctx)
+    sd = ctx.get("stop_diario") or {}
+    if sd.get("activo") or sd.get("dato_faltante"):
+        stop = _html_stop_diario(ctx)  # importa: se repite aquí
+    else:
+        stop = '<div class="nota-historial">Stop diario: ver <a href="#riesgo">Riesgo ↑</a></div>'
+    return stop + _html_uso_limites(ctx) + _html_bloqueos(ctx)
 
 
 def _html_stop_diario(ctx: dict) -> str:
@@ -2891,7 +2947,7 @@ def _html_stop_diario(ctx: dict) -> str:
     titulo = f"Stop diario ({pct:.2f} %)" if pct is not None else "Stop diario"
     if sd.get("pnl") is not None and sd.get("umbral_usd") is not None:
         pnl_pct = f" ({sd['pnl_pct']:+.2f} %)" if sd.get("pnl_pct") is not None else ""
-        cifras = f"P&L hoy {sd['pnl']:+.2f} USD{pnl_pct} vs umbral −{sd['umbral_usd']:.2f} USD"
+        cifras = f"P&L hoy {fmt_dinero(sd['pnl'], signo=True)}{_signo_menos(pnl_pct)} vs umbral −${sd['umbral_usd']:,.2f}"
     else:
         cifras = "P&L hoy sin dato"
     if sd.get("dato_faltante"):
@@ -2965,8 +3021,13 @@ def leer_aprendizaje(carpeta: Path | None, eventos: list[dict], ahora: datetime)
     return out
 
 
+def _signo_menos(t: str) -> str:
+    """Un solo signo negativo en todo el panel: «−» (2026-10-01)."""
+    return t.replace("-", "−")
+
+
 def _fmt_r(v) -> str:
-    return "sin dato" if v is None else f"{v:+.2f}"
+    return "sin dato" if v is None else _signo_menos(f"{v:+.2f}")
 
 
 def _fmt_pct(v) -> str:
@@ -2974,7 +3035,8 @@ def _fmt_pct(v) -> str:
 
 
 def _fmt_usd(v) -> str:
-    return "sin dato" if v is None else f"{v:+.2f}"
+    """Dinero con el mismo formato que las cifras clave: «−$15.17»."""
+    return "sin dato" if v is None else fmt_dinero(v, signo=True)
 
 
 def _edad_txt(ts: str | None, ahora: datetime, tz) -> str:
@@ -2991,7 +3053,7 @@ def _html_bloque_stop(ctx: dict) -> str:
         perdida = max(0.0, -sd["pnl"])
         estado = ("ACTIVO" if sd.get("activo") else "inactivo")
         barra = _barra_uso("Pérdida del día vs umbral", perdida, sd["umbral_usd"],
-                           f"{sd['pnl']:+.2f} / −{sd['umbral_usd']:.2f} USD · {estado}")
+                           f"{fmt_dinero(sd['pnl'], signo=True)} de −${sd['umbral_usd']:,.2f} · {estado}")
     elif sd.get("sin_datos"):
         barra = _barra_uso("Pérdida del día vs umbral", None, None, "sin dato")
     return f'<div class="usos">{barra}</div>{_html_stop_diario(ctx)}'
@@ -3000,11 +3062,12 @@ def _html_bloque_stop(ctx: dict) -> str:
 _SIMBOLO = {True: "✗ activa", False: "✓ no", None: "sin dato"}
 
 
-def _tabla(cabeza: list[str], filas: str) -> str:
+def _tabla(cabeza: list[str], filas: str, num: tuple = ()) -> str:
     """Tabla con scroll interno (alto y ancho acotados): nunca ensancha la
     página. Las celdas `td.txt` (texto largo) envuelven."""
     ths = "".join(f"<th>{esc(c)}</th>" for c in cabeza)
-    return (f"<div class='tabla-ctl'><table><thead><tr>{ths}</tr></thead>"
+    clase = f" class='{' '.join(f'n{i}' for i in num)}'" if num else ""
+    return (f"<div class='tabla-ctl'><table{clase}><thead><tr>{ths}</tr></thead>"
             f"<tbody>{filas}</tbody></table></div>")
 
 
@@ -3072,12 +3135,13 @@ def _html_bloque_aprendizaje(ap: dict, ctx: dict) -> str:
                   key=lambda s: (-(s.get("n") or 0), str(s.get("dimension")), str(s.get("valor"))))
     if segs:
         filas = "".join(
-            f"<tr><td class='tk'>{esc(str(s.get('dimension')))}={esc(str(s.get('valor')))}</td>"
+            f"<tr><td class='tk' title='{esc(str(s.get('dimension')))}'>{esc(DIMENSIONES_LEGIBLES.get(str(s.get('dimension')), str(s.get('dimension'))))}"
+            f" = {esc(str(s.get('valor')))}</td>"
             f"<td>{s.get('n')}/{n_min}<div class='barra-uso'><div style='width:{min(1.0, (s.get('n') or 0) / n_min) * 100:.0f}%'></div></div></td>"
             f"<td>{esc(str(s.get('sesiones')))}</td><td>{esc(_fmt_pct(s.get('wr')))}</td>"
             f"<td>{esc(_fmt_r(s.get('r_medio')))}</td><td>{esc(_fmt_r(s.get('r_shr')))}</td>"
             f"<td>{esc(_fmt_usd(s.get('pnl')))}</td><td>{esc(str(s.get('estado')))}</td></tr>" for s in segs)
-        partes.append(_tabla(["Segmento", "n", "Ses.", "WR", "R", "R contraído", "$", "Estado"], filas))
+        partes.append(_tabla(["Segmento", "n", "Ses.", "WR", "R", "R ajustado", "$", "Estado"], filas, num=(3, 4, 5, 6, 7)))
     return "".join(partes)
 
 
@@ -3088,7 +3152,7 @@ def _html_bloque_ajustes(ap: dict, ctx: dict) -> str:
         return ('<div class="nota-historial">Ajustes propuestos: ninguno. Aplicados: ninguno '
                 '(encender knobs requiere GO del dueño).</div>')
     filas = "".join(
-        f"<tr><td class='tk'>{esc(str(a.get('knob')))}</td><td>{esc(str(a.get('valor')))}</td>"
+        f"<tr><td class='tk'>{_knob_legible(a.get('knob'))}</td><td>{esc(str(a.get('valor')))}</td>"
         f"<td class='txt'>{esc(str(a.get('motivo')))}</td><td>{esc(str(a.get('desde')))}</td><td>{esc(str(a.get('vence')))}</td>"
         f"<td>sombra</td></tr>" for a in vig)
     return (_tabla(["Knob", "Valor", "Por qué", "Desde", "Vence", "Estado"], filas)
@@ -3114,7 +3178,7 @@ def _html_bloque_sombra(ap: dict, ctx: dict) -> str:
               + (f', {ap["gates_error_hoy"]} con error' if ap.get("gates_error_hoy") else "")
               + f' · Δ acumulado en vivo: {esc(_fmt_usd(acum_vivo))} USD. Retro = in-sample, solo orientativo.</div>']
     if filas:
-        partes.append(_tabla(["Día", "Tipo", "Real $", "Sombra $", "Δ", "Bloqueados"], filas))
+        partes.append(_tabla(["Día", "Tipo", "Real $", "Sombra $", "Δ", "Bloqueados"], filas, num=(3, 4, 5)))
     else:
         partes.append('<div class="vacio">Sin días de sombra todavía.</div>')
     return "".join(partes)
@@ -3134,7 +3198,7 @@ def _html_resumen_control(ap: dict, ctx: dict) -> str:
         tarjetas.append(_tarjeta_ctl("Stop diario", "sin dato", "sin medición hoy"))
     else:
         if sd.get("pnl") is not None and sd.get("umbral_usd"):
-            valor = f"{sd['pnl']:+.2f} / −{sd['umbral_usd']:.2f}"
+            valor = f"{fmt_dinero(sd['pnl'], signo=True)} de −${sd['umbral_usd']:,.2f}"
             frac = max(0.0, min(1.0, max(0.0, -sd["pnl"]) / sd["umbral_usd"]))
             cl = "lleno" if frac >= 1 else ("alto" if frac >= 0.8 else "")
             barra = f'<div class="barra-uso"><div class="{cl}" style="width:{frac * 100:.0f}%"></div></div>'
@@ -3147,7 +3211,9 @@ def _html_resumen_control(ap: dict, ctx: dict) -> str:
             clase = "mal"
         else:
             estado, clase = "inactivo", ""
-        tarjetas.append(_tarjeta_ctl("Stop diario · USD", esc(valor), esc(estado), clase, barra))
+        if sd.get("ultimo"):
+            estado += f" · medido {sd['ultimo']}"
+        tarjetas.append(_tarjeta_ctl("Stop diario", esc(valor), esc(estado), clase, barra))
     # 2. régimen
     reg = ap.get("regimen")
     if reg:
@@ -3171,14 +3237,14 @@ def _html_resumen_control(ap: dict, ctx: dict) -> str:
         tarjetas.append(_tarjeta_ctl("Racha", "sin dato", "sin memoria de trades"))
     # 4. ajustes propuestos
     aj = ap.get("ajustes")
-    gates = f"gates hoy: {ap.get('gates_bloquearian_hoy', 0)} de {ap.get('gates_hoy', 0)} bloquearían"
+    gates = f"chequeos en prueba hoy: {ap.get('gates_bloquearian_hoy', 0)} de {ap.get('gates_hoy', 0)} habrían frenado"
     if aj is None:
         tarjetas.append(_tarjeta_ctl("Ajustes propuestos", "sin dato", esc(gates)))
     else:
         vig = aj.get("ajustes") or []
-        knobs = ", ".join(sorted({str(a.get("knob")) for a in vig})) or "ninguno"
+        knobs = ", ".join(_knob_legible(k) for k in sorted({str(a.get("knob")) for a in vig})) or "ninguno"
         tarjetas.append(_tarjeta_ctl("Ajustes propuestos", str(len(vig)),
-                                     f"en sombra: {esc(knobs)} · {esc(gates)}", "aviso" if vig else ""))
+                                     f"{knobs} · {esc(gates)}", "aviso" if vig else ""))
     return '<div class="ctl-resumen">' + "".join(tarjetas) + "</div>"
 
 
@@ -3355,7 +3421,7 @@ def _html_historial_cuerpo(ctx: dict) -> str:
             f"<td>{esc(_MOTIVO_SALIDA.get(t['motivo'], str(t['motivo'])) if t['motivo'] else 'sin dato')}</td></tr>"
             for t in dia["trades"])
         pnl = dia["pnl"]
-        pnl_txt = "sin dato" if pnl is None else f"{pnl:+.2f} USD"
+        pnl_txt = _fmt_usd(pnl)
         if pnl is not None and dia["sin_pnl"]:
             pnl_txt += f" (parcial: {dia['sin_pnl']} sin dato)"
         clase_pnl = "" if pnl is None else ("pos" if pnl > 0 else ("neg" if pnl < 0 else ""))
@@ -3364,7 +3430,7 @@ def _html_historial_cuerpo(ctx: dict) -> str:
                    f'{dia["ganadores"]} G / {dia["perdedores"]} P</span>'
                    f'<span class="mono {clase_pnl}">P&amp;L {esc(pnl_txt)}</span>')
         cuerpo = _tabla(["Ticker", "Entrada", "Salida", "P. entrada", "P. salida", "Acciones", "P&L $", "R", "Motivo"],
-                        filas)
+                        filas, num=(4, 5, 6, 7, 8))
         partes.append(f'<details class="ctl dia" id="hist-{esc(dia["fecha"])}"{" open" if i == 0 else ""}>'
                       f'<summary><b>{esc(etiqueta)}</b>{resumen}</summary>'
                       f'<div class="ctl-cuerpo">{cuerpo}</div></details>')
@@ -3410,11 +3476,11 @@ def _html_bloqueos(ctx: dict) -> str:
         frase = _html_intervalo(c, c["corridas"], "corridas")
         if c.get("activo"):
             partes.append(
-                f'<div class="nota-info">Mercado cerrado · <b>{esc(c["codigo"])}</b> · {frase}</div>'
+                f'<div class="nota-info">Mercado cerrado · <b>{_codigo_legible(c["codigo"])}</b> · {frase}</div>'
             )
         else:
             partes.append(
-                f'<div class="nota-historial">Historial: <b>{esc(c["codigo"])}</b> · {frase}'
+                f'<div class="nota-historial">Historial: <b>{_codigo_legible(c["codigo"])}</b> · {frase}'
                 f' · última {esc(c["hasta"])} · resuelto</div>'
             )
 
@@ -3425,12 +3491,12 @@ def _html_bloqueos(ctx: dict) -> str:
             # diario (2026-10-01) se nombra como tal: corta la sesión entera.
             etiqueta = "Stop diario activo" if c.get("codigo") == "PERDIDA_DIARIA" else "Capacidad llena"
             partes.append(
-                f'<div class="nota-info">{etiqueta}: <b>{esc(c["codigo"])}</b> · {frase}'
+                f'<div class="nota-info">{etiqueta}: <b>{_codigo_legible(c["codigo"])}</b> · {frase}'
                 f' · {esc(c["motivo"])}</div>'
             )
         else:
             partes.append(
-                f'<div class="nota-historial">Historial: <b>{esc(c["codigo"])}</b> · {frase}'
+                f'<div class="nota-historial">Historial: <b>{_codigo_legible(c["codigo"])}</b> · {frase}'
                 f' · última {esc(c["hasta"])} · resuelto</div>'
             )
 
@@ -3443,7 +3509,7 @@ def _html_bloqueos(ctx: dict) -> str:
             cls = ' class="historial"' if es_historial else ""
             ultima = esc(f["hora"]) + (" · resuelto" if es_historial else "")
             cuerpo.append(
-                f"<tr{cls}><td class='tk'>{esc(f['ticker'])}</td><td>{esc(f['codigo'])}</td>"
+                f"<tr{cls}><td class='tk'>{esc(f['ticker'])}</td><td>{_codigo_legible(f['codigo'])}</td>"
                 f"<td>{f['veces']}</td><td>{esc(f['desde'])}</td><td>{esc(f['hasta'])}</td>"
                 f"<td>{ultima}</td></tr>"
             )
@@ -3502,21 +3568,36 @@ def _html_watchlist(ctx: dict) -> tuple[str, str]:
 
     def filas(items):
         return "".join(
-            f"<tr><td class='tk'>{esc(w['ticker'])}</td><td>{esc(w['cap'])}</td><td>{esc(w['catalizador'])}</td>"
+            f"<tr><td class='tk'><span class='dot est-{esc(estado(w))}' title='{esc(ESTADOS_WATCH.get(estado(w), w['estado']))}'></span>"
+            f"{esc(w['ticker'])}</td><td>{esc(w['cap'])}</td>"
+            f"<td class='cat' tabindex='0' title='{esc(w['catalizador'])}'><span>{esc(w['catalizador'])}</span></td>"
             f"<td>{_hora(w['detectado'], tz, ahora=ahora)}</td>"
-            f"<td><span class='est est-{esc(estado(w))}' title='{esc(w['estado'])}'>"
+            f"<td class='col-estado'><span class='est est-{esc(estado(w))}' title='{esc(w['estado'])}'>"
             f"{esc(ESTADOS_WATCH.get(estado(w), w['estado']))}</span></td></tr>" for w in items)
 
-    cab = "<thead><tr><th>Ticker</th><th>Cap</th><th>Catalizador</th><th>Detectado</th><th>Estado</th></tr></thead>"
+    cab = ("<thead><tr><th>Ticker</th><th>Cap</th><th>Catalizador</th><th>Detectado</th>"
+           "<th class='col-estado'>Estado</th></tr></thead>")
+
+    def tabla(items):
+        return f"<div class='tabla-ctl tabla-watch'><table>{cab}<tbody>{filas(items)}</tbody></table></div>"
+
+    disparadas = [w for w in activas if estado(w) == "triggered"]
+    vigilando = [w for w in activas if estado(w) != "triggered"]
     partes = []
-    if activas:
-        partes.append(f"<div class='scroll'><table>{cab}<tbody>{filas(activas)}</tbody></table></div>")
+    if disparadas:
+        partes.append(tabla(disparadas))
+    elif activas:
+        partes.append('<p class="vacio">Ninguna disparada ahora.</p>')
     else:
         partes.append('<p class="vacio">Sin tickers activos ahora.</p>')
+    if vigilando:
+        partes.append(f"<details class='ctl' id='wl-vigilando'><summary><b>Vigilando</b>"
+                      f"<span class='mono'>{len(vigilando)} ticker{'s' if len(vigilando) != 1 else ''} esperando la ruptura</span>"
+                      f"</summary><div class='ctl-cuerpo'>{tabla(vigilando)}</div></details>")
     if terminales:
         partes.append(f"<details class='terminales'><summary class='mono'>Cerradas hoy en la watchlist "
                       f"({len(terminales)}): expiradas, invalidadas, archivadas</summary>"
-                      f"<div class='scroll'><table>{cab}<tbody>{filas(terminales)}</tbody></table></div></details>")
+                      f"{tabla(terminales)}</details>")
     n_disp = sum(1 for w in activas if estado(w) == "triggered")
     n_vig = len(activas) - n_disp
     bandas: dict[str, int] = {}
@@ -3586,7 +3667,8 @@ def render(ctx: dict) -> str:
     kpis = [
         ("Equity paper", fmt_dinero(ctx["equity"]),
          "", f"cuenta paper {ctx['cuenta_numero']}" if ctx["cuenta_numero"] else "cuenta de práctica Alpaca"),
-        ("P&L del día", fmt_dinero(ctx["pnl"], signo=True), signo, f"vs cierre anterior{pct}"),
+        ("P&L del día", fmt_dinero(ctx["pnl"], signo=True), signo,
+         f"vs cierre anterior{_signo_menos(pct)} · a las {_hora(ctx['ahora'], tz)}"),
         ("Posiciones", fmt_num(ctx["n_pos"]), "", "abiertas ahora"),
         ("Órdenes hoy", fmt_num(ctx["n_ord"]), "", ordenes_sub),
         ("Latencia (reacción)", fmt_num(ctx["lat_mediana"], " min"), "", lat_sub),
@@ -3601,7 +3683,7 @@ def render(ctx: dict) -> str:
         filas = "".join(
             f"<tr><td>{esc(s['hora'])}</td><td class='tk'>{esc(s['ticker'])}</td><td>{esc(s['lado'])}</td>"
             f"<td>{esc(s['estado'])}</td><td>{esc(fmt_dinero(s['precio']))}</td></tr>" for s in ctx["stream"])
-        stream = f"<div class='scroll'><table><tbody>{filas}</tbody></table></div>"
+        stream = f"<div class='scroll'><table class='n5'><tbody>{filas}</tbody></table></div>"
     else:
         stream = '<p class="vacio">Sin órdenes hoy.</p>'
 
@@ -3714,7 +3796,7 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
 <header>
   <div class="marca">
     <div class="logo"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg></div>
-    <div><h1>MOMENTUM</h1><div class="sub">hernan-portafolio · hunter → watchlist.json → ejecutor</div></div>
+    <div><h1>MOMENTUM</h1><div class="sub">hernan-portafolio · buscador → lista de candidatos → ejecutor</div></div>
   </div>
   <div class="pildoras">
     <span class="pildora paper">PAPER · ALPACA</span>{fuente_datos}{sesion}{alpaca}{persist}{ia}
@@ -3730,7 +3812,7 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
 {_html_sistema(ctx, etapas)}
 <section id="resumen" class="fila c5" aria-label="Cifras clave">{kpis_html}</section>
 <section id="riesgo" class="panel" aria-label="Control de riesgo y aprendizaje">
-  <div class="titulo"><h2>Control de riesgo y aprendizaje</h2><span class="mono">solo lectura · knobs en sombra</span></div>
+  <div class="titulo"><h2>Control de riesgo y aprendizaje</h2><span class="mono">solo lectura · ajustes en prueba (no se aplican)</span></div>
   {_html_control_aprendizaje(ctx)}
 </section>
 {_html_broker(ctx).replace('<section ', '<section id="posiciones" ', 1)}
@@ -3750,8 +3832,8 @@ try{{var _t=localStorage.getItem("tema");if(_t==="dark"||_t==="light")document.d
 </section>
 <section id="ejecucion" class="fila c3" aria-label="Ejecución y límites">
   <div class="panel oscuro"><div class="titulo"><h2>Stream de ejecución</h2><span class="sub">órdenes paper de hoy</span></div>{stream}</div>
-  <div class="panel"><div class="titulo"><h2>Dudas del ejecutor</h2><span class="mono">entradas que el LLM rechazó</span></div>{dudas}</div>
-  <div class="panel"><div class="titulo"><h2>Límites de riesgo</h2><span class="mono">fail-closed</span></div>{riesgo}</div>
+  <div class="panel"><div class="titulo"><h2>Dudas del ejecutor</h2><span class="mono">entradas que la IA rechazó</span></div>{dudas}</div>
+  <div class="panel"><div class="titulo"><h2>Límites de riesgo</h2><span class="mono" title="fail-closed">si falta un dato, no opera</span></div>{riesgo}</div>
 </section>
 <section id="historial" class="panel" aria-label="Trades de días anteriores">
   <div class="titulo"><h2>Trades de días anteriores</h2><span class="mono">cerrados · hora Monterrey (UTC−6) · fuente: memoria de trades (fills paper, solo lectura)</span></div>
