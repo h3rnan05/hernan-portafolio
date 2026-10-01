@@ -2887,3 +2887,115 @@ def test_seccion_control_no_usa_post_ni_cliente_de_ordenes():
                                                    bd._html_bloque_stop, bd._html_bloque_regimen,
                                                    bd._html_bloque_aprendizaje))
     assert "post(" not in src.lower() and "alpaca_client" not in src and "colocar" not in src
+
+
+# ───────────── Panel compacto + Trades de días anteriores (2026-10-01) ─────────────
+
+def _seccion(html, titulo, siguiente=None):
+    i = html.index(f'aria-label="{titulo}"')
+    j = html.index("</section>", i)
+    return html[i:j]
+
+
+def test_control_compacto_tarjetas_y_plegables(tmp_path):
+    d = _aprendizaje(tmp_path)
+    eventos(tmp_path,
+            {"ts": "2026-09-18T14:50:00+00:00", "tipo": "stop_diario", "fecha_sesion": "2026-09-18", "modo": "enforce",
+             "pct": 1.0, "pnl": -30.0, "pnl_pct": -0.6, "umbral_usd": 48.65, "activo": False, "bloquea": False},
+            {"ts": "2026-09-18T14:55:00+00:00", "tipo": "gate_sombra", "ticker": "ABC",
+             "bloquearia": [{"knob": "K5_sin_small_caps", "motivo": "x"}]})
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path, aprendizaje=d), get=sin_alpaca))
+    sec = _seccion(html, "Control de riesgo y aprendizaje")
+    assert sec.count('class="ctl-card') == 4
+    resumen = sec[sec.index("ctl-resumen"):sec.index("<details")]
+    assert "-30.00 / −48.65" in resumen and "inactivo" in resumen
+    assert "CAUTELA" in resumen and "1 de 2 señales activas" in resumen
+    assert "no disparada" in resumen and "perdedores seguidos 1" in resumen
+    assert "K3_max_posiciones" in resumen and "1 de 1 bloquearían" in resumen
+    for id_ in ("ctl-stop", "ctl-regimen", "ctl-segmentos", "ctl-ajustes", "ctl-sombra"):
+        assert f'<details class="ctl" id="{id_}">' in sec  # plegado por defecto
+    assert "tabla-ctl" in sec and "fila c3" not in sec
+    assert "det-abiertos" in html  # recuerda los plegables abiertos entre recargas
+
+
+def test_control_compacto_sin_archivos_tarjetas_sin_dato(tmp_path):
+    vacio = tmp_path / "vacio"
+    vacio.mkdir()
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path, aprendizaje=vacio), get=sin_alpaca))
+    sec = _seccion(html, "Control de riesgo y aprendizaje")
+    resumen = sec[sec.index("ctl-resumen"):sec.index("<details")]
+    assert resumen.count("<b>sin dato</b>") == 3 and "<b>SIN DATO</b>" in resumen
+    assert "<b>0</b>" not in resumen
+
+
+def test_css_tablas_con_scroll_interno_y_responsive():
+    assert ".tabla-ctl{max-width:100%;max-height:340px;overflow:auto" in bd.CSS
+    assert "@media (max-width:480px){.ctl-resumen{grid-template-columns:1fr}" in bd.CSS
+    assert ".tabla-ctl td.txt{white-space:normal;min-width:220px" in bd.CSS
+
+
+def _memoria(d, *trades, extra=""):
+    d.mkdir(exist_ok=True)
+    (d / "memoria_trades.jsonl").write_text("".join(json.dumps(t) + "\n" for t in trades) + extra)
+    return d
+
+
+def _t(oid, ticker, ent, sal, p_in=10.0, p_out=11.0, q=5.0, pnl=5.0, r=1.0, motivo="objetivo"):
+    return {"order_id": oid, "ticker": ticker, "entrada_ts": ent, "salida_ts": sal, "precio_fill": p_in,
+            "precio_salida": p_out, "cantidad": q, "pnl": pnl, "r": r, "motivo_salida": motivo, "fecha": ent[:10]}
+
+
+def test_historial_por_dia_reciente_primero_y_hora_monterrey(tmp_path):
+    d = _memoria(tmp_path / "apr",
+                 _t("a", "AAA", "2026-09-16T14:27:58+00:00", "2026-09-16T14:54:03+00:00", pnl=-16.04, r=-1.05, motivo="stop"),
+                 _t("b", "BBB", "2026-09-17T15:00:00+00:00", "2026-09-17T19:55:00+00:00", motivo="cierre"),
+                 _t("c", "CCC", "2026-09-17T14:00:00+00:00", "2026-09-17T14:30:00+00:00", p_out=None, pnl=None, r=None,
+                    motivo=None),
+                 _t("b", "BBB", "2026-09-17T15:00:00+00:00", "2026-09-17T19:55:00+00:00"),  # duplicado
+                 extra="{roto\n")
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path, aprendizaje=d), get=sin_alpaca))
+    sec = _seccion(html, "Trades de días anteriores")
+    assert sec.index("2026-09-17") < sec.index("2026-09-16")
+    assert '<details class="ctl dia" id="hist-2026-09-17" open>' in sec
+    assert '<details class="ctl dia" id="hist-2026-09-16">' in sec
+    assert "2 trades · 1 G / 0 P" in sec and "+5.00 USD (parcial: 1 sin dato)" in sec
+    assert "1 trade · 0 G / 1 P" in sec and "-16.04 USD" in sec
+    dia16 = sec[sec.index("hist-2026-09-16"):]
+    assert "<td>08:27</td><td>08:54</td>" in dia16  # 14:27 UTC = 08:27 Monterrey (UTC−6)
+    assert "-1.05" in dia16 and "<td>stop</td>" in dia16
+    dia17 = sec[sec.index("hist-2026-09-17"):sec.index("hist-2026-09-16")]
+    assert dia17.index("CCC") < dia17.index("BBB")  # orden por hora de entrada
+    assert dia17.count("BBB") == 1
+    assert "cierre EOD" in dia17 and dia17.count("sin dato") >= 4
+    assert "1 línea(s) ilegibles" in sec
+
+
+def test_historial_limite_de_sesiones(tmp_path):
+    trades = [_t(str(i), "X", f"2026-08-{i:02d}T15:00:00+00:00", f"2026-08-{i:02d}T16:00:00+00:00") for i in range(1, 26)]
+    h = bd.leer_historial_trades(_memoria(tmp_path / "apr", *trades))
+    assert len(h["dias"]) == bd.HISTORIAL_MAX_SESIONES and h["ocultas"] == 5
+    assert h["dias"][0]["fecha"] == "2026-08-25"
+
+
+def test_historial_sin_memoria_no_inventa_ceros(tmp_path):
+    vacio = tmp_path / "vacio"
+    vacio.mkdir()
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path, aprendizaje=vacio), get=sin_alpaca))
+    sec = _seccion(html, "Trades de días anteriores")
+    assert "Sin memoria de trades todavía" in sec and "0 trades" not in sec and "0.00" not in sec
+    html2 = bd.render(bd.construir(AHORA, cfg(tmp_path), get=sin_alpaca))
+    assert "sin carpeta de aprendizaje configurada" in _seccion(html2, "Trades de días anteriores")
+
+
+def test_historial_que_revienta_no_tumba_el_panel(tmp_path, monkeypatch):
+    monkeypatch.setattr(bd, "_html_historial_cuerpo", lambda ctx: 1 / 0)
+    html = bd.render(bd.construir(AHORA, cfg(tmp_path, aprendizaje=_memoria(tmp_path / "apr")), get=sin_alpaca))
+    assert "historial no disponible (ZeroDivisionError)" in html and "Control de riesgo y aprendizaje" in html
+
+
+def test_historial_y_resumen_no_usan_post_ni_ordenes():
+    import inspect
+    src = "".join(inspect.getsource(f) for f in (bd.leer_historial_trades, bd._html_historial_cuerpo,
+                                                   bd._html_resumen_control, bd._html_bloque_ajustes,
+                                                   bd._html_bloque_sombra))
+    assert "post(" not in src.lower() and "alpaca_client" not in src and "colocar" not in src
