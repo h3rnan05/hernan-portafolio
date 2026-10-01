@@ -7,6 +7,10 @@ Los README de esos dos módulos son la referencia detallada (~1.050 líneas entr
 los dos). Este archivo es la orientación: lo que hay que saber ANTES de tocar
 nada, y dónde está el resto.
 
+`docs/HISTORIAL-DEL-BOT.md` cuenta la otra mitad: los trece bugs que costaron
+semanas y qué se decidió a cambio. Vale la pena leerlo antes de proponer
+cambios grandes -- varios de esos errores no son obvios y se repetirían.
+
 ---
 
 ## Reglas que no se negocian
