@@ -3118,3 +3118,10 @@ def test_velas_plegables_abierta_la_mas_reciente_y_escala_con_aire_bajo_5():
     assert "abierto = \" open\" if op is reciente" in src
     g = inspect.getsource(bd._grafico_velas)
     assert "minimo < 5 and rango < minimo * 0.02" in g and 'text-anchor="start"' in g
+
+
+def test_stream_orden_sin_fill_es_no_aplica_y_no_sin_dato():
+    assert bd._precio_stream({"estado": "cancelada", "precio": None}) == "—"
+    assert bd._precio_stream({"estado": "ejecutada", "precio": None}) == "sin dato"
+    assert bd._precio_stream({"estado": "ejecutada", "precio": 81.6}) == "$81.60"
+    assert "details.vela-op[open]{grid-column:1/-1}" in bd.CSS

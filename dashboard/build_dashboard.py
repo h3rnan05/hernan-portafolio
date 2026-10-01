@@ -2652,7 +2652,8 @@ a.pildora{color:inherit;text-decoration:none}a.pildora:hover{border-color:var(--
 .vacio.falta{color:#b7791f}
 .banda-datos{margin-top:0}
 details.vela-op>.panel{border:0;padding:6px 12px 12px}
-details.vela-op{align-self:start}
+details.vela-op{align-self:start}details.vela-op[open]{grid-column:1/-1}
+details.vela-op[open]>.panel{max-width:820px}
 @media (max-width:640px){header .pildoras{gap:6px}.pildora{padding:6px 9px}}
 .ctl-resumen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
 .ctl-card{border:1px solid var(--linea);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
@@ -2845,7 +2846,7 @@ def _html_broker(ctx: dict) -> str:
             f"<td>{_html_pnl(c['pnl'])}</td>"
             f"<td>{esc(_hora(c.get('hora'), tz, ahora=ctx['ahora']))}</td>"
             "</tr>" for c in cerr)
-        cerr_html = tabla(("Ticker", "Cant.", "Entrada", "Salida", "P&L realizado", "Hora"), filas, num=(2, 3, 4, 5))
+        cerr_html = tabla(("Ticker", "Cant.", "Entrada", "Salida", "P&L realizado", "Hora"), filas, num=(2, 3, 4, 5, 6))
     else:
         cerr_html = ""
 
@@ -3677,6 +3678,17 @@ def _html_sistema(ctx: dict, etapas_html: str) -> str:
             f'</summary><section class="fila c4" aria-label="Etapas del sistema">{etapas_html}</section></details>')
 
 
+_SIN_FILL = {"cancelada", "rechazada", "expirada", "abierta", "en espera"}
+
+
+def _precio_stream(s: dict) -> str:
+    """Precio del fill. Una orden que no llenó no tiene precio: «—» (no
+    aplica), distinto de «sin dato» (debía tenerlo y no llegó)."""
+    if s.get("precio") is not None:
+        return fmt_dinero(s["precio"])
+    return "—" if s.get("estado") in _SIN_FILL else "sin dato"
+
+
 _ZONAS_CORTAS = {"America/Monterrey": "MTY", "America/Mexico_City": "CDMX", "America/New_York": "ET"}
 
 
@@ -3735,7 +3747,7 @@ def render(ctx: dict) -> str:
     if ctx["stream"]:
         filas = "".join(
             f"<tr><td>{esc(s['hora'])}</td><td class='tk'>{esc(s['ticker'])}</td><td>{esc(s['lado'])}</td>"
-            f"<td>{esc(s['estado'])}</td><td>{esc(fmt_dinero(s['precio']))}</td></tr>" for s in ctx["stream"])
+            f"<td>{esc(s['estado'])}</td><td>{esc(_precio_stream(s))}</td></tr>" for s in ctx["stream"])
         stream = f"<div class='scroll'><table class='n5'><tbody>{filas}</tbody></table></div>"
     else:
         stream = '<p class="vacio">Sin órdenes hoy.</p>'
