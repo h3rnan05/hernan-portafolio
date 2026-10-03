@@ -1,0 +1,16 @@
+{
+ "url": "https://finnhub.io/api/v1/company-news",
+ "metodo": "GET",
+ "params": {
+  "symbol": "FICA",
+  "from": "2026-09-27",
+  "to": "2026-09-27"
+ },
+ "status": 200,
+ "headers": {
+  "Content-Type": "application/json; charset=utf-8"
+ },
+ "ficticio": true,
+ "texto": "[]",
+ "nota": "FICTICIO: día sin artículos, para afirmar el cero dentro de la historia. Reemplazar con `python -m fuentes grabar finnhub <TICKER> <DESDE> <HASTA>` desde el VPS (pide día por día; necesita FINNHUB_API_KEY)."
+}
