@@ -43,7 +43,7 @@ import logging
 from datetime import UTC, datetime
 from typing import NamedTuple
 
-from momentum_paper_trader import dedupe_avisos, estado, notify
+from momentum_paper_trader import dedupe_avisos, estado, notify, reproteccion
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import PaperTraderConfig
 from momentum_paper_trader.notify import enviar as enviar_telegram
@@ -112,7 +112,35 @@ def _patas_todas_muertas(datos: dict) -> bool:
     return bool(legs) and all(leg.get("status") in _ESTADOS_ORDEN_MUERTA for leg in legs)
 
 
-def _evaluar(r: estado.RevisionIA, datos: dict, cierre_datos: dict | None = None) -> Transicion | None:
+def _pnl_con_parciales(
+    datos: dict, precio_llenado: float, precio_final: float, cantidad: float,
+) -> float | None:
+    """P&L de un trade cuya salida se partió en dos: lo que llenó una pata
+    (un take-profit parcial) más el resto al `precio_final` (liquidación
+    del cierre o remanente re-protegido, ver `reproteccion.py`).
+
+    Sin patas con fill parcial es el mismo cálculo de siempre:
+    (final - entrada) × cantidad."""
+    if not cantidad:
+        return None
+    vendido = 0.0
+    parcial = 0.0
+    for leg in datos.get("legs") or []:
+        if not isinstance(leg, dict):
+            continue
+        q = _num(leg.get("filled_qty")) or 0
+        p = _num(leg.get("filled_avg_price"))
+        if q > 0 and p is not None:
+            vendido += q
+            parcial += (p - precio_llenado) * q
+    resto = max(cantidad - vendido, 0.0)
+    return round(parcial + (precio_final - precio_llenado) * resto, 2)
+
+
+def _evaluar(
+    r: estado.RevisionIA, datos: dict, cierre_datos: dict | None = None,
+    remanente_datos: dict | None = None,
+) -> Transicion | None:
     """(nuevo resultado, pnl, mensaje) para esta revisión según el estado
     real de la orden en Alpaca -- None si no hay ninguna novedad que
     avisar. `cierre_datos` es el estado de la orden de liquidación de fin
@@ -158,7 +186,7 @@ def _evaluar(r: estado.RevisionIA, datos: dict, cierre_datos: dict | None = None
             precio_c = _num((cierre_datos or {}).get("filled_avg_price"))
             if estado_c == "filled" and precio_c is not None:
                 cantidad = _num(datos.get("filled_qty")) or (r.cantidad or 0)
-                pnl = round((precio_c - precio_llenado) * cantidad, 2) if cantidad else None
+                pnl = _pnl_con_parciales(datos, precio_llenado, precio_c, cantidad)
                 # Sin Telegram: el resumen de fin de día ya lo mandó `cierre.py`.
                 # `revisar` igual exige que el broker ya no tenga el símbolo.
                 return Transicion("cerrada", pnl, "", precio_c)
@@ -174,6 +202,30 @@ def _evaluar(r: estado.RevisionIA, datos: dict, cierre_datos: dict | None = None
                     detalle="El cierre de fin de día se aceptó pero la orden de liquidación no se llenó. La posición puede seguir abierta y sin salidas. Revisar en Alpaca -- no se repone sola.",
                 ))
             # Todavía pendiente de llenarse: se reintenta en la próxima pasada.
+            return None
+        if remanente_datos is not None:
+            # Take-profit parcial cuyo resto `reproteccion.py` volvió a
+            # proteger (stop al precio original o venta a mercado). Mientras
+            # esa orden viva, la posición SÍ tiene salida: no es un ERROR.
+            estado_m = remanente_datos.get("status")
+            precio_m = _num(remanente_datos.get("filled_avg_price"))
+            if estado_m == "filled" and precio_m is not None:
+                cantidad = _num(datos.get("filled_qty")) or (r.cantidad or 0)
+                pnl = _pnl_con_parciales(datos, precio_llenado, precio_m, cantidad)
+                motivo = notify.MOTIVO_STOP if str(remanente_datos.get("type") or "").lower() in (
+                    "stop", "stop_limit", "trailing_stop") else "remanente a mercado"
+                return Transicion("cerrada", pnl, notify.formatear_cerrada(
+                    ticker=r.ticker, motivo=f"objetivo parcial + {motivo}", signal_id=r.creado_en,
+                    cantidad=cantidad, precio_entrada=precio_llenado,
+                    precio_salida=precio_m, pnl=pnl,
+                ), precio_m)
+            if estado_m in _ESTADOS_ORDEN_MUERTA:
+                return Transicion("cerrada", None, notify.formatear_error(
+                    tipo="remanente re-protegido sin salida",
+                    ticker=r.ticker,
+                    signal_id=r.creado_en,
+                    detalle="El stop (o la venta) que se puso al resto del take-profit parcial murió sin llenarse. La posición puede seguir abierta sin stop.",
+                ))
             return None
         return Transicion("cerrada", None, notify.formatear_error(
             tipo="posición sin salidas",
@@ -308,7 +360,18 @@ def revisar(
                 log.warning("%s: no se pudo consultar la orden de liquidación %s: %s", r.ticker, r.cierre_order_id, ex)
                 # Sin poder confirmar el fill, no se da por cerrado este pase.
                 continue
-        novedad = _evaluar(r, datos, cierre_datos)
+        remanente_datos = None
+        if not r.cierre_order_id:
+            fila = reproteccion.orden_de(r.order_id)
+            if fila is not None:
+                try:
+                    remanente_datos = client.estado_orden(str(fila["order_id"]))
+                except Exception as ex:
+                    log.warning("%s: no se pudo consultar la orden del remanente (%s)", r.ticker, type(ex).__name__)
+                    continue
+                if not isinstance(remanente_datos, dict):
+                    continue
+        novedad = _evaluar(r, datos, cierre_datos, remanente_datos)
         if novedad is None:
             # Entrada todavía esperando: ¿ya venció? (2026-09-22, revisión
             # de riesgo). Si sí y se canceló de verdad, se cierra la

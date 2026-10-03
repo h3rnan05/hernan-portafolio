@@ -46,6 +46,9 @@ ESTADO_ERROR = "ERROR"
 ESTADO_NO_ENTRA = "NO ENTRA"
 ESTADO_COLOCADA = "COLOCADA"
 ESTADO_CANCELADA = "CANCELADA"
+# Remanente de un take-profit parcial que quedó sin stop y el sistema
+# volvió a proteger (stop al precio original o venta a mercado).
+ESTADO_REPROTEGIDA = "REPROTEGIDA"
 
 # Sub-etiqueta de un cierre (no es un evento extra: viaja en el mismo
 # mensaje CERRADA). Español corto, sin jerga de broker.
@@ -341,3 +344,23 @@ def formatear_cancelada(
         "el precio se escapó; la señal ya no es la evaluada",
         _linea_senal(signal_id),
     ])
+
+
+def formatear_reprotegida(
+    *,
+    ticker: str,
+    signal_id: str | None,
+    cantidad: float | int | None,
+    accion: str,
+    precio: float | None = None,
+    detalle: str | None = None,
+) -> str:
+    """El take-profit se llenó en parte, Alpaca canceló el stop del OCO y
+    el resto quedó sin stop. `accion` dice qué se hizo con ese resto
+    ("stop repuesto" o "vendido a mercado"). Sin texto de excepción."""
+    return _armar(ESTADO_REPROTEGIDA, (
+        _linea_ticker(ticker, _cantidad(cantidad)),
+        _linea_senal(signal_id),
+        escapar(accion) + (f" en {_precio(precio)}" if precio is not None else ""),
+        escapar(detalle) if detalle else None,
+    ))
