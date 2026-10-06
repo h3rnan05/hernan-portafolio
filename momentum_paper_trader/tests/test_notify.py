@@ -55,7 +55,7 @@ def test_cerrada_objetivo_con_pnl():
     assert texto.startswith("🧪 [PAPER] <b>CERRADA</b>")
     assert "objetivo" in texto
     assert "$78.40 → $82.50" in texto
-    assert "P&L +$266.50" in texto
+    assert "P&L +$266.50 (+5.23%)" in texto
 
 
 def test_cerrada_stop_con_perdida():
@@ -64,7 +64,31 @@ def test_cerrada_stop_con_perdida():
         cantidad=58, precio_entrada=12.88, precio_salida=12.77, pnl=-6.38,
     )
     assert "stop" in texto
-    assert "P&L -$6.38" in texto
+    assert "P&L -$6.38 (-0.85%)" in texto
+
+
+def test_cerrada_sin_pnl_dice_sin_dato_nunca_cero():
+    texto = notify.formatear_cerrada(ticker="X", motivo=notify.MOTIVO_STOP)
+    assert "P&L sin dato" in texto
+    assert "$0.00" not in texto and "0.00%" not in texto
+
+
+def test_cerrada_pnl_sin_precios_marca_pct_sin_dato():
+    texto = notify.formatear_cerrada(ticker="X", motivo=notify.MOTIVO_OBJETIVO, pnl=12.0)
+    assert "P&L +$12.00 (% sin dato)" in texto
+
+
+def test_cerrada_precios_sin_pnl_marca_usd_sin_dato():
+    texto = notify.formatear_cerrada(
+        ticker="X", motivo=notify.MOTIVO_OBJETIVO, precio_entrada=10.0, precio_salida=11.0)
+    assert "P&L sin dato (+10.00%)" in texto
+
+
+def test_cerrada_en_cero_real_es_cero():
+    texto = notify.formatear_cerrada(
+        ticker="X", motivo=notify.MOTIVO_STOP, cantidad=5,
+        precio_entrada=10.0, precio_salida=10.0, pnl=0.0)
+    assert "P&L $0.00 (0.00%)" in texto
 
 
 def test_cierre_dia_solo_lista_cerradas_y_suma_pl():

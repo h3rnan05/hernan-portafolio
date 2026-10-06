@@ -92,10 +92,15 @@ def test_info_queda_en_el_log_y_no_sale(chat, caplog):
     assert any("silenciado" in r.getMessage() and "SEÑAL DISPARADA" in r.getMessage() for r in caplog.records)
 
 
-def test_entrada_y_critico_salen(chat):
+def test_entrada_salida_y_critico_salen(chat):
     run_mod.enviar_telegram("LLENADA", categoria=telegram_filtro.ENTRADA)
+    run_mod.enviar_telegram("CERRADA", categoria=telegram_filtro.SALIDA)
     run_mod.enviar_telegram("ERROR sin stop", categoria=telegram_filtro.CRITICO)
-    assert chat == ["LLENADA", "ERROR sin stop"]
+    assert chat == ["LLENADA", "CERRADA", "ERROR sin stop"]
+
+
+def test_whitelist_exacta():
+    assert telegram_filtro.CATEGORIAS_QUE_SALEN == frozenset({"entrada", "salida", "critico"})
 
 
 def test_flag_cero_restaura_todo(chat, monkeypatch):
@@ -125,16 +130,82 @@ def test_llenada_sale(chat, monkeypatch, tmp_path):
     assert len(chat) == 1 and "LLENADA" in chat[0] and "RKLB" in chat[0]
 
 
-def test_salida_por_objetivo_queda_en_el_log(chat, monkeypatch, tmp_path):
+def _orden_salida(tipo_pata: str, precio_salida: str | None, qty: str = "65") -> dict:
+    """Bracket llenado con UNA pata de salida llena (limit=objetivo,
+    stop=stop) -- la forma real de `legs` en Alpaca."""
+    otra = "stop" if tipo_pata == "limit" else "limit"
+    pata = {"type": tipo_pata, "status": "filled"}
+    if precio_salida is not None:
+        pata["filled_avg_price"] = precio_salida
+    return {"orden-RKLB": {"status": "filled", "filled_avg_price": "78.40", "filled_qty": qty,
+                           "legs": [pata, {"type": otra, "status": "canceled"}]}}
+
+
+# --------------------------- salida: CERRADA (dueño, 2026-10-06 12:26 Monterrey) ---------------------------
+
+def test_salida_por_objetivo_sale_con_pnl_usd_y_pct(chat, monkeypatch, tmp_path):
     tseg._parchear(monkeypatch, tmp_path, [tseg._revision_con_orden(resultado="abierta")])
     _sender_real(monkeypatch)
-    client = tseg._FakeClient({"orden-RKLB": {
-        "status": "filled", "filled_avg_price": "78.40", "filled_qty": "65", "legs": [
-            {"type": "limit", "status": "filled", "filled_avg_price": "82.50"},
-            {"type": "stop", "status": "canceled"}]}})
+    cambiadas = seguimiento.revisar(tseg._FakeClient(_orden_salida("limit", "82.50")))
+    assert [c.resultado for c in cambiadas] == ["objetivo"]
+    assert cambiadas[0].pnl == 266.50   # el cálculo del pnl no cambió
+    assert len(chat) == 1
+    assert chat[0].startswith("🧪 [PAPER] <b>CERRADA</b>")
+    assert "objetivo" in chat[0] and "RKLB" in chat[0]
+    assert "P&L +$266.50 (+5.23%)" in chat[0]
+
+
+def test_salida_por_stop_sale_con_pnl_usd_y_pct(chat, monkeypatch, tmp_path):
+    tseg._parchear(monkeypatch, tmp_path, [tseg._revision_con_orden(resultado="abierta")])
+    _sender_real(monkeypatch)
+    cambiadas = seguimiento.revisar(tseg._FakeClient(_orden_salida("stop", "76.90")))
+    assert [c.resultado for c in cambiadas] == ["stop"]
+    assert len(chat) == 1 and "CERRADA" in chat[0] and "stop" in chat[0]
+    assert "P&L -$97.50 (-1.91%)" in chat[0]
+
+
+def test_salida_sin_precio_de_salida_dice_sin_dato_nunca_cero(chat, monkeypatch, tmp_path):
+    tseg._parchear(monkeypatch, tmp_path, [tseg._revision_con_orden(resultado="abierta")])
+    _sender_real(monkeypatch)
+    cambiadas = seguimiento.revisar(tseg._FakeClient(_orden_salida("stop", None)))
+    assert [c.resultado for c in cambiadas] == ["stop"] and cambiadas[0].pnl is None
+    assert len(chat) == 1 and "CERRADA" in chat[0]
+    assert "P&L sin dato" in chat[0]
+    assert "$0.00" not in chat[0] and "0.00%" not in chat[0]
+
+
+def test_liquidacion_de_fin_de_dia_por_posicion_no_manda_nada_nuevo(chat, monkeypatch, tmp_path):
+    """La confirmación del fill de la liquidación EOD (cierre_order_id)
+    sigue sin mensaje propio: no aparece un Telegram nuevo."""
+    r = tseg._revision_con_orden(resultado="abierta")
+    r.cierre_order_id = "cierre-RKLB"
+    tseg._parchear(monkeypatch, tmp_path, [r])
+    _sender_real(monkeypatch)
+    client = tseg._FakeClient({
+        "orden-RKLB": {"status": "filled", "filled_avg_price": "78.40", "filled_qty": "65", "legs": [
+            {"type": "limit", "status": "canceled"}, {"type": "stop", "status": "canceled"}]},
+        "cierre-RKLB": {"status": "filled", "filled_avg_price": "80.00"},
+    })
+    monkeypatch.setattr(client, "posiciones", lambda: [], raising=False)
     cambiadas = seguimiento.revisar(client)
-    assert [c.resultado for c in cambiadas] == ["objetivo"]   # se persiste igual
+    assert [c.resultado for c in cambiadas] == ["cerrada"]
     assert chat == []
+
+
+def test_resumen_de_fin_de_dia_sigue_en_el_log(chat):
+    texto = notify.formatear_cierre_dia([({"symbol": "AAA", "qty": "10", "unrealized_pl": "100.00"}, "tesis")])
+    assert notify.es_cerrada(texto)   # misma cabecera, pero es el resumen: info
+    notify.enviar(texto)               # así lo manda cierre.py (categoría por default)
+    assert chat == []
+
+
+def test_cerrada_con_flag_cero_sigue_saliendo_igual(chat, monkeypatch, tmp_path):
+    monkeypatch.setenv("TELEGRAM_SOLO_ENTRADAS", "0")
+    tseg._parchear(monkeypatch, tmp_path, [tseg._revision_con_orden(resultado="abierta")])
+    _sender_real(monkeypatch)
+    seguimiento.revisar(tseg._FakeClient(_orden_salida("limit", "82.50")))
+    notify.enviar("🧪 [PAPER] <b>CANCELADA</b>")
+    assert len(chat) == 2 and "P&L +$266.50" in chat[0] and "CANCELADA" in chat[1]
 
 
 def test_cancelada_por_vencida_queda_en_el_log(chat, monkeypatch, tmp_path):
@@ -215,6 +286,7 @@ def test_las_categorias_criticas_estan_en_su_lugar():
     assert "categoria=notify.CATEGORIA_CRITICO" in leer(cierre)
     assert "categoria=notify.CATEGORIA_CRITICO" in leer(seguimiento)
     assert "notify.CATEGORIA_ENTRADA" in leer(seguimiento)
+    assert "notify.CATEGORIA_SALIDA" in leer(seguimiento)
     from momentum_paper_trader import stop_diario
     assert "categoria=notify.CATEGORIA_CRITICO" in leer(stop_diario)
 
@@ -239,6 +311,11 @@ def test_bash_info_silenciado_por_default(tmp_path):
 
 def test_bash_critico_pasa_el_filtro(tmp_path):
     r = _correr_sh({"TELEGRAM_CATEGORIA": "critico"}, tmp_path)
+    assert "SILENCIADO" not in r.stdout and "missing token" in r.stdout
+
+
+def test_bash_salida_pasa_el_filtro(tmp_path):
+    r = _correr_sh({"TELEGRAM_CATEGORIA": "salida"}, tmp_path)
     assert "SILENCIADO" not in r.stdout and "missing token" in r.stdout
 
 

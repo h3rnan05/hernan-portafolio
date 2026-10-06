@@ -11,6 +11,11 @@ Categorías (las pone quien llama; el default es la más silenciosa):
   - ``entrada``  -- la compra se LLENÓ (LLENADA, `seguimiento.py`). Se
                     usa el fill, no la colocación: COLOCADA es "aceptada",
                     todavía no es un trade.
+  - ``salida``   -- (dueño, 2026-10-06 12:26 Monterrey) la posición
+                    individual se CERRÓ: CERRADA por objetivo
+                    (take-profit) o por stop, con su P&L en USD y %
+                    (`seguimiento.py`). El resumen de liquidación de
+                    fin de día NO es esto: sigue en ``info``.
   - ``critico``  -- seguridad, rara vez dispara: posición sin stop /
                     sin salidas / sin seguimiento, el cierre de fin de día
                     falló o dejó la posición abierta, y el stop diario
@@ -47,10 +52,11 @@ import os
 log = logging.getLogger("telegram_filtro")
 
 ENTRADA = "entrada"
+SALIDA = "salida"
 CRITICO = "critico"
 INFO = "info"
 
-CATEGORIAS_QUE_SALEN = frozenset({ENTRADA, CRITICO})
+CATEGORIAS_QUE_SALEN = frozenset({ENTRADA, SALIDA, CRITICO})
 
 ENV_FLAG = "TELEGRAM_SOLO_ENTRADAS"
 ENV_ARCHIVO = "MOMENTUM_TELEGRAM_FLAG_FILE"
