@@ -117,3 +117,21 @@ UI: https://github.com/h3rnan05/hernan-portafolio/actions
 ### Watchdog de silencio (VPS paper)
 
 `scripts/watchdog_timer_miss.sh` (`momentum-watchlist-watchdog.timer`) alerta por Telegram si `momentum-watchlist.service` no termina OK en >1200 s **dentro del tramo ancho** (Lun–Vie 13–21 UTC; el calendario decide la sesión real), **solo si** `momentum-watchlist.timer` está `active`. Si el timer está OFF (post-#132, a propósito), el silencio se omite (`INFO: timer inactive; skip`) y no hay Telegram por esa causa; persist-fail / zero-push / ahead siguen con su dedupe diario. Silencio también tiene dedupe diario (misma marca `watchdog_fired_YYYY-MM-DD`). El silencio de finde / overnight no cuenta: si el último OK es anterior a las 13:00 UTC de hoy, la edad se mide desde el open de sesión, no desde el viernes (FP del 2026-09-14). Sin timestamp conocido, no alerta.
+
+## Telegram: solo entradas (`TELEGRAM_SOLO_ENTRADAS`, 2026-10-06)
+
+Activo por default. Al chat solo llegan:
+
+- **Entrada**: `LLENADA` (la compra se llenó; sale de `seguimiento.py`). `COLOCADA` ya no sale: aceptada no es un trade.
+- **Crítico** (rara vez dispara): posición sin stop o sin seguimiento (`reconciliacion.py`), posición sin salidas o que sigue abierta tras la liquidación (`seguimiento.py`), cierre de fin de día rechazado (`cierre.py`), stop diario 1 % disparado (`stop_diario.py`).
+
+Queda solo en el log (journal): WATCHING / SEÑAL DISPARADA / expiradas / radar / vigilancia / resumen de cierre del hunter, NO ENTRA, COLOCADA, CANCELADA, CERRADA (salidas y resumen de fin de día), halts, calendario desconocido, fallo del ejecutor, fallo/saldo de la IA, persist fallido, watchdog, uso de la API, aprendizaje nocturno, reporte de cierre y reporte semanal. Cada uno deja un renglón `telegram silenciado (...)` (Python) o `TELEGRAM_NOTIFY SILENCIADO` (bash).
+
+Volver a recibir todo, **sin deploy y sin reiniciar nada** (se lee en cada envío):
+
+```bash
+echo 0 | sudo tee /etc/momentum/telegram_solo_entradas    # todo sale como antes
+echo 1 | sudo tee /etc/momentum/telegram_solo_entradas    # solo entradas + críticos
+```
+
+Sin ese archivo manda `TELEGRAM_SOLO_ENTRADAS=0|1` de `/etc/momentum/paper.env` (en el vigía, que es un proceso largo, la variable solo cambia al reiniciarlo; el archivo no lo necesita). El filtro está en `momentum_hunter/telegram_filtro.py` (Python, aplicado en `run.enviar_telegram`) y en `scripts/notify_telegram.sh` (bash, categoría en `TELEGRAM_CATEGORIA`).

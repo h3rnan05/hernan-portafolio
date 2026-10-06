@@ -260,6 +260,18 @@ def _plana(posiciones: list | None, ticker: str) -> bool | None:
     return True
 
 
+def _categoria_transicion(resultado: str | None, mensaje: str) -> str:
+    """Con TELEGRAM_SOLO_ENTRADAS (2026-10-06): la entrada LLENADA es lo
+    único de esta pasada que sale siempre; un ERROR de posición (sin
+    salidas) es crítico. Salidas (objetivo/stop/cerrada) y CANCELADA
+    quedan en el log."""
+    if resultado == "abierta" and notify.ESTADO_LLENADA in mensaje:
+        return notify.CATEGORIA_ENTRADA
+    if notify.ESTADO_ERROR in mensaje:
+        return notify.CATEGORIA_CRITICO
+    return notify.CATEGORIA_INFO
+
+
 def _avisar_sigue_abierta(r: estado.RevisionIA, mensaje: str, ahora: datetime) -> None:
     texto = mensaje if mensaje and "ERROR" in mensaje else notify.formatear_error(
         tipo="posición sigue abierta",
@@ -271,7 +283,9 @@ def _avisar_sigue_abierta(r: estado.RevisionIA, mensaje: str, ahora: datetime) -
     if dedupe_avisos.ya_avisada(marca):
         log.info("%s: la posición sigue abierta; el aviso de esta sesión ya salió", r.ticker)
         return
-    enviar_telegram(texto)
+    # Crítico (2026-10-06): posición sin salidas, o el cierre de fin de
+    # día no la aplanó. Sale aunque TELEGRAM_SOLO_ENTRADAS esté activo.
+    enviar_telegram(texto, categoria=notify.CATEGORIA_CRITICO)
     dedupe_avisos.marcar(marca, ahora)
 
 
@@ -341,7 +355,7 @@ def revisar(
         mensaje = novedad.mensaje
         estado.guardar(revisiones)
         if mensaje and (notify.debe_avisar(r.resultado) or r.resultado == "no_ejecutada"):
-            enviar_telegram(mensaje)
+            enviar_telegram(mensaje, categoria=_categoria_transicion(r.resultado, mensaje))
         cambiadas.append(r)
         log.info("%s: trade ahora '%s' (pnl=%s)", r.ticker, r.resultado, r.pnl)
 

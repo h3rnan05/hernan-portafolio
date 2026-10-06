@@ -9,6 +9,15 @@
 2) Estado: `RutaEstado` resuelve `MOMENTUM_ESTADO_DIR` en cada uso. Sin
    esto, un test que toca el default copiaría la telemetría versionada
    o intentaría crear `/var/lib/momentum/estado`.
+
+3) Telegram (2026-10-06): las pruebas históricas verifican QUÉ arma y
+   manda cada módulo, con el comportamiento anterior al filtro
+   TELEGRAM_SOLO_ENTRADAS. Corren con el filtro APAGADO (=0, que es
+   justamente "flag=0 restaura lo de antes") y con el archivo de
+   interruptor apuntando a un tmp que no existe, para que un
+   `/etc/momentum/telegram_solo_entradas` del host no se cuele. El
+   default de producción (activo) lo prueban
+   `momentum_paper_trader/tests/test_telegram_solo_entradas.py`.
 """
 
 from __future__ import annotations
@@ -62,3 +71,9 @@ def _calendario_normal_en_el_entorno(monkeypatch, _archivo_calendario_normal):
 def _estado_fuera_del_repo(tmp_path, monkeypatch):
     monkeypatch.setenv("MOMENTUM_ESTADO_DIR", str(tmp_path / "estado"))
     monkeypatch.setenv("MOMENTUM_ESTADO_MIGRAR", "0")
+
+
+@pytest.fixture(autouse=True)
+def _telegram_comportamiento_historico(tmp_path, monkeypatch):
+    monkeypatch.setenv("TELEGRAM_SOLO_ENTRADAS", "0")
+    monkeypatch.setenv("MOMENTUM_TELEGRAM_FLAG_FILE", str(tmp_path / "sin_interruptor_telegram"))

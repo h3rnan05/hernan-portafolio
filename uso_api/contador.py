@@ -132,7 +132,17 @@ def texto_aviso(host: str, n: int, ahora: datetime) -> str:
 
 def _avisar(texto: str) -> None:
     """Telegram directo, sin importar al hunter ni al ejecutor. Mismas
-    variables que el resto del sistema. Nunca levanta."""
+    variables que el resto del sistema. Nunca levanta.
+
+    Informativo: con TELEGRAM_SOLO_ENTRADAS activo (default, 2026-10-06)
+    queda solo en el log (`momentum_hunter/telegram_filtro.py`, solo
+    stdlib -- no arrastra al hunter)."""
+    try:
+        from momentum_hunter import telegram_filtro
+        if telegram_filtro.silenciar(texto, telegram_filtro.INFO, origen="uso_api"):
+            return
+    except Exception as ex:   # noqa: BLE001 -- sin filtro, comportamiento anterior
+        log.debug("uso_api: filtro de Telegram no disponible (%s)", type(ex).__name__)
     token = os.getenv("MOMENTUM_TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN")
     chat = os.getenv("MOMENTUM_TELEGRAM_CHAT_ID") or os.getenv("TELEGRAM_CHAT_ID")
     if not token or not chat:
