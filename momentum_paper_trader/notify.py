@@ -34,12 +34,15 @@ con TELEGRAM_SOLO_ENTRADAS activo (default) solo salen
 
   - ENTRADA  -- LLENADA (el fill; COLOCADA ya no sale: aceptada no es
                 un trade).
+  - SALIDA   -- CERRADA de una posición (objetivo o stop), con su P&L
+                en USD y % (aprobado por el dueño 2026-10-06 12:26
+                Monterrey). Un dato que falta no es 0: "sin dato".
   - CRÍTICO  -- posición sin stop / sin salidas / sin seguimiento,
                 cierre de fin de día fallido o posición que sigue
                 abierta tras la liquidación, stop diario disparado.
 
-NO ENTRA, COLOCADA, CANCELADA, CERRADA (salidas y resumen de fin de
-día), halts, calendario, fallo del ejecutor, aprendizaje y reporte de
+NO ENTRA, COLOCADA, CANCELADA, el resumen CERRADA de liquidación de fin
+de día, halts, calendario, fallo del ejecutor, aprendizaje y reporte de
 cierre quedan en el log. Con TELEGRAM_SOLO_ENTRADAS=0 todo vuelve a
 salir como antes."""
 
@@ -90,6 +93,7 @@ def debe_avisar(resultado: str | None) -> bool:
 
 
 CATEGORIA_ENTRADA = telegram_filtro.ENTRADA
+CATEGORIA_SALIDA = telegram_filtro.SALIDA
 CATEGORIA_CRITICO = telegram_filtro.CRITICO
 CATEGORIA_INFO = telegram_filtro.INFO
 
@@ -112,6 +116,42 @@ def _dinero(valor: float | None) -> str | None:
     if valor < 0:
         return f"-${abs(valor):,.2f}"
     return "$0.00"
+
+
+def _porcentaje(valor: float | None) -> str | None:
+    if valor is None:
+        return None
+    if round(valor, 2) == 0:
+        return "0.00%"
+    return f"{valor:+.2f}%"
+
+
+def _pnl_pct(precio_entrada: float | None, precio_salida: float | None) -> float | None:
+    """% del recorrido entrada → salida (solo para mostrar). Sin los dos
+    precios, o con una entrada no positiva, no hay dato -- nunca 0."""
+    if precio_entrada is None or precio_salida is None:
+        return None
+    try:
+        e, s = float(precio_entrada), float(precio_salida)
+    except (TypeError, ValueError):
+        return None
+    if e <= 0:
+        return None
+    return (s - e) / e * 100
+
+
+def linea_pnl(pnl: float | None, pct: float | None) -> str:
+    """`P&L +$266.50 (+5.23%)`. Lo que falta se dice: `P&L sin dato`
+    (ni USD ni %), `P&L +$266.50 (% sin dato)`, `P&L sin dato (+5.23%)`."""
+    usd, por = _dinero(pnl), _porcentaje(pct)
+    if usd is None and por is None:
+        return "P&L sin dato"
+    return f"P&L {usd or 'sin dato'} ({por or '% sin dato'})"
+
+
+def es_cerrada(texto: str | None) -> bool:
+    """¿El texto es un aviso CERRADA (cabecera exacta)?"""
+    return bool(texto) and str(texto).startswith(f"{PREFIJO} <b>{ESTADO_CERRADA}</b>")
 
 
 def _precio(valor: float | None) -> str | None:
@@ -224,12 +264,14 @@ def formatear_cerrada(
     else:
         movimiento = qty or recorrido
 
-    pnl_txt = _dinero(pnl)
+    # P&L siempre presente (dueño, 2026-10-06): USD y %; lo que falta
+    # se escribe "sin dato", nunca 0. Solo presentación: el pnl lo
+    # calcula quien llama, acá no se toca.
     return _armar(ESTADO_CERRADA, (
         _linea_ticker(ticker, motivo),
         _linea_senal(signal_id),
         movimiento,
-        f"P&L {pnl_txt}" if pnl_txt else None,
+        linea_pnl(pnl, _pnl_pct(precio_entrada, precio_salida)),
         escapar(_razon_corta(razon)) if _razon_corta(razon) else None,
     ))
 

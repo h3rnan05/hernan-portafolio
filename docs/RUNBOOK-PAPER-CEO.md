@@ -123,15 +123,16 @@ UI: https://github.com/h3rnan05/hernan-portafolio/actions
 Activo por default. Al chat solo llegan:
 
 - **Entrada**: `LLENADA` (la compra se llenó; sale de `seguimiento.py`). `COLOCADA` ya no sale: aceptada no es un trade.
+- **Salida** (aprobado por el dueño 2026-10-06 12:26 Monterrey): `CERRADA` de cada posición por objetivo (take-profit) o por stop, con su P&L en USD y % (`P&L +$266.50 (+5.23%)`; lo que falta se escribe `sin dato`, nunca 0). Sale de `seguimiento.py`.
 - **Crítico** (rara vez dispara): posición sin stop o sin seguimiento (`reconciliacion.py`), posición sin salidas o que sigue abierta tras la liquidación (`seguimiento.py`), cierre de fin de día rechazado (`cierre.py`), stop diario 1 % disparado (`stop_diario.py`).
 
-Queda solo en el log (journal): WATCHING / SEÑAL DISPARADA / expiradas / radar / vigilancia / resumen de cierre del hunter, NO ENTRA, COLOCADA, CANCELADA, CERRADA (salidas y resumen de fin de día), halts, calendario desconocido, fallo del ejecutor, fallo/saldo de la IA, persist fallido, watchdog, uso de la API, aprendizaje nocturno, reporte de cierre y reporte semanal. Cada uno deja un renglón `telegram silenciado (...)` (Python) o `TELEGRAM_NOTIFY SILENCIADO` (bash).
+Queda solo en el log (journal): WATCHING / SEÑAL DISPARADA / expiradas / radar / vigilancia / resumen de cierre del hunter, NO ENTRA, COLOCADA, CANCELADA, resumen CERRADA de la liquidación de fin de día, halts, calendario desconocido, fallo del ejecutor, fallo/saldo de la IA, persist fallido, watchdog, uso de la API, aprendizaje nocturno, reporte de cierre y reporte semanal. Cada uno deja un renglón `telegram silenciado (...)` (Python) o `TELEGRAM_NOTIFY SILENCIADO` (bash).
 
 Volver a recibir todo, **sin deploy y sin reiniciar nada** (se lee en cada envío):
 
 ```bash
 echo 0 | sudo tee /etc/momentum/telegram_solo_entradas    # todo sale como antes
-echo 1 | sudo tee /etc/momentum/telegram_solo_entradas    # solo entradas + críticos
+echo 1 | sudo tee /etc/momentum/telegram_solo_entradas    # solo entradas + salidas + críticos
 ```
 
-Sin ese archivo manda `TELEGRAM_SOLO_ENTRADAS=0|1` de `/etc/momentum/paper.env` (en el vigía, que es un proceso largo, la variable solo cambia al reiniciarlo; el archivo no lo necesita). El filtro está en `momentum_hunter/telegram_filtro.py` (Python, aplicado en `run.enviar_telegram`) y en `scripts/notify_telegram.sh` (bash, categoría en `TELEGRAM_CATEGORIA`).
+Sin ese archivo manda `TELEGRAM_SOLO_ENTRADAS=0|1` de `/etc/momentum/paper.env` (en el vigía, que es un proceso largo, la variable solo cambia al reiniciarlo; el archivo no lo necesita). El filtro está en `momentum_hunter/telegram_filtro.py` (Python, aplicado en `run.enviar_telegram`) y en `scripts/notify_telegram.sh` (bash, categoría en `TELEGRAM_CATEGORIA`: `entrada`, `salida` o `critico`).

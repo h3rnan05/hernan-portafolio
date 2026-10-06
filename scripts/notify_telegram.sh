@@ -3,7 +3,7 @@
 #
 # Filtro TELEGRAM_SOLO_ENTRADAS (2026-10-06, mismo criterio que
 # momentum_hunter/telegram_filtro.py): activo por default, solo salen
-# TELEGRAM_CATEGORIA=entrada|critico. Todo lo de este script hoy
+# TELEGRAM_CATEGORIA=entrada|salida|critico. Todo lo de este script hoy
 # (watchdog, persist fallido, fallo/saldo de la IA) es informativo:
 # queda en el log (stdout -> journal) y sale con 0 como si se hubiera
 # mandado, para que el dedupe de cada caller no reintente en bucle.
@@ -28,7 +28,7 @@ case "$(printf '%s' "$_tg_solo" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]'
   *) _tg_solo=1 ;;
 esac
 _tg_cat="${TELEGRAM_CATEGORIA:-info}"
-if [ "$_tg_solo" = "1" ] && [ "$_tg_cat" != "entrada" ] && [ "$_tg_cat" != "critico" ]; then
+if [ "$_tg_solo" = "1" ] && [ "$_tg_cat" != "entrada" ] && [ "$_tg_cat" != "salida" ] && [ "$_tg_cat" != "critico" ]; then
   echo "TELEGRAM_NOTIFY SILENCIADO (TELEGRAM_SOLO_ENTRADAS=1, categoria=${_tg_cat}): ${msg}"
   exit 0
 fi

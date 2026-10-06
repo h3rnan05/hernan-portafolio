@@ -261,12 +261,14 @@ def _plana(posiciones: list | None, ticker: str) -> bool | None:
 
 
 def _categoria_transicion(resultado: str | None, mensaje: str) -> str:
-    """Con TELEGRAM_SOLO_ENTRADAS (2026-10-06): la entrada LLENADA es lo
-    único de esta pasada que sale siempre; un ERROR de posición (sin
-    salidas) es crítico. Salidas (objetivo/stop/cerrada) y CANCELADA
-    quedan en el log."""
+    """Con TELEGRAM_SOLO_ENTRADAS (2026-10-06): sale la entrada LLENADA
+    y la salida CERRADA de la posición (objetivo/stop, con su P&L;
+    aprobado por el dueño 2026-10-06 12:26 Monterrey); un ERROR de
+    posición (sin salidas) es crítico. CANCELADA queda en el log."""
     if resultado == "abierta" and notify.ESTADO_LLENADA in mensaje:
         return notify.CATEGORIA_ENTRADA
+    if resultado in ("objetivo", "stop", "cerrada") and notify.es_cerrada(mensaje):
+        return notify.CATEGORIA_SALIDA
     if notify.ESTADO_ERROR in mensaje:
         return notify.CATEGORIA_CRITICO
     return notify.CATEGORIA_INFO
