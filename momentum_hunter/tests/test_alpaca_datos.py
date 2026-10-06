@@ -864,6 +864,8 @@ def test_la_telemetria_guarda_la_fuente_y_el_reporte_ignora_el_rechequeo(tmp_pat
     assert d == {
         "configurada": "alpaca", "fuente": "mixto", "feed": "sip",
         "fallbacks": 3, "latencia_ms": 420.5,
+        # Respaldo IEX (2026-10-06): sin medir no se inventa.
+        "feed_usado": None, "fallback_iex": None,
     }
     # Una corrida vieja no se inventa un conteo.
     assert telemetria.Metricas().como_dict()["datos"]["fallbacks"] is None

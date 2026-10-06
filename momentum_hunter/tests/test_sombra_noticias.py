@@ -128,7 +128,9 @@ class _Prov:
 
 
 def test_la_sombra_no_cambia_ningun_candidato(monkeypatch):
-    titulares = [Titular("AAA receives FDA approval for drug", "Reuters", "2026-10-02")]
+    # El detector mide la frescura contra `date.today()` (no contra
+    # AHORA): con una fecha fija, la prueba caducaba a los pocos días.
+    titulares = [Titular("AAA receives FDA approval for drug", "Reuters", date.today().isoformat())]
     monkeypatch.setattr(run_mod, "YahooNewsProvider",
                         lambda metricas=None: type("N", (), {"titulares": lambda self, t: titulares,
                                                              "estado": {}})())

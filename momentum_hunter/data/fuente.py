@@ -22,6 +22,13 @@ el aviso nombra cuántos y el código.
 (el plan de pago; IEX es ~2,5 % del volumen). Si dice otra cosa, se
 avisa y se ignora.
 
+RESPALDO IEX (2026-10-06, aprobado por el dueño). La única excepción a
+"sin respaldo": si SIP responde 403 de suscripción, `AlpacaProvider`
+repite el mismo pedido con `feed=iex` y el resto del ciclo sigue por IEX
+(ver `alpaca_datos`). La telemetría lo dice: `feed_usado` (`sip`, `iex`
+o `sip+iex`) y `fallback_iex`. Un 401 u otro error sigue cortando la
+corrida. `MOMENTUM_FALLBACK_IEX=0` lo apaga.
+
 La telemetría (`informe_datos`) dice qué fuente contestó de verdad, no
 cuál estaba configurada. `metadata` (float, ETF, nombre) no es precio:
 sigue en Yahoo y no entra en esa cuenta. Noticias, aparte.
@@ -66,6 +73,10 @@ class InformeDatos:
     feed: str | None
     fallbacks: int
     latencia_ms: float | None
+    # Qué feed contestó de verdad (`sip`, `iex`, `sip+iex`) y si hubo
+    # respaldo IEX por un 403 de plan. None/False si no se pidió nada.
+    feed_usado: str | None = None
+    fallback_iex: bool = False
 
 
 def informe_de(provider) -> dict | None:
@@ -83,6 +94,8 @@ def informe_de(provider) -> dict | None:
         "feed": datos.feed,
         "fallbacks": datos.fallbacks,
         "latencia_ms": datos.latencia_ms,
+        "feed_usado": datos.feed_usado,
+        "fallback_iex": bool(datos.fallback_iex),
     }
 
 
@@ -136,8 +149,17 @@ class FuentePreciosCaida(Exception):
         super().__init__(codigo)
 
 
+def etiqueta_feeds(feeds) -> str | None:
+    """`sip`, `iex`, `sip+iex` o None (no contestó ninguno)."""
+    usados = {f for f in (feeds or ()) if isinstance(f, str) and f}
+    if not usados:
+        return None
+    return "+".join(sorted(usados, key=lambda f: (f != "sip", f)))
+
+
 class ProveedorAlpaca(DataProvider):
-    """Precios SOLO del feed SIP. Sin respaldo: un ciclo caído lanza
+    """Precios del feed SIP; IEX solo si SIP da 403 de plan (lo resuelve
+    `AlpacaProvider`). Sin Yahoo: un ciclo caído lanza
     `FuentePreciosCaida`. Un símbolo ausente en una respuesta 200 no es
     un fallo: el feed dijo que no hay velas. `metadata` (no es precio)
     sale de `metadata_de`, que es Yahoo."""
@@ -149,6 +171,8 @@ class ProveedorAlpaca(DataProvider):
         self._feed = feed
         self._llamadas = 0
         self._uso_primario = False
+        # Minuto servido por el almacén del stream SIP (no pasa por REST).
+        self._feeds_stream: set[str] = set()
         self.sin_respuesta = 0
         self._latencia_ms: float | None = None
 
@@ -163,8 +187,9 @@ class ProveedorAlpaca(DataProvider):
                 out = pedir(tickers)
             except ErrorDatosAlpaca as ex:
                 log.error(
-                    "datos: el feed SIP de Alpaca no respondió (%s); sin respaldo, "
-                    "la corrida termina sin entradas nuevas", ex.codigo,
+                    "datos: el feed de Alpaca no respondió (%s; feeds probados: %s); sin "
+                    "respaldo, la corrida termina sin entradas nuevas", ex.codigo,
+                    "sip+iex" if self._fallback_iex() else "sip",
                 )
                 raise FuentePreciosCaida(ex.codigo) from None
             self._uso_primario = True
@@ -203,6 +228,7 @@ class ProveedorAlpaca(DataProvider):
             servidas = None
         if servidas is not None:
             self._uso_primario = True
+            self._feeds_stream.add("sip")
             self._marcar_tiempo(t0)
             return servidas
         return self._pedir(tickers, lambda ts: self._primario.barras_intradia(ts, intervalo, periodo))
@@ -212,13 +238,40 @@ class ProveedorAlpaca(DataProvider):
             self._meta = self._metadata_de()
         return self._meta.metadata(tickers)
 
+    def _feeds_usados(self) -> set[str]:
+        usados = getattr(self._primario, "feeds_usados", None)
+        out = set(usados) if isinstance(usados, (set, frozenset, list, tuple)) else set()
+        return out | self._feeds_stream
+
+    def _fallback_iex(self) -> bool:
+        if "iex" in self._feeds_usados():
+            return True
+        try:
+            from momentum_hunter.data.alpaca_datos import fallback_iex_en_proceso
+            return self._feed == "sip" and fallback_iex_en_proceso()
+        except ImportError:
+            return False
+
     def informe_datos(self) -> InformeDatos:
+        usados = self._feeds_usados()
+        feed_usado = etiqueta_feeds(usados) if self._uso_primario else None
+        if not self._uso_primario:
+            feed = None
+        elif feed_usado is None:
+            feed = self._feed
+        elif "iex" in usados:
+            # Si hubo IEX, no se rotula como SIP.
+            feed = "iex"
+        else:
+            feed = feed_usado
         return InformeDatos(
             configurada="alpaca",
             fuente="alpaca" if self._uso_primario else None,
-            feed=self._feed if self._uso_primario else None,
+            feed=feed,
             fallbacks=0,
             latencia_ms=round(self._latencia_ms, 1) if self._latencia_ms is not None else None,
+            feed_usado=feed_usado if feed_usado is not None else feed,
+            fallback_iex="iex" in usados,
         )
 
 
@@ -308,5 +361,5 @@ def _proveedor_precios(construir_yahoo=None) -> DataProvider:
     feed_env = os.environ.get(ENV_FEED, "").strip().lower()
     if feed_env not in ("", "sip"):
         log.warning("%s=%s se ignora: el hunter pide siempre feed=sip", ENV_FEED, feed_env)
-    log.info("datos: precios por alpaca/sip, sin respaldo")
+    log.info("datos: precios por alpaca/sip, sin respaldo de Yahoo (IEX solo ante 403 de plan SIP)")
     return ProveedorAlpaca(AlpacaProvider(feed="sip"), construir, feed="sip")

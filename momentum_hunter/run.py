@@ -111,11 +111,15 @@ def _anotar_fuente_datos(metricas, provider) -> None:
     metricas.feed_datos = datos["feed"]
     metricas.fallbacks_datos = datos["fallbacks"]
     metricas.latencia_datos_ms = datos["latencia_ms"]
+    metricas.feed_usado = datos.get("feed_usado")
+    metricas.fallback_iex = datos.get("fallback_iex")
     if datos["fuente"] is not None:
         log.info(
-            "datos del ciclo: configurada=%s fuente=%s feed=%s fallbacks=%s latencia_ms=%s",
+            "datos del ciclo: configurada=%s fuente=%s feed=%s fallbacks=%s latencia_ms=%s "
+            "feed_usado=%s fallback_iex=%s",
             datos["configurada"], datos["fuente"], datos["feed"],
             datos["fallbacks"], datos["latencia_ms"],
+            datos.get("feed_usado"), "true" if datos.get("fallback_iex") else "false",
         )
 
 

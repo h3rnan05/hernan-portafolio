@@ -745,7 +745,10 @@ def consultar(
     if traer is None:
         def traer(lista: list[str]):
             try:
-                return AlpacaProvider().snapshots_crudos(lista)
+                # Sin respaldo IEX: las condiciones/cinta de la quote
+                # que leen los halts son del SIP. Un 403 sigue siendo
+                # `desconocido`, como antes, nunca `operando` por IEX.
+                return AlpacaProvider(respaldo_iex=False).snapshots_crudos(lista)
             except ErrorDatosAlpaca:
                 return None
     try:

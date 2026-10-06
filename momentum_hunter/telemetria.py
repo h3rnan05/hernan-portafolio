@@ -144,6 +144,9 @@ class Metricas:
     fuente_datos: str | None = None
     feed_datos: str | None = None
     fallbacks_datos: int | None = None
+    # Respaldo IEX ante 403 de plan en SIP (2026-10-06). None = no medido.
+    feed_usado: str | None = None
+    fallback_iex: bool | None = None
     latencia_datos_ms: float | None = None
 
     # Catálogo local de activos (lo escribe otro proceso; acá solo se
@@ -229,6 +232,8 @@ class Metricas:
                 "feed": self.feed_datos,
                 "fallbacks": self.fallbacks_datos,
                 "latencia_ms": self.latencia_datos_ms,
+                "feed_usado": self.feed_usado,
+                "fallback_iex": self.fallback_iex,
             },
         }
 

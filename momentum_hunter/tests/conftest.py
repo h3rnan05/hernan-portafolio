@@ -67,3 +67,15 @@ def _sombra_de_noticias_apagada(monkeypatch):
     por defecto en producción. Las pruebas del pipeline no la quieren
     (pediría a la red); las suyas la vuelven a encender."""
     monkeypatch.setenv("MOMENTUM_NOTICIAS_SOMBRA", "0")
+
+
+@pytest.fixture(autouse=True)
+def _respaldo_iex_limpio(monkeypatch):
+    """Cada prueba arranca como un proceso nuevo: en SIP, sin el modo
+    pegajoso de IEX de una prueba anterior y con el flag por defecto."""
+    from momentum_hunter.data import alpaca_datos
+
+    monkeypatch.delenv(alpaca_datos.ENV_RESPALDO_IEX, raising=False)
+    alpaca_datos.reiniciar_respaldo_iex()
+    yield
+    alpaca_datos.reiniciar_respaldo_iex()

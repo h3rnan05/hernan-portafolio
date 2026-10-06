@@ -362,7 +362,8 @@ def pedir_rest(simbolos: list[str], dia: str):
     fin = inicio + timedelta(days=1)
     try:
         from momentum_hunter.data.alpaca_datos import AlpacaProvider
-        prov = AlpacaProvider(feed="sip")
+        # Compara stream SIP contra REST SIP: IEX no sirve de referencia.
+        prov = AlpacaProvider(feed="sip", respaldo_iex=False)
         params = {
             "timeframe": "1Min",
             "start": inicio.astimezone(UTC).isoformat(timespec="seconds"),

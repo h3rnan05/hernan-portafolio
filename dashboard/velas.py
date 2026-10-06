@@ -111,6 +111,18 @@ def feed_de_datos() -> str:
     return os.environ.get("ALPACA_DATA_FEED") or "sip"
 
 
+def _feed_cayo_a_iex() -> bool:
+    """True si en este proceso el cliente de datos está pegado a IEX
+    por un 403 de plan en SIP (`alpaca_datos`, respaldo IEX)."""
+    if feed_de_datos() != "sip":
+        return False
+    try:
+        from momentum_hunter.data.alpaca_datos import iex_pegajoso_activo
+        return iex_pegajoso_activo()
+    except Exception:  # noqa: BLE001 -- una etiqueta no tumba el panel
+        return False
+
+
 def origen_alpaca(feed: str | None = None) -> str:
     """Etiqueta que se guarda con las velas. `sip` → `alpaca-sip`."""
     return f"alpaca-{feed if feed is not None else feed_de_datos()}"
@@ -325,7 +337,8 @@ def obtener(ticker: str, ahora: datetime, cache_dir: Path, ttl_seg: float,
             else:
                 aviso_feed = f"el feed de velas de Alpaca falló ({codigo}); se usa Yahoo de respaldo"
     if _usables(velas_alpaca):
-        origen_fuente = origen_alpaca()
+        # Si SIP dio 403 de plan y el cliente cayó a IEX, la etiqueta lo dice.
+        origen_fuente = origen_alpaca("iex" if _feed_cayo_a_iex() else None)
         _guardar(ruta, ahora, velas_alpaca, origen_fuente)
         return _resultado(velas_alpaca, ahora, "fuente", None, origen_fuente)
     return {**_obtener_yahoo(ticker, ahora, cache_dir, ttl_seg, pedir_yahoo, pausa_seg, pausa_bot,
