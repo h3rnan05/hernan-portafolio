@@ -1,10 +1,10 @@
 {
-  "cash": 2943.9859999999994,
+  "cash": 2163.8659999999995,
   "posiciones": {
     "USO": {
       "qty": 8,
       "entrada": 143.53,
-      "stop": 138.01,
+      "stop": 142.07,
       "fecha": "2026-09-08 17:18 UTC",
       "origen": "sistema"
     },
@@ -13,6 +13,13 @@
       "entrada": 741.02,
       "stop": 724.47,
       "fecha": "2026-09-21 18:49 UTC",
+      "origen": "sistema"
+    },
+    "SPY": {
+      "qty": 1,
+      "entrada": 780.12,
+      "stop": 766.32,
+      "fecha": "2026-10-06 18:57 UTC",
       "origen": "sistema"
     }
   },
@@ -1443,6 +1450,10 @@
     {
       "ts": "2026-10-06 01:12 UTC",
       "equity": 4852.11
+    },
+    {
+      "ts": "2026-10-06 18:57 UTC",
+      "equity": 4863.18
     }
   ],
   "noticias_vistas": [
@@ -1727,23 +1738,17 @@
     {
       "ts": "2026-10-01 18:56 UTC",
       "evento": "USO: stop sube a $138.01 (mín. 20d)"
+    },
+    {
+      "ts": "2026-10-06 18:57 UTC",
+      "evento": "USO: stop sube a $142.07 (mín. 20d)"
+    },
+    {
+      "ts": "2026-10-06 18:57 UTC",
+      "evento": "🟢 COMPRA SPY (S&P 500): 1 @ $780.12 | ruptura de máx. 55d | stop $766.32 (riesgo $13.80 = 0.3% del equity)"
     }
   ],
   "noticias_evaluadas": [
-    "89a0370c30f9",
-    "2e46a7a3277d",
-    "9bf256d30545",
-    "fa0e7bcb47ed",
-    "dcdd20b17f1c",
-    "6ced0e450f03",
-    "9bfcac3bbf4d",
-    "9773a41367f2",
-    "74a8d5c8b286",
-    "34be5ab68719",
-    "2eb82d8b0c10",
-    "4be4c4309fa3",
-    "e6ba69ebe120",
-    "7239b539cc58",
     "a1a9142524fd",
     "5e56f80c6d03",
     "28d9bb5dd271",
@@ -2229,6 +2234,20 @@
     "9e22cd108a5b",
     "c2a176ac43c5",
     "73b67f5e04f6",
-    "b39bfa5a98d3"
+    "b39bfa5a98d3",
+    "aa51d9cdcdf1",
+    "8f8e76ac800e",
+    "0f8f2d7111c7",
+    "f7237b993bee",
+    "6ff31441afe0",
+    "50c6a6032610",
+    "3be24e1a43a5",
+    "8998ecbb80c0",
+    "1f890685a3eb",
+    "e788dda22e11",
+    "c7ce4e518a82",
+    "23554d1fbd01",
+    "574854126e25",
+    "70c2b80beaac"
   ]
 }
