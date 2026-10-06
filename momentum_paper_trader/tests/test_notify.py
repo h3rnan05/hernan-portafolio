@@ -131,10 +131,10 @@ def test_enviar_vacio_no_toca_telegram(monkeypatch):
 def test_enviar_usa_html_y_no_silencia_un_trade(monkeypatch):
     llamadas = []
 
-    def _fake(texto, parse_mode=None, disable_notification=False):
+    def _fake(texto, parse_mode=None, disable_notification=False, categoria="info"):
         llamadas.append({
             "texto": texto, "parse_mode": parse_mode,
-            "silent": disable_notification,
+            "silent": disable_notification, "categoria": categoria,
         })
 
     monkeypatch.setattr(notify, "enviar_telegram", _fake)

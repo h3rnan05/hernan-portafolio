@@ -50,7 +50,7 @@ def _parchear(monkeypatch, tmp_path, revisiones):
     monkeypatch.setattr(estado, "cargar", lambda p=path: real_cargar(p))
     monkeypatch.setattr(estado, "guardar", lambda rs, p=path: real_guardar(rs, p))
     enviados: list[str] = []
-    monkeypatch.setattr(seguimiento, "enviar_telegram", lambda t: enviados.append(t))
+    monkeypatch.setattr(seguimiento, "enviar_telegram", lambda t, **_: enviados.append(t))
     return path, enviados
 
 

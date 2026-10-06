@@ -661,7 +661,8 @@ def _avisar_cierre_fallido(ticker: str, codigo: str, ahora: datetime) -> None:
     if dedupe_avisos.ya_avisada(marca):
         log.info("%s: el cierre fallido ya se avisó en esta sesión", ticker)
         return
-    notify.enviar(texto)
+    # Crítico: el cierre de fin de día no aplanó la posición (2026-10-06).
+    notify.enviar(texto, categoria=notify.CATEGORIA_CRITICO)
     dedupe_avisos.marcar(marca, ahora)
 
 

@@ -58,6 +58,7 @@ from momentum_hunter import (
     sesion,
     skeptic,
     stats,
+    telegram_filtro,
     telemetria,
     tracker,
     universe,
@@ -145,12 +146,21 @@ def enviar_telegram(
     texto: str,
     parse_mode: str | None = None,
     disable_notification: bool = False,
+    categoria: str = telegram_filtro.INFO,
 ) -> None:
     """Envío compartido. `parse_mode`/`disable_notification` son
     opcionales y default-off: los callers viejos (texto plano) no
     cambian. El paper trader manda HTML ya escapado; no usa el flag
     silencioso -- si un evento no merece aviso, no llama a esta
-    función."""
+    función.
+
+    `categoria` (2026-10-06, `telegram_filtro`): con
+    TELEGRAM_SOLO_ENTRADAS activo (default) solo salen `entrada` (la
+    compra llenada) y `critico` (seguridad). Todo lo del hunter --
+    alertas, WATCHING, expiradas, radar, vigilancia, resumen de cierre,
+    reporte semanal -- es `info`: queda en el log, no en el chat."""
+    if telegram_filtro.silenciar(texto, categoria, origen="momentum"):
+        return
     token = os.getenv("MOMENTUM_TELEGRAM_BOT_TOKEN") or os.getenv("TELEGRAM_BOT_TOKEN")
     chat = os.getenv("MOMENTUM_TELEGRAM_CHAT_ID") or os.getenv("TELEGRAM_CHAT_ID")
     if not token or not chat:

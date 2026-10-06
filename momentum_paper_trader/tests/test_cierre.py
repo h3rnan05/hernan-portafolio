@@ -79,7 +79,7 @@ class _FakeClient:
 def _parchear(monkeypatch, cerrar=True, razon="tesis agotada"):
     """Por defecto la IA dice CERRAR -- el comportamiento conservador."""
     enviados: list[str] = []
-    monkeypatch.setattr(cierre.notify, "enviar", lambda t: enviados.append(t))
+    monkeypatch.setattr(cierre.notify, "enviar", lambda t, **_: enviados.append(t))
     monkeypatch.setattr(
         cierre.ia_decision, "decidir_cierre",
         lambda ctx: ia_decision.DecisionCierre(cerrar=cerrar, confianza=9, razonamiento=razon))
@@ -263,7 +263,7 @@ def test_sin_precio_para_calcular_el_stop_se_cierra(monkeypatch):
 def test_decide_una_por_una_no_todo_o_nada(monkeypatch):
     # Lo que motivó el rediseño: puede cerrar una y aguantar otra.
     enviados: list[str] = []
-    monkeypatch.setattr(cierre.notify, "enviar", lambda t: enviados.append(t))
+    monkeypatch.setattr(cierre.notify, "enviar", lambda t, **_: enviados.append(t))
 
     def _por_ticker(ctx):
         aguanta = "BUENA" in ctx
@@ -458,7 +458,7 @@ def test_seguimiento_cierra_con_pnl_real_cuando_la_liquidacion_se_llena(monkeypa
     from momentum_paper_trader import seguimiento
     path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_con_cierre("RKLB")])
     enviados: list[str] = []
-    monkeypatch.setattr(seguimiento, "enviar_telegram", lambda t: enviados.append(t))
+    monkeypatch.setattr(seguimiento, "enviar_telegram", lambda t, **_: enviados.append(t))
 
     class _Client:
         def estado_orden(self, oid):
@@ -485,7 +485,7 @@ def test_seguimiento_no_marca_cerrada_si_la_liquidacion_no_se_llena_y_sigue_abie
     from momentum_paper_trader import seguimiento
     path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_con_cierre("RKLB")])
     enviados: list[str] = []
-    monkeypatch.setattr(seguimiento, "enviar_telegram", lambda t: enviados.append(t))
+    monkeypatch.setattr(seguimiento, "enviar_telegram", lambda t, **_: enviados.append(t))
 
     class _Client:
         def estado_orden(self, oid):
@@ -513,7 +513,7 @@ def test_seguimiento_espera_si_la_liquidacion_sigue_pendiente(monkeypatch, tmp_p
     from momentum_paper_trader import seguimiento
     path = _revisiones_en_tmp(monkeypatch, tmp_path, [_revision_con_cierre("RKLB")])
     enviados: list[str] = []
-    monkeypatch.setattr(seguimiento, "enviar_telegram", lambda t: enviados.append(t))
+    monkeypatch.setattr(seguimiento, "enviar_telegram", lambda t, **_: enviados.append(t))
 
     class _Client:
         def estado_orden(self, oid):

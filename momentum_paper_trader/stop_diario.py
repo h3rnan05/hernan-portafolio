@@ -291,11 +291,12 @@ def cancelar_entradas(client, ordenes_abiertas: list[dict] | None) -> list[str]:
     return canceladas
 
 
-def _avisar_una_vez(clave: str, texto: str, ahora: datetime) -> bool:
+def _avisar_una_vez(clave: str, texto: str, ahora: datetime,
+                    categoria: str = notify.CATEGORIA_INFO) -> bool:
     if dedupe_avisos.ya_avisada(clave):
         return False
     try:
-        notify.enviar(texto)
+        notify.enviar(texto, categoria=categoria)
     except Exception as ex:
         log.warning("stop diario: no se pudo mandar el Telegram (%s)", type(ex).__name__)
         return False
@@ -345,8 +346,11 @@ def aplicar(ev: Evaluacion, client, ordenes_abiertas: list[dict] | None, ahora: 
             if liquidar_activado():
                 liquidado = _liquidar_una_vez(ev, client, base=base)
         if ev.pnl is not None and ev.umbral_usd is not None:
+            # Crítico: el stop diario disparó (2026-10-06). Los avisos de
+            # configuración / dato faltante de arriba son informativos.
             _avisar_una_vez(dedupe_avisos.clave("stop_diario", "CUENTA", ahora),
-                            formatear_aviso(ev, canceladas, liquidado), ahora)
+                            formatear_aviso(ev, canceladas, liquidado), ahora,
+                            categoria=notify.CATEGORIA_CRITICO)
     except Exception as ex:  # pragma: no cover - cinturón
         log.warning("stop diario: fallo al aplicar efectos (%s)", type(ex).__name__)
     return canceladas

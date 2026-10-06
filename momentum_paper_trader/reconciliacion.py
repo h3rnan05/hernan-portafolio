@@ -225,7 +225,8 @@ def _revisar(client: AlpacaPaperClient, ahora: datetime) -> list[str]:
         detalle=" ".join(_frase(p) for p in nuevos)
         + " Sigue ocupando cupo y puede quedar desprotegida.",
     )
-    notify.enviar(texto)
+    # Crítico: posición sin stop o sin seguimiento (2026-10-06).
+    notify.enviar(texto, categoria=notify.CATEGORIA_CRITICO)
     for p in nuevos:
         dedupe_avisos.marcar(dedupe_avisos.clave("broker", p.ticker, ahora), ahora)
     log.error("reconciliación: %s", ", ".join(_frase(p) for p in nuevos))

@@ -162,7 +162,7 @@ def _parchear(monkeypatch, tmp_path, entradas_watchlist, revisiones_previas=None
     # Se parchea notify.enviar (el único sender del paper trader) para
     # contar exactamente qué avisos salen: desde el 2026-09-22 cada señal
     # recibe UN veredicto (NO ENTRA o COLOCADA) y nada más.
-    monkeypatch.setattr("momentum_paper_trader.notify.enviar", lambda texto: enviados.append(texto))
+    monkeypatch.setattr("momentum_paper_trader.notify.enviar", lambda texto, **_: enviados.append(texto))
     return wl_path, rev_path, enviados, contextos
 
 

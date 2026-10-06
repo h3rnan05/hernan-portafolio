@@ -24,7 +24,7 @@ def _revision(resultado="abierta") -> RevisionIA:
 
 def _parchear(monkeypatch, revisiones, posiciones, ordenes):
     enviados: list[str] = []
-    monkeypatch.setattr(reconciliacion.notify, "enviar", lambda t: enviados.append(t))
+    monkeypatch.setattr(reconciliacion.notify, "enviar", lambda t, **_: enviados.append(t))
     monkeypatch.setattr(reconciliacion.estado, "cargar", lambda: list(revisiones))
 
     class _Client:

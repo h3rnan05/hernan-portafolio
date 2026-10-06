@@ -27,13 +27,28 @@ nunca se inventa (mismo criterio que el resto del repo).
 
 El envío reusa `momentum_hunter.run.enviar_telegram` -- un chat, mismas
 credenciales -- con `parse_mode=HTML`. Falta de secrets no es error
-fatal: se loguea y se sigue, igual que antes."""
+fatal: se loguea y se sigue, igual que antes.
+
+Ajuste del dueño (2026-10-06, `momentum_hunter/telegram_filtro.py`):
+con TELEGRAM_SOLO_ENTRADAS activo (default) solo salen
+
+  - ENTRADA  -- LLENADA (el fill; COLOCADA ya no sale: aceptada no es
+                un trade).
+  - CRÍTICO  -- posición sin stop / sin salidas / sin seguimiento,
+                cierre de fin de día fallido o posición que sigue
+                abierta tras la liquidación, stop diario disparado.
+
+NO ENTRA, COLOCADA, CANCELADA, CERRADA (salidas y resumen de fin de
+día), halts, calendario, fallo del ejecutor, aprendizaje y reporte de
+cierre quedan en el log. Con TELEGRAM_SOLO_ENTRADAS=0 todo vuelve a
+salir como antes."""
 
 from __future__ import annotations
 
 import html
 from typing import Iterable
 
+from momentum_hunter import telegram_filtro
 from momentum_hunter.run import enviar_telegram
 
 PREFIJO = "🧪 [PAPER]"
@@ -74,12 +89,19 @@ def debe_avisar(resultado: str | None) -> bool:
     return resultado in RESULTADOS_CON_AVISO
 
 
-def enviar(texto: str) -> None:
-    """Manda HTML al chat compartido. Solo deben llamarla los tres
-    eventos de arriba -- esta función no filtra, el caller sí."""
+CATEGORIA_ENTRADA = telegram_filtro.ENTRADA
+CATEGORIA_CRITICO = telegram_filtro.CRITICO
+CATEGORIA_INFO = telegram_filtro.INFO
+
+
+def enviar(texto: str, categoria: str = CATEGORIA_INFO) -> None:
+    """Manda HTML al chat compartido. El caller decide QUÉ evento avisa;
+    `categoria` decide si con TELEGRAM_SOLO_ENTRADAS sale o queda en el
+    log (default `info`: silencioso). El filtro vive en
+    `enviar_telegram`, un solo lugar para todo momentum."""
     if not texto:
         return
-    enviar_telegram(texto, parse_mode="HTML")
+    enviar_telegram(texto, parse_mode="HTML", categoria=categoria)
 
 
 def _dinero(valor: float | None) -> str | None:
