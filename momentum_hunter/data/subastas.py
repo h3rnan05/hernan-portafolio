@@ -194,7 +194,8 @@ def descargar(
     if not nombres:
         return {}
     try:
-        transporte = transporte or AlpacaProvider(feed="sip")
+        # Subastas oficiales solo existen en SIP: sin respaldo IEX.
+        transporte = transporte or AlpacaProvider(feed="sip", respaldo_iex=False)
         crudos = _dias_crudos(transporte, nombres, ahora - timedelta(days=dias), ahora)
     except Exception as ex:   # noqa: BLE001 -- es un extra; se registra el TIPO
         log.warning("subastas: no disponibles (%s) -- se usa el gap de las velas", type(ex).__name__)

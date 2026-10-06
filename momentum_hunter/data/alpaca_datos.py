@@ -51,11 +51,32 @@ la traducción adivinada: un símbolo que el catálogo no tiene es el
 mismo 400 de lote que esta sección existe para evitar. Si el archivo
 falta o está viejo, sigue valiendo la traducción de arriba y no se
 filtra nada por él.
+
+RESPALDO IEX (2026-10-06, aprobado por el dueño). Si un pedido con
+`feed=sip` recibe HTTP 403 de PLAN (cuerpo con "subscription" o "SIP",
+p. ej. "subscription does not permit querying recent SIP data"), se
+repite el MISMO pedido con `feed=iex`. Solo ese caso: un 401, un 403
+sin ese texto, un 429/5xx o la red siguen fallando igual que antes
+(fail-closed). Si IEX también falla, el error es el de IEX y el caller
+corta como hoy. Nada de Yahoo.
+
+Pegajoso por proceso: tras el primer 403 de plan, el resto de los
+pedidos SIP de ESTE proceso van directo a IEX durante
+`PEGAJOSO_IEX_S` (más que un escaneo), para no duplicar llamadas. Cada
+escaneo y cada tick del vigía es un proceso nuevo, así que el siguiente
+vuelve a probar SIP y, si SIP volvió, se queda en SIP solo. Un proceso
+largo re-prueba SIP al vencer la ventana.
+
+`MOMENTUM_FALLBACK_IEX=0` lo apaga sin deploy (default 1). Los que
+necesitan SIP de verdad (subastas, halts por condiciones de la quote,
+comparadores stream/REST) construyen con `respaldo_iex=False`.
+`feeds_usados` dice qué feed contestó de verdad en esta instancia.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 import time
 from datetime import UTC, datetime, timedelta
 
@@ -93,6 +114,15 @@ LOTE_INTRADIA = 15
 UMBRAL_CORTE_400 = 8
 ESPERA_MAX_S = 8.0
 
+# Respaldo IEX ante un 403 de plan en SIP: ver el docstring del módulo.
+ENV_RESPALDO_IEX = "MOMENTUM_FALLBACK_IEX"
+# Ventana del modo pegajoso dentro de un mismo proceso. Más larga que
+# un escaneo (~9 min); el proceso siguiente arranca de cero y prueba SIP.
+PEGAJOSO_IEX_S = 15 * 60
+# Estado del proceso, compartido por todas las instancias (el escaneo
+# crea varias: velas, snapshots). `desde` es monotónico o None.
+_IEX_PEGAJOSO: dict = {"desde": None, "activaciones": 0}
+
 _TIMEFRAMES = {
     "1m": "1Min",
     "1min": "1Min",
@@ -111,6 +141,71 @@ class ErrorDatosAlpaca(Exception):
     def __init__(self, codigo: str) -> None:
         self.codigo = codigo
         super().__init__(codigo)
+
+
+def respaldo_iex_habilitado() -> bool:
+    """`MOMENTUM_FALLBACK_IEX` (default 1). Solo `0/false/no/off` lo apaga."""
+    valor = os.environ.get(ENV_RESPALDO_IEX, "1").strip().lower()
+    return valor not in ("0", "false", "no", "off")
+
+
+def iex_pegajoso_activo(reloj=None) -> bool:
+    """True si en este proceso SIP ya dio 403 de plan hace menos de
+    `PEGAJOSO_IEX_S`. Vencida la ventana, el próximo pedido prueba SIP."""
+    desde = _IEX_PEGAJOSO.get("desde")
+    if desde is None:
+        return False
+    if (reloj or time.monotonic)() - desde >= PEGAJOSO_IEX_S:
+        _IEX_PEGAJOSO["desde"] = None
+        return False
+    return True
+
+
+def _activar_iex_pegajoso(path: str, reloj=None) -> None:
+    _IEX_PEGAJOSO["desde"] = (reloj or time.monotonic)()
+    _IEX_PEGAJOSO["activaciones"] = int(_IEX_PEGAJOSO.get("activaciones") or 0) + 1
+    log.warning(
+        "datos: feed_usado=iex fallback_iex=true -- SIP respondió 403 de suscripción en %s; "
+        "se repite con feed=iex y el resto de este ciclo va por IEX (%s=0 lo apaga)",
+        path, ENV_RESPALDO_IEX,
+    )
+
+
+def fallback_iex_en_proceso() -> bool:
+    """True si en este proceso algún pedido SIP cayó a IEX."""
+    return int(_IEX_PEGAJOSO.get("activaciones") or 0) > 0
+
+
+def reiniciar_respaldo_iex() -> None:
+    """Para pruebas: el proceso vuelve a empezar en SIP."""
+    _IEX_PEGAJOSO["desde"] = None
+    _IEX_PEGAJOSO["activaciones"] = 0
+
+
+def _es_403_de_plan(respuesta) -> bool:
+    """403 por el plan/suscripción SIP, según el `message` del cuerpo
+    (o el texto). Sin ese texto no se adivina: no hay respaldo. El
+    cuerpo solo se mira acá; nunca se registra."""
+    texto = ""
+    try:
+        cuerpo = respuesta.json()
+    except Exception:  # noqa: BLE001 -- cuerpo ilegible: no es de plan
+        cuerpo = None
+    if isinstance(cuerpo, dict):
+        msg = cuerpo.get("message")
+        if isinstance(msg, str):
+            texto = msg
+    if not texto:
+        crudo = getattr(respuesta, "text", None)
+        if isinstance(crudo, str):
+            texto = crudo[:500]
+    t = texto.lower()
+    return "subscription" in t or "sip" in t
+
+
+class _Sip403Plan(Exception):
+    """Interno: 403 de plan en un pedido con feed=sip. Nunca sale de
+    `_get`: se convierte en el reintento IEX o en `http_403`."""
 
 
 def _momento(valor: object) -> datetime | None:
@@ -343,6 +438,7 @@ class AlpacaProvider(DataProvider):
         pausa: float = 0.0,
         dormir=time.sleep,
         ahora=None,
+        respaldo_iex: bool | None = None,
     ) -> None:
         if feed not in FEEDS_VALIDOS:
             raise ErrorDatosAlpaca("feed")
@@ -356,6 +452,10 @@ class AlpacaProvider(DataProvider):
         self._ahora = ahora or (lambda: datetime.now(UTC))
         self.fallidos: list[str] = []
         self.ultimo_codigo: str | None = None
+        # None = lo decide `MOMENTUM_FALLBACK_IEX` en cada pedido.
+        self._respaldo_iex = respaldo_iex
+        # Feeds que contestaron 200 en esta instancia (telemetría).
+        self.feeds_usados: set[str] = set()
         # Yahoo solo para metadata (float / ETF / nombre). No hay respaldo
         # de precios: ver `fuente.ProveedorAlpaca`.
         self._meta = None
@@ -378,7 +478,34 @@ class AlpacaProvider(DataProvider):
                 return min(ESPERA_MAX_S, float(ra.strip()))
         return min(ESPERA_MAX_S, 0.4 * (2 ** intento))
 
+    def _iex_permitido(self) -> bool:
+        if self._respaldo_iex is not None:
+            return bool(self._respaldo_iex)
+        return respaldo_iex_habilitado()
+
     def _get(self, path: str, params: dict) -> dict:
+        """Un pedido. Con `feed=sip`: si este proceso ya está pegado a
+        IEX, va directo a IEX; si SIP da 403 de plan, se repite el mismo
+        pedido con `feed=iex`. Cualquier otro fallo sale igual que antes."""
+        q = params
+        permitido = params.get("feed") == "sip" and self._iex_permitido()
+        if permitido and iex_pegajoso_activo():
+            q = {**params, "feed": "iex"}
+        try:
+            cuerpo = self._get_feed(path, q)
+        except _Sip403Plan:
+            if not permitido:
+                raise ErrorDatosAlpaca("http_403") from None
+            _activar_iex_pegajoso(path)
+            q = {**params, "feed": "iex"}
+            # Si IEX también falla, ese error sale tal cual (fail-closed).
+            cuerpo = self._get_feed(path, q)
+        feed_q = q.get("feed")
+        if isinstance(feed_q, str):
+            self.feeds_usados.add(feed_q)
+        return cuerpo
+
+    def _get_feed(self, path: str, params: dict) -> dict:
         key, secret = self._credenciales()
         headers = {"APCA-API-KEY-ID": key, "APCA-API-SECRET-KEY": secret}
         ultimo = None
@@ -405,6 +532,9 @@ class AlpacaProvider(DataProvider):
             if status in (401, 403):
                 # El código real: 401 son claves inválidas o revocadas,
                 # 403 es el plan (p. ej. SIP reciente sin suscripción).
+                # Solo el 403 de plan en SIP habilita el respaldo IEX.
+                if status == 403 and params.get("feed") == "sip" and _es_403_de_plan(respuesta):
+                    raise _Sip403Plan()
                 raise ErrorDatosAlpaca(f"http_{status}")
             if isinstance(status, int) and status >= 400:
                 raise ErrorDatosAlpaca(f"http_{status}")

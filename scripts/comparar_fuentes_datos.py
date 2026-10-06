@@ -45,7 +45,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     yahoo = YahooProvider(pausa=0.0)
-    alpaca = AlpacaProvider(feed=feed, pausa=0.0)
+    # Comparador: mide el feed pedido, sin respaldo IEX.
+    alpaca = AlpacaProvider(feed=feed, pausa=0.0, respaldo_iex=False)
     simbolos = [s.strip() for s in args.simbolos if s.strip()]
     try:
         intra_a = alpaca.barras_intradia(simbolos, "1m", "5d")
