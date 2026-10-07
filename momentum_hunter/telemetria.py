@@ -147,6 +147,13 @@ class Metricas:
     # Respaldo IEX ante 403 de plan en SIP (2026-10-06). None = no medido.
     feed_usado: str | None = None
     fallback_iex: bool | None = None
+    # Fuente del volumen del filtro de universo (2026-10-07): `sip`,
+    # `sip_retrasado` (diaria IEX + volumen SIP a ahora-16 min), `iex`
+    # (flag apagado) o `sin_dato`. None = no medido.
+    volumen_fuente: str | None = None
+    volumen_sin_dato: int | None = None
+    volumen_retrasado_end: str | None = None
+    volumen_retrasado_codigo: str | None = None
     latencia_datos_ms: float | None = None
 
     # Catálogo local de activos (lo escribe otro proceso; acá solo se
@@ -234,6 +241,10 @@ class Metricas:
                 "latencia_ms": self.latencia_datos_ms,
                 "feed_usado": self.feed_usado,
                 "fallback_iex": self.fallback_iex,
+                "volumen_fuente": self.volumen_fuente,
+                "volumen_sin_dato": self.volumen_sin_dato,
+                "volumen_retrasado_end": self.volumen_retrasado_end,
+                "volumen_retrasado_codigo": self.volumen_retrasado_codigo,
             },
         }
 

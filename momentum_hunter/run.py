@@ -80,6 +80,7 @@ from momentum_hunter.catalysts.keyword_rechazos import explicar_rechazos_keyword
 from momentum_hunter.config import CONFIG, MomentumConfig
 from momentum_hunter.data import acciones_corporativas as acc_corp
 from momentum_hunter.data import subastas
+from momentum_hunter.data import volumen_retrasado
 from momentum_hunter.data.fuente import FuentePreciosCaida, informe_de, proveedor_configurado
 from momentum_hunter.data.provider import DataProvider, YahooProvider
 from momentum_hunter import early_opportunity as eo
@@ -236,7 +237,8 @@ def _excede_techo_de_tamano(meta: Metadata, b: Barras, cfg: MomentumConfig) -> b
 
 
 def _clasificar_banda_de_universo(
-    b: Barras, cfg: MomentumConfig,
+    b: Barras, cfg: MomentumConfig, volumen: Barras | None = None,
+    sin_dato_volumen: bool = False,
 ) -> tuple[str | None, str | None]:
     """Misma decisión que `_banda_de_universo`, más el MOTIVO del
     rechazo. El motivo no se usa para filtrar -- solo para contar.
@@ -244,20 +246,31 @@ def _clasificar_banda_de_universo(
     El 2026-09-11 el pass-rate de precio/liquidez cayó de ~49% a ~4,5%
     entre la mañana y la tarde (486/996 → 34/758) y un solo `None` no
     decía cuál umbral lo mató. Los nombres espejan las ramas reales,
-    no umbrales nuevos."""
+    no umbrales nuevos.
+
+    `volumen` (2026-10-07): serie de la que sale el volumen promedio si
+    no es la propia (diaria SIP retrasada cuando la diaria vino de IEX,
+    ver `data/volumen_retrasado.py`). El precio sale siempre de `b`.
+    `sin_dato_volumen`: diaria IEX sin volumen SIP retrasado; si el
+    precio cae en una banda, el motivo es `vol_sin_dato_sip_retrasado`
+    (fail-closed, nunca un 0 ni el volumen IEX)."""
     if not b.close or b.close[-1] <= 0:
         return None, "sin_close"
     precio = b.close[-1]
-    vol_prom = _volumen_promedio(b)
+    vol_prom = None if sin_dato_volumen else _volumen_promedio(volumen if volumen is not None else b)
     if cfg.precio_min <= precio <= cfg.precio_max:
         if vol_prom is not None and vol_prom >= cfg.volumen_promedio_min:
             return "small", None
+        if sin_dato_volumen:
+            return None, volumen_retrasado.MOTIVO_SIN_DATO
         if vol_prom is None:
             return None, "vol_insuficiente_historial"
         return None, "vol_bajo_small"
     if cfg.incluir_large_cap and precio > cfg.precio_max:
         if vol_prom is not None and vol_prom >= cfg.volumen_promedio_min_large_cap:
             return "large", None
+        if sin_dato_volumen:
+            return None, volumen_retrasado.MOTIVO_SIN_DATO
         if vol_prom is None:
             return None, "vol_insuficiente_historial"
         return None, "vol_bajo_large"
@@ -286,6 +299,7 @@ def construir_candidatos_diarios(
     ahora: datetime | None = None,
     registro_noticias=None,
     sombra=None,
+    volumenes: dict[str, Barras] | None = None,
 ) -> list[CandidatoDiario]:
     """Etapa 1 -- núcleo puro y testeable: recibe todo ya inyectado
     (barras, metadata, catalizadores), nunca llama red directamente. Un
@@ -306,8 +320,14 @@ def construir_candidatos_diarios(
 
     `sombra` (opcional, `sombra_noticias.Sombra`, 2026-10-01): compara el
     catalizador final de cada acción con el que habría salido de la otra
-    fuente de noticias, ya precargada. Solo anota; no cambia nada."""
+    fuente de noticias, ya precargada. Solo anota; no cambia nada.
+
+    `volumenes` (opcional, 2026-10-07): ticker -> diaria SIP retrasada de
+    la que sale el volumen promedio (liquidez ADR y score de liquidez)
+    cuando la diaria del ticker vino de IEX. Misma serie que usó el
+    filtro de universo; el precio y los factores siguen saliendo de `b`."""
     bandas = bandas or {}
+    volumenes = volumenes or {}
     metadata = provider.metadata(tickers_validos)
     noticias = YahooNewsProvider(metricas) if con_catalizadores else None
 
@@ -328,7 +348,7 @@ def construir_candidatos_diarios(
                 if metricas is not None:
                     metricas.rechazos_universo["market_cap"] += 1
                 continue
-            vol_prom = _volumen_promedio(b)
+            vol_prom = _volumen_promedio(volumenes.get(t, b))
             if meta.es_adr and (vol_prom is None or vol_prom < cfg.liquidez_minima_adr):
                 continue
 
@@ -1626,9 +1646,16 @@ def main() -> None:
             metricas.rechazos_universo["sin_barras"] += sin_barras
             log.warning("barras: %d/%d tickers sin datos -- no se evalúan (el proveedor no respondió o falló)",
                         sin_barras, len(tickers))
+        # Volumen del filtro (2026-10-07): si la diaria de un ticker vino
+        # de IEX (respaldo #256), el volumen sale del SIP retrasado 16 min.
+        # Con SIP normal no se pide nada y no cambia nada. Nunca lanza.
+        vol_filtro = volumen_retrasado.preparar(provider, barras)
+        vol_filtro.anotar(metricas)
         bandas: dict[str, str] = {}
         for t, b in barras.items():
-            banda, motivo = _clasificar_banda_de_universo(b, CONFIG)
+            serie_vol = vol_filtro.serie(t, b)
+            banda, motivo = _clasificar_banda_de_universo(
+                b, CONFIG, volumen=serie_vol, sin_dato_volumen=serie_vol is None)
             if banda is not None:
                 bandas[t] = banda
             elif motivo is not None:
@@ -1649,9 +1676,11 @@ def main() -> None:
         if sombra is not None:
             sombra.precargar(validos)
         extra_sombra = {"sombra": sombra} if sombra is not None else {}
+        # Solo si hubo volumen SIP retrasado: con SIP normal la llamada no cambia.
+        extra_vol = {"volumenes": vol_filtro.reemplazos} if vol_filtro.reemplazos else {}
         candidatos_diarios = construir_candidatos_diarios(
             validos, barras, provider, CONFIG, not args.no_catalizadores, bandas, metricas,
-            ahora=inicio, registro_noticias=registro_noticias, **extra_sombra)
+            ahora=inicio, registro_noticias=registro_noticias, **extra_sombra, **extra_vol)
         if sombra is not None:
             sombra.cerrar(persistir=not args.dry_run)
         # Auditoría para el panel (noticias.html). En dry-run no se

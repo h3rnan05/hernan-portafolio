@@ -238,6 +238,25 @@ class ProveedorAlpaca(DataProvider):
             self._meta = self._metadata_de()
         return self._meta.metadata(tickers)
 
+    def feed_diario_por_ticker(self) -> dict[str, str]:
+        """Qué feed contestó la diaria de cada ticker en el último pedido
+        de `barras` (`sip`, `iex`, `sip+iex`). Vacío = sin dato de feed."""
+        mapa = getattr(self._primario, "feed_diario", None)
+        return dict(mapa) if isinstance(mapa, dict) else {}
+
+    def volumen_sip_retrasado(self, tickers: list[str]):
+        """(barras SIP retrasadas, fallidos, codigo, end) para el filtro de
+        volumen cuando la diaria vino de IEX. Usa una instancia SOLO SIP;
+        si el ciclo entero falla, lanza `ErrorDatosAlpaca` (el caller
+        deja esos tickers sin dato). No cuenta en `feeds_usados`: no es
+        el feed de precios."""
+        solo = self._primario.solo_sip()
+        out = solo.barras_sip_retrasadas(tickers)
+        fallidos = list(dict.fromkeys(solo.fallidos or []))
+        for t in fallidos:
+            out.pop(t, None)
+        return out, fallidos, solo.ultimo_codigo, solo.ultimo_end
+
     def _feeds_usados(self) -> set[str]:
         usados = getattr(self._primario, "feeds_usados", None)
         out = set(usados) if isinstance(usados, (set, frozenset, list, tuple)) else set()
@@ -325,6 +344,16 @@ class ConMetadataAparte(DataProvider):
     def informe_datos(self):
         fn = getattr(self._precios, "informe_datos", None)
         return fn() if callable(fn) else None
+
+    def feed_diario_por_ticker(self) -> dict[str, str]:
+        fn = getattr(self._precios, "feed_diario_por_ticker", None)
+        return fn() if callable(fn) else {}
+
+    def volumen_sip_retrasado(self, tickers: list[str]):
+        fn = getattr(self._precios, "volumen_sip_retrasado", None)
+        if not callable(fn):
+            raise ErrorDatosAlpaca("sin_sip_retrasado")
+        return fn(tickers)
 
 
 def proveedor_metadata_configurado() -> str:
