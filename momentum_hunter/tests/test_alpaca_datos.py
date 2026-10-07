@@ -866,6 +866,9 @@ def test_la_telemetria_guarda_la_fuente_y_el_reporte_ignora_el_rechequeo(tmp_pat
         "fallbacks": 3, "latencia_ms": 420.5,
         # Respaldo IEX (2026-10-06): sin medir no se inventa.
         "feed_usado": None, "fallback_iex": None,
+        # Volumen SIP retrasado (2026-10-07): sin medir no se inventa.
+        "volumen_fuente": None, "volumen_sin_dato": None,
+        "volumen_retrasado_end": None, "volumen_retrasado_codigo": None,
     }
     # Una corrida vieja no se inventa un conteo.
     assert telemetria.Metricas().como_dict()["datos"]["fallbacks"] is None

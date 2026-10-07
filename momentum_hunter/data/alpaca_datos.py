@@ -71,6 +71,15 @@ largo re-prueba SIP al vencer la ventana.
 necesitan SIP de verdad (subastas, halts por condiciones de la quote,
 comparadores stream/REST) construyen con `respaldo_iex=False`.
 `feeds_usados` dice qué feed contestó de verdad en esta instancia.
+
+VOLUMEN SIP RETRASADO (2026-10-07, aprobado por el dueño). Con el
+respaldo IEX, el volumen es ~2-10 % del consolidado y el filtro de
+volumen del universo deja fuera casi todo (7-oct: 891/991 large-cap
+fuera). `feed_diario` dice qué feed contestó la diaria de cada ticker
+y `barras_sip_retrasadas` pide las diarias a SIP con `end` <= ahora-15
+min (lo que el plan gratis permite), siempre en una instancia SOLO SIP
+(`solo_sip`): un 403 ahí es un fallo, nunca IEX. Ver
+`momentum_hunter/data/volumen_retrasado.py`.
 """
 
 from __future__ import annotations
@@ -122,6 +131,15 @@ PEGAJOSO_IEX_S = 15 * 60
 # Estado del proceso, compartido por todas las instancias (el escaneo
 # crea varias: velas, snapshots). `desde` es monotónico o None.
 _IEX_PEGAJOSO: dict = {"desde": None, "activaciones": 0}
+
+# SIP retrasado: el plan gratis deja pedir SIP con `end` <= ahora-15 min
+# (medido: -15 da 200, -14 da 403). Se pide a -16 (un minuto de margen)
+# y nunca por debajo de 15.
+RETRASO_SIP_MIN = 16
+RETRASO_SIP_MINIMO_PERMITIDO = 15
+# Calendario de la diaria retrasada: 60 días dan ~40 sesiones, de sobra
+# para la ventana de 20 del volumen promedio aun con feriados.
+DIAS_VOLUMEN_RETRASADO = 60
 
 _TIMEFRAMES = {
     "1m": "1Min",
@@ -201,6 +219,13 @@ def _es_403_de_plan(respuesta) -> bool:
             texto = crudo[:500]
     t = texto.lower()
     return "subscription" in t or "sip" in t
+
+
+class _Paginas(list):
+    """Lista de páginas de un pedido, con los feeds que las contestaron
+    (`sip`, `iex` o los dos si cambió a mitad de la paginación)."""
+
+    feeds: frozenset = frozenset()
 
 
 class _Sip403Plan(Exception):
@@ -456,6 +481,14 @@ class AlpacaProvider(DataProvider):
         self._respaldo_iex = respaldo_iex
         # Feeds que contestaron 200 en esta instancia (telemetría).
         self.feeds_usados: set[str] = set()
+        # Feed que contestó la diaria de cada ticker en la última
+        # llamada a `barras` (`sip`, `iex` o `sip+iex`). Un ticker que
+        # no está acá no tiene dato de feed: no se asume ninguno.
+        self.feed_diario: dict[str, str] = {}
+        self._feed_por_destino: dict[str, set[str]] = {}
+        self._ultimo_feed: str | None = None
+        # `end` del último pedido SIP retrasado (telemetría).
+        self.ultimo_end: datetime | None = None
         # Yahoo solo para metadata (float / ETF / nombre). No hay respaldo
         # de precios: ver `fuente.ProveedorAlpaca`.
         self._meta = None
@@ -503,6 +536,7 @@ class AlpacaProvider(DataProvider):
         feed_q = q.get("feed")
         if isinstance(feed_q, str):
             self.feeds_usados.add(feed_q)
+            self._ultimo_feed = feed_q
         return cuerpo
 
     def _get_feed(self, path: str, params: dict) -> dict:
@@ -548,16 +582,21 @@ class AlpacaProvider(DataProvider):
         raise ErrorDatosAlpaca(ultimo or "sin_respuesta")
 
     def _paginas(self, path: str, params: dict) -> list[dict]:
-        paginas = []
+        paginas = _Paginas()
+        feeds: set[str] = set()
         token = None
         for _ in range(MAX_PAGINAS):
             q = dict(params)
             if token:
                 q["page_token"] = token
+            self._ultimo_feed = None
             cuerpo = self._get(path, q)
+            if self._ultimo_feed:
+                feeds.add(self._ultimo_feed)
             paginas.append(cuerpo)
             token = cuerpo.get("next_page_token")
             if not token:
+                paginas.feeds = frozenset(feeds)
                 return paginas
         raise ErrorDatosAlpaca("paginacion")
 
@@ -593,6 +632,7 @@ class AlpacaProvider(DataProvider):
     ) -> str | None:
         """None si el 200 tenía la forma esperada. `cuerpo` si no: el
         lote ya está en fallidos y no se queda una serie a medias."""
+        feeds = getattr(paginas, "feeds", None) or frozenset()
         for cuerpo in paginas:
             barras = cuerpo.get("bars")
             if not isinstance(barras, dict):
@@ -615,6 +655,8 @@ class AlpacaProvider(DataProvider):
                 # escribiera dos veces en la misma.
                 for destino in destinos:
                     crudas.setdefault(destino, []).extend(serie)
+                    if feeds:
+                        self._feed_por_destino.setdefault(destino, set()).update(feeds)
         return None
 
     def _tras_400(
@@ -691,6 +733,7 @@ class AlpacaProvider(DataProvider):
         saca entero, y un volumen ausente no llega a ser 0."""
         self.fallidos = []
         self.ultimo_codigo = None
+        self._feed_por_destino = {}
         enviables, directos = _pares(tickers)
         if directos:
             # No es un 400: ni siquiera se pidieron. El respaldo los ve
@@ -754,13 +797,64 @@ class AlpacaProvider(DataProvider):
             "feed": self.feed,
             "sort": "asc",
         }
+        self.feed_diario = {}
         crudas = self._velas_de_lotes(tickers, params, LOTE_DIARIO, intradia=False)
         out = {}
         for t, listas in crudas.items():
             b = self._a_barras(t, listas)
             if len(b) >= 20:
                 out[t] = b
+                feeds = self._feed_por_destino.get(t)
+                if feeds:
+                    self.feed_diario[t] = "+".join(sorted(feeds, key=lambda f: (f != "sip", f)))
         log.info("barras diarias del feed: %d/%d tickers", len(out), len(tickers))
+        return out
+
+    def solo_sip(self) -> "AlpacaProvider":
+        """Otra instancia con las mismas claves y reloj, feed SIP y SIN
+        respaldo IEX: un 403 es un fallo (`http_403`), no IEX. Sus
+        pedidos no se mezclan con `feeds_usados` de esta (que es la
+        telemetría del feed de precios)."""
+        return AlpacaProvider(
+            api_key=self._api_key, api_secret=self._api_secret, feed="sip",
+            timeout=self.timeout, reintentos=self.reintentos, pausa=self.pausa,
+            dormir=self._dormir, ahora=self._ahora, respaldo_iex=False,
+        )
+
+    def barras_sip_retrasadas(
+        self, tickers: list[str], retraso_min: int = RETRASO_SIP_MIN,
+        dias: int = DIAS_VOLUMEN_RETRASADO,
+    ) -> dict[str, Barras]:
+        """Diarias SIP con `end` = ahora - `retraso_min` (>= 15, si no
+        `ValueError`). Solo en una instancia SIP sin respaldo IEX: si no,
+        un 403 caería a IEX y el volumen dejaría de ser consolidado.
+        Mismas reglas que `barras`: un ticker con menos de 20 sesiones no
+        vuelve, un lote fallido queda en `fallidos`, nada se rellena con 0.
+        Si ningún lote responde, `ErrorDatosAlpaca`."""
+        if retraso_min < RETRASO_SIP_MINIMO_PERMITIDO:
+            raise ValueError("retraso_min debe ser >= 15")
+        if self.feed != "sip" or self._iex_permitido():
+            raise ErrorDatosAlpaca("no_solo_sip")
+        ahora = self._ahora()
+        fin = ahora - timedelta(minutes=retraso_min)
+        params = {
+            "timeframe": "1Day",
+            "start": (fin - timedelta(days=dias)).isoformat(timespec="seconds"),
+            "end": fin.isoformat(timespec="seconds"),
+            "limit": LIMITE_PAGINA,
+            "adjustment": AJUSTE,
+            "feed": "sip",
+            "sort": "asc",
+        }
+        self.ultimo_end = fin
+        crudas = self._velas_de_lotes(tickers, params, LOTE_DIARIO, intradia=False)
+        out = {}
+        for t, listas in crudas.items():
+            b = self._a_barras(t, listas)
+            if len(b) >= 20:
+                out[t] = b
+        log.info("barras diarias SIP retrasadas (end=%s): %d/%d tickers",
+                 fin.isoformat(timespec="seconds"), len(out), len(tickers))
         return out
 
     def barras_intradia(
