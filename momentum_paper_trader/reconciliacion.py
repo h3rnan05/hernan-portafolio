@@ -24,7 +24,11 @@ trae solo el take-profit (`new`) y con `legs` vacío. El stop queda
 `new`, `accepted` o `pending_new`. `pending_cancel`, un status
 desconocido o ausente no es un stop.
 
-No coloca órdenes ni cambia umbrales. Si no se pueden leer las
+No coloca órdenes ni cambia umbrales. El caso conocido de "posición
+sin stop" por un take-profit parcial (FCEL, 2026-10-02: Alpaca cancela
+el stop del OCO en cuanto una pata se ejecuta, aunque sea en parte) lo
+corrige `reproteccion.py` en el mismo tick, justo antes de esta revisión;
+lo que llegue hasta acá sin stop es lo que nadie supo reponer. Si no se pueden leer las
 posiciones, no alerta y no inventa un "todo bien". Si no se pueden
 leer las órdenes, sí alerta lo que no depende de ellas (una posición
 sin revisión) y no afirma que falte el stop: un dato ausente no es
