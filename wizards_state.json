@@ -1,5 +1,5 @@
 {
-  "cash": 2163.8659999999995,
+  "cash": 3641.2929999999997,
   "posiciones": {
     "USO": {
       "qty": 8,
@@ -7,24 +7,10 @@
       "stop": 142.07,
       "fecha": "2026-09-08 17:18 UTC",
       "origen": "sistema"
-    },
-    "QQQ": {
-      "qty": 1,
-      "entrada": 741.02,
-      "stop": 724.47,
-      "fecha": "2026-09-21 18:49 UTC",
-      "origen": "sistema"
-    },
-    "SPY": {
-      "qty": 1,
-      "entrada": 780.12,
-      "stop": 766.32,
-      "fecha": "2026-10-06 18:57 UTC",
-      "origen": "sistema"
     }
   },
-  "pnl_realizado": -166.7539999999999,
-  "trades_cerrados": 6,
+  "pnl_realizado": -210.46699999999987,
+  "trades_cerrados": 8,
   "trades_ganadores": 1,
   "curva_equity": [
     {
@@ -1558,6 +1544,10 @@
     {
       "ts": "2026-10-15 22:56 UTC",
       "equity": 4922.14
+    },
+    {
+      "ts": "2026-10-16 17:32 UTC",
+      "equity": 4932.0
     }
   ],
   "noticias_vistas": [
@@ -1850,19 +1840,17 @@
     {
       "ts": "2026-10-06 18:57 UTC",
       "evento": "🟢 COMPRA SPY (S&P 500): 1 @ $780.12 | ruptura de máx. 55d | stop $766.32 (riesgo $13.80 = 0.3% del equity)"
+    },
+    {
+      "ts": "2026-10-16 17:32 UTC",
+      "evento": "🔴 VENTA QQQ: 1 @ $712.95 (stop $724.47 tocado) | P&L $-28.07"
+    },
+    {
+      "ts": "2026-10-16 17:32 UTC",
+      "evento": "🔴 VENTA SPY: 1 @ $764.48 (stop $766.32 tocado) | P&L $-15.64"
     }
   ],
   "noticias_evaluadas": [
-    "4d2ac7455777",
-    "3520983f9199",
-    "220b592762b5",
-    "9ec5edf524ae",
-    "4d6bc61764b9",
-    "3b4516b7ef40",
-    "6aac44ea044c",
-    "df6563e6dc2e",
-    "43b15484abc0",
-    "8a780a3f5cc1",
     "5114c17a06b6",
     "3a54064a1cd3",
     "ec3a10f9b8b6",
@@ -2352,6 +2340,16 @@
     "15a4ce859b96",
     "a7254cd33495",
     "4050a47d5142",
-    "1d59ad144d11"
+    "1d59ad144d11",
+    "51473d5883d0",
+    "c346fc864547",
+    "17dcf787d643",
+    "fc8ccce29615",
+    "0c8575e1c34c",
+    "089742bb6aac",
+    "9e747648bcb4",
+    "10ba65bd12b4",
+    "04fc7632ddca",
+    "0317515ecea1"
   ]
 }
