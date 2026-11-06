@@ -536,6 +536,48 @@ class AlpacaPaperClient:
         r.raise_for_status()
         return r.json().get("id", "")
 
+    def colocar_stop_remanente(
+        self, ticker: str, cantidad: str, stop: float, client_order_id: str,
+    ) -> dict:
+        """Stop de venta para el RESTO de una posición cuyo take-profit se
+        llenó en parte (FCEL, 2026-10-02: 37 de 42 en el objetivo, Alpaca
+        canceló la pata stop del OCO y 5 acciones quedaron sin stop).
+
+        Solo SALIDA: lado fijo en `sell`, tipo `stop`, `gtc` para que el
+        remanente no se quede sin protección si el cierre de fin de día
+        falla (el cierre cancela esta orden como cualquier otra venta viva
+        del símbolo antes de liquidar). `client_order_id` hace que un
+        reintento no deje dos stops: si Alpaca dice que ya existe, se
+        devuelve la orden que ya estaba. Ver `reproteccion.py`."""
+        try:
+            n = float(cantidad)
+        except (TypeError, ValueError):
+            raise ValueError(f"{ticker}: cantidad del stop ilegible") from None
+        if not n > 0:
+            raise ValueError(f"{ticker}: cantidad del stop debe ser > 0, se recibió {cantidad!r}")
+        if not (isinstance(stop, (int, float)) and stop > 0):
+            raise ValueError(f"{ticker}: precio de stop inválido")
+        coid = client_order_id[:48]
+        payload = {
+            "symbol": ticker,
+            "qty": str(cantidad),
+            "side": "sell",
+            "type": "stop",
+            "stop_price": self._precio(float(stop)),
+            "time_in_force": "gtc",
+            "client_order_id": coid,
+        }
+        r = _http("post",
+            f"{_BASE_URL}/orders", json=payload, headers=self._headers, timeout=self._timeout)
+        if _es_client_order_id_duplicado(r):
+            hallada = self._orden_con_client_order_id(ticker, coid)
+            if isinstance(hallada, dict) and hallada.get("id"):
+                log.info("%s: el stop del remanente ya estaba enviado", ticker)
+                return hallada
+        r.raise_for_status()
+        datos = r.json()
+        return datos if isinstance(datos, dict) else {}
+
     @staticmethod
     def _precio(v: float) -> str:
         """Alpaca exige como máximo 2 decimales para precios >= $1 y

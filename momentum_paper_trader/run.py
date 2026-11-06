@@ -28,7 +28,16 @@ import logging
 import os
 from datetime import UTC, datetime
 
-from momentum_paper_trader import archivo, cierre, gates_sombra, halts, reconciliacion, seguimiento, telemetria
+from momentum_paper_trader import (
+    archivo,
+    cierre,
+    gates_sombra,
+    halts,
+    reconciliacion,
+    reproteccion,
+    seguimiento,
+    telemetria,
+)
 from momentum_paper_trader.alpaca_client import AlpacaPaperClient
 from momentum_paper_trader.config import CONFIG
 from momentum_paper_trader.executor import ejecutar
@@ -129,6 +138,15 @@ def main() -> None:
             cerradas = cierre.cerrar_si_toca(client, CONFIG, datetime.now(UTC), clima=_clima_de_la_watchlist())
             if cerradas:
                 log.info("%d posición(es) liquidada(s) por cierre del día", len(cerradas))
+
+            # Take-profit parcial (FCEL, 2026-10-02): Alpaca cancela el
+            # stop del OCO y el resto queda sin stop. Se repone el stop al
+            # precio original (o se vende a mercado) ANTES de reconciliar,
+            # para que la reconciliación vea el estado ya corregido. En la
+            # ventana de cierre no actúa: manda `cierre.py`. Nunca lanza.
+            repuestas = reproteccion.reproteger(client, CONFIG, datetime.now(UTC))
+            if repuestas:
+                log.info("reprotección de remanentes: %s", repuestas)
 
             # Cada tick del vigía pasa por acá: arranque de sesión, mitad
             # del día y el instante posterior al cierre. Si el broker
