@@ -70,10 +70,27 @@ def token_configurado() -> str:
     return tok
 
 
-def cliente_finnhub(transport=None, dormir=None) -> Cliente:
+# Tope del proceso para TODO lo que pega a Finnhub con esta clave (F2a y
+# F7): 50/min, con margen bajo los 60/min del plan gratis. Es UN limitador
+# compartido: dos fuentes con clientes distintos no suman sus topes.
+LLAMADAS_FINNHUB_MIN = 50
+_LIMITADOR_FINNHUB: Limitador | None = None
+
+
+def limitador_finnhub() -> Limitador:
+    global _LIMITADOR_FINNHUB
+    if _LIMITADOR_FINNHUB is None:
+        _LIMITADOR_FINNHUB = Limitador(LLAMADAS_FINNHUB_MIN, 60.0)
+    return _LIMITADOR_FINNHUB
+
+
+def cliente_finnhub(transport=None, dormir=None, limitador: Limitador | None = None) -> Cliente:
     kw = {"dormir": dormir} if dormir is not None else {}
-    # 60/min en el plan gratis; se usa la mitad.
-    return Cliente("finnhub", "hernan-portafolio fuentes", limitador=Limitador(30, 60.0, **kw), transport=transport, **kw)
+    if limitador is None:
+        # Con `dormir` inyectado (pruebas) el limitador es propio, con el
+        # mismo tope: el compartido duerme de verdad y guarda estado entre pruebas.
+        limitador = Limitador(LLAMADAS_FINNHUB_MIN, 60.0, **kw) if dormir is not None else limitador_finnhub()
+    return Cliente("finnhub", "hernan-portafolio fuentes", limitador=limitador, transport=transport, **kw)
 
 
 def leer_calendario(cuerpo: object, simbolo: str) -> list[Evento]:

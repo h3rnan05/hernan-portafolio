@@ -21,7 +21,7 @@ def _cargar_comandos() -> None:
     import importlib
     for mod in ("fuentes.edgar", "fuentes.edgar_veto", "fuentes.edgar_form4", "fuentes.edgar_acciones",
                 "fuentes.resultados", "fuentes.fda", "fuentes.finra_short", "fuentes.calendario_economico",
-                "fuentes.halts_nasdaq"):
+                "fuentes.halts_nasdaq", "fuentes.finnhub"):
         try:
             importlib.import_module(mod)
         except ModuleNotFoundError as ex:
