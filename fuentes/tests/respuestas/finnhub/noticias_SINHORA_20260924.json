@@ -1,0 +1,16 @@
+{
+ "url": "https://finnhub.io/api/v1/company-news",
+ "metodo": "GET",
+ "params": {
+  "symbol": "SINHORA",
+  "from": "2026-09-24",
+  "to": "2026-09-24"
+ },
+ "status": 200,
+ "headers": {
+  "Content-Type": "application/json; charset=utf-8"
+ },
+ "ficticio": true,
+ "texto": "[{\"category\": \"company\", \"datetime\": 1790254800, \"headline\": \"ok\", \"id\": 1, \"image\": \"\", \"related\": \"SINHORA\", \"source\": \"Ficticia Wire\", \"summary\": \"\", \"url\": \"https://example.com/1\"}, {\"id\": 2, \"headline\": \"sin datetime\", \"datetime\": 0}]",
+ "nota": "FICTICIO: un artículo con datetime 0 invalida el día entero."
+}
