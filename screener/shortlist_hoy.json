@@ -1,16 +1,16 @@
 {
-  "fecha": "2026-11-16T21:49:10+00:00",
+  "fecha": "2026-11-17T20:38:56+00:00",
   "universo_escaneado": 494,
   "shortlist": [
     {
       "ticker": "BRK-B",
-      "score": 83.4,
+      "score": 84.3,
       "sector": "Financial Services",
       "sub_scores": {
-        "momentum": 77.3,
-        "tendencia": 95.7,
+        "momentum": 80.3,
+        "tendencia": 95.5,
         "baja_vol": 99.4,
-        "liquidez": 94.9,
+        "liquidez": 95.3,
         "calidad": 44.3,
         "valor": 100.0
       },
@@ -22,9 +22,9 @@
       "score": 81.3,
       "sector": "Healthcare",
       "sub_scores": {
-        "momentum": 88.4,
+        "momentum": 88.0,
         "tendencia": 99.6,
-        "baja_vol": 89.7,
+        "baja_vol": 90.5,
         "liquidez": 88.0,
         "calidad": 83.1,
         "valor": 1.2
@@ -33,13 +33,28 @@
       "industria": "Drug Manufacturers - General"
     },
     {
-      "ticker": "AAPL",
+      "ticker": "KO",
       "score": 81.2,
+      "sector": "Consumer Defensive",
+      "sub_scores": {
+        "momentum": 86.8,
+        "tendencia": 87.0,
+        "baja_vol": 97.0,
+        "liquidez": 89.9,
+        "calidad": 82.7,
+        "valor": 18.5
+      },
+      "nombre": "The Coca-Cola Company",
+      "industria": "Beverages - Non-Alcoholic"
+    },
+    {
+      "ticker": "AAPL",
+      "score": 81.0,
       "sector": "Technology",
       "sub_scores": {
-        "momentum": 81.1,
+        "momentum": 79.9,
         "tendencia": 99.8,
-        "baja_vol": 80.5,
+        "baja_vol": 81.3,
         "liquidez": 99.4,
         "calidad": 97.8,
         "valor": 2.2
@@ -48,89 +63,44 @@
       "industria": "Consumer Electronics"
     },
     {
-      "ticker": "KO",
-      "score": 81.0,
-      "sector": "Consumer Defensive",
-      "sub_scores": {
-        "momentum": 86.4,
-        "tendencia": 86.6,
-        "baja_vol": 96.6,
-        "liquidez": 89.7,
-        "calidad": 82.7,
-        "valor": 18.7
-      },
-      "nombre": "The Coca-Cola Company",
-      "industria": "Beverages - Non-Alcoholic"
-    },
-    {
       "ticker": "TRV",
-      "score": 79.4,
+      "score": 80.0,
       "sector": "Financial Services",
       "sub_scores": {
-        "momentum": 88.8,
-        "tendencia": 79.7,
+        "momentum": 90.7,
+        "tendencia": 80.5,
         "baja_vol": 92.7,
-        "liquidez": 66.7,
+        "liquidez": 65.7,
         "calidad": 63.8,
-        "valor": 66.5
+        "valor": 66.7
       },
       "nombre": "The Travelers Companies, Inc.",
       "industria": "Insurance - Property & Casualty"
     },
     {
       "ticker": "ADP",
-      "score": 79.1,
+      "score": 79.3,
       "sector": "Technology",
       "sub_scores": {
-        "momentum": 88.0,
-        "tendencia": 99.0,
-        "baja_vol": 74.6,
-        "liquidez": 70.6,
+        "momentum": 88.2,
+        "tendencia": 98.8,
+        "baja_vol": 75.7,
+        "liquidez": 70.8,
         "calidad": 93.1,
-        "valor": 6.9
+        "valor": 6.7
       },
       "nombre": "Automatic Data Processing, Inc.",
       "industria": "Software - Application"
     },
     {
-      "ticker": "V",
-      "score": 78.8,
-      "sector": "Financial Services",
-      "sub_scores": {
-        "momentum": 85.8,
-        "tendencia": 79.1,
-        "baja_vol": 84.4,
-        "liquidez": 95.3,
-        "calidad": 95.7,
-        "valor": 6.5
-      },
-      "nombre": "Visa Inc.",
-      "industria": "Credit Services"
-    },
-    {
-      "ticker": "MA",
-      "score": 78.6,
-      "sector": "Financial Services",
-      "sub_scores": {
-        "momentum": 82.2,
-        "tendencia": 86.0,
-        "baja_vol": 83.4,
-        "liquidez": 92.1,
-        "calidad": 99.2,
-        "valor": 1.6
-      },
-      "nombre": "Mastercard Incorporated",
-      "industria": "Credit Services"
-    },
-    {
       "ticker": "MAR",
-      "score": 78.4,
+      "score": 78.8,
       "sector": "Consumer Cyclical",
       "sub_scores": {
-        "momentum": 91.1,
-        "tendencia": 85.8,
+        "momentum": 91.9,
+        "tendencia": 86.2,
         "baja_vol": 83.8,
-        "liquidez": 69.4,
+        "liquidez": 69.8,
         "calidad": 94.9,
         "valor": 2.0
       },
@@ -138,28 +108,58 @@
       "industria": "Lodging"
     },
     {
+      "ticker": "V",
+      "score": 78.8,
+      "sector": "Financial Services",
+      "sub_scores": {
+        "momentum": 85.8,
+        "tendencia": 79.9,
+        "baja_vol": 84.0,
+        "liquidez": 95.1,
+        "calidad": 95.7,
+        "valor": 6.5
+      },
+      "nombre": "Visa Inc.",
+      "industria": "Credit Services"
+    },
+    {
       "ticker": "MSI",
-      "score": 78.4,
+      "score": 78.6,
       "sector": "Technology",
       "sub_scores": {
-        "momentum": 89.7,
-        "tendencia": 84.0,
+        "momentum": 90.5,
+        "tendencia": 84.4,
         "baja_vol": 93.3,
-        "liquidez": 64.9,
+        "liquidez": 64.1,
         "calidad": 92.3,
-        "valor": 3.7
+        "valor": 3.4
       },
       "nombre": "Motorola Solutions, Inc.",
       "industria": "Communication Equipment"
     },
     {
+      "ticker": "MA",
+      "score": 78.4,
+      "sector": "Financial Services",
+      "sub_scores": {
+        "momentum": 82.6,
+        "tendencia": 86.4,
+        "baja_vol": 80.5,
+        "liquidez": 91.9,
+        "calidad": 99.2,
+        "valor": 1.8
+      },
+      "nombre": "Mastercard Incorporated",
+      "industria": "Credit Services"
+    },
+    {
       "ticker": "LLY",
-      "score": 77.6,
+      "score": 77.5,
       "sector": "Healthcare",
       "sub_scores": {
-        "momentum": 94.5,
-        "tendencia": 86.2,
-        "baja_vol": 50.7,
+        "momentum": 92.5,
+        "tendencia": 86.6,
+        "baja_vol": 53.3,
         "liquidez": 96.6,
         "calidad": 96.5,
         "valor": 2.6
@@ -168,14 +168,29 @@
       "industria": "Drug Manufacturers - General"
     },
     {
+      "ticker": "CB",
+      "score": 77.1,
+      "sector": "Financial Services",
+      "sub_scores": {
+        "momentum": 77.1,
+        "tendencia": 95.1,
+        "baja_vol": 95.1,
+        "liquidez": 63.5,
+        "calidad": 42.9,
+        "valor": 78.9
+      },
+      "nombre": "Chubb Limited",
+      "industria": "Insurance - Property & Casualty"
+    },
+    {
       "ticker": "AMGN",
-      "score": 77.4,
+      "score": 76.8,
       "sector": "Healthcare",
       "sub_scores": {
-        "momentum": 92.1,
-        "tendencia": 98.0,
-        "baja_vol": 42.2,
-        "liquidez": 85.8,
+        "momentum": 89.2,
+        "tendencia": 97.8,
+        "baja_vol": 44.8,
+        "liquidez": 85.0,
         "calidad": 94.1,
         "valor": 11.6
       },
@@ -183,44 +198,14 @@
       "industria": "Drug Manufacturers - General"
     },
     {
-      "ticker": "CB",
-      "score": 77.0,
-      "sector": "Financial Services",
-      "sub_scores": {
-        "momentum": 76.9,
-        "tendencia": 95.3,
-        "baja_vol": 94.9,
-        "liquidez": 62.9,
-        "calidad": 42.9,
-        "valor": 79.3
-      },
-      "nombre": "Chubb Limited",
-      "industria": "Insurance - Property & Casualty"
-    },
-    {
-      "ticker": "MO",
-      "score": 76.6,
-      "sector": "Consumer Defensive",
-      "sub_scores": {
-        "momentum": 81.5,
-        "tendencia": 84.8,
-        "baja_vol": 81.3,
-        "liquidez": 67.5,
-        "calidad": 95.1,
-        "valor": 19.7
-      },
-      "nombre": "Altria Group, Inc.",
-      "industria": "Tobacco"
-    },
-    {
       "ticker": "HLT",
-      "score": 76.3,
+      "score": 76.4,
       "sector": "Consumer Cyclical",
       "sub_scores": {
         "momentum": 84.6,
-        "tendencia": 88.2,
+        "tendencia": 88.8,
         "baja_vol": 77.9,
-        "liquidez": 72.8,
+        "liquidez": 72.6,
         "calidad": 94.7,
         "valor": 1.4
       },
@@ -228,76 +213,91 @@
       "industria": "Lodging"
     },
     {
-      "ticker": "CPAY",
+      "ticker": "MO",
       "score": 76.2,
+      "sector": "Consumer Defensive",
+      "sub_scores": {
+        "momentum": 80.5,
+        "tendencia": 85.2,
+        "baja_vol": 79.7,
+        "liquidez": 67.5,
+        "calidad": 95.1,
+        "valor": 20.1
+      },
+      "nombre": "Altria Group, Inc.",
+      "industria": "Tobacco"
+    },
+    {
+      "ticker": "CPAY",
+      "score": 76.1,
       "sector": "Technology",
       "sub_scores": {
-        "momentum": 95.5,
-        "tendencia": 93.9,
-        "baja_vol": 75.9,
-        "liquidez": 18.1,
+        "momentum": 96.1,
+        "tendencia": 93.7,
+        "baja_vol": 74.2,
+        "liquidez": 17.4,
         "calidad": 87.2,
-        "valor": 25.4
+        "valor": 25.6
       },
       "nombre": "Corpay, Inc.",
       "industria": "Software - Infrastructure"
     },
     {
-      "ticker": "COP",
-      "score": 76.1,
-      "sector": "Energy",
+      "ticker": "PG",
+      "score": 75.9,
+      "sector": "Consumer Defensive",
       "sub_scores": {
-        "momentum": 87.4,
-        "tendencia": 94.3,
-        "baja_vol": 50.3,
-        "liquidez": 81.7,
-        "calidad": 55.5,
-        "valor": 69.6
+        "momentum": 80.7,
+        "tendencia": 83.8,
+        "baja_vol": 84.6,
+        "liquidez": 89.0,
+        "calidad": 69.5,
+        "valor": 29.6
       },
-      "nombre": "ConocoPhillips",
-      "industria": "Oil & Gas E&P"
+      "nombre": "The Procter & Gamble Company",
+      "industria": "Household & Personal Products"
     },
     {
       "ticker": "APA",
       "score": 75.7,
       "sector": "Energy",
       "sub_scores": {
-        "momentum": 96.8,
-        "tendencia": 97.6,
-        "baja_vol": 24.3,
-        "liquidez": 28.8,
+        "momentum": 96.6,
+        "tendencia": 97.4,
+        "baja_vol": 24.5,
+        "liquidez": 29.6,
         "calidad": 85.0,
-        "valor": 78.9
+        "valor": 78.7
       },
       "nombre": "APA Corporation",
       "industria": "Oil & Gas E&P"
     },
     {
-      "ticker": "PG",
-      "score": 75.4,
-      "sector": "Consumer Defensive",
+      "ticker": "COP",
+      "score": 75.7,
+      "sector": "Energy",
       "sub_scores": {
-        "momentum": 79.3,
-        "tendencia": 83.2,
-        "baja_vol": 84.6,
-        "liquidez": 89.0,
-        "calidad": 69.5,
-        "valor": 29.8
+        "momentum": 87.0,
+        "tendencia": 94.1,
+        "baja_vol": 49.3,
+        "liquidez": 81.9,
+        "calidad": 55.5,
+        "valor": 69.0
       },
-      "nombre": "The Procter & Gamble Company",
-      "industria": "Household & Personal Products"
+      "nombre": "ConocoPhillips",
+      "industria": "Oil & Gas E&P"
     },
     {
       "ticker": "JNJ",
-      "score": 75.1,
+      "score": 74.7,
       "sector": "Healthcare",
       "sub_scores": {
-        "momentum": 86.2,
-        "tendencia": 87.0,
-        "baja_vol": 74.2,
-        "liquidez": 91.7,
+        "momentum": 85.2,
+        "tendencia": 87.4,
+        "baja_vol": 74.0,
+        "liquidez": 91.3,
         "calidad": 60.4,
-        "valor": 24.3
+        "valor": 24.1
       },
       "nombre": "Johnson & Johnson",
       "industria": "Drug Manufacturers - General"
