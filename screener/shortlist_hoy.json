@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-11-26T21:06:06+00:00",
+  "fecha": "2026-11-27T20:53:40+00:00",
   "universo_escaneado": 494,
   "shortlist": [
     {
@@ -7,11 +7,11 @@
       "score": 83.2,
       "sector": "Financial Services",
       "sub_scores": {
-        "momentum": 77.5,
+        "momentum": 77.1,
         "tendencia": 95.5,
         "baja_vol": 99.0,
-        "liquidez": 94.9,
-        "calidad": 43.7,
+        "liquidez": 95.5,
+        "calidad": 43.9,
         "valor": 100.0
       },
       "nombre": "Berkshire Hathaway Inc.",
@@ -19,13 +19,13 @@
     },
     {
       "ticker": "ABBV",
-      "score": 81.7,
+      "score": 81.4,
       "sector": "Healthcare",
       "sub_scores": {
-        "momentum": 91.5,
+        "momentum": 90.5,
         "tendencia": 99.6,
-        "baja_vol": 85.8,
-        "liquidez": 89.0,
+        "baja_vol": 86.0,
+        "liquidez": 89.5,
         "calidad": 82.7,
         "valor": 1.2
       },
@@ -34,12 +34,12 @@
     },
     {
       "ticker": "AAPL",
-      "score": 81.5,
+      "score": 81.3,
       "sector": "Technology",
       "sub_scores": {
-        "momentum": 81.5,
+        "momentum": 80.3,
         "tendencia": 99.8,
-        "baja_vol": 81.7,
+        "baja_vol": 83.2,
         "liquidez": 99.4,
         "calidad": 97.6,
         "valor": 2.2
@@ -49,73 +49,28 @@
     },
     {
       "ticker": "KO",
-      "score": 81.2,
+      "score": 80.9,
       "sector": "Consumer Defensive",
       "sub_scores": {
-        "momentum": 87.0,
-        "tendencia": 86.8,
+        "momentum": 86.4,
+        "tendencia": 86.0,
         "baja_vol": 96.1,
         "liquidez": 90.5,
         "calidad": 82.5,
-        "valor": 18.9
+        "valor": 19.1
       },
       "nombre": "The Coca-Cola Company",
       "industria": "Beverages - Non-Alcoholic"
     },
     {
-      "ticker": "TRV",
-      "score": 80.5,
-      "sector": "Financial Services",
-      "sub_scores": {
-        "momentum": 94.1,
-        "tendencia": 79.9,
-        "baja_vol": 91.9,
-        "liquidez": 64.9,
-        "calidad": 63.2,
-        "valor": 65.1
-      },
-      "nombre": "The Travelers Companies, Inc.",
-      "industria": "Insurance - Property & Casualty"
-    },
-    {
-      "ticker": "ADP",
-      "score": 80.4,
-      "sector": "Technology",
-      "sub_scores": {
-        "momentum": 92.5,
-        "tendencia": 98.8,
-        "baja_vol": 74.8,
-        "liquidez": 70.6,
-        "calidad": 92.9,
-        "valor": 6.7
-      },
-      "nombre": "Automatic Data Processing, Inc.",
-      "industria": "Software - Application"
-    },
-    {
-      "ticker": "MA",
-      "score": 80.0,
-      "sector": "Financial Services",
-      "sub_scores": {
-        "momentum": 88.4,
-        "tendencia": 86.2,
-        "baja_vol": 81.1,
-        "liquidez": 90.7,
-        "calidad": 99.0,
-        "valor": 1.6
-      },
-      "nombre": "Mastercard Incorporated",
-      "industria": "Credit Services"
-    },
-    {
       "ticker": "MSI",
-      "score": 80.0,
+      "score": 80.3,
       "sector": "Technology",
       "sub_scores": {
-        "momentum": 94.7,
-        "tendencia": 83.8,
+        "momentum": 96.1,
+        "tendencia": 83.0,
         "baja_vol": 92.7,
-        "liquidez": 67.7,
+        "liquidez": 68.8,
         "calidad": 92.1,
         "valor": 3.2
       },
@@ -123,28 +78,73 @@
       "industria": "Communication Equipment"
     },
     {
-      "ticker": "CB",
-      "score": 79.3,
+      "ticker": "ADP",
+      "score": 80.2,
+      "sector": "Technology",
+      "sub_scores": {
+        "momentum": 91.9,
+        "tendencia": 98.8,
+        "baja_vol": 74.8,
+        "liquidez": 70.6,
+        "calidad": 92.9,
+        "valor": 6.9
+      },
+      "nombre": "Automatic Data Processing, Inc.",
+      "industria": "Software - Application"
+    },
+    {
+      "ticker": "TRV",
+      "score": 80.1,
       "sector": "Financial Services",
       "sub_scores": {
-        "momentum": 84.8,
+        "momentum": 94.3,
+        "tendencia": 78.1,
+        "baja_vol": 91.9,
+        "liquidez": 63.9,
+        "calidad": 63.2,
+        "valor": 65.3
+      },
+      "nombre": "The Travelers Companies, Inc.",
+      "industria": "Insurance - Property & Casualty"
+    },
+    {
+      "ticker": "MA",
+      "score": 79.5,
+      "sector": "Financial Services",
+      "sub_scores": {
+        "momentum": 87.4,
+        "tendencia": 85.4,
+        "baja_vol": 80.7,
+        "liquidez": 90.9,
+        "calidad": 99.0,
+        "valor": 1.6
+      },
+      "nombre": "Mastercard Incorporated",
+      "industria": "Credit Services"
+    },
+    {
+      "ticker": "CB",
+      "score": 79.1,
+      "sector": "Financial Services",
+      "sub_scores": {
+        "momentum": 84.0,
         "tendencia": 95.1,
         "baja_vol": 95.1,
-        "liquidez": 64.5,
-        "calidad": 42.3,
-        "valor": 78.1
+        "liquidez": 64.1,
+        "calidad": 42.5,
+        "valor": 78.5
       },
       "nombre": "Chubb Limited",
       "industria": "Insurance - Property & Casualty"
     },
     {
       "ticker": "V",
-      "score": 79.2,
+      "score": 79.0,
       "sector": "Financial Services",
       "sub_scores": {
-        "momentum": 89.0,
-        "tendencia": 79.3,
-        "baja_vol": 81.5,
+        "momentum": 89.7,
+        "tendencia": 77.5,
+        "baja_vol": 81.3,
         "liquidez": 95.1,
         "calidad": 95.5,
         "valor": 6.1
@@ -154,26 +154,41 @@
     },
     {
       "ticker": "AMGN",
-      "score": 77.6,
+      "score": 78.0,
       "sector": "Healthcare",
       "sub_scores": {
-        "momentum": 93.9,
+        "momentum": 95.1,
         "tendencia": 97.4,
-        "baja_vol": 40.8,
-        "liquidez": 87.0,
+        "baja_vol": 41.0,
+        "liquidez": 87.2,
         "calidad": 94.1,
-        "valor": 10.1
+        "valor": 10.3
       },
       "nombre": "Amgen Inc.",
       "industria": "Drug Manufacturers - General"
     },
     {
+      "ticker": "MAR",
+      "score": 77.2,
+      "sector": "Consumer Cyclical",
+      "sub_scores": {
+        "momentum": 88.6,
+        "tendencia": 85.2,
+        "baja_vol": 80.9,
+        "liquidez": 70.2,
+        "calidad": 94.7,
+        "valor": 2.4
+      },
+      "nombre": "Marriott International, Inc.",
+      "industria": "Lodging"
+    },
+    {
       "ticker": "LLY",
-      "score": 77.5,
+      "score": 77.0,
       "sector": "Healthcare",
       "sub_scores": {
-        "momentum": 89.7,
-        "tendencia": 86.4,
+        "momentum": 88.4,
+        "tendencia": 85.6,
         "baja_vol": 59.4,
         "liquidez": 97.0,
         "calidad": 96.3,
@@ -183,44 +198,74 @@
       "industria": "Drug Manufacturers - General"
     },
     {
-      "ticker": "MAR",
-      "score": 76.9,
-      "sector": "Consumer Cyclical",
+      "ticker": "MO",
+      "score": 76.3,
+      "sector": "Consumer Defensive",
       "sub_scores": {
-        "momentum": 87.2,
-        "tendencia": 86.0,
-        "baja_vol": 80.7,
-        "liquidez": 69.8,
-        "calidad": 94.7,
-        "valor": 2.4
+        "momentum": 78.9,
+        "tendencia": 83.8,
+        "baja_vol": 84.8,
+        "liquidez": 69.4,
+        "calidad": 94.9,
+        "valor": 19.7
       },
-      "nombre": "Marriott International, Inc.",
-      "industria": "Lodging"
+      "nombre": "Altria Group, Inc.",
+      "industria": "Tobacco"
+    },
+    {
+      "ticker": "CPAY",
+      "score": 76.2,
+      "sector": "Technology",
+      "sub_scores": {
+        "momentum": 96.3,
+        "tendencia": 93.9,
+        "baja_vol": 69.8,
+        "liquidez": 24.3,
+        "calidad": 86.8,
+        "valor": 26.2
+      },
+      "nombre": "Corpay, Inc.",
+      "industria": "Software - Infrastructure"
     },
     {
       "ticker": "PG",
-      "score": 76.7,
+      "score": 76.1,
       "sector": "Consumer Defensive",
       "sub_scores": {
-        "momentum": 82.4,
-        "tendencia": 83.2,
+        "momentum": 80.7,
+        "tendencia": 82.2,
         "baja_vol": 87.2,
         "liquidez": 89.2,
         "calidad": 69.1,
-        "valor": 29.8
+        "valor": 30.4
       },
       "nombre": "The Procter & Gamble Company",
       "industria": "Household & Personal Products"
     },
     {
-      "ticker": "ALL",
-      "score": 76.2,
+      "ticker": "ACGL",
+      "score": 75.8,
       "sector": "Financial Services",
       "sub_scores": {
-        "momentum": 86.6,
-        "tendencia": 76.9,
+        "momentum": 78.1,
+        "tendencia": 99.2,
+        "baja_vol": 89.0,
+        "liquidez": 15.2,
+        "calidad": 58.9,
+        "valor": 88.2
+      },
+      "nombre": "Arch Capital Group Ltd.",
+      "industria": "Insurance - Diversified"
+    },
+    {
+      "ticker": "ALL",
+      "score": 75.5,
+      "sector": "Financial Services",
+      "sub_scores": {
+        "momentum": 85.6,
+        "tendencia": 75.1,
         "baja_vol": 68.4,
-        "liquidez": 50.9,
+        "liquidez": 51.1,
         "calidad": 75.2,
         "valor": 81.7
       },
@@ -228,56 +273,26 @@
       "industria": "Insurance - Property & Casualty"
     },
     {
-      "ticker": "CPAY",
-      "score": 76.2,
-      "sector": "Technology",
+      "ticker": "DIS",
+      "score": 75.5,
+      "sector": "Communication Services",
       "sub_scores": {
-        "momentum": 96.8,
-        "tendencia": 93.9,
-        "baja_vol": 69.6,
-        "liquidez": 23.3,
-        "calidad": 86.8,
-        "valor": 26.0
+        "momentum": 86.0,
+        "tendencia": 92.5,
+        "baja_vol": 76.9,
+        "liquidez": 86.2,
+        "calidad": 22.2,
+        "valor": 76.7
       },
-      "nombre": "Corpay, Inc.",
-      "industria": "Software - Infrastructure"
-    },
-    {
-      "ticker": "MO",
-      "score": 76.2,
-      "sector": "Consumer Defensive",
-      "sub_scores": {
-        "momentum": 78.5,
-        "tendencia": 84.6,
-        "baja_vol": 84.4,
-        "liquidez": 68.8,
-        "calidad": 94.9,
-        "valor": 19.5
-      },
-      "nombre": "Altria Group, Inc.",
-      "industria": "Tobacco"
-    },
-    {
-      "ticker": "ACGL",
-      "score": 76.1,
-      "sector": "Financial Services",
-      "sub_scores": {
-        "momentum": 79.5,
-        "tendencia": 99.2,
-        "baja_vol": 88.6,
-        "liquidez": 15.2,
-        "calidad": 58.9,
-        "valor": 87.4
-      },
-      "nombre": "Arch Capital Group Ltd.",
-      "industria": "Insurance - Diversified"
+      "nombre": "The Walt Disney Company",
+      "industria": "Entertainment"
     },
     {
       "ticker": "CTAS",
-      "score": 75.4,
+      "score": 75.2,
       "sector": "Industrials",
       "sub_scores": {
-        "momentum": 88.6,
+        "momentum": 88.2,
         "tendencia": 93.5,
         "baja_vol": 84.0,
         "liquidez": 50.7,
@@ -286,21 +301,6 @@
       },
       "nombre": "Cintas Corporation",
       "industria": "Specialty Business Services"
-    },
-    {
-      "ticker": "DIS",
-      "score": 75.4,
-      "sector": "Communication Services",
-      "sub_scores": {
-        "momentum": 85.8,
-        "tendencia": 92.5,
-        "baja_vol": 76.9,
-        "liquidez": 86.0,
-        "calidad": 22.2,
-        "valor": 77.1
-      },
-      "nombre": "The Walt Disney Company",
-      "industria": "Entertainment"
     }
   ]
 }

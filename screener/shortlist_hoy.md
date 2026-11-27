@@ -1,4 +1,4 @@
-# Shortlist del día — 2026-11-26 21:06 UTC
+# Shortlist del día — 2026-11-27 20:53 UTC
 
 Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
@@ -28,11 +28,11 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 20%
+- Volatilidad implícita actual: 18%
 - Volatilidad histórica: 15%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-03-01
-- Movimiento esperado: ±$35.94 (~6.2%) hacia el vencimiento del 2026-12-31 (35 días)
+- Movimiento esperado: ±$31.70 (~5.5%) hacia el vencimiento del 2026-12-31 (34 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -43,7 +43,7 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 2. AbbVie Inc. (ABBV) — 82/100
+## 2. AbbVie Inc. (ABBV) — 81/100
 *Drug Manufacturers - General*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -67,11 +67,11 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 30%
+- Volatilidad implícita actual: 29%
 - Volatilidad histórica: 21%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-02-03
-- Movimiento esperado: ±$27.23 (~9.2%) hacia el vencimiento del 2026-12-31 (35 días)
+- Movimiento esperado: ±$25.97 (~8.9%) hacia el vencimiento del 2026-12-31 (34 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -82,7 +82,7 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 3. Apple Inc. (AAPL) — 82/100
+## 3. Apple Inc. (AAPL) — 81/100
 *Consumer Electronics*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -106,11 +106,11 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 25%
+- Volatilidad implícita actual: 23%
 - Volatilidad histórica: 22%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-01-28
-- Movimiento esperado: ±$27.95 (~7.9%) hacia el vencimiento del 2026-12-31 (35 días)
+- Movimiento esperado: ±$24.80 (~6.9%) hacia el vencimiento del 2026-12-31 (34 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -149,7 +149,7 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 - Volatilidad histórica: 17%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-02-09
-- Movimiento esperado: ±$6.68 (~6.8%) hacia el vencimiento del 2026-12-31 (35 días)
+- Movimiento esperado: ±$6.68 (~6.9%) hacia el vencimiento del 2026-12-31 (34 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -160,23 +160,23 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 5. The Travelers Companies, Inc. (TRV) — 80/100
-*Insurance - Property & Casualty*
+## 5. Motorola Solutions, Inc. (MSI) — 80/100
+*Communication Equipment*
 
 ¿Por qué el modelo encontró esta empresa?
 - Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
 - Se mueve con muy poca volatilidad comparada con el resto del mercado.
-- El precio se mantiene por encima de sus promedios de largo plazo, señal de una tendencia saludable.
+- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
 
 **¿Qué deberías investigar?**
 
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de The Travelers Companies, Inc.?
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Motorola Solutions, Inc.?
 - [ ] ¿Los ingresos han estado creciendo en los últimos años?
 - [ ] ¿Cuánta deuda tiene la empresa?
 - [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
 - [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
 - [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de The Travelers Companies, Inc. dentro de Insurance - Property & Casualty?
+- [ ] ¿Quiénes son los competidores más grandes de Motorola Solutions, Inc. dentro de Communication Equipment?
 - [ ] ¿Hay noticias importantes de la empresa esta semana?
 - [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
 - [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
@@ -184,11 +184,11 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 28%
+- Volatilidad implícita actual: 24%
 - Volatilidad histórica: 19%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2027-01-20
-- Movimiento esperado: ±$28.29 (~7.0%) hacia el vencimiento del 2026-12-18 (22 días)
+- Próximos resultados: 2027-02-09
+- Movimiento esperado: ±$31.13 (~5.7%) hacia el vencimiento del 2026-12-18 (21 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -223,11 +223,11 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 31%
+- Volatilidad implícita actual: 34%
 - Volatilidad histórica: 25%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-01-27
-- Movimiento esperado: ±$30.81 (~9.7%) hacia el vencimiento del 2026-12-31 (35 días)
+- Movimiento esperado: ±$32.78 (~10.3%) hacia el vencimiento del 2026-12-31 (34 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -238,7 +238,46 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 7. Mastercard Incorporated (MA) — 80/100
+## 7. The Travelers Companies, Inc. (TRV) — 80/100
+*Insurance - Property & Casualty*
+
+¿Por qué el modelo encontró esta empresa?
+- Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
+- Se mueve con muy poca volatilidad comparada con el resto del mercado.
+- El precio se mantiene por encima de sus promedios de largo plazo, señal de una tendencia saludable.
+
+**¿Qué deberías investigar?**
+
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de The Travelers Companies, Inc.?
+- [ ] ¿Los ingresos han estado creciendo en los últimos años?
+- [ ] ¿Cuánta deuda tiene la empresa?
+- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
+- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
+- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
+- [ ] ¿Quiénes son los competidores más grandes de The Travelers Companies, Inc. dentro de Insurance - Property & Casualty?
+- [ ] ¿Hay noticias importantes de la empresa esta semana?
+- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
+- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
+- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
+
+**Ideas de opciones para investigar**
+
+- Volatilidad implícita actual: 25%
+- Volatilidad histórica: 19%
+- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
+- Próximos resultados: 2027-01-20
+- Movimiento esperado: ±$24.15 (~5.9%) hacia el vencimiento del 2026-12-18 (21 días)
+
+*Estrategia posible a investigar: Covered Call*
+- Razón: La volatilidad implícita alta encarece las primas de las opciones.
+- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
+- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
+- Breakeven: Precio de compra de la acción − prima recibida.
+- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
+
+**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
+
+## 8. Mastercard Incorporated (MA) — 80/100
 *Credit Services*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -262,50 +301,11 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 27%
+- Volatilidad implícita actual: 26%
 - Volatilidad histórica: 23%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-01-28
-- Movimiento esperado: ±$54.64 (~8.3%) hacia el vencimiento del 2026-12-31 (35 días)
-
-*Estrategia posible a investigar: Covered Call*
-- Razón: La volatilidad implícita alta encarece las primas de las opciones.
-- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
-- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
-- Breakeven: Precio de compra de la acción − prima recibida.
-- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
-
-**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
-
-## 8. Motorola Solutions, Inc. (MSI) — 80/100
-*Communication Equipment*
-
-¿Por qué el modelo encontró esta empresa?
-- Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
-- Se mueve con muy poca volatilidad comparada con el resto del mercado.
-- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
-
-**¿Qué deberías investigar?**
-
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Motorola Solutions, Inc.?
-- [ ] ¿Los ingresos han estado creciendo en los últimos años?
-- [ ] ¿Cuánta deuda tiene la empresa?
-- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
-- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
-- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de Motorola Solutions, Inc. dentro de Communication Equipment?
-- [ ] ¿Hay noticias importantes de la empresa esta semana?
-- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
-- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
-- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
-
-**Ideas de opciones para investigar**
-
-- Volatilidad implícita actual: 26%
-- Volatilidad histórica: 19%
-- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2027-02-09
-- Movimiento esperado: ±$34.84 (~6.4%) hacia el vencimiento del 2026-12-18 (22 días)
+- Movimiento esperado: ±$52.19 (~7.8%) hacia el vencimiento del 2026-12-31 (34 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -344,7 +344,7 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 - Volatilidad histórica: 18%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-02-02
-- Movimiento esperado: ±$21.71 (~5.7%) hacia el vencimiento del 2026-12-18 (22 días)
+- Movimiento esperado: ±$21.31 (~5.6%) hacia el vencimiento del 2026-12-18 (21 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -379,11 +379,11 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 25%
-- Volatilidad histórica: 22%
+- Volatilidad implícita actual: 24%
+- Volatilidad histórica: 23%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-01-26
-- Movimiento esperado: ±$33.16 (~7.8%) hacia el vencimiento del 2026-12-31 (35 días)
+- Movimiento esperado: ±$32.02 (~7.5%) hacia el vencimiento del 2026-12-31 (34 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -399,8 +399,8 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 ¿Por qué el modelo encontró esta empresa?
 - El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
-- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
 - Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
+- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
 
 **¿Qué deberías investigar?**
 
@@ -418,61 +418,22 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 34%
+- Volatilidad implícita actual: 32%
 - Volatilidad histórica: 35%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-02-02
-- Movimiento esperado: ±$49.16 (~10.5%) hacia el vencimiento del 2026-12-31 (35 días)
+- Movimiento esperado: ±$46.04 (~9.7%) hacia el vencimiento del 2026-12-31 (34 días)
 
 *Estrategia posible a investigar: Long Call*
 - Razón: Tendencia alcista y primas de opciones relativamente baratas (la volatilidad implícita está por debajo de la histórica).
-- Riesgo máximo: $1,902 (prima pagada por 1 contrato, 100 acciones)
+- Riesgo máximo: $1,745 (prima pagada por 1 contrato, 100 acciones)
 - Ganancia máxima: Ilimitada (sube junto con el precio de la acción).
-- Breakeven: $489.02 (strike + prima pagada)
+- Breakeven: $492.45 (strike + prima pagada)
 - Nota educativa: Comprar una call da el derecho (no la obligación) de comprar 100 acciones al strike antes del vencimiento. Se usa para apostar a que el precio suba, arriesgando solo la prima pagada.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 12. Eli Lilly and Company (LLY) — 78/100
-*Drug Manufacturers - General*
-
-¿Por qué el modelo encontró esta empresa?
-- Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
-- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
-- Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
-
-**¿Qué deberías investigar?**
-
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Eli Lilly and Company?
-- [ ] ¿Los ingresos han estado creciendo en los últimos años?
-- [ ] ¿Cuánta deuda tiene la empresa?
-- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
-- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
-- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de Eli Lilly and Company dentro de Drug Manufacturers - General?
-- [ ] ¿Hay noticias importantes de la empresa esta semana?
-- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
-- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
-- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
-
-**Ideas de opciones para investigar**
-
-- Volatilidad implícita actual: 37%
-- Volatilidad histórica: 29%
-- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2027-02-03
-- Movimiento esperado: ±$160.05 (~11.5%) hacia el vencimiento del 2026-12-31 (35 días)
-
-*Estrategia posible a investigar: Covered Call*
-- Razón: La volatilidad implícita alta encarece las primas de las opciones.
-- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
-- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
-- Breakeven: Precio de compra de la acción − prima recibida.
-- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
-
-**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
-
-## 13. Marriott International, Inc. (MAR) — 77/100
+## 12. Marriott International, Inc. (MAR) — 77/100
 *Lodging*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -496,11 +457,11 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 30%
+- Volatilidad implícita actual: 28%
 - Volatilidad histórica: 23%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-02-09
-- Movimiento esperado: ±$38.60 (~9.3%) hacia el vencimiento del 2026-12-31 (35 días)
+- Movimiento esperado: ±$35.74 (~8.5%) hacia el vencimiento del 2026-12-31 (34 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -511,23 +472,23 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 14. The Procter & Gamble Company (PG) — 77/100
-*Household & Personal Products*
+## 13. Eli Lilly and Company (LLY) — 77/100
+*Drug Manufacturers - General*
 
 ¿Por qué el modelo encontró esta empresa?
 - Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
-- Se mueve con muy poca volatilidad comparada con el resto del mercado.
-- El precio se mantiene por encima de sus promedios de largo plazo, señal de una tendencia saludable.
+- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
+- Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
 
 **¿Qué deberías investigar?**
 
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de The Procter & Gamble Company?
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Eli Lilly and Company?
 - [ ] ¿Los ingresos han estado creciendo en los últimos años?
 - [ ] ¿Cuánta deuda tiene la empresa?
 - [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
 - [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
 - [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de The Procter & Gamble Company dentro de Household & Personal Products?
+- [ ] ¿Quiénes son los competidores más grandes de Eli Lilly and Company dentro de Drug Manufacturers - General?
 - [ ] ¿Hay noticias importantes de la empresa esta semana?
 - [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
 - [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
@@ -535,11 +496,11 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 23%
-- Volatilidad histórica: 21%
+- Volatilidad implícita actual: 35%
+- Volatilidad histórica: 29%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2027-01-22
-- Movimiento esperado: ±$12.18 (~7.0%) hacia el vencimiento del 2026-12-31 (35 días)
+- Próximos resultados: 2027-02-03
+- Movimiento esperado: ±$149.90 (~10.8%) hacia el vencimiento del 2026-12-31 (34 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -550,23 +511,23 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 15. The Allstate Corporation (ALL) — 76/100
-*Insurance - Property & Casualty*
+## 14. Altria Group, Inc. (MO) — 76/100
+*Tobacco*
 
 ¿Por qué el modelo encontró esta empresa?
-- Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
-- Se puede comprar a un precio razonable en relación con sus ganancias.
+- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
+- Se mueve con relativamente poca volatilidad.
 - El precio se mantiene por encima de sus promedios de largo plazo, señal de una tendencia saludable.
 
 **¿Qué deberías investigar?**
 
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de The Allstate Corporation?
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Altria Group, Inc.?
 - [ ] ¿Los ingresos han estado creciendo en los últimos años?
 - [ ] ¿Cuánta deuda tiene la empresa?
 - [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
 - [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
 - [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de The Allstate Corporation dentro de Insurance - Property & Casualty?
+- [ ] ¿Quiénes son los competidores más grandes de Altria Group, Inc. dentro de Tobacco?
 - [ ] ¿Hay noticias importantes de la empresa esta semana?
 - [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
 - [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
@@ -574,22 +535,22 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 30%
-- Volatilidad histórica: 26%
+- Volatilidad implícita actual: 33%
+- Volatilidad histórica: 22%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2027-02-03
-- Movimiento esperado: ±$19.87 (~7.3%) hacia el vencimiento del 2026-12-18 (22 días)
+- Próximos resultados: 2027-01-28
+- Movimiento esperado: ±$7.86 (~10.2%) hacia el vencimiento del 2026-12-31 (34 días)
 
-*Estrategia posible a investigar: Iron Condor*
-- Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
-- Riesgo máximo: El ancho del spread (de calls o de puts) menos la prima neta recibida.
-- Ganancia máxima: La prima neta recibida al abrir la posición.
-- Breakeven: Dos puntos: strike corto de puts − prima neta, y strike corto de calls + prima neta.
-- Nota educativa: Vender un spread de calls y un spread de puts alrededor del precio actual. Gana si el precio se queda dentro de un rango hasta el vencimiento; el riesgo queda definido por el ancho de los spreads.
+*Estrategia posible a investigar: Covered Call*
+- Razón: La volatilidad implícita alta encarece las primas de las opciones.
+- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
+- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
+- Breakeven: Precio de compra de la acción − prima recibida.
+- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 16. Corpay, Inc. (CPAY) — 76/100
+## 15. Corpay, Inc. (CPAY) — 76/100
 *Software - Infrastructure*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -613,11 +574,11 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 37%
+- Volatilidad implícita actual: 35%
 - Volatilidad histórica: 26%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-02-03
-- Movimiento esperado: ±$41.05 (~9.0%) hacia el vencimiento del 2026-12-18 (22 días)
+- Movimiento esperado: ±$38.72 (~8.4%) hacia el vencimiento del 2026-12-18 (21 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -628,23 +589,23 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 17. Altria Group, Inc. (MO) — 76/100
-*Tobacco*
+## 16. The Procter & Gamble Company (PG) — 76/100
+*Household & Personal Products*
 
 ¿Por qué el modelo encontró esta empresa?
-- El negocio es muy rentable — gana mucho dinero sobre el capital que usa, una de las más sólidas de su sector.
+- Se negocia con muchísimo volumen todos los días, lo que facilita entrar y salir de la posición sin mover el precio.
+- Se mueve con muy poca volatilidad comparada con el resto del mercado.
 - El precio se mantiene por encima de sus promedios de largo plazo, señal de una tendencia saludable.
-- Se mueve con relativamente poca volatilidad.
 
 **¿Qué deberías investigar?**
 
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Altria Group, Inc.?
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de The Procter & Gamble Company?
 - [ ] ¿Los ingresos han estado creciendo en los últimos años?
 - [ ] ¿Cuánta deuda tiene la empresa?
 - [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
 - [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
 - [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de Altria Group, Inc. dentro de Tobacco?
+- [ ] ¿Quiénes son los competidores más grandes de The Procter & Gamble Company dentro de Household & Personal Products?
 - [ ] ¿Hay noticias importantes de la empresa esta semana?
 - [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
 - [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
@@ -652,11 +613,11 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 33%
-- Volatilidad histórica: 22%
+- Volatilidad implícita actual: 22%
+- Volatilidad histórica: 21%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2027-01-28
-- Movimiento esperado: ±$7.77 (~10.2%) hacia el vencimiento del 2026-12-31 (35 días)
+- Próximos resultados: 2027-01-22
+- Movimiento esperado: ±$11.43 (~6.6%) hacia el vencimiento del 2026-12-31 (34 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -667,7 +628,7 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 18. Arch Capital Group Ltd. (ACGL) — 76/100
+## 17. Arch Capital Group Ltd. (ACGL) — 76/100
 *Insurance - Diversified*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -691,11 +652,11 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 47%
+- Volatilidad implícita actual: 33%
 - Volatilidad histórica: 20%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-02-08
-- Movimiento esperado: ±$12.77 (~11.6%) hacia el vencimiento del 2026-12-18 (22 días)
+- Movimiento esperado: ±$8.64 (~7.8%) hacia el vencimiento del 2026-12-18 (21 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
@@ -706,23 +667,23 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 19. Cintas Corporation (CTAS) — 75/100
-*Specialty Business Services*
+## 18. The Allstate Corporation (ALL) — 76/100
+*Insurance - Property & Casualty*
 
 ¿Por qué el modelo encontró esta empresa?
-- El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
 - Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
-- Se mueve con relativamente poca volatilidad.
+- Se puede comprar a un precio razonable en relación con sus ganancias.
+- El negocio es rentable: gana dinero de forma consistente sobre su capital.
 
 **¿Qué deberías investigar?**
 
-- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Cintas Corporation?
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de The Allstate Corporation?
 - [ ] ¿Los ingresos han estado creciendo en los últimos años?
 - [ ] ¿Cuánta deuda tiene la empresa?
 - [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
 - [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
 - [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
-- [ ] ¿Quiénes son los competidores más grandes de Cintas Corporation dentro de Specialty Business Services?
+- [ ] ¿Quiénes son los competidores más grandes de The Allstate Corporation dentro de Insurance - Property & Casualty?
 - [ ] ¿Hay noticias importantes de la empresa esta semana?
 - [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
 - [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
@@ -730,22 +691,22 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 41%
-- Volatilidad histórica: 22%
+- Volatilidad implícita actual: 29%
+- Volatilidad histórica: 26%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
-- Próximos resultados: 2026-12-17
-- Movimiento esperado: ±$28.98 (~12.7%) hacia el vencimiento del 2026-12-31 (35 días)
+- Próximos resultados: 2027-02-03
+- Movimiento esperado: ±$19.16 (~7.0%) hacia el vencimiento del 2026-12-18 (21 días)
 
-*Estrategia posible a investigar: Covered Call*
-- Razón: La volatilidad implícita alta encarece las primas de las opciones.
-- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
-- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
-- Breakeven: Precio de compra de la acción − prima recibida.
-- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
+*Estrategia posible a investigar: Iron Condor*
+- Razón: La volatilidad implícita alta hace más atractivo vender prima con riesgo definido que comprarla.
+- Riesgo máximo: El ancho del spread (de calls o de puts) menos la prima neta recibida.
+- Ganancia máxima: La prima neta recibida al abrir la posición.
+- Breakeven: Dos puntos: strike corto de puts − prima neta, y strike corto de calls + prima neta.
+- Nota educativa: Vender un spread de calls y un spread de puts alrededor del precio actual. Gana si el precio se queda dentro de un rango hasta el vencimiento; el riesgo queda definido por el ancho de los spreads.
 
 **Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
 
-## 20. The Walt Disney Company (DIS) — 75/100
+## 19. The Walt Disney Company (DIS) — 76/100
 *Entertainment*
 
 ¿Por qué el modelo encontró esta empresa?
@@ -769,11 +730,50 @@ Analicé **494** empresas hoy. **20** pasaron todos los filtros cuantitativos.
 
 **Ideas de opciones para investigar**
 
-- Volatilidad implícita actual: 28%
+- Volatilidad implícita actual: 25%
 - Volatilidad histórica: 24%
 - IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
 - Próximos resultados: 2027-02-01
-- Movimiento esperado: ±$10.98 (~8.7%) hacia el vencimiento del 2026-12-31 (35 días)
+- Movimiento esperado: ±$9.64 (~7.6%) hacia el vencimiento del 2026-12-31 (34 días)
+
+*Estrategia posible a investigar: Covered Call*
+- Razón: La volatilidad implícita alta encarece las primas de las opciones.
+- Riesgo máximo: El riesgo de tener las 100 acciones (pueden caer a $0), reducido por la prima recibida al vender la call.
+- Ganancia máxima: (Strike vendido − precio de compra de la acción) + prima recibida -- se limita si la acción sube por encima del strike.
+- Breakeven: Precio de compra de la acción − prima recibida.
+- Nota educativa: Vender una call sobre acciones que ya se poseen. Genera ingreso por la prima, pero limita la ganancia si la acción sube mucho por encima del strike vendido.
+
+**Esto NO es una recomendación. Es solo un punto de partida educativo para investigar más a fondo.**
+
+## 20. Cintas Corporation (CTAS) — 75/100
+*Specialty Business Services*
+
+¿Por qué el modelo encontró esta empresa?
+- El precio se mantiene claramente por encima de sus promedios de largo plazo: la tendencia alcista es muy clara.
+- Ha estado subiendo de forma sostenida durante varios meses — una de las que más ha subido de todo el grupo analizado.
+- Se mueve con relativamente poca volatilidad.
+
+**¿Qué deberías investigar?**
+
+- [ ] ¿Cuándo son los próximos resultados trimestrales (earnings) de Cintas Corporation?
+- [ ] ¿Los ingresos han estado creciendo en los últimos años?
+- [ ] ¿Cuánta deuda tiene la empresa?
+- [ ] ¿Qué está esperando el consenso de analistas para los próximos trimestres?
+- [ ] ¿Los directivos (insiders) han estado comprando o vendiendo acciones propias?
+- [ ] ¿Los inversionistas institucionales están aumentando o reduciendo su posición?
+- [ ] ¿Quiénes son los competidores más grandes de Cintas Corporation dentro de Specialty Business Services?
+- [ ] ¿Hay noticias importantes de la empresa esta semana?
+- [ ] ¿La valuación actual es cara comparada con su propia historia o con su industria?
+- [ ] ¿Cómo le afectaría un cambio en las tasas de interés?
+- [ ] ¿Qué riesgos debo entender antes de invertir en esta empresa?
+
+**Ideas de opciones para investigar**
+
+- Volatilidad implícita actual: 34%
+- Volatilidad histórica: 22%
+- IV Rank: No disponible — requiere histórico de IV que el screener no recolecta hoy.
+- Próximos resultados: 2026-12-17
+- Movimiento esperado: ±$23.87 (~10.4%) hacia el vencimiento del 2026-12-31 (34 días)
 
 *Estrategia posible a investigar: Covered Call*
 - Razón: La volatilidad implícita alta encarece las primas de las opciones.
